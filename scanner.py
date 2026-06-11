@@ -20,6 +20,20 @@ from strategy import generate_signals
 # A small static fallback universe used if the screener is unavailable.
 _FALLBACK = ["AAPL", "MSFT", "NVDA", "AMZN", "TSLA", "META", "GOOGL", "AMD", "SPY", "QQQ"]
 
+# A curated core of liquid large-caps + sector leaders, always scanned alongside
+# the day's movers so there are real uptrends to catch (the movers list alone is
+# mostly volatile/declining names that can't produce a bullish crossover).
+CORE_WATCHLIST = [
+    "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AVGO", "AMD", "NFLX",
+    "ADBE", "CRM", "ORCL", "CSCO", "QCOM", "TXN", "INTC", "IBM", "MU", "PLTR",
+    "JPM", "BAC", "WFC", "GS", "MS", "C", "V", "MA", "AXP", "BLK", "SCHW", "PYPL",
+    "UNH", "JNJ", "LLY", "ABBV", "MRK", "PFE", "TMO", "ABT", "DHR",
+    "HD", "LOW", "MCD", "SBUX", "NKE", "TGT", "COST", "WMT", "DIS", "PG", "KO", "PEP",
+    "XOM", "CVX", "CAT", "DE", "BA", "GE", "HON", "UPS", "LIN",
+    "CMCSA", "T", "VZ", "UBER", "ABNB", "SHOP", "COIN", "SNOW",
+    "SPY", "QQQ", "DIA", "IWM",
+]
+
 
 def relative_volume(df: pd.DataFrame, window: int) -> float:
     """Latest volume divided by its trailing average. >1.5 ~ unusual activity."""
@@ -32,12 +46,13 @@ def relative_volume(df: pd.DataFrame, window: int) -> float:
 
 
 def build_universe(cfg: Config) -> list[str]:
-    syms: list[str] = []
+    # Core quality names first (so they always get analysed), then the day's movers.
+    syms: list[str] = list(CORE_WATCHLIST)
     try:
         syms += market.most_actives(cfg)
         syms += market.movers(cfg)
-    except Exception:  # noqa: BLE001 - screener optional; fall back gracefully
-        syms = list(_FALLBACK)
+    except Exception:  # noqa: BLE001 - screener optional; core list still works
+        pass
     if not syms:
         syms = list(_FALLBACK)
     # dedupe preserving order, cap
@@ -53,17 +68,28 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
     if df is None or len(df) < cfg.slow_ma + 2:
         return None
     sig = generate_signals(df, cfg)
-    last, prev = sig.iloc[-1], sig.iloc[-2]
+    last = sig.iloc[-1]
     price = float(last["close"])
     if price < cfg.min_price:
         return None
-    signal, prev_signal = int(last["signal"]), int(prev["signal"])
-    if signal == 1 and prev_signal == 0:
-        action = "BUY"
-    elif signal == 0 and prev_signal == 1:
-        action = "SELL"
+    signal = int(last["signal"])
+
+    # How many bars since the signal last flipped (i.e. how fresh is this state)?
+    svals = list(sig["signal"])
+    bars_since_flip = 0
+    for i in range(len(svals) - 1, 0, -1):
+        if svals[i] == svals[-1]:
+            bars_since_flip += 1
+        else:
+            break
+    fresh = bars_since_flip <= cfg.buy_window  # crossover within the last few days
+
+    if signal == 1 and fresh:
+        action = "BUY"          # entered long within the buy window
     elif signal == 1:
-        action = "HOLD LONG"
+        action = "HOLD LONG"    # long, but the cross was a while ago
+    elif signal == 0 and fresh and bars_since_flip < len(svals):
+        action = "SELL"         # just dropped out of a long
     else:
         action = "FLAT"
     relvol = relative_volume(df, cfg.rel_volume_window)

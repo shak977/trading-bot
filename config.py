@@ -37,7 +37,8 @@ class Config:
     # --- Dynamic market scan ---
     scan_market: bool = True         # live: pull movers + most-active automatically
     scan_top: int = 30               # how many names to pull from each screener
-    max_candidates: int = 60         # cap symbols actually analysed per run
+    max_candidates: int = 90         # cap symbols actually analysed per run
+    buy_window: int = 5              # a crossover within this many days still counts as a fresh BUY/SELL
     min_price: float = 5.0           # ignore sub-$5 names
     rel_volume_window: int = 20      # days for the relative-volume (flow proxy) average
     news_per_symbol: int = 4         # headlines pulled per flagged symbol
