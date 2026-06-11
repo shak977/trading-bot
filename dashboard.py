@@ -310,6 +310,7 @@ def render_html(snap: dict) -> str:
   .ovbox {{ background:var(--card); border:1px solid var(--line); border-radius:12px;
     padding:14px 16px; margin-bottom:22px; }}
   .ovhead {{ font-weight:700; font-size:14px; margin-bottom:8px; }}
+  .viewctl {{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px; }}
   .track {{ background:var(--card); border:1px solid var(--line); border-radius:12px;
     padding:16px 18px; margin:18px 0; }}
   .track h2 {{ margin:0 0 4px; }}
@@ -362,6 +363,8 @@ def render_html(snap: dict) -> str:
       <div class="ovhead">📈 Live overview — S&amp;P 500 vs your top signals <span style="font-weight:400;color:var(--muted);">(% change)</span> <span id="ovStatus"></span></div>
       <canvas id="overviewChart" height="92"></canvas>
     </div>
+    <div class="viewctl"><span style="color:var(--muted);font-size:13px;">View:</span>
+      <span class="ctlgrp" id="viewBtns"></span></div>
     <div id="cards"></div>
   </section>
 
@@ -501,21 +504,58 @@ function makeCard(s) {{
   el.addEventListener('click', () => openModal(s));
   return el;
 }}
-// group by sector, preserving the ranked order (sector ordered by its best member)
-const _bySector = {{}}, _sectorOrder = [];
-DATA.signals.forEach(s => {{
-  const sec = s.sector || 'Other / Movers';
-  if (!_bySector[sec]) {{ _bySector[sec] = []; _sectorOrder.push(sec); }}
-  _bySector[sec].push(s);
-}});
-_sectorOrder.forEach(sec => {{
-  const h = document.createElement('div'); h.className='secthead';
-  h.textContent = sec + ' · ' + _bySector[sec].length;
-  cards.appendChild(h);
-  const grid = document.createElement('div'); grid.className='grid';
-  _bySector[sec].forEach(s => grid.appendChild(makeCard(s)));
-  cards.appendChild(grid);
-}});
+// --- views: filter / sort the signal cards ---
+const _ACT_ORDER = {{'BUY':0, 'SELL':1, 'HOLD LONG':2, 'FLAT':3}};
+const _conv = s => (s.conviction ? s.conviction.score_pct : -1);
+function renderCards(view) {{
+  cards.innerHTML = '';
+  let list = DATA.signals.slice();
+  if (view === 'sector') {{
+    const by = {{}}, order = [];
+    list.forEach(s => {{ const sec = s.sector || 'Other / Movers';
+      if (!by[sec]) {{ by[sec] = []; order.push(sec); }} by[sec].push(s); }});
+    order.forEach(sec => {{
+      const h = document.createElement('div'); h.className='secthead';
+      h.textContent = sec + ' · ' + by[sec].length; cards.appendChild(h);
+      const grid = document.createElement('div'); grid.className='grid';
+      by[sec].forEach(s => grid.appendChild(makeCard(s))); cards.appendChild(grid);
+    }});
+  }} else {{
+    if (view === 'buys') list = list.filter(s => s.action === 'BUY');
+    else if (view === 'actionable') list = list.filter(s => s.action !== 'FLAT');
+    else if (view === 'conviction') list.sort((a,b) => _conv(b) - _conv(a));
+    else if (view === 'movers') list.sort((a,b) => (b.rel_volume||0) - (a.rel_volume||0));
+    else if (view === 'order') list.sort((a,b) =>
+      (_ACT_ORDER[a.action]-_ACT_ORDER[b.action]) || (_conv(b)-_conv(a)));
+    const grid = document.createElement('div'); grid.className='grid';
+    if (!list.length) grid.innerHTML = '<div style="color:var(--muted);">Nothing matches this view right now.</div>';
+    list.forEach(s => grid.appendChild(makeCard(s)));
+    cards.appendChild(grid);
+  }}
+  // re-apply any live prices to the freshly rendered cards
+  document.querySelectorAll('[data-px]').forEach(el => {{
+    const p = (typeof LIVE !== 'undefined') ? LIVE[el.dataset.px] : null;
+    if (p != null) el.textContent = _fmtPx(p);
+  }});
+}}
+(function setupViews() {{
+  const bar = document.getElementById('viewBtns');
+  const views = [['sector','By sector'],['order','Buys first'],['conviction','Highest conviction'],
+                 ['movers','Biggest movers'],['buys','Buys only'],['actionable','Actionable']];
+  let cur = 'sector';
+  try {{ cur = localStorage.getItem('view') || 'sector'; }} catch(e) {{}}
+  views.forEach(([v,lab]) => {{
+    const b = document.createElement('button'); b.textContent = lab; b.dataset.view = v;
+    if (v === cur) b.className = 'on';
+    b.onclick = () => {{
+      try {{ localStorage.setItem('view', v); }} catch(e) {{}}
+      bar.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.view === v));
+      renderCards(v);
+    }};
+    bar.appendChild(b);
+  }});
+  renderCards(cur);
+}})();
 
 // ---- live prices (via Cloudflare Worker proxy) ----
 const LIVE_SYMS = [...new Set(DATA.signals.map(s => s.symbol).concat('SPY'))];
