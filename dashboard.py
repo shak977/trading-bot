@@ -575,6 +575,7 @@ function _rebase(t, close) {{
   return {{ pts: T.map((tt, i) => ({{x: tt, y: (C[i]/base - 1) * 100}})), base }};
 }}
 function buildOverview() {{
+ try {{
   const cv = document.getElementById('overviewChart');
   if (!cv || typeof Chart === 'undefined') return;
   // pick the index + the most actionable signals (BUY/SELL/HOLD), capped for readability
@@ -584,17 +585,18 @@ function buildOverview() {{
   if (DATA.benchmark) {{
     const r = _rebase(DATA.benchmark.t, DATA.benchmark.close);
     if (r.pts.length) {{ OV_BASE['SPY'] = r.base;
-      ds.push({{label:'S&P 500', data:r.pts, borderColor:'#e6edf3', borderWidth:2.4, pointRadius:0, order:1}}); }}
+      ds.push({{type:'line', label:'S&P 500', data:r.pts, borderColor:'#e6edf3', borderWidth:2.4, pointRadius:0, order:1}}); }}
   }}
   picks.forEach((sym, i) => {{
     const c = DATA.charts[sym]; if (!c) return;
     const r = _rebase(c.t, c.close); if (!r.pts.length) return;
     OV_BASE[sym] = r.base;
-    ds.push({{label:sym, data:r.pts, borderColor:OV_PALETTE[i % OV_PALETTE.length],
+    ds.push({{type:'line', label:sym, data:r.pts, borderColor:OV_PALETTE[i % OV_PALETTE.length],
       borderWidth:1.3, pointRadius:0, order:2}});
   }});
   if (ovChart) ovChart.destroy();
   ovChart = new Chart(cv, {{
+    type:'line',
     data:{{datasets:ds}},
     options:{{responsive:true, parsing:false, interaction:{{mode:'index',intersect:false}},
       plugins:{{legend:{{labels:{{color:'#8b97a6', usePointStyle:true, boxWidth:8, font:{{size:11}}}}}},
@@ -602,6 +604,7 @@ function buildOverview() {{
       scales:{{x:{{type:'time', time:{{unit:'month'}}, ticks:{{color:'#8b97a6',maxTicksLimit:8}}, grid:{{color:'#2a3441'}}}},
                y:{{ticks:{{color:'#8b97a6', callback:v=>(v>0?'+':'')+v+'%'}}, grid:{{color:'#2a3441'}}}}}}}}
   }});
+ }} catch (e) {{ console.error('overview chart failed', e); }}
 }}
 function _updateOverviewLive() {{
   if (!ovChart) return;
@@ -612,7 +615,6 @@ function _updateOverviewLive() {{
   }});
   ovChart.update('none');
 }}
-buildOverview();
 
 // ---- detail modal ----
 const overlay = document.getElementById('overlay');
@@ -836,6 +838,9 @@ const news = document.getElementById('news');
   news.appendChild(li);
 }});
 if (!(DATA.news||[]).length) news.innerHTML = '<li class="src">No news for flagged symbols.</li>';
+
+// build the overview chart last so nothing else can be blocked by it
+buildOverview();
 </script></body></html>"""
 
 
