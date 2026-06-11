@@ -71,26 +71,32 @@ def run(signals: list[dict], cfg: Config, live: bool, today: str) -> dict:
             continue
         try:
             df = get_bars(t["symbol"], cfg) if live else synthetic_bars(t["symbol"], n=cfg.lookback_days)
-        except Exception:  # noqa: BLE001
+            if df is None or not len(df):
+                continue
+            # Normalise the index to tz-naive so it compares cleanly with the
+            # tz-naive advised_date (live Alpaca bars are tz-aware UTC).
+            df = df.copy()
+            if getattr(df.index, "tz", None) is not None:
+                df.index = df.index.tz_localize(None)
+            cutoff = pd.Timestamp(t["advised_date"])
+            after = df[df.index > cutoff]
+            for ts, row in after.iterrows():
+                if float(row["low"]) <= t["stop"]:
+                    t.update(status="loss", exit=t["stop"], exit_date=str(ts.date()))
+                    break
+                if float(row["high"]) >= t["target"]:
+                    t.update(status="win", exit=t["target"], exit_date=str(ts.date()))
+                    break
+            if t["status"] == "open" and len(after):
+                held = (after.index[-1] - cutoff).days
+                if held >= HOLD_LIMIT_DAYS:
+                    t.update(status="expired", exit=round(float(after["close"].iloc[-1]), 2),
+                             exit_date=str(after.index[-1].date()))
+            if t["status"] != "open" and "exit" in t:
+                t["return_pct"] = round((t["exit"] - t["entry"]) / t["entry"] * 100, 2)
+                t["days_held"] = (pd.Timestamp(t["exit_date"]) - cutoff).days
+        except Exception:  # noqa: BLE001 - never let one symbol break the whole tracker
             continue
-        if df is None or not len(df):
-            continue
-        after = df[df.index > pd.Timestamp(t["advised_date"])]
-        for ts, row in after.iterrows():
-            if float(row["low"]) <= t["stop"]:
-                t.update(status="loss", exit=t["stop"], exit_date=str(ts.date()))
-                break
-            if float(row["high"]) >= t["target"]:
-                t.update(status="win", exit=t["target"], exit_date=str(ts.date()))
-                break
-        if t["status"] == "open" and len(after):
-            held = (after.index[-1] - pd.Timestamp(t["advised_date"])).days
-            if held >= HOLD_LIMIT_DAYS:
-                t.update(status="expired", exit=round(float(after["close"].iloc[-1]), 2),
-                         exit_date=str(after.index[-1].date()))
-        if t["status"] != "open" and "exit" in t:
-            t["return_pct"] = round((t["exit"] - t["entry"]) / t["entry"] * 100, 2)
-            t["days_held"] = (pd.Timestamp(t["exit_date"]) - pd.Timestamp(t["advised_date"])).days
 
     _save(log)
     return _stats(log)
