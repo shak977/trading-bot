@@ -61,7 +61,7 @@ class Config:
 
     # --- Optional AI analyst (Anthropic). Leave key blank to disable. ---
     anthropic_api_key: str = field(default_factory=lambda: os.getenv("ANTHROPIC_API_KEY", ""))
-    llm_model: str = field(default_factory=lambda: os.getenv("LLM_MODEL", "claude-3-5-haiku-latest"))
+    llm_model: str = field(default_factory=lambda: os.getenv("LLM_MODEL", "claude-haiku-4-5-20251001"))
 
     @property
     def llm_enabled(self) -> bool:
