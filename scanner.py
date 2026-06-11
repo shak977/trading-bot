@@ -34,6 +34,43 @@ CORE_WATCHLIST = [
     "SPY", "QQQ", "DIA", "IWM",
 ]
 
+# Sector for grouping on the dashboard. Anything not listed falls under "Other".
+SECTOR_MAP = {
+    # Technology
+    "AAPL": "Technology", "MSFT": "Technology", "NVDA": "Technology", "AVGO": "Technology",
+    "AMD": "Technology", "ADBE": "Technology", "CRM": "Technology", "ORCL": "Technology",
+    "CSCO": "Technology", "QCOM": "Technology", "TXN": "Technology", "INTC": "Technology",
+    "IBM": "Technology", "MU": "Technology", "PLTR": "Technology", "SNOW": "Technology",
+    # Communication
+    "GOOGL": "Communication", "META": "Communication", "NFLX": "Communication",
+    "CMCSA": "Communication", "T": "Communication", "VZ": "Communication", "DIS": "Communication",
+    # Consumer Discretionary
+    "AMZN": "Consumer", "TSLA": "Consumer", "HD": "Consumer", "LOW": "Consumer",
+    "MCD": "Consumer", "SBUX": "Consumer", "NKE": "Consumer", "TGT": "Consumer",
+    "UBER": "Consumer", "ABNB": "Consumer", "SHOP": "Consumer",
+    # Consumer Staples
+    "COST": "Staples", "WMT": "Staples", "PG": "Staples", "KO": "Staples", "PEP": "Staples",
+    # Financials
+    "JPM": "Financials", "BAC": "Financials", "WFC": "Financials", "GS": "Financials",
+    "MS": "Financials", "C": "Financials", "V": "Financials", "MA": "Financials",
+    "AXP": "Financials", "BLK": "Financials", "SCHW": "Financials", "PYPL": "Financials",
+    "COIN": "Financials",
+    # Healthcare
+    "UNH": "Healthcare", "JNJ": "Healthcare", "LLY": "Healthcare", "ABBV": "Healthcare",
+    "MRK": "Healthcare", "PFE": "Healthcare", "TMO": "Healthcare", "ABT": "Healthcare",
+    "DHR": "Healthcare",
+    # Energy / Industrials / Materials
+    "XOM": "Energy", "CVX": "Energy",
+    "CAT": "Industrials", "DE": "Industrials", "BA": "Industrials", "GE": "Industrials",
+    "HON": "Industrials", "UPS": "Industrials", "LIN": "Materials",
+    # Index ETFs
+    "SPY": "Index ETFs", "QQQ": "Index ETFs", "DIA": "Index ETFs", "IWM": "Index ETFs",
+}
+
+
+def sector_of(symbol: str) -> str:
+    return SECTOR_MAP.get(symbol, "Other / Movers")
+
 
 def relative_volume(df: pd.DataFrame, window: int) -> float:
     """Latest volume divided by its trailing average. >1.5 ~ unusual activity."""

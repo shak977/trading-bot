@@ -83,6 +83,7 @@ def build_snapshot() -> dict:
         else:
             nm, ex = _demo_names.get(r["symbol"], (r["symbol"] + " (demo)", "DEMO"))
             r["name"], r["exchange"] = nm, ex
+        r["sector"] = scanner.sector_of(r["symbol"])
 
     # Attach each ticker's own headlines to its row (for the click-through detail),
     # and fold a plain-English news line into the reasoning so it's news-aware.
@@ -303,6 +304,9 @@ def render_html(snap: dict) -> str:
     font-weight:600; padding:10px 16px; cursor:pointer; border-bottom:2px solid transparent; }}
   .tabs button.on {{ color:var(--txt); border-bottom-color:var(--hold); }}
   .page {{ display:none; }} .page.on {{ display:block; }}
+  .secthead {{ font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase;
+    letter-spacing:.05em; margin:22px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--line); }}
+  .secthead:first-child {{ margin-top:4px; }}
   .track {{ background:var(--card); border:1px solid var(--line); border-radius:12px;
     padding:16px 18px; margin:18px 0; }}
   .track h2 {{ margin:0 0 4px; }}
@@ -350,8 +354,8 @@ def render_html(snap: dict) -> str:
   </nav>
 
   <section class="page on" id="page-signals">
-    <h2 style="margin-top:0;">Signals <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— click any card for the full reasoning</span></h2>
-    <div class="grid" id="cards"></div>
+    <h2 style="margin-top:0;">Signals <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— grouped by sector · click any card for the full reasoning</span></h2>
+    <div id="cards"></div>
   </section>
 
   <section class="page" id="page-track">
@@ -468,7 +472,7 @@ if ((DATA.diagnostics||[]).length) {{
     + DATA.diagnostics.map(e => '&bull; '+e).join('<br>') + '</div>';
 }}
 const cards = document.getElementById('cards');
-DATA.signals.forEach(s => {{
+function makeCard(s) {{
   const el = document.createElement('div'); el.className='card';
   const cls = (s.action||'').replace(' ','');
   const hot = (s.rel_volume!=null && s.rel_volume>=1.5) ? ' hot' : '';
@@ -488,7 +492,22 @@ DATA.signals.forEach(s => {{
     ${{s.conviction ? `<div class="kv"><span>Conviction</span><span><span class="convbadge conv-${{s.conviction.label}}" style="font-size:11px;">${{s.conviction.label}} ${{s.conviction.score_pct}}%</span></span></div>`:''}}
     <div class="more">${{nNews ? nNews+' news &middot; ':''}}click for full plan + reasoning →</div>`;
   el.addEventListener('click', () => openModal(s));
-  cards.appendChild(el);
+  return el;
+}}
+// group by sector, preserving the ranked order (sector ordered by its best member)
+const _bySector = {{}}, _sectorOrder = [];
+DATA.signals.forEach(s => {{
+  const sec = s.sector || 'Other / Movers';
+  if (!_bySector[sec]) {{ _bySector[sec] = []; _sectorOrder.push(sec); }}
+  _bySector[sec].push(s);
+}});
+_sectorOrder.forEach(sec => {{
+  const h = document.createElement('div'); h.className='secthead';
+  h.textContent = sec + ' · ' + _bySector[sec].length;
+  cards.appendChild(h);
+  const grid = document.createElement('div'); grid.className='grid';
+  _bySector[sec].forEach(s => grid.appendChild(makeCard(s)));
+  cards.appendChild(grid);
 }});
 
 // ---- live prices (via Cloudflare Worker proxy) ----
