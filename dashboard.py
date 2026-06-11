@@ -203,6 +203,18 @@ def render_html(snap: dict) -> str:
   .checks .ck-l {{ font-weight:600; }} .checks .ck-n {{ color:var(--muted); }}
   .chartkey {{ color:var(--muted); font-size:12px; margin-top:8px; line-height:1.6; }}
   .reasons li {{ font-size:14px; line-height:1.5; }}
+  .method {{ background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:4px 18px; margin:18px 0 8px; }}
+  .method summary {{ cursor:pointer; font-weight:700; font-size:15px; padding:12px 0;
+    list-style:none; }}
+  .method summary::-webkit-details-marker {{ display:none; }}
+  .method summary:before {{ content:'▸ '; color:var(--hold); }}
+  .method[open] summary:before {{ content:'▾ '; }}
+  .method h4 {{ margin:16px 0 6px; font-size:14px; color:var(--txt); }}
+  .method p, .method li {{ font-size:14px; color:#c4ccd6; line-height:1.6; }}
+  .method ol, .method ul {{ padding-left:20px; margin:6px 0; }}
+  .method .pill {{ display:inline-block; background:#0f1722; border:1px solid var(--line);
+    border-radius:6px; padding:1px 7px; font-size:13px; color:var(--txt); }}
 </style></head>
 <body><div class="wrap">
   <h1>Trading Signals Dashboard</h1>
@@ -211,6 +223,54 @@ def render_html(snap: dict) -> str:
     scanned {snap['scanned']} symbols</div>
   <div class="note">{mode_note}</div>
   <div id="diag"></div>
+
+  <details class="method" open>
+    <summary>How this works — what we're looking for &amp; the strategy</summary>
+
+    <h4>The big picture</h4>
+    <p>This page is an automated <b>stock screen</b>. Once a week it scans the busiest, biggest-moving
+    US stocks and flags the ones that look like they're <b>starting to trend upward</b>, using a
+    simple, well-known momentum strategy. It's a research tool to tell you <i>where to look</i> — not
+    a tip service.</p>
+
+    <h4>What we're looking for</h4>
+    <p>Stocks where a short-term price trend is overtaking the longer-term trend — the classic early
+    sign of a move higher — and where momentum and trading activity back that up.</p>
+
+    <h4>The strategy: moving-average crossover (trend-following)</h4>
+    <p>A "moving average" is just the average price over the last N days, which smooths out the daily
+    noise so the underlying direction is visible. We track two:
+    a fast one (<span class="pill">{snap['params']['fast_ma']}-day</span>) and a slow one
+    (<span class="pill">{snap['params']['slow_ma']}-day</span>).</p>
+    <ol>
+      <li><b>Scan</b> — pull the day's most-active stocks and biggest gainers/losers.</li>
+      <li><b>Buy signal</b> — the fast average crosses <b>above</b> the slow one (an uptrend is starting),
+      as long as momentum (RSI) isn't already overheated.</li>
+      <li><b>Sell signal</b> — the fast average crosses back <b>below</b> the slow one, or momentum gets
+      overbought (the move looks exhausted).</li>
+      <li><b>Risk first</b> — every trade gets a <b>stop-loss</b> (a safety exit ~{snap['params']['stop_loss_pct']:.0%}
+      below entry) and a <b>take-profit</b> target (~{snap['params']['take_profit_pct']:.0%} above), with the
+      position sized so a stop-out costs only about {snap['params']['risk_per_trade']:.0%} of the account.</li>
+    </ol>
+
+    <h4>The three things each signal checks</h4>
+    <ul>
+      <li><b>Trend</b> — is the short-term average above the long-term one? (direction)</li>
+      <li><b>Momentum (RSI)</b> — a 0–100 gauge of how fast/far price has moved; we want room to rise,
+      not already overheated.</li>
+      <li><b>Volume</b> — are more people trading it than usual? Heavy volume gives a move more conviction.</li>
+    </ul>
+
+    <h4>How to use it</h4>
+    <p>Each card shows the action and a <b>conviction score</b> (how well it fits the rules). Click any
+    card for the full breakdown: a plain-English explanation, the trade plan (entry, stop, target,
+    risk:reward), a chart marking where the strategy would have bought/sold, and recent news.</p>
+
+    <h4>Honest limits</h4>
+    <p>This is an <b>educational tool, not financial advice</b>. Signals are often wrong, the data is
+    free and slightly delayed, and the numbers ignore fees and slippage. Treat it as a starting point
+    for your own research — never risk money you can't afford to lose.</p>
+  </details>
 
   <h2>Signals <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— click any card for the full reasoning</span></h2>
   <div class="grid" id="cards"></div>
