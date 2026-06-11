@@ -56,6 +56,8 @@ class Config:
     stop_loss_pct: float = 0.05      # 5% below entry
     take_profit_pct: float = 0.15    # 15% above entry
     max_positions: int = 5
+    atr_period: int = 14             # ATR lookback for volatility-based stop
+    atr_stop_mult: float = 2.0       # ATR-based stop = entry - mult * ATR
 
     def validate_for_live(self) -> None:
         if not self.api_key or not self.secret_key:

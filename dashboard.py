@@ -159,6 +159,15 @@ def render_html(snap: dict) -> str:
   .modal .sech {{ color:var(--muted); text-transform:uppercase; font-size:12px;
     letter-spacing:.05em; margin:18px 0 8px; }}
   .modal .chartbox {{ margin-top:0; }}
+  .plangrid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:10px; }}
+  .stat {{ background:#0f1722; border:1px solid var(--line); border-radius:10px;
+    padding:10px 12px; }}
+  .stat .l {{ color:var(--muted); font-size:11px; text-transform:uppercase;
+    letter-spacing:.04em; }}
+  .stat .v {{ font-size:17px; font-weight:700; margin-top:2px; }}
+  .stat .v.buy {{ color:var(--buy); }} .stat .v.sell {{ color:var(--sell); }}
+  .stat .sub {{ color:var(--muted); font-size:11px; }}
 </style></head>
 <body><div class="wrap">
   <h1>Trading Signals Dashboard</h1>
@@ -194,6 +203,10 @@ def render_html(snap: dict) -> str:
     <button class="close" id="modalClose">&times;</button>
     <h3 id="mTitle"></h3>
     <div class="summary" id="mSummary"></div>
+    <div class="sech">Trade plan <span id="mPlanNote" style="text-transform:none;color:var(--muted);"></span></div>
+    <div class="plangrid" id="mPlan"></div>
+    <div class="sech">Market context</div>
+    <div class="plangrid" id="mContext"></div>
     <div class="sech">Why this signal</div>
     <ul class="reasons" id="mReasons"></ul>
     <div class="sech">Price &amp; moving averages</div>
@@ -240,6 +253,29 @@ function openModal(s) {{
   document.getElementById('mTitle').innerHTML =
     `${{s.symbol}} <span class="act a-${{cls}}" style="float:none;font-size:13px;">${{s.action}}</span> &nbsp; <span style="color:var(--muted);font-size:15px;">$${{s.price.toLocaleString()}}</span>`;
   document.getElementById('mSummary').textContent = s.summary || '';
+
+  const p = s.plan || {{}}, ctx = s.context || {{}};
+  const money = v => (v==null ? '–' : '$'+Number(v).toLocaleString(undefined,{{minimumFractionDigits:2,maximumFractionDigits:2}}));
+  const pct = v => (v==null ? '–' : (v>0?'+':'')+v+'%');
+  const stat = (label, value, sub, cls) =>
+    `<div class="stat"><div class="l">${{label}}</div><div class="v ${{cls||''}}">${{value}}</div>${{sub?`<div class="sub">${{sub}}</div>`:''}}</div>`;
+  document.getElementById('mPlanNote').textContent =
+    (s.action==='BUY'||s.action==='HOLD LONG') ? '(long — active)' : '— levels if you took this long';
+  document.getElementById('mPlan').innerHTML =
+    stat('Entry', money(p.entry), 'current price') +
+    stat('Stop-loss', money(p.stop), `−${{p.stop_pct}}%  ·  ATR-based`, 'sell') +
+    stat('Take-profit', money(p.target), `+${{p.target_pct}}%`, 'buy') +
+    stat('Risk : Reward', p.rr!=null ? ('1 : '+p.rr) : '–', 'reward per $1 risked') +
+    stat('Position size', (p.shares||0)+' sh', money(p.exposure)+' exposure') +
+    stat('$ at risk', money(p.dollar_risk), `${{p.shares||0}} sh to stop`, 'sell');
+  document.getElementById('mContext').innerHTML =
+    stat('Today', pct(ctx.day_change_pct)) +
+    stat('Volatility (ATR)', money(ctx.atr), (ctx.atr_pct!=null?ctx.atr_pct+'% of price':'')) +
+    stat('Vs trend line', pct(ctx.vs_slow_ma_pct), 'price vs slow MA') +
+    stat('From recent high', pct(ctx.pct_from_high), money(ctx.period_high)) +
+    stat('From recent low', pct(ctx.pct_from_low), money(ctx.period_low)) +
+    stat('History', (ctx.history_bars||0)+' bars', 'data depth');
+
   document.getElementById('mReasons').innerHTML =
     (s.reasons||[]).map(r => `<li>${{r}}</li>`).join('') || '<li>No details available.</li>';
   const nl = document.getElementById('mNews');

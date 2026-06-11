@@ -13,6 +13,7 @@ import pandas as pd
 import market
 from config import Config
 from data import get_bars, synthetic_bars
+from indicators import atr
 from risk import position_size, stop_loss_price, take_profit_price
 from strategy import generate_signals
 
@@ -70,6 +71,7 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
     tail = sig.tail(120)
     rv_rounded = None if np.isnan(relvol) else round(relvol, 2)
     summary, reasons = _reasoning(sig, cfg, action, price, rv_rounded)
+    plan, context = _trade_plan(df, sig, cfg, price, equity)
     return {
         "symbol": symbol,
         "action": action,
@@ -84,6 +86,8 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
         "as_of": str(sig.index[-1].date()),
         "summary": summary,
         "reasons": reasons,
+        "plan": plan,
+        "context": context,
         "chart": {
             "dates": [str(d.date()) for d in tail.index],
             "close": [round(float(x), 2) for x in tail["close"]],
@@ -161,6 +165,68 @@ def _reasoning(sig, cfg: Config, action: str, price: float, relvol):
         summary = "No active bullish crossover, so the strategy is staying out for now."
 
     return summary, reasons
+
+
+def _trade_plan(df, sig, cfg: Config, price: float, equity: float):
+    """Concrete long-side trade plan + market context, in price/dollar terms.
+
+    The strategy is long-only, so the plan describes entering/holding a long.
+    For non-BUY signals it still shows the levels you'd use *if* you took the
+    trade, clearly labelled.
+    """
+    atr_series = atr(df, cfg.atr_period)
+    atr_val = float(atr_series.iloc[-1]) if not np.isnan(atr_series.iloc[-1]) else None
+
+    entry = price
+    stop_pct = stop_loss_price(entry, cfg)                     # flat % stop
+    stop_atr = (entry - cfg.atr_stop_mult * atr_val) if atr_val else None
+    # use the tighter (higher) of the two as the working stop, but show both
+    working_stop = max(stop_pct, stop_atr) if stop_atr else stop_pct
+    target = take_profit_price(entry, cfg)
+
+    shares = position_size(equity, entry, cfg)
+    per_share_risk = entry - working_stop
+    dollar_risk = shares * per_share_risk if shares else 0.0
+    exposure = shares * entry if shares else 0.0
+    reward = target - entry
+    rr = (reward / per_share_risk) if per_share_risk > 0 else None
+
+    def r(x):
+        return None if x is None else round(float(x), 2)
+
+    plan = {
+        "direction": "LONG",
+        "entry": r(entry),
+        "stop": r(working_stop),
+        "stop_pct": round((entry - working_stop) / entry * 100, 1),
+        "stop_flat": r(stop_pct),
+        "stop_atr": r(stop_atr),
+        "target": r(target),
+        "target_pct": round((target - entry) / entry * 100, 1),
+        "rr": None if rr is None else round(rr, 2),
+        "shares": shares,
+        "dollar_risk": r(dollar_risk),
+        "exposure": r(exposure),
+    }
+
+    # --- market context ---
+    closes = df["close"]
+    day_change = (float(closes.iloc[-1]) / float(closes.iloc[-2]) - 1) * 100 if len(closes) > 1 else None
+    hi = float(df["high"].max())
+    lo = float(df["low"].min())
+    slow = float(sig["slow"].iloc[-1])
+    context = {
+        "atr": r(atr_val),
+        "atr_pct": round(atr_val / entry * 100, 1) if atr_val else None,
+        "day_change_pct": None if day_change is None else round(day_change, 2),
+        "period_high": r(hi),
+        "period_low": r(lo),
+        "pct_from_high": round((entry / hi - 1) * 100, 1) if hi else None,
+        "pct_from_low": round((entry / lo - 1) * 100, 1) if lo else None,
+        "vs_slow_ma_pct": round((entry / slow - 1) * 100, 1) if slow else None,
+        "history_bars": int(len(df)),
+    }
+    return plan, context
 
 
 def _rank_key(row: dict) -> tuple:
