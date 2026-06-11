@@ -297,6 +297,12 @@ def render_html(snap: dict) -> str:
   .checks .ck-l {{ font-weight:600; }} .checks .ck-n {{ color:var(--muted); }}
   .chartkey {{ color:var(--muted); font-size:12px; margin-top:8px; line-height:1.6; }}
   .reasons li {{ font-size:14px; line-height:1.5; }}
+  .tabs {{ display:flex; gap:4px; flex-wrap:wrap; border-bottom:1px solid var(--line);
+    margin:18px 0 22px; position:sticky; top:0; background:var(--bg); z-index:10; padding-top:6px; }}
+  .tabs button {{ background:none; border:none; color:var(--muted); font-size:15px;
+    font-weight:600; padding:10px 16px; cursor:pointer; border-bottom:2px solid transparent; }}
+  .tabs button.on {{ color:var(--txt); border-bottom-color:var(--hold); }}
+  .page {{ display:none; }} .page.on {{ display:block; }}
   .track {{ background:var(--card); border:1px solid var(--line); border-radius:12px;
     padding:16px 18px; margin:18px 0; }}
   .track h2 {{ margin:0 0 4px; }}
@@ -336,63 +342,74 @@ def render_html(snap: dict) -> str:
   <div class="note">{mode_note}</div>
   <div id="diag"></div>
 
-  <details class="method" open>
-    <summary>How this works — what we're looking for &amp; the strategy</summary>
+  <nav class="tabs" id="tabs">
+    <button data-page="signals" class="on">Signals</button>
+    <button data-page="track">Track record</button>
+    <button data-page="method">How it works</button>
+    <button data-page="news">Market news</button>
+  </nav>
 
-    <h4>The big picture</h4>
-    <p>This page is an automated <b>stock screen</b>. Every weekday (after the US close) it scans the
-    busiest, biggest-moving US stocks and flags the ones that look like they're <b>starting to trend
-    upward</b>, using a simple, well-known momentum strategy. It's a research tool to tell you
-    <i>where to look</i> — not a tip service.</p>
+  <section class="page on" id="page-signals">
+    <h2 style="margin-top:0;">Signals <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— click any card for the full reasoning</span></h2>
+    <div class="grid" id="cards"></div>
+  </section>
 
-    <h4>What we're looking for</h4>
-    <p>Stocks where a short-term price trend is overtaking the longer-term trend — the classic early
-    sign of a move higher — and where momentum and trading activity back that up.</p>
-
-    <h4>The strategy: moving-average crossover (trend-following)</h4>
-    <p>A "moving average" is just the average price over the last N days, which smooths out the daily
-    noise so the underlying direction is visible. We track two:
-    a fast one (<span class="pill">{snap['params']['fast_ma']}-day</span>) and a slow one
-    (<span class="pill">{snap['params']['slow_ma']}-day</span>).</p>
-    <ol>
-      <li><b>Scan</b> — pull the day's most-active stocks and biggest gainers/losers.</li>
-      <li><b>Buy signal</b> — the fast average crosses <b>above</b> the slow one (an uptrend is starting),
-      as long as momentum (RSI) isn't already overheated.</li>
-      <li><b>Sell signal</b> — the fast average crosses back <b>below</b> the slow one, or momentum gets
-      overbought (the move looks exhausted).</li>
-      <li><b>Risk first</b> — every trade gets a <b>stop-loss</b> (a safety exit ~{snap['params']['stop_loss_pct']:.0%}
-      below entry) and a <b>take-profit</b> target (~{snap['params']['take_profit_pct']:.0%} above), with the
-      position sized so a stop-out costs only about {snap['params']['risk_per_trade']:.0%} of the account.</li>
-    </ol>
-
-    <h4>The three things each signal checks</h4>
-    <ul>
-      <li><b>Trend</b> — is the short-term average above the long-term one? (direction)</li>
-      <li><b>Momentum (RSI)</b> — a 0–100 gauge of how fast/far price has moved; we want room to rise,
-      not already overheated.</li>
-      <li><b>Volume</b> — are more people trading it than usual? Heavy volume gives a move more conviction.</li>
-    </ul>
-
-    <h4>How to use it</h4>
-    <p>Each card shows the action and a <b>conviction score</b> (how well it fits the rules). Click any
-    card for the full breakdown: a plain-English explanation, the trade plan (entry, stop, target,
-    risk:reward), a chart marking where the strategy would have bought/sold, and recent news.</p>
-
-    <h4>Honest limits</h4>
-    <p>This is an <b>educational tool, not financial advice</b>. Signals are often wrong, the data is
-    free and slightly delayed, and the numbers ignore fees and slippage. Treat it as a starting point
-    for your own research — never risk money you can't afford to lose.</p>
-  </details>
+  <section class="page" id="page-track">
 {track_html}
-  <h2>Signals <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— click any card for the full reasoning</span></h2>
-  <div class="grid" id="cards"></div>
+  </section>
 
-  <h2>Price &amp; moving averages</h2>
-  <label for="symsel">Symbol:</label> <select id="symsel"></select>
-  <div class="chartbox"><canvas id="chart" height="110"></canvas></div>
+  <section class="page" id="page-method">
+    <div class="method">
+      <h4>The big picture</h4>
+      <p>This page is an automated <b>stock screen</b>. Every weekday (after the US close) it scans a
+      curated list of major stocks plus the day's biggest movers, and flags the ones that look like
+      they're <b>starting to trend upward</b>, using a simple, well-known momentum strategy. It's a
+      research tool to tell you <i>where to look</i> — not a tip service.</p>
 
-  <h2>News</h2>
-  <ul class="news" id="news"></ul>
+      <h4>What we're looking for</h4>
+      <p>Stocks where a short-term price trend is overtaking the longer-term trend — the classic early
+      sign of a move higher — and where momentum and trading activity back that up.</p>
+
+      <h4>The strategy: moving-average crossover (trend-following)</h4>
+      <p>A "moving average" is just the average price over the last N days, which smooths out the daily
+      noise so the underlying direction is visible. We track two:
+      a fast one (<span class="pill">{snap['params']['fast_ma']}-day</span>) and a slow one
+      (<span class="pill">{snap['params']['slow_ma']}-day</span>).</p>
+      <ol>
+        <li><b>Scan</b> — curated large-caps plus the day's most-active stocks and biggest movers.</li>
+        <li><b>Buy signal</b> — the fast average crosses <b>above</b> the slow one (an uptrend is starting),
+        as long as momentum (RSI) isn't already overheated.</li>
+        <li><b>Sell signal</b> — the fast average crosses back <b>below</b> the slow one, or momentum gets
+        overbought (the move looks exhausted).</li>
+        <li><b>Risk first</b> — every trade gets a <b>stop-loss</b> (a safety exit ~{snap['params']['stop_loss_pct']:.0%}
+        below entry) and a <b>take-profit</b> target (~{snap['params']['take_profit_pct']:.0%} above), with the
+        position sized so a stop-out costs only about {snap['params']['risk_per_trade']:.0%} of the account.</li>
+      </ol>
+
+      <h4>The three things each signal checks</h4>
+      <ul>
+        <li><b>Trend</b> — is the short-term average above the long-term one? (direction)</li>
+        <li><b>Momentum (RSI)</b> — a 0–100 gauge of how fast/far price has moved; we want room to rise,
+        not already overheated.</li>
+        <li><b>Volume</b> — are more people trading it than usual? Heavy volume gives a move more conviction.</li>
+      </ul>
+
+      <h4>How to use it</h4>
+      <p>Each card shows the action and a <b>conviction score</b> (how well it fits the rules). Click any
+      card for the full breakdown: a plain-English explanation, the trade plan (entry, stop, target,
+      risk:reward), a chart marking where the strategy would have bought/sold, and recent news.</p>
+
+      <h4>Honest limits</h4>
+      <p>This is an <b>educational tool, not financial advice</b>. Signals are often wrong, the data is
+      free and slightly delayed, and the numbers ignore fees and slippage. Treat it as a starting point
+      for your own research — never risk money you can't afford to lose.</p>
+    </div>
+  </section>
+
+  <section class="page" id="page-news">
+    <h2 style="margin-top:0;">Market news <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— recent headlines across the scanned stocks</span></h2>
+    <ul class="news" id="news"></ul>
+  </section>
 
   <div class="disclaimer">
     Strategy: {snap['params']['fast_ma']}/{snap['params']['slow_ma']} SMA crossover with
@@ -679,27 +696,20 @@ document.getElementById('modalClose').addEventListener('click', closeModal);
 overlay.addEventListener('click', e => {{ if (e.target === overlay) closeModal(); }});
 document.addEventListener('keydown', e => {{ if (e.key === 'Escape') closeModal(); }});
 
-const sel = document.getElementById('symsel');
-Object.keys(DATA.charts).forEach(sym => {{ const o=document.createElement('option'); o.value=o.textContent=sym; sel.appendChild(o); }});
-let chart;
-function draw(sym) {{
-  const c = DATA.charts[sym]; if (!c) return;
-  const ds = [
-    {{label:'Close', data:c.close, borderColor:'#e6edf3', borderWidth:1.5, pointRadius:0}},
-    {{label:'Fast MA', data:c.fast, borderColor:'#388bfd', borderWidth:1.5, pointRadius:0}},
-    {{label:'Slow MA', data:c.slow, borderColor:'#f0883e', borderWidth:1.5, pointRadius:0}},
-  ];
-  if (chart) chart.destroy();
-  chart = new Chart(document.getElementById('chart'), {{
-    type:'line', data:{{labels:c.dates, datasets:ds}},
-    options:{{responsive:true, interaction:{{mode:'index',intersect:false}},
-      plugins:{{legend:{{labels:{{color:'#8b97a6'}}}}}},
-      scales:{{x:{{ticks:{{color:'#8b97a6',maxTicksLimit:8}},grid:{{color:'#2a3441'}}}},
-               y:{{ticks:{{color:'#8b97a6'}},grid:{{color:'#2a3441'}}}}}}}}
-  }});
-}}
-sel.addEventListener('change', e => draw(e.target.value));
-if (sel.options.length) draw(sel.value);
+// ---- tab navigation ----
+(function setupTabs() {{
+  const tabs = document.querySelectorAll('#tabs button');
+  function show(page) {{
+    tabs.forEach(b => b.classList.toggle('on', b.dataset.page === page));
+    document.querySelectorAll('.page').forEach(s => s.classList.toggle('on', s.id === 'page-' + page));
+    try {{ localStorage.setItem('tab', page); }} catch (e) {{}}
+    window.scrollTo(0, 0);
+  }}
+  tabs.forEach(b => b.addEventListener('click', () => show(b.dataset.page)));
+  let saved = 'signals';
+  try {{ saved = localStorage.getItem('tab') || 'signals'; }} catch (e) {{}}
+  show(saved);
+}})();
 
 const news = document.getElementById('news');
 (DATA.news||[]).forEach(n => {{
