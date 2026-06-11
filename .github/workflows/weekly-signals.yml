@@ -27,12 +27,22 @@ jobs:
       - name: Install deps
         run: pip install -r requirements.txt
 
+      - name: Is today a US trading day?
+        id: gate
+        env:
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          ALPACA_PAPER: "true"
+        run: echo "trading=$(python gate.py)" >> "$GITHUB_OUTPUT"
+
       - name: Generate dashboard
+        if: ${{ github.event_name != 'schedule' || steps.gate.outputs.trading == 'true' }}
         env:
           ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
           ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
           ALPACA_PAPER: "true"
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LIVE_QUOTES_URL: ${{ secrets.LIVE_QUOTES_URL }}
         run: |
           python dashboard.py
           mkdir -p _site
@@ -41,6 +51,7 @@ jobs:
           cp track_record.json _site/track_record.json 2>/dev/null || true
 
       - name: Commit updated track record
+        if: ${{ github.event_name != 'schedule' || steps.gate.outputs.trading == 'true' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -49,8 +60,10 @@ jobs:
           git push
 
       - uses: actions/upload-pages-artifact@v3
+        if: ${{ github.event_name != 'schedule' || steps.gate.outputs.trading == 'true' }}
         with:
           path: _site
 
       - id: deployment
+        if: ${{ github.event_name != 'schedule' || steps.gate.outputs.trading == 'true' }}
         uses: actions/deploy-pages@v4

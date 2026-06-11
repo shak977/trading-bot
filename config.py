@@ -67,6 +67,9 @@ class Config:
     def llm_enabled(self) -> bool:
         return bool(self.anthropic_api_key)
 
+    # --- Optional live-quote proxy (Cloudflare Worker URL). Blank = disabled. ---
+    live_quotes_url: str = field(default_factory=lambda: os.getenv("LIVE_QUOTES_URL", "").rstrip("/"))
+
     def validate_for_live(self) -> None:
         if not self.api_key or not self.secret_key:
             raise RuntimeError(

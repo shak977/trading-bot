@@ -332,7 +332,7 @@ def render_html(snap: dict) -> str:
   <h1>Trading Signals Dashboard</h1>
   <div class="meta">Generated {snap['generated_at']} &middot;
     <span class="badge m-{mode}">{mode}</span> &middot;
-    scanned {snap['scanned']} symbols</div>
+    scanned {snap['scanned']} symbols <span id="liveStatus"></span></div>
   <div class="note">{mode_note}</div>
   <div id="diag"></div>
 
@@ -438,6 +438,7 @@ def render_html(snap: dict) -> str:
 </div>
 <script>
 const DATA = {data_json};
+const LIVE_URL = "{CONFIG.live_quotes_url}";
 const diag = document.getElementById('diag');
 if ((DATA.diagnostics||[]).length) {{
   diag.innerHTML = '<div style="background:#3a1e1e;border:1px solid #5a1e1e;color:#ff9b9b;'
@@ -455,7 +456,7 @@ DATA.signals.forEach(s => {{
     <div><span class="sym">${{s.symbol}}</span>
       <span class="act a-${{cls}}">${{s.action}}</span></div>
     ${{s.name ? `<div class="cname">${{s.name}}${{s.exchange?` · ${{s.exchange}}`:''}}</div>`:''}}
-    <div class="px">$${{s.price.toLocaleString()}}</div>`;
+    <div class="px" data-px="${{s.symbol}}">$${{s.price.toLocaleString()}}</div>`;
   el.innerHTML += `
     <div class="kv"><span>As of</span><span>${{s.as_of}}</span></div>
     <div class="kv"><span>RSI</span><span>${{s.rsi}}</span></div>
@@ -469,13 +470,36 @@ DATA.signals.forEach(s => {{
   cards.appendChild(el);
 }});
 
+// ---- live prices (via Cloudflare Worker proxy) ----
+const LIVE_SYMS = DATA.signals.map(s => s.symbol);
+function _fmtPx(v) {{ return '$' + Number(v).toLocaleString(undefined, {{minimumFractionDigits:2, maximumFractionDigits:2}}); }}
+async function refreshLive() {{
+  if (!LIVE_URL) return;
+  const st = document.getElementById('liveStatus');
+  try {{
+    const r = await fetch(LIVE_URL + '?symbols=' + encodeURIComponent(LIVE_SYMS.join(',')));
+    if (!r.ok) throw new Error('bad');
+    const d = await r.json();
+    const prices = d.prices || {{}};
+    document.querySelectorAll('[data-px]').forEach(el => {{
+      const p = prices[el.dataset.px];
+      if (p != null) el.textContent = _fmtPx(p);
+    }});
+    const tm = new Date(d.at || Date.now()).toLocaleTimeString();
+    st.innerHTML = '&middot; <span style="color:#2ea043;">● Live</span> <span style="color:#8b97a6;">'+tm+'</span>';
+  }} catch (e) {{
+    st.innerHTML = '&middot; <span style="color:#8b97a6;">live prices unavailable</span>';
+  }}
+}}
+if (LIVE_URL) {{ refreshLive(); setInterval(refreshLive, 30000); }}
+
 // ---- detail modal ----
 const overlay = document.getElementById('overlay');
 let mChart;
 function openModal(s) {{
   const cls = (s.action||'').replace(' ','');
   document.getElementById('mTitle').innerHTML =
-    `${{s.symbol}} <span class="act a-${{cls}}" style="float:none;font-size:13px;">${{s.action}}</span> &nbsp; <span style="color:var(--muted);font-size:15px;">$${{s.price.toLocaleString()}}</span>`
+    `${{s.symbol}} <span class="act a-${{cls}}" style="float:none;font-size:13px;">${{s.action}}</span> &nbsp; <span data-px="${{s.symbol}}" style="color:var(--muted);font-size:15px;">$${{s.price.toLocaleString()}}</span>`
     + (s.name ? `<div class="cname" style="font-size:13px;margin-top:4px;">${{s.name}}${{s.exchange?` · ${{s.exchange}}`:''}}</div>` : '');
   document.getElementById('mSummary').textContent = s.summary || '';
   document.getElementById('mDesk').textContent = s.desk_read || '';

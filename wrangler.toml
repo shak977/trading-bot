@@ -1,0 +1,5 @@
+# Cloudflare Worker config — tells `wrangler deploy` what to ship.
+# Only worker.js is deployed as the Worker; the rest of the repo is ignored.
+name = "trading-bot"
+main = "worker.js"
+compatibility_date = "2024-11-01"
