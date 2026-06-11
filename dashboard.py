@@ -15,6 +15,8 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 
+import pandas as pd
+
 import market
 import scanner
 from config import CONFIG
@@ -66,6 +68,22 @@ def build_snapshot() -> dict:
     else:
         news = _synthetic_news(shown_syms)
 
+    # Company name + exchange for each shown ticker.
+    _demo_names = {
+        "AAPL": ("Apple Inc.", "NASDAQ"), "MSFT": ("Microsoft Corp.", "NASDAQ"),
+        "NVDA": ("NVIDIA Corp.", "NASDAQ"), "AMZN": ("Amazon.com Inc.", "NASDAQ"),
+        "TSLA": ("Tesla Inc.", "NASDAQ"), "META": ("Meta Platforms Inc.", "NASDAQ"),
+        "GOOGL": ("Alphabet Inc.", "NASDAQ"), "AMD": ("Adv. Micro Devices", "NASDAQ"),
+        "SPY": ("SPDR S&P 500 ETF", "NYSE Arca"), "QQQ": ("Invesco QQQ Trust", "NASDAQ"),
+    }
+    for r in shown:
+        if live:
+            a = market.get_asset(r["symbol"], CONFIG)
+            r["name"], r["exchange"] = a.get("name", ""), a.get("exchange", "")
+        else:
+            nm, ex = _demo_names.get(r["symbol"], (r["symbol"] + " (demo)", "DEMO"))
+            r["name"], r["exchange"] = nm, ex
+
     # Attach each ticker's own headlines to its row (for the click-through detail),
     # and fold a plain-English news line into the reasoning so it's news-aware.
     for r in shown:
@@ -91,11 +109,27 @@ def build_snapshot() -> dict:
             if note:
                 r["ai_read"] = note
 
+    # S&P 500 benchmark (SPY) for chart overlay.
+    benchmark = None
+    try:
+        from data import get_bars, synthetic_bars
+        bdf = get_bars("SPY", CONFIG) if live else synthetic_bars("SPY", n=CONFIG.lookback_days)
+        if bdf is not None and len(bdf):
+            bdf = bdf.tail(300)
+            benchmark = {
+                "symbol": "SPY", "name": "S&P 500",
+                "t": [int(pd.Timestamp(d).timestamp() * 1000) for d in bdf.index],
+                "close": [round(float(x), 2) for x in bdf["close"]],
+            }
+    except Exception:  # noqa: BLE001
+        benchmark = None
+
     return {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         "mode": mode,
         "scanned": len(rows),
         "diagnostics": list(scanner.LAST_ERRORS),
+        "benchmark": benchmark,
         "params": {
             "fast_ma": CONFIG.fast_ma, "slow_ma": CONFIG.slow_ma,
             "rsi_period": CONFIG.rsi_period, "risk_per_trade": CONFIG.risk_per_trade,
@@ -121,6 +155,9 @@ def render_html(snap: dict) -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Trading Signals Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.1/dist/chartjs-chart-financial.min.js"></script>
 <style>
   :root {{ --bg:#0f1419; --card:#1a212b; --line:#2a3441; --txt:#e6edf3;
     --muted:#8b97a6; --buy:#2ea043; --sell:#f85149; --hold:#388bfd; --flat:#6e7681; }}
@@ -146,6 +183,7 @@ def render_html(snap: dict) -> str:
   .more {{ color:var(--muted); font-size:12px; margin-top:10px;
     border-top:1px solid var(--line); padding-top:8px; }}
   .sym {{ font-size:18px; font-weight:700; }}
+  .cname {{ color:var(--muted); font-size:12px; margin-top:2px; }}
   .act {{ float:right; padding:2px 10px; border-radius:6px; font-size:12px; font-weight:700; }}
   .a-BUY {{ background:var(--buy); }} .a-SELL {{ background:var(--sell); }}
   .a-HOLDLONG {{ background:var(--hold); }} .a-FLAT {{ background:var(--flat); }}
@@ -203,6 +241,13 @@ def render_html(snap: dict) -> str:
   .checks .ck-l {{ font-weight:600; }} .checks .ck-n {{ color:var(--muted); }}
   .chartkey {{ color:var(--muted); font-size:12px; margin-top:8px; line-height:1.6; }}
   .reasons li {{ font-size:14px; line-height:1.5; }}
+  .chartctl {{ display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin-bottom:10px; }}
+  .ctlgrp {{ display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }}
+  .ctlgrp button {{ background:var(--card); color:var(--muted); border:none; padding:5px 11px;
+    font-size:13px; cursor:pointer; border-right:1px solid var(--line); }}
+  .ctlgrp button:last-child {{ border-right:none; }}
+  .ctlgrp button.on {{ background:var(--hold); color:#fff; }}
+  .ctltog {{ font-size:13px; color:var(--muted); cursor:pointer; }}
   .method {{ background:var(--card); border:1px solid var(--line); border-radius:12px;
     padding:4px 18px; margin:18px 0 8px; }}
   .method summary {{ cursor:pointer; font-weight:700; font-size:15px; padding:12px 0;
@@ -307,6 +352,11 @@ def render_html(snap: dict) -> str:
     <div class="sech">The trade plan <span id="mPlanNote" style="text-transform:none;color:var(--muted);"></span></div>
     <div class="plangrid" id="mPlan"></div>
     <div class="sech">Chart: where it would buy &amp; sell</div>
+    <div class="chartctl">
+      <span class="ctlgrp" id="rangeBtns"></span>
+      <span class="ctlgrp" id="typeBtns"></span>
+      <label class="ctltog"><input type="checkbox" id="benchToggle" checked> Compare to S&amp;P 500</label>
+    </div>
     <div class="chartbox"><canvas id="mChart" height="130"></canvas></div>
     <div class="chartkey" id="mChartKey"></div>
     <div class="sech">The details, explained</div>
@@ -335,7 +385,9 @@ DATA.signals.forEach(s => {{
   el.innerHTML = `
     <div><span class="sym">${{s.symbol}}</span>
       <span class="act a-${{cls}}">${{s.action}}</span></div>
-    <div class="px">$${{s.price.toLocaleString()}}</div>
+    ${{s.name ? `<div class="cname">${{s.name}}${{s.exchange?` · ${{s.exchange}}`:''}}</div>`:''}}
+    <div class="px">$${{s.price.toLocaleString()}}</div>`;
+  el.innerHTML += `
     <div class="kv"><span>As of</span><span>${{s.as_of}}</span></div>
     <div class="kv"><span>RSI</span><span>${{s.rsi}}</span></div>
     <div class="kv"><span>Fast / Slow MA</span><span>${{s.fast_ma}} / ${{s.slow_ma}}</span></div>
@@ -354,7 +406,8 @@ let mChart;
 function openModal(s) {{
   const cls = (s.action||'').replace(' ','');
   document.getElementById('mTitle').innerHTML =
-    `${{s.symbol}} <span class="act a-${{cls}}" style="float:none;font-size:13px;">${{s.action}}</span> &nbsp; <span style="color:var(--muted);font-size:15px;">$${{s.price.toLocaleString()}}</span>`;
+    `${{s.symbol}} <span class="act a-${{cls}}" style="float:none;font-size:13px;">${{s.action}}</span> &nbsp; <span style="color:var(--muted);font-size:15px;">$${{s.price.toLocaleString()}}</span>`
+    + (s.name ? `<div class="cname" style="font-size:13px;margin-top:4px;">${{s.name}}${{s.exchange?` · ${{s.exchange}}`:''}}</div>` : '');
   document.getElementById('mSummary').textContent = s.summary || '';
   document.getElementById('mDesk').textContent = s.desk_read || '';
   const aiHead = document.getElementById('mAIHead'), aiBox = document.getElementById('mAI');
@@ -406,41 +459,120 @@ function openModal(s) {{
         return `<li>${{t}}<div class="src">${{n.source||''}} ${{n.created_at||''}}</div></li>`;
       }}).join('')
     : '<li class="src">No recent news tagged for this symbol.</li>';
-  // chart with simulated entries/exits + plan levels
-  const c = DATA.charts[s.symbol];
-  const key = document.getElementById('mChartKey');
-  if (mChart) mChart.destroy();
-  if (c) {{
-    const flat = v => (v==null ? null : c.dates.map(()=>v));
-    const ds = [
-      {{label:'Price', data:c.close, borderColor:'#e6edf3', borderWidth:1.5, pointRadius:0, order:3}},
-      {{label:'Short-term avg', data:c.fast, borderColor:'#388bfd', borderWidth:1.2, pointRadius:0, order:3}},
-      {{label:'Long-term avg', data:c.slow, borderColor:'#f0883e', borderWidth:1.2, pointRadius:0, order:3}},
-      {{label:'Buy signal', data:c.buys, borderColor:'transparent', backgroundColor:'#2ea043',
-        pointStyle:'triangle', pointRadius:9, pointHoverRadius:11, showLine:false, order:1}},
-      {{label:'Sell signal', data:c.sells, borderColor:'transparent', backgroundColor:'#f85149',
-        pointStyle:'triangle', rotation:180, pointRadius:9, pointHoverRadius:11, showLine:false, order:1}},
-    ];
-    if (p.entry!=null) ds.push({{label:'Buy near', data:flat(p.entry), borderColor:'#8b97a6',
-      borderDash:[4,4], borderWidth:1, pointRadius:0, order:2}});
-    if (p.target!=null) ds.push({{label:'Take-profit', data:flat(p.target), borderColor:'#2ea043',
-      borderDash:[6,4], borderWidth:1, pointRadius:0, order:2}});
-    if (p.stop!=null) ds.push({{label:'Stop-loss', data:flat(p.stop), borderColor:'#f85149',
-      borderDash:[6,4], borderWidth:1, pointRadius:0, order:2}});
-    mChart = new Chart(document.getElementById('mChart'), {{
-      type:'line', data:{{labels:c.dates, datasets:ds}},
-      options:{{responsive:true, interaction:{{mode:'index',intersect:false}},
-        plugins:{{legend:{{labels:{{color:'#8b97a6', usePointStyle:true, boxWidth:8}}}}}},
-        scales:{{x:{{ticks:{{color:'#8b97a6',maxTicksLimit:8}},grid:{{color:'#2a3441'}}}},
-                 y:{{ticks:{{color:'#8b97a6'}},grid:{{color:'#2a3441'}}}}}}}}
-    }});
-    const nB = c.buys.filter(x=>x!=null).length, nS = c.sells.filter(x=>x!=null).length;
-    key.innerHTML = `▲ green = past buy signals (${{nB}}) &nbsp; ▼ red = past sell signals (${{nS}}) &nbsp; `
-      + `dashed lines = your buy / take-profit / stop levels. This shows where the strategy `
-      + `would have entered and exited over the last few months.`;
-  }} else {{ key.innerHTML = ''; }}
+  // chart is stateful (range / type / benchmark) — render via renderModalChart
+  MODAL = s;
+  renderModalChart();
   overlay.classList.add('open');
 }}
+
+// ---- stateful modal chart ----
+let MODAL = null;
+const CSTATE = {{ range:'6M', type:'line', bench:true }};
+let _finOK = false;
+try {{ _finOK = !!(window.Chart && Chart.registry.getController('candlestick')); }} catch(e) {{ _finOK = false; }}
+
+function _winStart(c, range) {{
+  const n = c.t.length;
+  if (range==='1M') return Math.max(0, n-21);
+  if (range==='3M') return Math.max(0, n-63);
+  if (range==='6M') return Math.max(0, n-126);
+  if (range==='1Y') return 0;
+  if (range==='YTD') {{
+    const y = new Date().getUTCFullYear();
+    const i = c.dates.findIndex(d => parseInt(d.slice(0,4),10) === y);
+    return i < 0 ? 0 : i;
+  }}
+  return 0;
+}}
+
+function renderModalChart() {{
+  const s = MODAL; if (!s) return;
+  const c = DATA.charts[s.symbol], p = s.plan || {{}};
+  const key = document.getElementById('mChartKey');
+  if (mChart) mChart.destroy();
+  if (!c) {{ key.innerHTML = ''; return; }}
+  const st = _winStart(c, CSTATE.range);
+  const T = c.t.slice(st), close=c.close.slice(st), fast=c.fast.slice(st), slow=c.slow.slice(st);
+  const op=c.open.slice(st), hi=c.high.slice(st), lo=c.low.slice(st);
+  const buys=c.buys.slice(st), sells=c.sells.slice(st);
+  const useCandle = CSTATE.type==='candle' && _finOK;
+  const ds = [];
+  if (useCandle) {{
+    ds.push({{type:'candlestick', label:s.symbol, order:3,
+      data:T.map((t,i)=>({{x:t,o:op[i],h:hi[i],l:lo[i],c:close[i]}})),
+      color:{{up:'#2ea043',down:'#f85149',unchanged:'#8b97a6'}}}});
+  }} else {{
+    ds.push({{type:'line', label:'Price', order:3, borderColor:'#e6edf3', borderWidth:1.5,
+      pointRadius:0, data:T.map((t,i)=>({{x:t,y:close[i]}}))}});
+  }}
+  ds.push({{type:'line', label:'Short-term avg', order:3, borderColor:'#388bfd', borderWidth:1.2,
+    pointRadius:0, data:T.map((t,i)=>({{x:t,y:fast[i]}}))}});
+  ds.push({{type:'line', label:'Long-term avg', order:3, borderColor:'#f0883e', borderWidth:1.2,
+    pointRadius:0, data:T.map((t,i)=>({{x:t,y:slow[i]}}))}});
+  const buyPts = T.map((t,i)=> buys[i]!=null ? {{x:t,y:buys[i]}} : null).filter(Boolean);
+  const sellPts = T.map((t,i)=> sells[i]!=null ? {{x:t,y:sells[i]}} : null).filter(Boolean);
+  ds.push({{type:'scatter', label:'Buy signal', data:buyPts, backgroundColor:'#2ea043',
+    pointStyle:'triangle', radius:9, hoverRadius:11, order:1}});
+  ds.push({{type:'scatter', label:'Sell signal', data:sellPts, backgroundColor:'#f85149',
+    pointStyle:'triangle', rotation:180, radius:9, hoverRadius:11, order:1}});
+  const tA=T[0], tB=T[T.length-1];
+  const hline=(v,col,lab)=>({{type:'line',label:lab,borderColor:col,borderDash:[6,4],borderWidth:1,
+    pointRadius:0,order:2,data:[{{x:tA,y:v}},{{x:tB,y:v}}]}});
+  if (p.entry!=null) ds.push(hline(p.entry,'#8b97a6','Buy near'));
+  if (p.target!=null) ds.push(hline(p.target,'#2ea043','Take-profit'));
+  if (p.stop!=null) ds.push(hline(p.stop,'#f85149','Stop-loss'));
+  const scales = {{
+    x:{{type:'time', time:{{unit: CSTATE.range==='1M'?'week':'month'}},
+       ticks:{{color:'#8b97a6',maxTicksLimit:8}}, grid:{{color:'#2a3441'}}}},
+    y:{{ticks:{{color:'#8b97a6'}}, grid:{{color:'#2a3441'}}}}
+  }};
+  let benchNote = '';
+  if (CSTATE.bench && DATA.benchmark) {{
+    const b = DATA.benchmark, bmap = {{}};
+    b.t.forEach((t,i)=> bmap[t]=b.close[i]);
+    let base=null; const bpts=[];
+    T.forEach(t=>{{ const v=bmap[t]; if(v!=null){{ if(base==null) base=v; bpts.push({{x:t,y:(v/base-1)*100}}); }} }});
+    if (bpts.length) {{
+      ds.push({{type:'line', label:'S&P 500 (% change)', data:bpts, borderColor:'#a371f7',
+        borderWidth:1.3, pointRadius:0, yAxisID:'y2', order:2}});
+      scales.y2 = {{position:'right', ticks:{{color:'#a371f7', callback:v=>v+'%'}}, grid:{{drawOnChartArea:false}}}};
+      benchNote = ' Purple line = S&P 500 over the same window (right axis, % change) so you can compare.';
+    }}
+  }}
+  mChart = new Chart(document.getElementById('mChart'), {{
+    data:{{datasets:ds}},
+    options:{{responsive:true, parsing:false, interaction:{{mode:'index',intersect:false}},
+      plugins:{{legend:{{labels:{{color:'#8b97a6', usePointStyle:true, boxWidth:8}}}}}}, scales}}
+  }});
+  const nB=buyPts.length, nS=sellPts.length;
+  key.innerHTML = `▲ green = past buy signals (${{nB}}) &nbsp; ▼ red = past sell signals (${{nS}}) &nbsp; `
+    + `dashed lines = your buy / take-profit / stop levels.` + benchNote;
+}}
+
+// build chart controls once
+(function setupChartControls() {{
+  const rb = document.getElementById('rangeBtns');
+  ['1M','3M','6M','YTD','1Y'].forEach(r => {{
+    const b=document.createElement('button'); b.textContent=r; b.dataset.range=r;
+    if (r===CSTATE.range) b.className='on';
+    b.onclick=()=>{{ CSTATE.range=r; rb.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.range===r)); renderModalChart(); }};
+    rb.appendChild(b);
+  }});
+  const tb = document.getElementById('typeBtns');
+  [['line','Line'],['candle','Candles']].forEach(([v,lab]) => {{
+    const b=document.createElement('button'); b.textContent=lab; b.dataset.type=v;
+    if (v===CSTATE.type) b.className='on';
+    b.onclick=()=>{{
+      if (v==='candle' && !_finOK) {{ alert('Candlestick view is unavailable (chart library not loaded).'); return; }}
+      CSTATE.type=v; tb.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.type===v)); renderModalChart();
+    }};
+    tb.appendChild(b);
+  }});
+  const bt = document.getElementById('benchToggle');
+  bt.checked = CSTATE.bench;
+  bt.onchange = () => {{ CSTATE.bench = bt.checked; renderModalChart(); }};
+}})();
+
 function closeModal() {{ overlay.classList.remove('open'); }}
 document.getElementById('modalClose').addEventListener('click', closeModal);
 overlay.addEventListener('click', e => {{ if (e.target === overlay) closeModal(); }});

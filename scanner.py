@@ -68,7 +68,7 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
         action = "FLAT"
     relvol = relative_volume(df, cfg.rel_volume_window)
     qty = position_size(equity, price, cfg) if signal == 1 else 0
-    tail = sig.tail(120)
+    tail = sig.tail(300)  # ~1+ year of daily bars, sliced client-side by range
     rv_rounded = None if np.isnan(relvol) else round(relvol, 2)
     summary, reasons = _reasoning(sig, cfg, action, price, rv_rounded)
     plan, context = _trade_plan(df, sig, cfg, price, equity)
@@ -97,9 +97,13 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
 
 
 def _chart_data(tail) -> dict:
-    """Chart series plus simulated buy/sell markers (where the strategy would
-    have entered/exited historically), aligned to the dates array."""
+    """Full OHLC series + timestamps + moving averages + simulated buy/sell
+    markers (where the strategy would have entered/exited historically)."""
     dates = [str(d.date()) for d in tail.index]
+    t = [int(pd.Timestamp(d).timestamp() * 1000) for d in tail.index]
+    o = [round(float(x), 2) for x in tail["open"]]
+    h = [round(float(x), 2) for x in tail["high"]]
+    low = [round(float(x), 2) for x in tail["low"]]
     close = [round(float(x), 2) for x in tail["close"]]
     sig_vals = list(tail["signal"])
     n = len(dates)
@@ -112,7 +116,8 @@ def _chart_data(tail) -> dict:
             sells[i] = close[i]       # exit: long -> flat
     return {
         "dates": dates,
-        "close": close,
+        "t": t,
+        "open": o, "high": h, "low": low, "close": close,
         "fast": [None if np.isnan(x) else round(float(x), 2) for x in tail["fast"]],
         "slow": [None if np.isnan(x) else round(float(x), 2) for x in tail["slow"]],
         "buys": buys,

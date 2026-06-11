@@ -15,6 +15,28 @@ import requests
 from config import Config
 
 _DATA_BASE = "https://data.alpaca.markets"
+_asset_cache: dict[str, dict] = {}
+
+
+def _trading_base(cfg: Config) -> str:
+    return "https://paper-api.alpaca.markets" if cfg.paper else "https://api.alpaca.markets"
+
+
+def get_asset(symbol: str, cfg: Config) -> dict:
+    """Company name + exchange for a ticker. Cached per run; never raises."""
+    if symbol in _asset_cache:
+        return _asset_cache[symbol]
+    out = {"name": "", "exchange": ""}
+    try:
+        r = requests.get(f"{_trading_base(cfg)}/v2/assets/{symbol}",
+                         headers=_headers(cfg), timeout=12)
+        if r.status_code == 200:
+            d = r.json()
+            out = {"name": d.get("name", "") or "", "exchange": d.get("exchange", "") or ""}
+    except Exception:  # noqa: BLE001
+        pass
+    _asset_cache[symbol] = out
+    return out
 
 
 def _headers(cfg: Config) -> dict:
