@@ -52,15 +52,23 @@ def build_snapshot() -> dict:
     # split chart data out of each row for compactness
     charts = {r["symbol"]: r.pop("chart") for r in rows}
 
-    flagged = [r["symbol"] for r in rows if r["action"] in ("BUY", "SELL")][:8]
+    shown = rows[: CONFIG.show_top]
+    shown_syms = [r["symbol"] for r in shown]
+
+    # Pull news once for everything shown, then bucket per ticker.
     if live:
         try:
-            news = market.get_news(flagged or [r["symbol"] for r in rows[:5]], CONFIG)
+            news = market.get_news(shown_syms, CONFIG,
+                                   limit=CONFIG.news_per_symbol * max(len(shown_syms), 1))
         except Exception as exc:  # noqa: BLE001
             news = [{"headline": f"(news unavailable: {exc})", "source": "",
                      "created_at": "", "url": "", "symbols": []}]
     else:
-        news = _synthetic_news([r["symbol"] for r in rows])
+        news = _synthetic_news(shown_syms)
+
+    # Attach each ticker's own headlines to its row (for the click-through detail).
+    for r in shown:
+        r["news"] = [n for n in news if r["symbol"] in (n.get("symbols") or [])][: CONFIG.news_per_symbol]
 
     return {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
@@ -73,8 +81,8 @@ def build_snapshot() -> dict:
             "stop_loss_pct": CONFIG.stop_loss_pct, "take_profit_pct": CONFIG.take_profit_pct,
             "rel_volume_window": CONFIG.rel_volume_window,
         },
-        "signals": rows[: CONFIG.show_top],
-        "charts": {k: charts[k] for k in (r["symbol"] for r in rows[: CONFIG.show_top]) if k in charts},
+        "signals": shown,
+        "charts": {k: charts[k] for k in shown_syms if k in charts},
         "news": news,
     }
 
@@ -112,7 +120,10 @@ def render_html(snap: dict) -> str:
   .grid {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
     gap:14px; }}
   .card {{ background:var(--card); border:1px solid var(--line); border-radius:12px;
-    padding:16px; }}
+    padding:16px; cursor:pointer; transition:border-color .12s, transform .12s; }}
+  .card:hover {{ border-color:#3d4d5f; transform:translateY(-2px); }}
+  .more {{ color:var(--muted); font-size:12px; margin-top:10px;
+    border-top:1px solid var(--line); padding-top:8px; }}
   .sym {{ font-size:18px; font-weight:700; }}
   .act {{ float:right; padding:2px 10px; border-radius:6px; font-size:12px; font-weight:700; }}
   .a-BUY {{ background:var(--buy); }} .a-SELL {{ background:var(--sell); }}
@@ -131,6 +142,23 @@ def render_html(snap: dict) -> str:
   .news .src {{ color:var(--muted); font-size:12px; }}
   .disclaimer {{ color:var(--muted); font-size:12px; margin-top:36px;
     border-top:1px solid var(--line); padding-top:16px; }}
+  /* modal */
+  .overlay {{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.6);
+    z-index:50; padding:24px; overflow:auto; }}
+  .overlay.open {{ display:block; }}
+  .modal {{ max-width:720px; margin:24px auto; background:var(--card);
+    border:1px solid var(--line); border-radius:16px; padding:24px; }}
+  .modal h3 {{ margin:0; font-size:22px; }}
+  .modal .close {{ float:right; cursor:pointer; color:var(--muted);
+    font-size:22px; line-height:1; border:none; background:none; }}
+  .modal .summary {{ font-size:15px; margin:12px 0 4px; }}
+  .reasons {{ list-style:none; padding:0; margin:14px 0; }}
+  .reasons li {{ position:relative; padding:8px 0 8px 24px; font-size:14px;
+    border-bottom:1px solid var(--line); }}
+  .reasons li:before {{ content:'›'; position:absolute; left:6px; color:var(--hold); }}
+  .modal .sech {{ color:var(--muted); text-transform:uppercase; font-size:12px;
+    letter-spacing:.05em; margin:18px 0 8px; }}
+  .modal .chartbox {{ margin-top:0; }}
 </style></head>
 <body><div class="wrap">
   <h1>Trading Signals Dashboard</h1>
@@ -140,7 +168,7 @@ def render_html(snap: dict) -> str:
   <div class="note">{mode_note}</div>
   <div id="diag"></div>
 
-  <h2>Signals</h2>
+  <h2>Signals <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— click any card for the full reasoning</span></h2>
   <div class="grid" id="cards"></div>
 
   <h2>Price &amp; moving averages</h2>
@@ -160,6 +188,20 @@ def render_html(snap: dict) -> str:
     fees and slippage. Verify before acting and never risk money you can't afford to lose.
   </div>
 </div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <button class="close" id="modalClose">&times;</button>
+    <h3 id="mTitle"></h3>
+    <div class="summary" id="mSummary"></div>
+    <div class="sech">Why this signal</div>
+    <ul class="reasons" id="mReasons"></ul>
+    <div class="sech">Price &amp; moving averages</div>
+    <div class="chartbox"><canvas id="mChart" height="130"></canvas></div>
+    <div class="sech">Related news</div>
+    <ul class="news" id="mNews"></ul>
+  </div>
+</div>
 <script>
 const DATA = {data_json};
 const diag = document.getElementById('diag');
@@ -174,6 +216,7 @@ DATA.signals.forEach(s => {{
   const el = document.createElement('div'); el.className='card';
   const cls = (s.action||'').replace(' ','');
   const hot = (s.rel_volume!=null && s.rel_volume>=1.5) ? ' hot' : '';
+  const nNews = (s.news||[]).length;
   el.innerHTML = `
     <div><span class="sym">${{s.symbol}}</span>
       <span class="act a-${{cls}}">${{s.action}}</span></div>
@@ -183,9 +226,52 @@ DATA.signals.forEach(s => {{
     <div class="kv"><span>Fast / Slow MA</span><span>${{s.fast_ma}} / ${{s.slow_ma}}</span></div>
     ${{s.rel_volume!=null ? `<div class="kv${{hot}}"><span>Rel vol (flow proxy)</span><span>${{s.rel_volume}}x</span></div>`:''}}
     ${{s.stop!=null ? `<div class="kv"><span>Stop / Target</span><span>$${{s.stop}} / $${{s.target}}</span></div>`:''}}
-    ${{s.suggested_shares ? `<div class="kv"><span>Suggested size</span><span>${{s.suggested_shares}} sh</span></div>`:''}}`;
+    ${{s.suggested_shares ? `<div class="kv"><span>Suggested size</span><span>${{s.suggested_shares}} sh</span></div>`:''}}
+    <div class="more">Why this? ${{nNews ? nNews+' news &middot; ':''}}click to see reasoning →</div>`;
+  el.addEventListener('click', () => openModal(s));
   cards.appendChild(el);
 }});
+
+// ---- detail modal ----
+const overlay = document.getElementById('overlay');
+let mChart;
+function openModal(s) {{
+  const cls = (s.action||'').replace(' ','');
+  document.getElementById('mTitle').innerHTML =
+    `${{s.symbol}} <span class="act a-${{cls}}" style="float:none;font-size:13px;">${{s.action}}</span> &nbsp; <span style="color:var(--muted);font-size:15px;">$${{s.price.toLocaleString()}}</span>`;
+  document.getElementById('mSummary').textContent = s.summary || '';
+  document.getElementById('mReasons').innerHTML =
+    (s.reasons||[]).map(r => `<li>${{r}}</li>`).join('') || '<li>No details available.</li>';
+  const nl = document.getElementById('mNews');
+  nl.innerHTML = (s.news||[]).length
+    ? (s.news||[]).map(n => {{
+        const t = n.url ? `<a href="${{n.url}}" target="_blank" rel="noopener">${{n.headline}}</a>`
+                        : `<span class="h">${{n.headline}}</span>`;
+        return `<li>${{t}}<div class="src">${{n.source||''}} ${{n.created_at||''}}</div></li>`;
+      }}).join('')
+    : '<li class="src">No recent news tagged for this symbol.</li>';
+  // chart
+  const c = DATA.charts[s.symbol];
+  if (mChart) mChart.destroy();
+  if (c) {{
+    mChart = new Chart(document.getElementById('mChart'), {{
+      type:'line', data:{{labels:c.dates, datasets:[
+        {{label:'Close', data:c.close, borderColor:'#e6edf3', borderWidth:1.5, pointRadius:0}},
+        {{label:'Fast MA', data:c.fast, borderColor:'#388bfd', borderWidth:1.5, pointRadius:0}},
+        {{label:'Slow MA', data:c.slow, borderColor:'#f0883e', borderWidth:1.5, pointRadius:0}},
+      ]}},
+      options:{{responsive:true, interaction:{{mode:'index',intersect:false}},
+        plugins:{{legend:{{labels:{{color:'#8b97a6'}}}}}},
+        scales:{{x:{{ticks:{{color:'#8b97a6',maxTicksLimit:8}},grid:{{color:'#2a3441'}}}},
+                 y:{{ticks:{{color:'#8b97a6'}},grid:{{color:'#2a3441'}}}}}}}}
+    }});
+  }}
+  overlay.classList.add('open');
+}}
+function closeModal() {{ overlay.classList.remove('open'); }}
+document.getElementById('modalClose').addEventListener('click', closeModal);
+overlay.addEventListener('click', e => {{ if (e.target === overlay) closeModal(); }});
+document.addEventListener('keydown', e => {{ if (e.key === 'Escape') closeModal(); }});
 
 const sel = document.getElementById('symsel');
 Object.keys(DATA.charts).forEach(sym => {{ const o=document.createElement('option'); o.value=o.textContent=sym; sel.appendChild(o); }});

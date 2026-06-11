@@ -6,6 +6,8 @@ on:
   schedule:
     - cron: "45 13 * * 1"
   workflow_dispatch:
+  push:
+    branches: [main]   # redeploy the live site whenever code is updated
 
 permissions:
   contents: read

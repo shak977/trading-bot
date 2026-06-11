@@ -68,6 +68,8 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
     relvol = relative_volume(df, cfg.rel_volume_window)
     qty = position_size(equity, price, cfg) if signal == 1 else 0
     tail = sig.tail(120)
+    rv_rounded = None if np.isnan(relvol) else round(relvol, 2)
+    summary, reasons = _reasoning(sig, cfg, action, price, rv_rounded)
     return {
         "symbol": symbol,
         "action": action,
@@ -75,11 +77,13 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
         "rsi": round(float(last["rsi"]), 1),
         "fast_ma": round(float(last["fast"]), 2),
         "slow_ma": round(float(last["slow"]), 2),
-        "rel_volume": None if np.isnan(relvol) else round(relvol, 2),
+        "rel_volume": rv_rounded,
         "stop": round(stop_loss_price(price, cfg), 2) if signal == 1 else None,
         "target": round(take_profit_price(price, cfg), 2) if signal == 1 else None,
         "suggested_shares": qty,
         "as_of": str(sig.index[-1].date()),
+        "summary": summary,
+        "reasons": reasons,
         "chart": {
             "dates": [str(d.date()) for d in tail.index],
             "close": [round(float(x), 2) for x in tail["close"]],
@@ -87,6 +91,76 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
             "slow": [None if np.isnan(x) else round(float(x), 2) for x in tail["slow"]],
         },
     }
+
+
+def _reasoning(sig, cfg: Config, action: str, price: float, relvol):
+    """Build a plain-English justification from the actual indicator state.
+
+    Everything here is derived from the same numbers that produced the signal —
+    no guessing. Returns (summary, [reason, ...]).
+    """
+    last = sig.iloc[-1]
+    fast, slow, rsi_v = float(last["fast"]), float(last["slow"]), float(last["rsi"])
+    above = fast > slow
+    reasons = []
+
+    # When did the MA relationship last flip?
+    rel = (sig["fast"] > sig["slow"]).astype(int)
+    flips = rel.diff().fillna(0)
+    flip_idx = flips[flips != 0].index
+    if len(flip_idx):
+        last_flip = flip_idx[-1]
+        days = (sig.index[-1] - last_flip).days
+        direction = "above" if rel.loc[last_flip] == 1 else "below"
+        reasons.append(
+            f"The {cfg.fast_ma}-day average crossed {direction} the {cfg.slow_ma}-day "
+            f"average about {days} days ago ({last_flip.date()}) — this crossover is the core trigger."
+        )
+    reasons.append(
+        f"Right now the fast MA (${fast:,.2f}) is {'above' if above else 'below'} the slow MA "
+        f"(${slow:,.2f}), so the trend bias is {'bullish' if above else 'bearish'}."
+    )
+
+    # RSI momentum filter
+    if rsi_v >= cfg.rsi_overbought:
+        reasons.append(
+            f"RSI is {rsi_v:.0f}, at/above the overbought line ({cfg.rsi_overbought:.0f}) — "
+            f"the strategy blocks new buys here and treats it as exit pressure."
+        )
+    elif rsi_v <= cfg.rsi_oversold:
+        reasons.append(
+            f"RSI is {rsi_v:.0f}, at/below oversold ({cfg.rsi_oversold:.0f}) — stretched to the downside."
+        )
+    else:
+        reasons.append(
+            f"RSI is {rsi_v:.0f}, in the neutral zone ({cfg.rsi_oversold:.0f}–{cfg.rsi_overbought:.0f}) — "
+            f"momentum isn't blocking an entry."
+        )
+
+    # Relative volume (flow proxy)
+    if relvol is not None:
+        if relvol >= 1.5:
+            reasons.append(
+                f"Volume is {relvol}× its {cfg.rel_volume_window}-day average — unusually active, "
+                f"which often accompanies a real move (volume proxy, not true order flow)."
+            )
+        elif relvol < 0.8:
+            reasons.append(f"Volume is {relvol}× average — quiet, below-normal participation.")
+        else:
+            reasons.append(f"Volume is {relvol}× average — roughly normal participation.")
+
+    if action == "BUY":
+        summary = ("Fresh bullish crossover with RSI clear of overbought — the strategy "
+                   "just entered a long here.")
+    elif action == "SELL":
+        summary = ("Bearish crossover or RSI hitting overbought — the strategy is exiting / "
+                   "stepping aside.")
+    elif action == "HOLD LONG":
+        summary = "Uptrend still intact (fast MA above slow), so an existing long is held."
+    else:
+        summary = "No active bullish crossover, so the strategy is staying out for now."
+
+    return summary, reasons
 
 
 def _rank_key(row: dict) -> tuple:
