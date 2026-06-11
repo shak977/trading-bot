@@ -59,6 +59,14 @@ class Config:
     atr_period: int = 14             # ATR lookback for volatility-based stop
     atr_stop_mult: float = 2.0       # ATR-based stop = entry - mult * ATR
 
+    # --- Optional AI analyst (Anthropic). Leave key blank to disable. ---
+    anthropic_api_key: str = field(default_factory=lambda: os.getenv("ANTHROPIC_API_KEY", ""))
+    llm_model: str = field(default_factory=lambda: os.getenv("LLM_MODEL", "claude-3-5-haiku-latest"))
+
+    @property
+    def llm_enabled(self) -> bool:
+        return bool(self.anthropic_api_key)
+
     def validate_for_live(self) -> None:
         if not self.api_key or not self.secret_key:
             raise RuntimeError(

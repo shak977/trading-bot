@@ -70,6 +70,14 @@ def build_snapshot() -> dict:
     for r in shown:
         r["news"] = [n for n in news if r["symbol"] in (n.get("symbols") or [])][: CONFIG.news_per_symbol]
 
+    # Optional AI analyst note per signal (silent no-op if no key).
+    if CONFIG.llm_enabled:
+        import llm
+        for r in shown:
+            note = llm.analyst_note(r, CONFIG)
+            if note:
+                r["ai_read"] = note
+
     return {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         "mode": mode,
@@ -215,6 +223,9 @@ def render_html(snap: dict) -> str:
     <button class="close" id="modalClose">&times;</button>
     <h3 id="mTitle"></h3>
     <div class="summary" id="mSummary"></div>
+    <div class="sech" id="mAIHead" style="display:none;">AI analyst note 🤖</div>
+    <div class="deskread" id="mAI" style="display:none;border-left-color:#9b59b6;"></div>
+    <div class="sech">Desk read (rule-based)</div>
     <div class="deskread" id="mDesk"></div>
     <div class="sech">Pre-entry conviction <span id="mConvScore"></span></div>
     <ul class="checks" id="mChecks"></ul>
@@ -270,6 +281,12 @@ function openModal(s) {{
     `${{s.symbol}} <span class="act a-${{cls}}" style="float:none;font-size:13px;">${{s.action}}</span> &nbsp; <span style="color:var(--muted);font-size:15px;">$${{s.price.toLocaleString()}}</span>`;
   document.getElementById('mSummary').textContent = s.summary || '';
   document.getElementById('mDesk').textContent = s.desk_read || '';
+  const aiHead = document.getElementById('mAIHead'), aiBox = document.getElementById('mAI');
+  if (s.ai_read) {{
+    aiBox.textContent = s.ai_read; aiBox.style.display = 'block'; aiHead.style.display = 'block';
+  }} else {{
+    aiBox.style.display = 'none'; aiHead.style.display = 'none';
+  }}
 
   const conv = s.conviction || {{}};
   document.getElementById('mConvScore').innerHTML = conv.label
