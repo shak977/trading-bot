@@ -474,6 +474,7 @@ def render_html(snap: dict) -> str:
 <script>
 const DATA = {data_json};
 const LIVE_URL = "{CONFIG.live_quotes_url}";
+let LIVE = {{}};  // latest live prices (declared early so renderCards can read it safely)
 const diag = document.getElementById('diag');
 if ((DATA.diagnostics||[]).length) {{
   diag.innerHTML = '<div style="background:#3a1e1e;border:1px solid #5a1e1e;color:#ff9b9b;'
@@ -559,7 +560,6 @@ function renderCards(view) {{
 
 // ---- live prices (via Cloudflare Worker proxy) ----
 const LIVE_SYMS = [...new Set(DATA.signals.map(s => s.symbol).concat('SPY'))];
-let LIVE = {{}};  // latest live prices, shared with the charts
 function _fmtPx(v) {{ return '$' + Number(v).toLocaleString(undefined, {{minimumFractionDigits:2, maximumFractionDigits:2}}); }}
 function _pushLiveToChart() {{
   // Update the most recent point of the open modal chart with the live price,
