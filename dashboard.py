@@ -724,6 +724,7 @@ function openModal(s) {{
 // ---- stateful modal chart ----
 let MODAL = null;
 const CSTATE = {{ range:'6M', type:'line', bench:true }};
+const INTRA = {{}};  // cache for intraday bars (5D only)
 let _finOK = false;
 try {{ _finOK = !!(window.Chart && Chart.registry.getController('candlestick')); }} catch(e) {{ _finOK = false; }}
 
@@ -743,6 +744,7 @@ function _winStart(c, range) {{
 
 function renderModalChart() {{
   const s = MODAL; if (!s) return;
+  if (CSTATE.range === '1D' || CSTATE.range === '5D') return _renderIntraday(s);
   const c = DATA.charts[s.symbol], p = s.plan || {{}};
   const key = document.getElementById('mChartKey');
   if (mChart) mChart.destroy();
@@ -818,10 +820,67 @@ function renderModalChart() {{
     + `dashed lines = your buy / take-profit / stop levels.` + benchNote;
 }}
 
+// ---- intraday (1D / 5D) — fetched live from the Worker proxy ----
+function _renderIntraday(s) {{
+  const key = document.getElementById('mChartKey');
+  if (mChart) {{ mChart.destroy(); mChart = null; }}
+  if (!LIVE_URL) {{ key.innerHTML = 'Intraday view needs the live data proxy (LIVE_QUOTES_URL).'; return; }}
+  const cacheKey = s.symbol + ':' + CSTATE.range;
+  if (CSTATE.range === '5D' && INTRA[cacheKey]) {{ _drawIntra(s, INTRA[cacheKey]); return; }}
+  key.innerHTML = 'Loading intraday…';
+  const tf = CSTATE.range === '1D' ? '15Min' : '1Hour';
+  const days = CSTATE.range === '1D' ? 3 : 8;
+  fetch(LIVE_URL + '?bars=' + encodeURIComponent(s.symbol) + '&tf=' + tf + '&days=' + days)
+    .then(r => r.json())
+    .then(d => {{
+      let bars = d.bars || [];
+      if (CSTATE.range === '1D' && bars.length) {{
+        const lastDay = new Date(bars[bars.length-1].t).toDateString();
+        const today = bars.filter(b => new Date(b.t).toDateString() === lastDay);
+        bars = today.length >= 2 ? today : bars.slice(-26);
+      }}
+      if (CSTATE.range === '5D') INTRA[cacheKey] = bars;
+      if (MODAL && MODAL.symbol === s.symbol) _drawIntra(s, bars);
+    }})
+    .catch(() => {{ key.innerHTML = 'Intraday unavailable right now (market may be closed).'; }});
+}}
+function _drawIntra(s, bars) {{
+  const p = s.plan || {{}};
+  const key = document.getElementById('mChartKey');
+  if (mChart) {{ mChart.destroy(); mChart = null; }}
+  if (!bars || !bars.length) {{ key.innerHTML = 'No intraday data (market may be closed).'; return; }}
+  const T = bars.map(b=>b.t), close = bars.map(b=>b.c);
+  const lp = LIVE[s.symbol]; if (lp != null) close[close.length-1] = lp;
+  const useCandle = CSTATE.type === 'candle' && _finOK;
+  const ds = [];
+  if (useCandle) ds.push({{type:'candlestick', label:s.symbol,
+    data:bars.map(b=>({{x:b.t,o:b.o,h:b.h,l:b.l,c:b.c}})),
+    color:{{up:'#2ea043',down:'#f85149',unchanged:'#8b97a6'}}}});
+  else ds.push({{type:'line', label:'Price', borderColor:'#e6edf3', borderWidth:1.5, pointRadius:0,
+    data:T.map((t,i)=>({{x:t,y:close[i]}}))}});
+  const tA=T[0], tB=T[T.length-1];
+  const hline=(v,col,lab)=>({{type:'line',label:lab,borderColor:col,borderDash:[6,4],borderWidth:1,
+    pointRadius:0,data:[{{x:tA,y:v}},{{x:tB,y:v}}]}});
+  if (p.entry!=null) ds.push(hline(p.entry,'#8b97a6','Buy near'));
+  if (p.target!=null) ds.push(hline(p.target,'#2ea043','Take-profit'));
+  if (p.stop!=null) ds.push(hline(p.stop,'#f85149','Stop-loss'));
+  mChart = new Chart(document.getElementById('mChart'), {{
+    data:{{datasets:ds}},
+    options:{{responsive:true, parsing:false, interaction:{{mode:'index',intersect:false}},
+      plugins:{{legend:{{labels:{{color:'#8b97a6', usePointStyle:true, boxWidth:8}}}},
+        zoom:{{zoom:{{wheel:{{enabled:true}}, pinch:{{enabled:true}}, mode:'xy'}}, pan:{{enabled:true, mode:'xy'}}}}}},
+      scales:{{x:{{type:'time', time:{{unit: CSTATE.range==='1D'?'hour':'day'}},
+                 ticks:{{color:'#8b97a6',maxTicksLimit:8}}, grid:{{color:'#2a3441'}}}},
+               y:{{ticks:{{color:'#8b97a6'}}, grid:{{color:'#2a3441'}}}}}}}}
+  }});
+  key.innerHTML = (CSTATE.range==='1D' ? "Today's" : "This week's") + ' price path ('
+    + (CSTATE.range==='1D' ? '15-min' : '1-hour') + ' bars, live). Dashed lines = your buy / take-profit / stop levels.';
+}}
+
 // build chart controls once
 (function setupChartControls() {{
   const rb = document.getElementById('rangeBtns');
-  ['1M','3M','6M','YTD','1Y'].forEach(r => {{
+  ['1D','5D','1M','3M','6M','YTD','1Y'].forEach(r => {{
     const b=document.createElement('button'); b.textContent=r; b.dataset.range=r;
     if (r===CSTATE.range) b.className='on';
     b.onclick=()=>{{ CSTATE.range=r; rb.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.range===r)); renderModalChart(); }};

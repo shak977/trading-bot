@@ -19,20 +19,40 @@ export default {
       "Cache-Control": "no-store",
     };
     if (request.method === "OPTIONS") return new Response(null, { headers: cors });
+    const url = new URL(request.url);
+    const headers = {
+      "APCA-API-KEY-ID": env.ALPACA_API_KEY,
+      "APCA-API-SECRET-KEY": env.ALPACA_SECRET_KEY,
+    };
 
-    const symbols = (new URL(request.url).searchParams.get("symbols") || "").trim();
-    if (!symbols) return json({ error: "pass ?symbols=AAPL,MSFT" }, 400, cors);
+    // --- intraday bars: /?bars=AAPL&tf=15Min&days=2 ---
+    const barsSym = (url.searchParams.get("bars") || "").trim();
+    if (barsSym) {
+      const tf = (url.searchParams.get("tf") || "15Min").trim();
+      const days = Math.min(parseInt(url.searchParams.get("days") || "2", 10) || 2, 10);
+      const start = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
+      const api = `https://data.alpaca.markets/v2/stocks/${encodeURIComponent(barsSym)}/bars`
+        + `?timeframe=${encodeURIComponent(tf)}&feed=iex&limit=1000&start=${encodeURIComponent(start)}`;
+      try {
+        const up = await fetch(api, { headers });
+        if (!up.ok) return json({ error: "upstream " + up.status }, 502, cors);
+        const d = await up.json();
+        const bars = (d.bars || []).map(b => ({ t: Date.parse(b.t), o: b.o, h: b.h, l: b.l, c: b.c }));
+        return json({ symbol: barsSym, tf, bars }, 200, cors);
+      } catch (e) {
+        return json({ error: "fetch failed" }, 502, cors);
+      }
+    }
+
+    // --- latest quotes: /?symbols=AAPL,MSFT ---
+    const symbols = (url.searchParams.get("symbols") || "").trim();
+    if (!symbols) return json({ error: "pass ?symbols=AAPL,MSFT or ?bars=AAPL" }, 400, cors);
 
     const api = "https://data.alpaca.markets/v2/stocks/trades/latest?feed=iex&symbols="
       + encodeURIComponent(symbols);
     let upstream;
     try {
-      upstream = await fetch(api, {
-        headers: {
-          "APCA-API-KEY-ID": env.ALPACA_API_KEY,
-          "APCA-API-SECRET-KEY": env.ALPACA_SECRET_KEY,
-        },
-      });
+      upstream = await fetch(api, { headers });
     } catch (e) {
       return json({ error: "fetch failed" }, 502, cors);
     }
