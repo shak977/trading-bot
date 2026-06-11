@@ -66,9 +66,22 @@ def build_snapshot() -> dict:
     else:
         news = _synthetic_news(shown_syms)
 
-    # Attach each ticker's own headlines to its row (for the click-through detail).
+    # Attach each ticker's own headlines to its row (for the click-through detail),
+    # and fold a plain-English news line into the reasoning so it's news-aware.
     for r in shown:
         r["news"] = [n for n in news if r["symbol"] in (n.get("symbols") or [])][: CONFIG.news_per_symbol]
+        if r["news"]:
+            top = r["news"][0]["headline"]
+            r.setdefault("reasons", []).append(
+                f"📰 In the news: {len(r['news'])} recent stor"
+                f"{'y' if len(r['news']) == 1 else 'ies'} mention {r['symbol']}. "
+                f"Latest headline — “{top}”. Check these for a reason behind the move."
+            )
+        else:
+            r.setdefault("reasons", []).append(
+                f"📰 No recent news found for {r['symbol']} — the move looks technical (chart-driven), "
+                f"not headline-driven."
+            )
 
     # Optional AI analyst note per signal (silent no-op if no key).
     if CONFIG.llm_enabled:
@@ -188,6 +201,8 @@ def render_html(snap: dict) -> str:
   .checks .pass .ic {{ color:var(--buy); }} .checks .warn .ic {{ color:#e8c878; }}
   .checks .fail .ic {{ color:var(--sell); }}
   .checks .ck-l {{ font-weight:600; }} .checks .ck-n {{ color:var(--muted); }}
+  .chartkey {{ color:var(--muted); font-size:12px; margin-top:8px; line-height:1.6; }}
+  .reasons li {{ font-size:14px; line-height:1.5; }}
 </style></head>
 <body><div class="wrap">
   <h1>Trading Signals Dashboard</h1>
@@ -223,22 +238,23 @@ def render_html(snap: dict) -> str:
     <button class="close" id="modalClose">&times;</button>
     <h3 id="mTitle"></h3>
     <div class="summary" id="mSummary"></div>
-    <div class="sech" id="mAIHead" style="display:none;">AI analyst note 🤖</div>
+    <div class="sech" id="mAIHead" style="display:none;">In plain English (AI) 🤖</div>
     <div class="deskread" id="mAI" style="display:none;border-left-color:#9b59b6;"></div>
-    <div class="sech">Desk read (rule-based)</div>
+    <div class="sech">The bottom line</div>
     <div class="deskread" id="mDesk"></div>
-    <div class="sech">Pre-entry conviction <span id="mConvScore"></span></div>
+    <div class="sech">Should you take it? <span id="mConvScore"></span></div>
     <ul class="checks" id="mChecks"></ul>
-    <div class="sech">Trade plan <span id="mPlanNote" style="text-transform:none;color:var(--muted);"></span></div>
+    <div class="sech">The trade plan <span id="mPlanNote" style="text-transform:none;color:var(--muted);"></span></div>
     <div class="plangrid" id="mPlan"></div>
+    <div class="sech">Chart: where it would buy &amp; sell</div>
+    <div class="chartbox"><canvas id="mChart" height="130"></canvas></div>
+    <div class="chartkey" id="mChartKey"></div>
+    <div class="sech">The details, explained</div>
+    <ul class="reasons" id="mReasons"></ul>
+    <div class="sech">Latest news on this stock</div>
+    <ul class="news" id="mNews"></ul>
     <div class="sech">Market context</div>
     <div class="plangrid" id="mContext"></div>
-    <div class="sech">Why this signal</div>
-    <ul class="reasons" id="mReasons"></ul>
-    <div class="sech">Price &amp; moving averages</div>
-    <div class="chartbox"><canvas id="mChart" height="130"></canvas></div>
-    <div class="sech">Related news</div>
-    <ul class="news" id="mNews"></ul>
   </div>
 </div>
 <script>
@@ -330,22 +346,39 @@ function openModal(s) {{
         return `<li>${{t}}<div class="src">${{n.source||''}} ${{n.created_at||''}}</div></li>`;
       }}).join('')
     : '<li class="src">No recent news tagged for this symbol.</li>';
-  // chart
+  // chart with simulated entries/exits + plan levels
   const c = DATA.charts[s.symbol];
+  const key = document.getElementById('mChartKey');
   if (mChart) mChart.destroy();
   if (c) {{
+    const flat = v => (v==null ? null : c.dates.map(()=>v));
+    const ds = [
+      {{label:'Price', data:c.close, borderColor:'#e6edf3', borderWidth:1.5, pointRadius:0, order:3}},
+      {{label:'Short-term avg', data:c.fast, borderColor:'#388bfd', borderWidth:1.2, pointRadius:0, order:3}},
+      {{label:'Long-term avg', data:c.slow, borderColor:'#f0883e', borderWidth:1.2, pointRadius:0, order:3}},
+      {{label:'Buy signal', data:c.buys, borderColor:'transparent', backgroundColor:'#2ea043',
+        pointStyle:'triangle', pointRadius:9, pointHoverRadius:11, showLine:false, order:1}},
+      {{label:'Sell signal', data:c.sells, borderColor:'transparent', backgroundColor:'#f85149',
+        pointStyle:'triangle', rotation:180, pointRadius:9, pointHoverRadius:11, showLine:false, order:1}},
+    ];
+    if (p.entry!=null) ds.push({{label:'Buy near', data:flat(p.entry), borderColor:'#8b97a6',
+      borderDash:[4,4], borderWidth:1, pointRadius:0, order:2}});
+    if (p.target!=null) ds.push({{label:'Take-profit', data:flat(p.target), borderColor:'#2ea043',
+      borderDash:[6,4], borderWidth:1, pointRadius:0, order:2}});
+    if (p.stop!=null) ds.push({{label:'Stop-loss', data:flat(p.stop), borderColor:'#f85149',
+      borderDash:[6,4], borderWidth:1, pointRadius:0, order:2}});
     mChart = new Chart(document.getElementById('mChart'), {{
-      type:'line', data:{{labels:c.dates, datasets:[
-        {{label:'Close', data:c.close, borderColor:'#e6edf3', borderWidth:1.5, pointRadius:0}},
-        {{label:'Fast MA', data:c.fast, borderColor:'#388bfd', borderWidth:1.5, pointRadius:0}},
-        {{label:'Slow MA', data:c.slow, borderColor:'#f0883e', borderWidth:1.5, pointRadius:0}},
-      ]}},
+      type:'line', data:{{labels:c.dates, datasets:ds}},
       options:{{responsive:true, interaction:{{mode:'index',intersect:false}},
-        plugins:{{legend:{{labels:{{color:'#8b97a6'}}}}}},
+        plugins:{{legend:{{labels:{{color:'#8b97a6', usePointStyle:true, boxWidth:8}}}}}},
         scales:{{x:{{ticks:{{color:'#8b97a6',maxTicksLimit:8}},grid:{{color:'#2a3441'}}}},
                  y:{{ticks:{{color:'#8b97a6'}},grid:{{color:'#2a3441'}}}}}}}}
     }});
-  }}
+    const nB = c.buys.filter(x=>x!=null).length, nS = c.sells.filter(x=>x!=null).length;
+    key.innerHTML = `▲ green = past buy signals (${{nB}}) &nbsp; ▼ red = past sell signals (${{nS}}) &nbsp; `
+      + `dashed lines = your buy / take-profit / stop levels. This shows where the strategy `
+      + `would have entered and exited over the last few months.`;
+  }} else {{ key.innerHTML = ''; }}
   overlay.classList.add('open');
 }}
 function closeModal() {{ overlay.classList.remove('open'); }}

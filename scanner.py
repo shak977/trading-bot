@@ -92,12 +92,31 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
         "context": context,
         "conviction": conviction,
         "desk_read": desk_read,
-        "chart": {
-            "dates": [str(d.date()) for d in tail.index],
-            "close": [round(float(x), 2) for x in tail["close"]],
-            "fast": [None if np.isnan(x) else round(float(x), 2) for x in tail["fast"]],
-            "slow": [None if np.isnan(x) else round(float(x), 2) for x in tail["slow"]],
-        },
+        "chart": _chart_data(tail),
+    }
+
+
+def _chart_data(tail) -> dict:
+    """Chart series plus simulated buy/sell markers (where the strategy would
+    have entered/exited historically), aligned to the dates array."""
+    dates = [str(d.date()) for d in tail.index]
+    close = [round(float(x), 2) for x in tail["close"]]
+    sig_vals = list(tail["signal"])
+    n = len(dates)
+    buys = [None] * n
+    sells = [None] * n
+    for i in range(1, n):
+        if sig_vals[i] == 1 and sig_vals[i - 1] == 0:
+            buys[i] = close[i]        # entry: flat -> long
+        elif sig_vals[i] == 0 and sig_vals[i - 1] == 1:
+            sells[i] = close[i]       # exit: long -> flat
+    return {
+        "dates": dates,
+        "close": close,
+        "fast": [None if np.isnan(x) else round(float(x), 2) for x in tail["fast"]],
+        "slow": [None if np.isnan(x) else round(float(x), 2) for x in tail["slow"]],
+        "buys": buys,
+        "sells": sells,
     }
 
 
@@ -112,61 +131,71 @@ def _reasoning(sig, cfg: Config, action: str, price: float, relvol):
     above = fast > slow
     reasons = []
 
-    # When did the MA relationship last flip?
+    # 1) The crossover — the core trigger, in plain terms.
     rel = (sig["fast"] > sig["slow"]).astype(int)
     flips = rel.diff().fillna(0)
     flip_idx = flips[flips != 0].index
     if len(flip_idx):
         last_flip = flip_idx[-1]
         days = (sig.index[-1] - last_flip).days
-        direction = "above" if rel.loc[last_flip] == 1 else "below"
-        reasons.append(
-            f"The {cfg.fast_ma}-day average crossed {direction} the {cfg.slow_ma}-day "
-            f"average about {days} days ago ({last_flip.date()}) — this crossover is the core trigger."
-        )
+        if rel.loc[last_flip] == 1:
+            reasons.append(
+                f"📈 Trend turned up {days} days ago. The recent average price climbed above the "
+                f"longer-term average — a classic sign a stock may be starting to trend higher. "
+                f"This is the main reason the strategy flagged it."
+            )
+        else:
+            reasons.append(
+                f"📉 Trend turned down {days} days ago. The recent average price dropped below the "
+                f"longer-term average — usually a sign upward momentum has faded."
+            )
     reasons.append(
-        f"Right now the fast MA (${fast:,.2f}) is {'above' if above else 'below'} the slow MA "
-        f"(${slow:,.2f}), so the trend bias is {'bullish' if above else 'bearish'}."
+        f"Direction check: the recent price trend is currently {'ABOVE' if above else 'BELOW'} its "
+        f"longer-term trend, so the stock is leaning {'upward' if above else 'downward'} right now."
     )
 
-    # RSI momentum filter
+    # 2) RSI = how 'stretched' the price is (0-100).
     if rsi_v >= cfg.rsi_overbought:
         reasons.append(
-            f"RSI is {rsi_v:.0f}, at/above the overbought line ({cfg.rsi_overbought:.0f}) — "
-            f"the strategy blocks new buys here and treats it as exit pressure."
+            f"Overbought: momentum reads {rsi_v:.0f}/100 (above {cfg.rsi_overbought:.0f}). The stock has "
+            f"run up fast and may be due for a pause or pullback, so the strategy won't start a new buy here."
         )
     elif rsi_v <= cfg.rsi_oversold:
         reasons.append(
-            f"RSI is {rsi_v:.0f}, at/below oversold ({cfg.rsi_oversold:.0f}) — stretched to the downside."
+            f"Oversold: momentum reads {rsi_v:.0f}/100 (below {cfg.rsi_oversold:.0f}). The stock has been "
+            f"beaten down and could be near a bounce — but also still falling."
         )
     else:
         reasons.append(
-            f"RSI is {rsi_v:.0f}, in the neutral zone ({cfg.rsi_oversold:.0f}–{cfg.rsi_overbought:.0f}) — "
-            f"momentum isn't blocking an entry."
+            f"Healthy momentum: reads {rsi_v:.0f}/100 (the calm middle zone). Not overheated, not oversold — "
+            f"there's room to move higher without looking stretched."
         )
 
-    # Relative volume (flow proxy)
+    # 3) Volume = how much interest there is vs normal.
     if relvol is not None:
         if relvol >= 1.5:
             reasons.append(
-                f"Volume is {relvol}× its {cfg.rel_volume_window}-day average — unusually active, "
-                f"which often accompanies a real move (volume proxy, not true order flow)."
+                f"Busy: about {relvol}× more shares are trading than usual. Heavy volume means lots of "
+                f"people are paying attention, which can give a move more staying power."
             )
         elif relvol < 0.8:
-            reasons.append(f"Volume is {relvol}× average — quiet, below-normal participation.")
+            reasons.append(
+                f"Quiet: only about {relvol}× the usual volume. Light trading means weaker conviction "
+                f"behind any move."
+            )
         else:
-            reasons.append(f"Volume is {relvol}× average — roughly normal participation.")
+            reasons.append(f"Normal activity: about {relvol}× the usual volume — nothing unusual.")
 
     if action == "BUY":
-        summary = ("Fresh bullish crossover with RSI clear of overbought — the strategy "
-                   "just entered a long here.")
+        summary = ("The trend just turned up and momentum has room to run, so the strategy would "
+                   "open a new position (buy) here.")
     elif action == "SELL":
-        summary = ("Bearish crossover or RSI hitting overbought — the strategy is exiting / "
-                   "stepping aside.")
+        summary = ("The trend has turned down (or the stock got overheated), so the strategy would "
+                   "close the position (sell) and step aside.")
     elif action == "HOLD LONG":
-        summary = "Uptrend still intact (fast MA above slow), so an existing long is held."
+        summary = "The uptrend is still going, so the strategy stays in the position it already holds."
     else:
-        summary = "No active bullish crossover, so the strategy is staying out for now."
+        summary = "There's no clear uptrend right now, so the strategy stays out and waits."
 
     return summary, reasons
 
@@ -242,53 +271,54 @@ def _conviction(action, rsi, relvol, plan, context, cfg: Config):
 
     vs = context.get("vs_slow_ma_pct")
     bullish = vs is not None and vs > 0
-    add("Trend alignment",
+    add("Is it trending up?",
         "pass" if bullish else "fail",
-        "Price above the trend line (slow MA)." if bullish else "Price below the trend line — counter-trend.")
+        "Yes — price is above its longer-term trend." if bullish
+        else "No — price is below its trend, so you'd be betting against the current direction.")
 
     if rsi >= cfg.rsi_overbought:
-        add("Momentum room", "warn", f"RSI {rsi:.0f} is overbought — limited upside room.")
+        add("Room to rise?", "warn", f"Careful — momentum ({rsi:.0f}/100) is high; it's run up fast and may pull back.")
     elif rsi < 40:
-        add("Momentum room", "warn", f"RSI {rsi:.0f} is weak — momentum not confirming.")
+        add("Room to rise?", "warn", f"Weak — momentum ({rsi:.0f}/100) is soft; buyers aren't in control yet.")
     else:
-        add("Momentum room", "pass", f"RSI {rsi:.0f} leaves room to run without being overbought.")
+        add("Room to rise?", "pass", f"Good — momentum ({rsi:.0f}/100) is healthy with space to climb.")
 
     if relvol is None:
-        add("Volume confirmation", "warn", "Volume data unavailable.")
+        add("Are people trading it?", "warn", "Volume data unavailable.")
     elif relvol >= 1.2:
-        add("Volume confirmation", "pass", f"Volume {relvol}× average — participation confirms the move.")
+        add("Are people trading it?", "pass", f"Yes — about {relvol}× the usual volume; strong interest backs the move.")
     elif relvol < 0.8:
-        add("Volume confirmation", "fail", f"Volume {relvol}× average — move lacks conviction.")
+        add("Are people trading it?", "fail", f"Not really — only {relvol}× usual volume; little conviction behind it.")
     else:
-        add("Volume confirmation", "warn", f"Volume {relvol}× average — only normal participation.")
+        add("Are people trading it?", "warn", f"So-so — about {relvol}× usual volume; nothing special.")
 
     rr = plan.get("rr")
     if rr is None:
-        add("Risk : reward", "fail", "No valid stop/target — can't size the trade.")
+        add("Worth the risk?", "fail", "Can't set a stop/target, so the trade can't be sized.")
     elif rr >= 2:
-        add("Risk : reward", "pass", f"1:{rr} — reward clears the 1:2 minimum.")
+        add("Worth the risk?", "pass", f"Yes — you'd aim to make about ${rr} for every $1 you risk.")
     elif rr >= 1:
-        add("Risk : reward", "warn", f"1:{rr} — marginal; below the 1:2 you'd want.")
+        add("Worth the risk?", "warn", f"Borderline — only about ${rr} reward per $1 risked (you'd want $2+).")
     else:
-        add("Risk : reward", "fail", f"1:{rr} — risk outweighs reward.")
+        add("Worth the risk?", "fail", f"No — the risk outweighs the reward (under $1 back per $1 risked).")
 
     if vs is not None and vs > 12:
-        add("Not chasing", "warn", f"Price is {vs}% above the trend line — extended, chase risk.")
+        add("Not chasing?", "warn", f"It's already {vs}% above its trend — buying this late can mean chasing.")
     else:
-        add("Not chasing", "pass", "Entry isn't stretched far above the trend line.")
+        add("Not chasing?", "pass", "Price isn't stretched far above its trend, so you're not buying late.")
 
     atrp = context.get("atr_pct")
     if atrp is not None and atrp > 7:
-        add("Volatility sane", "warn", f"ATR is {atrp}% of price — large swings, expect a wide stop.")
+        add("Calm enough?", "warn", f"Jumpy — it swings ~{atrp}% a day, so expect a wider stop and bigger moves.")
     else:
-        add("Volatility sane", "pass", f"ATR is {atrp}% of price — manageable volatility." if atrp else "Volatility manageable.")
+        add("Calm enough?", "pass", f"Yes — day-to-day swings (~{atrp}%) are manageable." if atrp else "Day-to-day swings are manageable.")
 
     if action == "BUY":
-        add("Signal freshness", "pass", "Fresh crossover — entering at the start of the move.")
+        add("Good timing?", "pass", "Yes — the up-trend just started, so you'd be getting in early.")
     elif action == "HOLD LONG":
-        add("Signal freshness", "warn", "Trend is aged — you'd be entering mid-move.")
+        add("Good timing?", "warn", "The trend started a while ago — you'd be joining partway in.")
     else:
-        add("Signal freshness", "fail", "No active long trigger right now.")
+        add("Good timing?", "fail", "No buy trigger right now — nothing to act on yet.")
 
     pts = {"pass": 1.0, "warn": 0.5, "fail": 0.0}
     score = sum(pts[c["status"]] for c in checks) / len(checks)
@@ -306,25 +336,25 @@ def _desk_read(action, plan, context, conviction) -> str:
     conv = conviction["label"]
     bits = []
     if action == "BUY":
-        bits.append("Setup: a fresh long trigger.")
+        bits.append("In short: the trend just turned up, so this is a possible spot to buy.")
     elif action == "HOLD LONG":
-        bits.append("Setup: an established long still in its trend.")
+        bits.append("In short: the up-trend is still going, so a position you already hold would stay open.")
     elif action == "SELL":
-        bits.append("Setup: a long exit — trend/momentum has rolled over.")
+        bits.append("In short: the trend has turned down, so this is where you'd sell and step aside.")
     else:
-        bits.append("Setup: no active long; this is a watch, not a trade.")
+        bits.append("In short: there's no clear up-trend, so this is one to watch, not buy yet.")
     if stop is not None and target is not None:
         bits.append(
-            f"The trade is defined: risk to ${stop:,.2f} (−{stop_pct}%), reward to ${target:,.2f} "
-            f"(+{tgt_pct}%), about 1:{rr} risk:reward. Invalidation is a close below the stop — "
-            f"if that breaks, the thesis is wrong and you're out."
+            f"The plan: buy near ${plan.get('entry'):,.2f}, and if you're wrong, get out at ${stop:,.2f} "
+            f"(a {stop_pct}% loss — your safety exit). If it works, aim for ${target:,.2f} (a {tgt_pct}% gain). "
+            f"That's about ${rr} of potential reward for every $1 you put at risk."
         )
-    weak = [c["label"].lower() for c in conviction["checks"] if c["status"] != "pass"]
+    weak = [c["label"].rstrip('?').lower() for c in conviction["checks"] if c["status"] != "pass"]
     if weak:
-        bits.append(f"Conviction is {conv}; the soft spots are {', '.join(weak)} — "
-                    f"tightening those (or waiting for them to confirm) raises the edge.")
+        bits.append(f"Overall confidence is {conv}. The weaker points are: {', '.join(weak)}. "
+                    f"Waiting for those to improve would make it a stronger setup.")
     else:
-        bits.append(f"Conviction is {conv} with every check passing — a clean setup by the rules.")
+        bits.append(f"Overall confidence is {conv} — every check passed, which is a clean setup by these rules.")
     return " ".join(bits)
 
 
