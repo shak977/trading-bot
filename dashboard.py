@@ -300,6 +300,10 @@ def render_html(snap: dict) -> str:
   .checks .ck-l {{ font-weight:600; }} .checks .ck-n {{ color:var(--muted); }}
   .chartkey {{ color:var(--muted); font-size:12px; margin-top:8px; line-height:1.6; }}
   .reasons li {{ font-size:14px; line-height:1.5; }}
+  .readout {{ display:flex; align-items:baseline; gap:12px; min-height:30px; margin:2px 0 10px; }}
+  .readout .rprice {{ font-size:24px; font-weight:700; }}
+  .readout .rchg {{ font-size:15px; font-weight:600; }}
+  .readout .rdate {{ color:var(--muted); font-size:13px; margin-left:auto; }}
   .tabs {{ display:flex; gap:4px; flex-wrap:wrap; border-bottom:1px solid var(--line);
     margin:18px 0 22px; position:sticky; top:0; background:var(--bg); z-index:10; padding-top:6px; }}
   .tabs button {{ background:none; border:none; color:var(--muted); font-size:15px;
@@ -451,19 +455,14 @@ def render_html(snap: dict) -> str:
     <ul class="checks" id="mChecks"></ul>
     <div class="sech">The trade plan <span id="mPlanNote" style="text-transform:none;color:var(--muted);"></span></div>
     <div class="plangrid" id="mPlan"></div>
-    <div class="sech">Chart: where it would buy &amp; sell</div>
+    <div class="sech">Price chart</div>
+    <div class="readout" id="mReadout"></div>
     <div class="chartctl">
       <span class="ctlgrp" id="rangeBtns"></span>
       <span class="ctlgrp" id="typeBtns"></span>
-      <label class="ctltog"><input type="checkbox" id="benchToggle" checked> Compare to S&amp;P 500</label>
-      <span class="ctlgrp">
-        <button id="zoomOut" title="Zoom out">&minus;</button>
-        <button id="zoomIn" title="Zoom in">+</button>
-      </span>
-      <button class="ctlbtn" id="zoomReset">Reset</button>
+      <label class="ctltog"><input type="checkbox" id="benchToggle"> vs S&amp;P 500</label>
     </div>
-    <div class="chartkey" style="margin:0 0 6px;">Tip: use &minus;/+ or scroll / pinch to zoom, drag to pan, Reset to fit.</div>
-    <div class="chartbox"><canvas id="mChart" height="130"></canvas></div>
+    <div class="chartbox"><canvas id="mChart" height="140"></canvas></div>
     <div class="chartkey" id="mChartKey"></div>
     <div class="sech">The details, explained</div>
     <ul class="reasons" id="mReasons"></ul>
@@ -592,6 +591,10 @@ async function refreshLive() {{
       if (p != null) el.textContent = _fmtPx(p);
     }});
     _pushLiveToChart();
+    if (overlay && overlay.classList.contains('open') && CUR.prices.length) {{
+      CUR.prices[CUR.prices.length-1] = LIVE[MODAL && MODAL.symbol] != null ? LIVE[MODAL.symbol] : CUR.prices[CUR.prices.length-1];
+      _updateReadout();
+    }}
     _updateOverviewLive();
     const tm = new Date(d.at || Date.now()).toLocaleTimeString();
     st.innerHTML = '&middot; <span style="color:#2ea043;">● Live</span> <span style="color:#8b97a6;">'+tm+'</span>';
@@ -726,10 +729,69 @@ function openModal(s) {{
 
 // ---- stateful modal chart ----
 let MODAL = null;
-const CSTATE = {{ range:'6M', type:'line', bench:true }};
+const CSTATE = {{ range:'6M', type:'line', bench:false }};
 const INTRA = {{}};  // cache for intraday bars (5D only)
+let CUR = {{ prices:[], times:[], base:null, intraday:false }};  // for the hover readout
 let _finOK = false;
 try {{ _finOK = !!(window.Chart && Chart.registry.getController('candlestick')); }} catch(e) {{ _finOK = false; }}
+
+// crosshair: vertical line + dot at the hovered point (Robinhood/Google style)
+const _crosshair = {{
+  id:'crosshair',
+  afterDatasetsDraw(chart) {{
+    const act = chart.getActiveElements ? chart.getActiveElements() : (chart._active||[]);
+    if (!act || !act.length) return;
+    const x = act[0].element.x, y = act[0].element.y;
+    const {{top, bottom}} = chart.chartArea, c = chart.ctx;
+    c.save();
+    c.beginPath(); c.moveTo(x, top); c.lineTo(x, bottom);
+    c.lineWidth = 1; c.strokeStyle = 'rgba(139,151,166,0.45)'; c.stroke();
+    c.beginPath(); c.arc(x, y, 4, 0, Math.PI*2); c.fillStyle = '#e6edf3'; c.fill();
+    c.restore();
+  }}
+}};
+try {{ Chart.register(_crosshair); }} catch(e) {{}}
+
+function _priceColor(arr) {{
+  const a = arr.find(v => v != null);
+  let b = null; for (let i = arr.length-1; i >= 0; i--) {{ if (arr[i] != null) {{ b = arr[i]; break; }} }}
+  return (b != null && a != null && b < a) ? '#f85149' : '#2ea043';
+}}
+function _areaFill(color) {{
+  return (ctx) => {{
+    const ch = ctx.chart, area = ch.chartArea; if (!area) return color + '00';
+    const g = ch.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+    g.addColorStop(0, color + '44'); g.addColorStop(1, color + '00'); return g;
+  }};
+}}
+function _updateReadout(idx) {{
+  const r = document.getElementById('mReadout'); if (!r || !CUR.prices.length) return;
+  if (idx == null || CUR.prices[idx] == null) idx = CUR.prices.length - 1;
+  const p = CUR.prices[idx]; if (p == null) return;
+  const chg = CUR.base ? (p/CUR.base - 1)*100 : 0;
+  const up = chg >= 0, col = up ? '#2ea043' : '#f85149';
+  const d = new Date(CUR.times[idx]);
+  const ds = CUR.intraday
+    ? d.toLocaleString([], {{month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}})
+    : d.toLocaleDateString([], {{year:'numeric', month:'short', day:'numeric'}});
+  r.innerHTML = `<span class="rprice">$${{p.toLocaleString(undefined,{{minimumFractionDigits:2,maximumFractionDigits:2}})}}</span>`
+    + `<span class="rchg" style="color:${{col}};">${{up?'+':''}}${{chg.toFixed(2)}}% over range</span>`
+    + `<span class="rdate">${{ds}}</span>`;
+}}
+function _cleanOpts(unit, y2) {{
+  const scales = {{
+    x:{{type:'time', time:{{unit}}, ticks:{{color:'#8b97a6', maxTicksLimit:6}}, grid:{{display:false}}}},
+    y:{{position:'right', ticks:{{color:'#8b97a6'}}, grid:{{color:'rgba(42,52,65,0.55)'}}}}
+  }};
+  if (y2) scales.y2 = {{position:'left', ticks:{{color:'#a371f7', callback:v=>v+'%'}}, grid:{{display:false}}}};
+  return {{
+    responsive:true, parsing:false, interaction:{{mode:'index', intersect:false}},
+    onHover:(e, act) => {{ _updateReadout(act && act.length ? act[0].index : null); }},
+    elements:{{line:{{tension:0.15}}}},
+    plugins:{{ legend:{{labels:{{color:'#8b97a6', usePointStyle:true, boxWidth:8}}}}, tooltip:{{enabled:false}} }},
+    scales
+  }};
+}}
 
 function _winStart(c, range) {{
   const n = c.t.length;
@@ -764,63 +826,50 @@ function renderModalChart() {{
     if (_lp < lo[lo.length-1]) lo[lo.length-1] = _lp;
   }}
   const useCandle = CSTATE.type==='candle' && _finOK;
+  const pcol = _priceColor(close);
   const ds = [];
   if (useCandle) {{
     ds.push({{type:'candlestick', label:s.symbol, order:3,
       data:T.map((t,i)=>({{x:t,o:op[i],h:hi[i],l:lo[i],c:close[i]}})),
       color:{{up:'#2ea043',down:'#f85149',unchanged:'#8b97a6'}}}});
   }} else {{
-    ds.push({{type:'line', label:'Price', order:3, borderColor:'#e6edf3', borderWidth:1.5,
-      pointRadius:0, data:T.map((t,i)=>({{x:t,y:close[i]}}))}});
+    ds.push({{type:'line', label:'Price', order:3, borderColor:pcol, borderWidth:2,
+      pointRadius:0, fill:true, backgroundColor:_areaFill(pcol), data:T.map((t,i)=>({{x:t,y:close[i]}}))}});
   }}
-  ds.push({{type:'line', label:'Short-term avg', order:3, borderColor:'#388bfd', borderWidth:1.2,
-    pointRadius:0, data:T.map((t,i)=>({{x:t,y:fast[i]}}))}});
-  ds.push({{type:'line', label:'Long-term avg', order:3, borderColor:'#f0883e', borderWidth:1.2,
-    pointRadius:0, data:T.map((t,i)=>({{x:t,y:slow[i]}}))}});
+  ds.push({{type:'line', label:'20-day avg', order:4, borderColor:'rgba(56,139,253,0.6)', borderWidth:1,
+    pointRadius:0, fill:false, data:T.map((t,i)=>({{x:t,y:fast[i]}}))}});
+  ds.push({{type:'line', label:'50-day avg', order:4, borderColor:'rgba(240,136,62,0.6)', borderWidth:1,
+    pointRadius:0, fill:false, data:T.map((t,i)=>({{x:t,y:slow[i]}}))}});
   const buyPts = T.map((t,i)=> buys[i]!=null ? {{x:t,y:buys[i]}} : null).filter(Boolean);
   const sellPts = T.map((t,i)=> sells[i]!=null ? {{x:t,y:sells[i]}} : null).filter(Boolean);
   ds.push({{type:'scatter', label:'Buy signal', data:buyPts, backgroundColor:'#2ea043',
-    pointStyle:'triangle', radius:9, hoverRadius:11, order:1}});
+    pointStyle:'triangle', radius:8, hoverRadius:10, order:1}});
   ds.push({{type:'scatter', label:'Sell signal', data:sellPts, backgroundColor:'#f85149',
-    pointStyle:'triangle', rotation:180, radius:9, hoverRadius:11, order:1}});
+    pointStyle:'triangle', rotation:180, radius:8, hoverRadius:10, order:1}});
   const tA=T[0], tB=T[T.length-1];
-  const hline=(v,col,lab)=>({{type:'line',label:lab,borderColor:col,borderDash:[6,4],borderWidth:1,
-    pointRadius:0,order:2,data:[{{x:tA,y:v}},{{x:tB,y:v}}]}});
-  if (p.entry!=null) ds.push(hline(p.entry,'#8b97a6','Buy near'));
-  if (p.target!=null) ds.push(hline(p.target,'#2ea043','Take-profit'));
-  if (p.stop!=null) ds.push(hline(p.stop,'#f85149','Stop-loss'));
-  const scales = {{
-    x:{{type:'time', time:{{unit: CSTATE.range==='1M'?'week':'month'}},
-       ticks:{{color:'#8b97a6',maxTicksLimit:8}}, grid:{{color:'#2a3441'}}}},
-    y:{{ticks:{{color:'#8b97a6'}}, grid:{{color:'#2a3441'}}}}
-  }};
-  let benchNote = '';
+  const hline=(v,col,lab)=>({{type:'line',label:lab,borderColor:col,borderDash:[5,4],borderWidth:1,
+    pointRadius:0,order:2,fill:false,data:[{{x:tA,y:v}},{{x:tB,y:v}}]}});
+  if (p.entry!=null) ds.push(hline(p.entry,'rgba(139,151,166,0.7)','Buy near'));
+  if (p.target!=null) ds.push(hline(p.target,'rgba(46,160,67,0.7)','Take-profit'));
+  if (p.stop!=null) ds.push(hline(p.stop,'rgba(248,81,73,0.7)','Stop-loss'));
+  let benchNote = '', y2 = false;
   if (CSTATE.bench && DATA.benchmark) {{
     const b = DATA.benchmark, bmap = {{}};
     b.t.forEach((t,i)=> bmap[t]=b.close[i]);
     let base=null; const bpts=[];
     T.forEach(t=>{{ const v=bmap[t]; if(v!=null){{ if(base==null) base=v; bpts.push({{x:t,y:(v/base-1)*100}}); }} }});
     if (bpts.length) {{
-      ds.push({{type:'line', label:'S&P 500 (% change)', data:bpts, borderColor:'#a371f7',
-        borderWidth:1.3, pointRadius:0, yAxisID:'y2', order:2}});
-      scales.y2 = {{position:'right', ticks:{{color:'#a371f7', callback:v=>v+'%'}}, grid:{{drawOnChartArea:false}}}};
-      benchNote = ' Purple line = S&P 500 over the same window (right axis, % change) so you can compare.';
+      ds.push({{type:'line', label:'S&P 500 (%)', data:bpts, borderColor:'#a371f7',
+        borderWidth:1.3, pointRadius:0, fill:false, yAxisID:'y2', order:2}});
+      y2 = true; benchNote = ' Purple = S&P 500 (% change, left axis) to compare.';
     }}
   }}
-  mChart = new Chart(document.getElementById('mChart'), {{
-    data:{{datasets:ds}},
-    options:{{responsive:true, parsing:false, interaction:{{mode:'index',intersect:false}},
-      plugins:{{
-        legend:{{labels:{{color:'#8b97a6', usePointStyle:true, boxWidth:8}}}},
-        zoom:{{
-          zoom:{{wheel:{{enabled:true}}, pinch:{{enabled:true}}, drag:{{enabled:false}}, mode:'xy'}},
-          pan:{{enabled:true, mode:'xy'}}
-        }}
-      }}, scales}}
-  }});
+  CUR = {{ prices:close, times:T, base: close.find(v=>v!=null), intraday:false }};
+  mChart = new Chart(document.getElementById('mChart'),
+    {{ data:{{datasets:ds}}, options:_cleanOpts(CSTATE.range==='1M'?'week':'month', y2) }});
+  _updateReadout();
   const nB=buyPts.length, nS=sellPts.length;
-  key.innerHTML = `▲ green = past buy signals (${{nB}}) &nbsp; ▼ red = past sell signals (${{nS}}) &nbsp; `
-    + `dashed lines = your buy / take-profit / stop levels.` + benchNote;
+  key.innerHTML = `Hover to scrub. ▲ ${{nB}} past buys &nbsp; ▼ ${{nS}} past sells &nbsp; dashed = entry / target / stop.` + benchNote;
 }}
 
 // ---- intraday (1D / 5D) — fetched live from the Worker proxy ----
@@ -855,29 +904,25 @@ function _drawIntra(s, bars) {{
   const T = bars.map(b=>b.t), close = bars.map(b=>b.c);
   const lp = LIVE[s.symbol]; if (lp != null) close[close.length-1] = lp;
   const useCandle = CSTATE.type === 'candle' && _finOK;
+  const pcol = _priceColor(close);
   const ds = [];
   if (useCandle) ds.push({{type:'candlestick', label:s.symbol,
     data:bars.map(b=>({{x:b.t,o:b.o,h:b.h,l:b.l,c:b.c}})),
     color:{{up:'#2ea043',down:'#f85149',unchanged:'#8b97a6'}}}});
-  else ds.push({{type:'line', label:'Price', borderColor:'#e6edf3', borderWidth:1.5, pointRadius:0,
-    data:T.map((t,i)=>({{x:t,y:close[i]}}))}});
+  else ds.push({{type:'line', label:'Price', borderColor:pcol, borderWidth:2, pointRadius:0,
+    fill:true, backgroundColor:_areaFill(pcol), data:T.map((t,i)=>({{x:t,y:close[i]}}))}});
   const tA=T[0], tB=T[T.length-1];
-  const hline=(v,col,lab)=>({{type:'line',label:lab,borderColor:col,borderDash:[6,4],borderWidth:1,
-    pointRadius:0,data:[{{x:tA,y:v}},{{x:tB,y:v}}]}});
-  if (p.entry!=null) ds.push(hline(p.entry,'#8b97a6','Buy near'));
-  if (p.target!=null) ds.push(hline(p.target,'#2ea043','Take-profit'));
-  if (p.stop!=null) ds.push(hline(p.stop,'#f85149','Stop-loss'));
-  mChart = new Chart(document.getElementById('mChart'), {{
-    data:{{datasets:ds}},
-    options:{{responsive:true, parsing:false, interaction:{{mode:'index',intersect:false}},
-      plugins:{{legend:{{labels:{{color:'#8b97a6', usePointStyle:true, boxWidth:8}}}},
-        zoom:{{zoom:{{wheel:{{enabled:true}}, pinch:{{enabled:true}}, mode:'xy'}}, pan:{{enabled:true, mode:'xy'}}}}}},
-      scales:{{x:{{type:'time', time:{{unit: CSTATE.range==='1D'?'hour':'day'}},
-                 ticks:{{color:'#8b97a6',maxTicksLimit:8}}, grid:{{color:'#2a3441'}}}},
-               y:{{ticks:{{color:'#8b97a6'}}, grid:{{color:'#2a3441'}}}}}}}}
-  }});
-  key.innerHTML = (CSTATE.range==='1D' ? "Today's" : "This week's") + ' price path ('
-    + (CSTATE.range==='1D' ? '15-min' : '1-hour') + ' bars, live). Dashed lines = your buy / take-profit / stop levels.';
+  const hline=(v,col,lab)=>({{type:'line',label:lab,borderColor:col,borderDash:[5,4],borderWidth:1,
+    pointRadius:0,fill:false,data:[{{x:tA,y:v}},{{x:tB,y:v}}]}});
+  if (p.entry!=null) ds.push(hline(p.entry,'rgba(139,151,166,0.7)','Buy near'));
+  if (p.target!=null) ds.push(hline(p.target,'rgba(46,160,67,0.7)','Take-profit'));
+  if (p.stop!=null) ds.push(hline(p.stop,'rgba(248,81,73,0.7)','Stop-loss'));
+  CUR = {{ prices:close, times:T, base: close.find(v=>v!=null), intraday:true }};
+  mChart = new Chart(document.getElementById('mChart'),
+    {{ data:{{datasets:ds}}, options:_cleanOpts(CSTATE.range==='1D'?'hour':'day', false) }});
+  _updateReadout();
+  key.innerHTML = (CSTATE.range==='1D' ? "Today's" : "This week's") + ' price path, live ('
+    + (CSTATE.range==='1D' ? '15-min' : '1-hour') + ' bars). Hover to scrub. Dashed = entry / target / stop.';
 }}
 
 // build chart controls once
@@ -902,12 +947,6 @@ function _drawIntra(s, bars) {{
   const bt = document.getElementById('benchToggle');
   bt.checked = CSTATE.bench;
   bt.onchange = () => {{ CSTATE.bench = bt.checked; renderModalChart(); }};
-  const zr = document.getElementById('zoomReset');
-  if (zr) zr.onclick = () => {{ if (mChart && mChart.resetZoom) mChart.resetZoom(); }};
-  const zi = document.getElementById('zoomIn');
-  if (zi) zi.onclick = () => {{ if (mChart && mChart.zoom) mChart.zoom(1.3); }};
-  const zo = document.getElementById('zoomOut');
-  if (zo) zo.onclick = () => {{ if (mChart && mChart.zoom) mChart.zoom(0.77); }};
 }})();
 
 function closeModal() {{ overlay.classList.remove('open'); }}
