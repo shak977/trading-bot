@@ -307,6 +307,9 @@ def render_html(snap: dict) -> str:
   .secthead {{ font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase;
     letter-spacing:.05em; margin:22px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--line); }}
   .secthead:first-child {{ margin-top:4px; }}
+  .ovbox {{ background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:14px 16px; margin-bottom:22px; }}
+  .ovhead {{ font-weight:700; font-size:14px; margin-bottom:8px; }}
   .track {{ background:var(--card); border:1px solid var(--line); border-radius:12px;
     padding:16px 18px; margin:18px 0; }}
   .track h2 {{ margin:0 0 4px; }}
@@ -355,6 +358,10 @@ def render_html(snap: dict) -> str:
 
   <section class="page on" id="page-signals">
     <h2 style="margin-top:0;">Signals <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— grouped by sector · click any card for the full reasoning</span></h2>
+    <div class="ovbox">
+      <div class="ovhead">📈 Live overview — S&amp;P 500 vs your top signals <span style="font-weight:400;color:var(--muted);">(% change)</span> <span id="ovStatus"></span></div>
+      <canvas id="overviewChart" height="92"></canvas>
+    </div>
     <div id="cards"></div>
   </section>
 
@@ -511,8 +518,8 @@ _sectorOrder.forEach(sec => {{
 }});
 
 // ---- live prices (via Cloudflare Worker proxy) ----
-const LIVE_SYMS = DATA.signals.map(s => s.symbol);
-let LIVE = {{}};  // latest live prices, shared with the chart
+const LIVE_SYMS = [...new Set(DATA.signals.map(s => s.symbol).concat('SPY'))];
+let LIVE = {{}};  // latest live prices, shared with the charts
 function _fmtPx(v) {{ return '$' + Number(v).toLocaleString(undefined, {{minimumFractionDigits:2, maximumFractionDigits:2}}); }}
 function _pushLiveToChart() {{
   // Update the most recent point of the open modal chart with the live price,
@@ -542,13 +549,70 @@ async function refreshLive() {{
       if (p != null) el.textContent = _fmtPx(p);
     }});
     _pushLiveToChart();
+    _updateOverviewLive();
     const tm = new Date(d.at || Date.now()).toLocaleTimeString();
     st.innerHTML = '&middot; <span style="color:#2ea043;">● Live</span> <span style="color:#8b97a6;">'+tm+'</span>';
+    const ov = document.getElementById('ovStatus');
+    if (ov) ov.innerHTML = '<span style="color:#2ea043;font-size:12px;">● live ' + tm + '</span>';
   }} catch (e) {{
     st.innerHTML = '&middot; <span style="color:#8b97a6;">live prices unavailable</span>';
   }}
 }}
 if (LIVE_URL) {{ refreshLive(); setInterval(refreshLive, 30000); }}
+
+// ---- live overview chart: S&P 500 vs top signals, normalised to % change ----
+let ovChart = null;
+const OV_BASE = {{}};   // symbol -> base price for rebasing
+const OV_WIN = 60;      // ~3 months of daily bars
+const OV_PALETTE = ['#388bfd','#2ea043','#f0883e','#f85149','#a371f7','#e8c878',
+                    '#56d4dd','#db61a2','#6cc644','#bd8b00','#8b97a6','#ff7b72'];
+function _rebase(t, close) {{
+  const n = close.length, st = Math.max(0, n - OV_WIN);
+  const T = t.slice(st), C = close.slice(st);
+  let base = null;
+  for (const v of C) {{ if (v != null) {{ base = v; break; }} }}
+  if (!base) return {{ pts: [], base: null }};
+  return {{ pts: T.map((tt, i) => ({{x: tt, y: (C[i]/base - 1) * 100}})), base }};
+}}
+function buildOverview() {{
+  const cv = document.getElementById('overviewChart');
+  if (!cv || typeof Chart === 'undefined') return;
+  // pick the index + the most actionable signals (BUY/SELL/HOLD), capped for readability
+  let picks = DATA.signals.filter(s => s.action !== 'FLAT').slice(0, 10).map(s => s.symbol);
+  if (picks.length < 4) picks = DATA.signals.slice(0, 8).map(s => s.symbol);
+  const ds = [];
+  if (DATA.benchmark) {{
+    const r = _rebase(DATA.benchmark.t, DATA.benchmark.close);
+    if (r.pts.length) {{ OV_BASE['SPY'] = r.base;
+      ds.push({{label:'S&P 500', data:r.pts, borderColor:'#e6edf3', borderWidth:2.4, pointRadius:0, order:1}}); }}
+  }}
+  picks.forEach((sym, i) => {{
+    const c = DATA.charts[sym]; if (!c) return;
+    const r = _rebase(c.t, c.close); if (!r.pts.length) return;
+    OV_BASE[sym] = r.base;
+    ds.push({{label:sym, data:r.pts, borderColor:OV_PALETTE[i % OV_PALETTE.length],
+      borderWidth:1.3, pointRadius:0, order:2}});
+  }});
+  if (ovChart) ovChart.destroy();
+  ovChart = new Chart(cv, {{
+    data:{{datasets:ds}},
+    options:{{responsive:true, parsing:false, interaction:{{mode:'index',intersect:false}},
+      plugins:{{legend:{{labels:{{color:'#8b97a6', usePointStyle:true, boxWidth:8, font:{{size:11}}}}}},
+        zoom:{{zoom:{{wheel:{{enabled:true}}, pinch:{{enabled:true}}, mode:'x'}}, pan:{{enabled:true, mode:'x'}}}}}},
+      scales:{{x:{{type:'time', time:{{unit:'month'}}, ticks:{{color:'#8b97a6',maxTicksLimit:8}}, grid:{{color:'#2a3441'}}}},
+               y:{{ticks:{{color:'#8b97a6', callback:v=>(v>0?'+':'')+v+'%'}}, grid:{{color:'#2a3441'}}}}}}}}
+  }});
+}}
+function _updateOverviewLive() {{
+  if (!ovChart) return;
+  ovChart.data.datasets.forEach(d => {{
+    const sym = d.label === 'S&P 500' ? 'SPY' : d.label;
+    const lp = LIVE[sym], base = OV_BASE[sym];
+    if (lp != null && base && d.data.length) d.data[d.data.length - 1].y = (lp/base - 1) * 100;
+  }});
+  ovChart.update('none');
+}}
+buildOverview();
 
 // ---- detail modal ----
 const overlay = document.getElementById('overlay');
