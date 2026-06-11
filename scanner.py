@@ -72,6 +72,8 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
     rv_rounded = None if np.isnan(relvol) else round(relvol, 2)
     summary, reasons = _reasoning(sig, cfg, action, price, rv_rounded)
     plan, context = _trade_plan(df, sig, cfg, price, equity)
+    conviction = _conviction(action, float(last["rsi"]), rv_rounded, plan, context, cfg)
+    desk_read = _desk_read(action, plan, context, conviction)
     return {
         "symbol": symbol,
         "action": action,
@@ -88,6 +90,8 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
         "reasons": reasons,
         "plan": plan,
         "context": context,
+        "conviction": conviction,
+        "desk_read": desk_read,
         "chart": {
             "dates": [str(d.date()) for d in tail.index],
             "close": [round(float(x), 2) for x in tail["close"]],
@@ -227,6 +231,101 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float):
         "history_bars": int(len(df)),
     }
     return plan, context
+
+
+def _conviction(action, rsi, relvol, plan, context, cfg: Config):
+    """Auto-scored pre-entry checklist for a long. Each check is pass/warn/fail."""
+    checks = []
+
+    def add(label, status, note):
+        checks.append({"label": label, "status": status, "note": note})
+
+    vs = context.get("vs_slow_ma_pct")
+    bullish = vs is not None and vs > 0
+    add("Trend alignment",
+        "pass" if bullish else "fail",
+        "Price above the trend line (slow MA)." if bullish else "Price below the trend line — counter-trend.")
+
+    if rsi >= cfg.rsi_overbought:
+        add("Momentum room", "warn", f"RSI {rsi:.0f} is overbought — limited upside room.")
+    elif rsi < 40:
+        add("Momentum room", "warn", f"RSI {rsi:.0f} is weak — momentum not confirming.")
+    else:
+        add("Momentum room", "pass", f"RSI {rsi:.0f} leaves room to run without being overbought.")
+
+    if relvol is None:
+        add("Volume confirmation", "warn", "Volume data unavailable.")
+    elif relvol >= 1.2:
+        add("Volume confirmation", "pass", f"Volume {relvol}× average — participation confirms the move.")
+    elif relvol < 0.8:
+        add("Volume confirmation", "fail", f"Volume {relvol}× average — move lacks conviction.")
+    else:
+        add("Volume confirmation", "warn", f"Volume {relvol}× average — only normal participation.")
+
+    rr = plan.get("rr")
+    if rr is None:
+        add("Risk : reward", "fail", "No valid stop/target — can't size the trade.")
+    elif rr >= 2:
+        add("Risk : reward", "pass", f"1:{rr} — reward clears the 1:2 minimum.")
+    elif rr >= 1:
+        add("Risk : reward", "warn", f"1:{rr} — marginal; below the 1:2 you'd want.")
+    else:
+        add("Risk : reward", "fail", f"1:{rr} — risk outweighs reward.")
+
+    if vs is not None and vs > 12:
+        add("Not chasing", "warn", f"Price is {vs}% above the trend line — extended, chase risk.")
+    else:
+        add("Not chasing", "pass", "Entry isn't stretched far above the trend line.")
+
+    atrp = context.get("atr_pct")
+    if atrp is not None and atrp > 7:
+        add("Volatility sane", "warn", f"ATR is {atrp}% of price — large swings, expect a wide stop.")
+    else:
+        add("Volatility sane", "pass", f"ATR is {atrp}% of price — manageable volatility." if atrp else "Volatility manageable.")
+
+    if action == "BUY":
+        add("Signal freshness", "pass", "Fresh crossover — entering at the start of the move.")
+    elif action == "HOLD LONG":
+        add("Signal freshness", "warn", "Trend is aged — you'd be entering mid-move.")
+    else:
+        add("Signal freshness", "fail", "No active long trigger right now.")
+
+    pts = {"pass": 1.0, "warn": 0.5, "fail": 0.0}
+    score = sum(pts[c["status"]] for c in checks) / len(checks)
+    label = "High" if score >= 0.75 else "Medium" if score >= 0.5 else "Low"
+    return {"score_pct": round(score * 100), "label": label,
+            "passes": sum(1 for c in checks if c["status"] == "pass"),
+            "total": len(checks), "checks": checks}
+
+
+def _desk_read(action, plan, context, conviction) -> str:
+    """A short risk-strategist read, composed from the computed levels."""
+    stop, target = plan.get("stop"), plan.get("target")
+    rr = plan.get("rr")
+    stop_pct, tgt_pct = plan.get("stop_pct"), plan.get("target_pct")
+    conv = conviction["label"]
+    bits = []
+    if action == "BUY":
+        bits.append("Setup: a fresh long trigger.")
+    elif action == "HOLD LONG":
+        bits.append("Setup: an established long still in its trend.")
+    elif action == "SELL":
+        bits.append("Setup: a long exit — trend/momentum has rolled over.")
+    else:
+        bits.append("Setup: no active long; this is a watch, not a trade.")
+    if stop is not None and target is not None:
+        bits.append(
+            f"The trade is defined: risk to ${stop:,.2f} (−{stop_pct}%), reward to ${target:,.2f} "
+            f"(+{tgt_pct}%), about 1:{rr} risk:reward. Invalidation is a close below the stop — "
+            f"if that breaks, the thesis is wrong and you're out."
+        )
+    weak = [c["label"].lower() for c in conviction["checks"] if c["status"] != "pass"]
+    if weak:
+        bits.append(f"Conviction is {conv}; the soft spots are {', '.join(weak)} — "
+                    f"tightening those (or waiting for them to confirm) raises the edge.")
+    else:
+        bits.append(f"Conviction is {conv} with every check passing — a clean setup by the rules.")
+    return " ".join(bits)
 
 
 def _rank_key(row: dict) -> tuple:

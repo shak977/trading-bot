@@ -168,6 +168,18 @@ def render_html(snap: dict) -> str:
   .stat .v {{ font-size:17px; font-weight:700; margin-top:2px; }}
   .stat .v.buy {{ color:var(--buy); }} .stat .v.sell {{ color:var(--sell); }}
   .stat .sub {{ color:var(--muted); font-size:11px; }}
+  .deskread {{ background:#0f1722; border:1px solid var(--line); border-left:3px solid var(--hold);
+    border-radius:10px; padding:12px 14px; font-size:14px; margin:14px 0; }}
+  .convbadge {{ font-size:13px; font-weight:700; padding:2px 10px; border-radius:999px; }}
+  .conv-High {{ background:var(--buy); }} .conv-Medium {{ background:#9e6a1e; }}
+  .conv-Low {{ background:var(--sell); }}
+  .checks {{ list-style:none; padding:0; margin:8px 0; }}
+  .checks li {{ display:flex; gap:10px; align-items:flex-start; padding:7px 0;
+    border-bottom:1px solid var(--line); font-size:13px; }}
+  .checks .ic {{ flex:0 0 18px; font-weight:700; }}
+  .checks .pass .ic {{ color:var(--buy); }} .checks .warn .ic {{ color:#e8c878; }}
+  .checks .fail .ic {{ color:var(--sell); }}
+  .checks .ck-l {{ font-weight:600; }} .checks .ck-n {{ color:var(--muted); }}
 </style></head>
 <body><div class="wrap">
   <h1>Trading Signals Dashboard</h1>
@@ -203,6 +215,9 @@ def render_html(snap: dict) -> str:
     <button class="close" id="modalClose">&times;</button>
     <h3 id="mTitle"></h3>
     <div class="summary" id="mSummary"></div>
+    <div class="deskread" id="mDesk"></div>
+    <div class="sech">Pre-entry conviction <span id="mConvScore"></span></div>
+    <ul class="checks" id="mChecks"></ul>
     <div class="sech">Trade plan <span id="mPlanNote" style="text-transform:none;color:var(--muted);"></span></div>
     <div class="plangrid" id="mPlan"></div>
     <div class="sech">Market context</div>
@@ -240,7 +255,8 @@ DATA.signals.forEach(s => {{
     ${{s.rel_volume!=null ? `<div class="kv${{hot}}"><span>Rel vol (flow proxy)</span><span>${{s.rel_volume}}x</span></div>`:''}}
     ${{s.stop!=null ? `<div class="kv"><span>Stop / Target</span><span>$${{s.stop}} / $${{s.target}}</span></div>`:''}}
     ${{s.suggested_shares ? `<div class="kv"><span>Suggested size</span><span>${{s.suggested_shares}} sh</span></div>`:''}}
-    <div class="more">Why this? ${{nNews ? nNews+' news &middot; ':''}}click to see reasoning →</div>`;
+    ${{s.conviction ? `<div class="kv"><span>Conviction</span><span><span class="convbadge conv-${{s.conviction.label}}" style="font-size:11px;">${{s.conviction.label}} ${{s.conviction.score_pct}}%</span></span></div>`:''}}
+    <div class="more">${{nNews ? nNews+' news &middot; ':''}}click for full plan + reasoning →</div>`;
   el.addEventListener('click', () => openModal(s));
   cards.appendChild(el);
 }});
@@ -253,6 +269,17 @@ function openModal(s) {{
   document.getElementById('mTitle').innerHTML =
     `${{s.symbol}} <span class="act a-${{cls}}" style="float:none;font-size:13px;">${{s.action}}</span> &nbsp; <span style="color:var(--muted);font-size:15px;">$${{s.price.toLocaleString()}}</span>`;
   document.getElementById('mSummary').textContent = s.summary || '';
+  document.getElementById('mDesk').textContent = s.desk_read || '';
+
+  const conv = s.conviction || {{}};
+  document.getElementById('mConvScore').innerHTML = conv.label
+    ? `<span class="convbadge conv-${{conv.label}}">${{conv.label}} · ${{conv.score_pct}}% · ${{conv.passes}}/${{conv.total}} checks</span>`
+    : '';
+  const icon = {{pass:'✓', warn:'!', fail:'✗'}};
+  document.getElementById('mChecks').innerHTML = (conv.checks||[]).map(c =>
+    `<li class="${{c.status}}"><span class="ic">${{icon[c.status]}}</span>`
+    + `<span><span class="ck-l">${{c.label}}</span> — <span class="ck-n">${{c.note}}</span></span></li>`
+  ).join('');
 
   const p = s.plan || {{}}, ctx = s.context || {{}};
   const money = v => (v==null ? '–' : '$'+Number(v).toLocaleString(undefined,{{minimumFractionDigits:2,maximumFractionDigits:2}}));
