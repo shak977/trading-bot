@@ -1,0 +1,16 @@
+# Secrets — NEVER commit these
+.env
+*.env
+!.env.example
+
+# Generated output (rebuilt on each run; fine to ignore)
+dashboard.html
+signals.json
+logs/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+_site/

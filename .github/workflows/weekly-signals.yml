@@ -1,0 +1,44 @@
+name: Weekly Trading Signals
+
+# Runs every Monday 13:45 UTC (~just before US open is 13:30 UTC; adjust as needed),
+# and can be triggered manually from the Actions tab.
+on:
+  schedule:
+    - cron: "45 13 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Generate dashboard
+        env:
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          ALPACA_PAPER: "true"
+        run: |
+          python dashboard.py
+          mkdir -p _site
+          cp dashboard.html _site/index.html
+          cp signals.json _site/signals.json
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
