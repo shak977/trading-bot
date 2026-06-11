@@ -440,9 +440,13 @@ def render_html(snap: dict) -> str:
       <span class="ctlgrp" id="rangeBtns"></span>
       <span class="ctlgrp" id="typeBtns"></span>
       <label class="ctltog"><input type="checkbox" id="benchToggle" checked> Compare to S&amp;P 500</label>
-      <button class="ctlbtn" id="zoomReset">Reset zoom</button>
+      <span class="ctlgrp">
+        <button id="zoomOut" title="Zoom out">&minus;</button>
+        <button id="zoomIn" title="Zoom in">+</button>
+      </span>
+      <button class="ctlbtn" id="zoomReset">Reset</button>
     </div>
-    <div class="chartkey" style="margin:0 0 6px;">Tip: scroll / pinch to zoom, drag to pan.</div>
+    <div class="chartkey" style="margin:0 0 6px;">Tip: use &minus;/+ or scroll / pinch to zoom, drag to pan, Reset to fit.</div>
     <div class="chartbox"><canvas id="mChart" height="130"></canvas></div>
     <div class="chartkey" id="mChartKey"></div>
     <div class="sech">The details, explained</div>
@@ -489,7 +493,23 @@ DATA.signals.forEach(s => {{
 
 // ---- live prices (via Cloudflare Worker proxy) ----
 const LIVE_SYMS = DATA.signals.map(s => s.symbol);
+let LIVE = {{}};  // latest live prices, shared with the chart
 function _fmtPx(v) {{ return '$' + Number(v).toLocaleString(undefined, {{minimumFractionDigits:2, maximumFractionDigits:2}}); }}
+function _pushLiveToChart() {{
+  // Update the most recent point of the open modal chart with the live price,
+  // preserving the user's current zoom/pan (update('none')).
+  if (!mChart || !MODAL) return;
+  const lp = LIVE[MODAL.symbol];
+  if (lp == null) return;
+  const price = mChart.data.datasets.find(d => d.label === 'Price' || d.label === MODAL.symbol);
+  if (!price || !price.data || !price.data.length) return;
+  const last = price.data[price.data.length - 1];
+  if (last && typeof last === 'object') {{
+    if ('c' in last) {{ last.c = lp; if (lp > last.h) last.h = lp; if (lp < last.l) last.l = lp; }}
+    else last.y = lp;
+    mChart.update('none');
+  }}
+}}
 async function refreshLive() {{
   if (!LIVE_URL) return;
   const st = document.getElementById('liveStatus');
@@ -497,11 +517,12 @@ async function refreshLive() {{
     const r = await fetch(LIVE_URL + '?symbols=' + encodeURIComponent(LIVE_SYMS.join(',')));
     if (!r.ok) throw new Error('bad');
     const d = await r.json();
-    const prices = d.prices || {{}};
+    LIVE = d.prices || {{}};
     document.querySelectorAll('[data-px]').forEach(el => {{
-      const p = prices[el.dataset.px];
+      const p = LIVE[el.dataset.px];
       if (p != null) el.textContent = _fmtPx(p);
     }});
+    _pushLiveToChart();
     const tm = new Date(d.at || Date.now()).toLocaleTimeString();
     st.innerHTML = '&middot; <span style="color:#2ea043;">● Live</span> <span style="color:#8b97a6;">'+tm+'</span>';
   }} catch (e) {{
@@ -605,6 +626,13 @@ function renderModalChart() {{
   const T = c.t.slice(st), close=c.close.slice(st), fast=c.fast.slice(st), slow=c.slow.slice(st);
   const op=c.open.slice(st), hi=c.high.slice(st), lo=c.low.slice(st);
   const buys=c.buys.slice(st), sells=c.sells.slice(st);
+  // reflect today's live price on the latest bar, if we have it
+  const _lp = LIVE[s.symbol];
+  if (_lp != null && close.length) {{
+    close[close.length-1] = _lp;
+    if (_lp > hi[hi.length-1]) hi[hi.length-1] = _lp;
+    if (_lp < lo[lo.length-1]) lo[lo.length-1] = _lp;
+  }}
   const useCandle = CSTATE.type==='candle' && _finOK;
   const ds = [];
   if (useCandle) {{
@@ -689,6 +717,10 @@ function renderModalChart() {{
   bt.onchange = () => {{ CSTATE.bench = bt.checked; renderModalChart(); }};
   const zr = document.getElementById('zoomReset');
   if (zr) zr.onclick = () => {{ if (mChart && mChart.resetZoom) mChart.resetZoom(); }};
+  const zi = document.getElementById('zoomIn');
+  if (zi) zi.onclick = () => {{ if (mChart && mChart.zoom) mChart.zoom(1.3); }};
+  const zo = document.getElementById('zoomOut');
+  if (zo) zo.onclick = () => {{ if (mChart && mChart.zoom) mChart.zoom(0.77); }};
 }})();
 
 function closeModal() {{ overlay.classList.remove('open'); }}
