@@ -71,9 +71,10 @@ def movers(cfg: Config) -> list[str]:
 def get_news(symbols: list[str], cfg: Config, limit: int | None = None) -> list[dict]:
     if not symbols:
         return []
+    want = limit or (cfg.news_per_symbol * max(len(symbols), 1))
     data = _get("/v1beta1/news", cfg, {
         "symbols": ",".join(symbols),
-        "limit": limit or (cfg.news_per_symbol * max(len(symbols), 1)),
+        "limit": min(want, 50),  # Alpaca news API caps limit at 50
         "sort": "desc",
     })
     out = []
