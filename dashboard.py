@@ -125,12 +125,21 @@ def build_snapshot() -> dict:
     except Exception:  # noqa: BLE001
         benchmark = None
 
+    # Track record: log new BUYs and grade past calls against real prices.
+    import tracker
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    try:
+        track = tracker.run(shown, CONFIG, live, today)
+    except Exception:  # noqa: BLE001
+        track = None
+
     return {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         "mode": mode,
         "scanned": len(rows),
         "diagnostics": list(scanner.LAST_ERRORS),
         "benchmark": benchmark,
+        "track": track,
         "params": {
             "fast_ma": CONFIG.fast_ma, "slow_ma": CONFIG.slow_ma,
             "rsi_period": CONFIG.rsi_period, "risk_per_trade": CONFIG.risk_per_trade,
@@ -143,6 +152,49 @@ def build_snapshot() -> dict:
     }
 
 
+def _track_html(track: dict | None) -> str:
+    """Server-rendered track-record block (works without JS)."""
+    if not track:
+        return ""
+    def stat(label, value, cls=""):
+        return (f'<div class="stat"><div class="l">{label}</div>'
+                f'<div class="v {cls}">{value}</div></div>')
+    wr = "—" if track["win_rate"] is None else f"{track['win_rate']}%"
+    ar = "—" if track["avg_return"] is None else f"{'+' if track['avg_return'] > 0 else ''}{track['avg_return']}%"
+    stats = (
+        stat("Calls advised", track["advised"]) +
+        stat("Resolved", track["resolved"]) +
+        stat("Still open", track["open"]) +
+        stat("Hit target", track["wins"], "win") +
+        stat("Hit stop", track["losses"], "loss") +
+        stat("Win rate", wr) +
+        stat("Avg return", ar)
+    )
+    rows = ""
+    icon = {"win": '<span class="win">✅ hit target</span>',
+            "loss": '<span class="loss">❌ hit stop</span>',
+            "expired": '<span class="exp">⌛ expired</span>'}
+    for t in track.get("recent", []):
+        ret = t.get("return_pct")
+        ret_s = "—" if ret is None else f"{'+' if ret > 0 else ''}{ret}%"
+        rows += (f"<tr><td>{t['symbol']}</td><td>{t['advised_date']}</td>"
+                 f"<td>{icon.get(t['status'], t['status'])}</td>"
+                 f"<td>{ret_s}</td><td>{t.get('days_held','—')}d</td></tr>")
+    table = (f'<table class="trackrec"><tr><th>Stock</th><th>Advised</th><th>Outcome</th>'
+             f'<th>Return</th><th>Held</th></tr>{rows}</table>') if rows else \
+        '<p style="color:var(--muted);font-size:13px;">No calls have resolved yet — check back as trades play out.</p>'
+    return f"""
+  <div class="track">
+    <h2 style="border:0;padding:0;">📊 Track record — how past BUY calls have done</h2>
+    <p style="color:var(--muted);font-size:13px;margin:2px 0 0;">Every BUY the tool flags is logged, then
+    checked against real prices: did it reach its target (✅) or hit its stop first (❌)? This builds up
+    over time into an honest read on how reliable the calls are. It's a hypothetical record — no fees or
+    slippage — so treat it as a rough guide, not a brokerage statement.</p>
+    <div class="trackstats">{stats}</div>
+    {table}
+  </div>"""
+
+
 def render_html(snap: dict) -> str:
     data_json = json.dumps(snap)
     mode = snap["mode"]
@@ -151,6 +203,7 @@ def render_html(snap: dict) -> str:
         "PAPER": "Alpaca paper data and account.",
         "SYNTHETIC": "Synthetic data — NOT real prices or news. Add Alpaca keys for the real thing.",
     }[mode]
+    track_html = _track_html(snap.get("track"))
     return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -159,6 +212,8 @@ def render_html(snap: dict) -> str:
 <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.1/dist/chartjs-chart-financial.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 <style>
   :root {{ --bg:#0f1419; --card:#1a212b; --line:#2a3441; --txt:#e6edf3;
     --muted:#8b97a6; --buy:#2ea043; --sell:#f85149; --hold:#388bfd; --flat:#6e7681; }}
@@ -242,6 +297,15 @@ def render_html(snap: dict) -> str:
   .checks .ck-l {{ font-weight:600; }} .checks .ck-n {{ color:var(--muted); }}
   .chartkey {{ color:var(--muted); font-size:12px; margin-top:8px; line-height:1.6; }}
   .reasons li {{ font-size:14px; line-height:1.5; }}
+  .track {{ background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:16px 18px; margin:18px 0; }}
+  .track h2 {{ margin:0 0 4px; }}
+  .trackstats {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
+    gap:10px; margin:12px 0; }}
+  .trackrec {{ width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }}
+  .trackrec th, .trackrec td {{ text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); }}
+  .trackrec th {{ color:var(--muted); font-weight:600; }}
+  .win {{ color:var(--buy); }} .loss {{ color:var(--sell); }} .exp {{ color:var(--muted); }}
   .chartctl {{ display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin-bottom:10px; }}
   .ctlgrp {{ display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }}
   .ctlgrp button {{ background:var(--card); color:var(--muted); border:none; padding:5px 11px;
@@ -249,6 +313,8 @@ def render_html(snap: dict) -> str:
   .ctlgrp button:last-child {{ border-right:none; }}
   .ctlgrp button.on {{ background:var(--hold); color:#fff; }}
   .ctltog {{ font-size:13px; color:var(--muted); cursor:pointer; }}
+  .ctlbtn {{ background:var(--card); color:var(--muted); border:1px solid var(--line);
+    border-radius:8px; padding:5px 11px; font-size:13px; cursor:pointer; }}
   .method {{ background:var(--card); border:1px solid var(--line); border-radius:12px;
     padding:4px 18px; margin:18px 0 8px; }}
   .method summary {{ cursor:pointer; font-weight:700; font-size:15px; padding:12px 0;
@@ -317,7 +383,7 @@ def render_html(snap: dict) -> str:
     free and slightly delayed, and the numbers ignore fees and slippage. Treat it as a starting point
     for your own research — never risk money you can't afford to lose.</p>
   </details>
-
+{track_html}
   <h2>Signals <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— click any card for the full reasoning</span></h2>
   <div class="grid" id="cards"></div>
 
@@ -357,7 +423,9 @@ def render_html(snap: dict) -> str:
       <span class="ctlgrp" id="rangeBtns"></span>
       <span class="ctlgrp" id="typeBtns"></span>
       <label class="ctltog"><input type="checkbox" id="benchToggle" checked> Compare to S&amp;P 500</label>
+      <button class="ctlbtn" id="zoomReset">Reset zoom</button>
     </div>
+    <div class="chartkey" style="margin:0 0 6px;">Tip: scroll / pinch to zoom, drag to pan.</div>
     <div class="chartbox"><canvas id="mChart" height="130"></canvas></div>
     <div class="chartkey" id="mChartKey"></div>
     <div class="sech">The details, explained</div>
@@ -543,7 +611,13 @@ function renderModalChart() {{
   mChart = new Chart(document.getElementById('mChart'), {{
     data:{{datasets:ds}},
     options:{{responsive:true, parsing:false, interaction:{{mode:'index',intersect:false}},
-      plugins:{{legend:{{labels:{{color:'#8b97a6', usePointStyle:true, boxWidth:8}}}}}}, scales}}
+      plugins:{{
+        legend:{{labels:{{color:'#8b97a6', usePointStyle:true, boxWidth:8}}}},
+        zoom:{{
+          zoom:{{wheel:{{enabled:true}}, pinch:{{enabled:true}}, drag:{{enabled:false}}, mode:'xy'}},
+          pan:{{enabled:true, mode:'xy'}}
+        }}
+      }}, scales}}
   }});
   const nB=buyPts.length, nS=sellPts.length;
   key.innerHTML = `▲ green = past buy signals (${{nB}}) &nbsp; ▼ red = past sell signals (${{nS}}) &nbsp; `
@@ -572,6 +646,8 @@ function renderModalChart() {{
   const bt = document.getElementById('benchToggle');
   bt.checked = CSTATE.bench;
   bt.onchange = () => {{ CSTATE.bench = bt.checked; renderModalChart(); }};
+  const zr = document.getElementById('zoomReset');
+  if (zr) zr.onclick = () => {{ if (mChart && mChart.resetZoom) mChart.resetZoom(); }};
 }})();
 
 function closeModal() {{ overlay.classList.remove('open'); }}

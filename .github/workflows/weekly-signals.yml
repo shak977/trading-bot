@@ -10,7 +10,7 @@ on:
     branches: [main]   # redeploy the live site whenever code is updated
 
 permissions:
-  contents: read
+  contents: write   # allow committing the updated track_record.json back to the repo
   pages: write
   id-token: write
 
@@ -38,6 +38,15 @@ jobs:
           mkdir -p _site
           cp dashboard.html _site/index.html
           cp signals.json _site/signals.json
+          cp track_record.json _site/track_record.json 2>/dev/null || true
+
+      - name: Commit updated track record
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add track_record.json
+          git diff --staged --quiet || git commit -m "update track record [skip ci]"
+          git push
 
       - uses: actions/upload-pages-artifact@v3
         with:

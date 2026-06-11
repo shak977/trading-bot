@@ -1,0 +1,115 @@
+"""Trade track record — log every BUY the tool advises, then grade it.
+
+On each run we:
+  1. Log any new BUY signal (entry, stop, target, date) it hasn't logged before.
+  2. Re-check every still-open logged trade against real price action since it
+     was advised: if price hit the target first -> WIN, if it hit the stop
+     first -> LOSS, if it's been too long -> EXPIRED (closed at last price),
+     otherwise still OPEN.
+  3. Save the log to track_record.json and compute reliability stats.
+
+This is a hypothetical paper record (no fees/slippage, stop assumed hit before
+target on an ambiguous day) — a rough, honest gauge of how the calls play out,
+not a brokerage statement. It accumulates over time, so it's thin at first.
+"""
+from __future__ import annotations
+
+import json
+import os
+
+import pandas as pd
+
+from config import Config
+from data import get_bars, synthetic_bars
+
+PATH = os.getenv("TRACK_FILE", "track_record.json")
+HOLD_LIMIT_DAYS = 90
+
+
+def _load() -> list[dict]:
+    try:
+        with open(PATH) as f:
+            return json.load(f)
+    except Exception:  # noqa: BLE001
+        return []
+
+
+def _save(rows: list[dict]) -> None:
+    try:
+        with open(PATH, "w") as f:
+            json.dump(rows, f, indent=2)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def run(signals: list[dict], cfg: Config, live: bool, today: str) -> dict:
+    log = _load()
+    by_id = {t["id"]: t for t in log}
+
+    # 1) Log new BUY calls.
+    for s in signals:
+        if s.get("action") != "BUY":
+            continue
+        p = s.get("plan", {})
+        if p.get("stop") is None or p.get("target") is None:
+            continue
+        tid = f"{s['symbol']}:{today}"
+        if tid not in by_id:
+            t = {
+                "id": tid, "symbol": s["symbol"], "name": s.get("name", ""),
+                "advised_date": today, "entry": p["entry"], "stop": p["stop"],
+                "target": p["target"], "rr": p.get("rr"),
+                "conviction": (s.get("conviction") or {}).get("label"),
+                "status": "open",
+            }
+            by_id[tid] = t
+            log.append(t)
+
+    # 2) Evaluate open trades against price action since they were advised.
+    for t in log:
+        if t["status"] != "open":
+            continue
+        try:
+            df = get_bars(t["symbol"], cfg) if live else synthetic_bars(t["symbol"], n=cfg.lookback_days)
+        except Exception:  # noqa: BLE001
+            continue
+        if df is None or not len(df):
+            continue
+        after = df[df.index > pd.Timestamp(t["advised_date"])]
+        for ts, row in after.iterrows():
+            if float(row["low"]) <= t["stop"]:
+                t.update(status="loss", exit=t["stop"], exit_date=str(ts.date()))
+                break
+            if float(row["high"]) >= t["target"]:
+                t.update(status="win", exit=t["target"], exit_date=str(ts.date()))
+                break
+        if t["status"] == "open" and len(after):
+            held = (after.index[-1] - pd.Timestamp(t["advised_date"])).days
+            if held >= HOLD_LIMIT_DAYS:
+                t.update(status="expired", exit=round(float(after["close"].iloc[-1]), 2),
+                         exit_date=str(after.index[-1].date()))
+        if t["status"] != "open" and "exit" in t:
+            t["return_pct"] = round((t["exit"] - t["entry"]) / t["entry"] * 100, 2)
+            t["days_held"] = (pd.Timestamp(t["exit_date"]) - pd.Timestamp(t["advised_date"])).days
+
+    _save(log)
+    return _stats(log)
+
+
+def _stats(log: list[dict]) -> dict:
+    resolved = [t for t in log if t["status"] in ("win", "loss", "expired")]
+    wins = [t for t in resolved if t["status"] == "win"]
+    losses = [t for t in resolved if t["status"] == "loss"]
+    rets = [t["return_pct"] for t in resolved if "return_pct" in t]
+    open_n = sum(1 for t in log if t["status"] == "open")
+    recent = sorted(resolved, key=lambda t: t.get("exit_date", ""), reverse=True)[:15]
+    return {
+        "advised": len(log),
+        "resolved": len(resolved),
+        "open": open_n,
+        "wins": len(wins),
+        "losses": len(losses),
+        "win_rate": round(len(wins) / len(resolved) * 100, 1) if resolved else None,
+        "avg_return": round(sum(rets) / len(rets), 2) if rets else None,
+        "recent": recent,
+    }
