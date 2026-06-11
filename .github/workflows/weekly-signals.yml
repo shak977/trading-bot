@@ -1,10 +1,10 @@
 name: Weekly Trading Signals
 
-# Runs every Monday 13:45 UTC (~just before US open is 13:30 UTC; adjust as needed),
-# and can be triggered manually from the Actions tab.
+# Runs every weekday at 22:00 UTC — ~2 hours after the US market close (4pm ET),
+# so each day's daily price bar is final. Also manual + on push.
 on:
   schedule:
-    - cron: "45 13 * * 1"
+    - cron: "0 22 * * 1-5"
   workflow_dispatch:
   push:
     branches: [main]   # redeploy the live site whenever code is updated

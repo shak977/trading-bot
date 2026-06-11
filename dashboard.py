@@ -340,10 +340,10 @@ def render_html(snap: dict) -> str:
     <summary>How this works — what we're looking for &amp; the strategy</summary>
 
     <h4>The big picture</h4>
-    <p>This page is an automated <b>stock screen</b>. Once a week it scans the busiest, biggest-moving
-    US stocks and flags the ones that look like they're <b>starting to trend upward</b>, using a
-    simple, well-known momentum strategy. It's a research tool to tell you <i>where to look</i> — not
-    a tip service.</p>
+    <p>This page is an automated <b>stock screen</b>. Every weekday (after the US close) it scans the
+    busiest, biggest-moving US stocks and flags the ones that look like they're <b>starting to trend
+    upward</b>, using a simple, well-known momentum strategy. It's a research tool to tell you
+    <i>where to look</i> — not a tip service.</p>
 
     <h4>What we're looking for</h4>
     <p>Stocks where a short-term price trend is overtaking the longer-term trend — the classic early
