@@ -90,10 +90,11 @@ def build_snapshot() -> dict:
         r["news"] = [n for n in news if r["symbol"] in (n.get("symbols") or [])][: CONFIG.news_per_symbol]
         if r["news"]:
             top = r["news"][0]["headline"]
+            n = len(r["news"])
+            phrase = "1 recent story mentions" if n == 1 else f"{n} recent stories mention"
             r.setdefault("reasons", []).append(
-                f"📰 In the news: {len(r['news'])} recent stor"
-                f"{'y' if len(r['news']) == 1 else 'ies'} mention {r['symbol']}. "
-                f"Latest headline — “{top}”. Check these for a reason behind the move."
+                f"📰 In the news: {phrase} {r['symbol']}. "
+                f"Latest headline — “{top}”. Worth a read for what's driving it."
             )
         else:
             r.setdefault("reasons", []).append(

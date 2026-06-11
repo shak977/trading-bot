@@ -36,12 +36,12 @@ class Config:
 
     # --- Dynamic market scan ---
     scan_market: bool = True         # live: pull movers + most-active automatically
-    scan_top: int = 20               # how many names to pull from each screener
-    max_candidates: int = 40         # cap symbols actually analysed per run
+    scan_top: int = 30               # how many names to pull from each screener
+    max_candidates: int = 60         # cap symbols actually analysed per run
     min_price: float = 5.0           # ignore sub-$5 names
     rel_volume_window: int = 20      # days for the relative-volume (flow proxy) average
     news_per_symbol: int = 4         # headlines pulled per flagged symbol
-    show_top: int = 12               # cards shown on the dashboard
+    show_top: int = 40               # cards shown on the dashboard
 
     # --- Strategy params (MA crossover + RSI filter) ---
     fast_ma: int = 20

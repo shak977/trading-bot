@@ -136,7 +136,7 @@ def _reasoning(sig, cfg: Config, action: str, price: float, relvol):
     above = fast > slow
     reasons = []
 
-    # 1) The crossover — the core trigger, in plain terms.
+    # 1) The crossover — the core trigger.
     rel = (sig["fast"] > sig["slow"]).astype(int)
     flips = rel.diff().fillna(0)
     flip_idx = flips[flips != 0].index
@@ -144,63 +144,38 @@ def _reasoning(sig, cfg: Config, action: str, price: float, relvol):
         last_flip = flip_idx[-1]
         days = (sig.index[-1] - last_flip).days
         if rel.loc[last_flip] == 1:
-            reasons.append(
-                f"📈 Trend turned up {days} days ago. The recent average price climbed above the "
-                f"longer-term average — a classic sign a stock may be starting to trend higher. "
-                f"This is the main reason the strategy flagged it."
-            )
+            reasons.append(f"📈 It started trending up about {days} days ago. That's the main reason it was flagged.")
         else:
-            reasons.append(
-                f"📉 Trend turned down {days} days ago. The recent average price dropped below the "
-                f"longer-term average — usually a sign upward momentum has faded."
-            )
+            reasons.append(f"📉 It started trending down about {days} days ago.")
     reasons.append(
-        f"Direction check: the recent price trend is currently {'ABOVE' if above else 'BELOW'} its "
-        f"longer-term trend, so the stock is leaning {'upward' if above else 'downward'} right now."
+        f"Right now it's heading {'up' if above else 'down'}."
     )
 
-    # 2) RSI = how 'stretched' the price is (0-100).
+    # 2) RSI = how stretched the price is.
     if rsi_v >= cfg.rsi_overbought:
-        reasons.append(
-            f"Overbought: momentum reads {rsi_v:.0f}/100 (above {cfg.rsi_overbought:.0f}). The stock has "
-            f"run up fast and may be due for a pause or pullback, so the strategy won't start a new buy here."
-        )
+        reasons.append("It's risen fast and looks a bit overheated, so it could pause or dip soon.")
     elif rsi_v <= cfg.rsi_oversold:
-        reasons.append(
-            f"Oversold: momentum reads {rsi_v:.0f}/100 (below {cfg.rsi_oversold:.0f}). The stock has been "
-            f"beaten down and could be near a bounce — but also still falling."
-        )
+        reasons.append("It's been sold off hard — it could bounce, but it's also still falling.")
     else:
-        reasons.append(
-            f"Healthy momentum: reads {rsi_v:.0f}/100 (the calm middle zone). Not overheated, not oversold — "
-            f"there's room to move higher without looking stretched."
-        )
+        reasons.append("It's not overheated, so there's still room to climb.")
 
-    # 3) Volume = how much interest there is vs normal.
+    # 3) Volume = how much interest vs normal.
     if relvol is not None:
         if relvol >= 1.5:
-            reasons.append(
-                f"Busy: about {relvol}× more shares are trading than usual. Heavy volume means lots of "
-                f"people are paying attention, which can give a move more staying power."
-            )
+            reasons.append(f"Lots of people are trading it today — about {relvol}× the usual. That's real interest.")
         elif relvol < 0.8:
-            reasons.append(
-                f"Quiet: only about {relvol}× the usual volume. Light trading means weaker conviction "
-                f"behind any move."
-            )
+            reasons.append(f"It's quiet today — only about {relvol}× the usual trading. Not much interest behind the move.")
         else:
-            reasons.append(f"Normal activity: about {relvol}× the usual volume — nothing unusual.")
+            reasons.append("Trading activity is about normal today.")
 
     if action == "BUY":
-        summary = ("The trend just turned up and momentum has room to run, so the strategy would "
-                   "open a new position (buy) here.")
+        summary = "It just started trending up, so this could be a spot to buy."
     elif action == "SELL":
-        summary = ("The trend has turned down (or the stock got overheated), so the strategy would "
-                   "close the position (sell) and step aside.")
+        summary = "It's turning down, so this is where the strategy would sell and step back."
     elif action == "HOLD LONG":
-        summary = "The uptrend is still going, so the strategy stays in the position it already holds."
+        summary = "It's still trending up, so a position you already own would stay open."
     else:
-        summary = "There's no clear uptrend right now, so the strategy stays out and waits."
+        summary = "There's no clear up-trend yet, so this one's just worth watching for now."
 
     return summary, reasons
 
@@ -341,25 +316,24 @@ def _desk_read(action, plan, context, conviction) -> str:
     conv = conviction["label"]
     bits = []
     if action == "BUY":
-        bits.append("In short: the trend just turned up, so this is a possible spot to buy.")
+        bits.append("In short: it just started trending up — a possible spot to buy.")
     elif action == "HOLD LONG":
-        bits.append("In short: the up-trend is still going, so a position you already hold would stay open.")
+        bits.append("In short: it's still trending up, so you'd keep a position you already own.")
     elif action == "SELL":
-        bits.append("In short: the trend has turned down, so this is where you'd sell and step aside.")
+        bits.append("In short: it's turning down — this is where you'd sell.")
     else:
-        bits.append("In short: there's no clear up-trend, so this is one to watch, not buy yet.")
+        bits.append("In short: no clear trend yet — one to watch, not buy.")
     if stop is not None and target is not None:
         bits.append(
-            f"The plan: buy near ${plan.get('entry'):,.2f}, and if you're wrong, get out at ${stop:,.2f} "
-            f"(a {stop_pct}% loss — your safety exit). If it works, aim for ${target:,.2f} (a {tgt_pct}% gain). "
-            f"That's about ${rr} of potential reward for every $1 you put at risk."
+            f"The plan in plain terms: buy around ${plan.get('entry'):,.2f}. If it drops to ${stop:,.2f} "
+            f"(−{stop_pct}%), sell to cut the loss. If it climbs to ${target:,.2f} (+{tgt_pct}%), take the win. "
+            f"So you'd be risking a little to aim for about {rr}× as much."
         )
     weak = [c["label"].rstrip('?').lower() for c in conviction["checks"] if c["status"] != "pass"]
     if weak:
-        bits.append(f"Overall confidence is {conv}. The weaker points are: {', '.join(weak)}. "
-                    f"Waiting for those to improve would make it a stronger setup.")
+        bits.append(f"Overall confidence: {conv}. Weaker spots: {', '.join(weak)}.")
     else:
-        bits.append(f"Overall confidence is {conv} — every check passed, which is a clean setup by these rules.")
+        bits.append(f"Overall confidence: {conv} — everything checks out.")
     return " ".join(bits)
 
 

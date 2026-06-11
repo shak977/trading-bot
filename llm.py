@@ -19,10 +19,11 @@ def _prompt(sig: dict) -> str:
     news = sig.get("news", []) or []
     headlines = "; ".join(n.get("headline", "") for n in news[:4]) or "none"
     reasons = " ".join(f"- {r}" for r in sig.get("reasons", []))
-    return f"""You are a senior desk trader and risk strategist. Write a concise (3-5 sentence)
-read on the setup below for an experienced trader. Focus on capital protection, edge clarity,
-and the invalidation level. Reason ONLY from the data given — do not invent numbers, catalysts,
-or fundamentals. Do not give a recommendation to buy or sell; describe the setup and its risks.
+    return f"""You are a friendly trading coach explaining a setup to a smart beginner. Write 3-4 short
+sentences in plain, everyday English — no jargon (if you must use a term like RSI, explain it in a
+few words). Cover: what the setup is, where the risk is, and what would prove it wrong. Reason ONLY
+from the data given — do not invent numbers, catalysts, or fundamentals. Do not tell them to buy or
+sell; just explain it clearly and calmly.
 
 Ticker: {sig.get('symbol')}
 Signal: {sig.get('action')}  | Price: ${sig.get('price')}
