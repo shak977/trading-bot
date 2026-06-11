@@ -50,15 +50,7 @@ jobs:
           cp signals.json _site/signals.json
           cp track_record.json _site/track_record.json 2>/dev/null || true
 
-      - name: Commit updated track record
-        if: ${{ github.event_name != 'schedule' || steps.gate.outputs.trading == 'true' }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add track_record.json
-          git diff --staged --quiet || git commit -m "update track record [skip ci]"
-          git push
-
+      # --- Deploy FIRST so a track-record push race can never block the site ---
       - uses: actions/upload-pages-artifact@v3
         if: ${{ github.event_name != 'schedule' || steps.gate.outputs.trading == 'true' }}
         with:
@@ -67,3 +59,17 @@ jobs:
       - id: deployment
         if: ${{ github.event_name != 'schedule' || steps.gate.outputs.trading == 'true' }}
         uses: actions/deploy-pages@v4
+
+      # --- Persist the track-record log last; never fail the job if it can't push ---
+      - name: Commit updated track record
+        if: ${{ github.event_name != 'schedule' || steps.gate.outputs.trading == 'true' }}
+        continue-on-error: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add track_record.json
+          git diff --staged --quiet && exit 0
+          git commit -m "update track record [skip ci]"
+          # rebase on any concurrent change, then push (best effort)
+          git pull --rebase --autostash origin main || true
+          git push origin HEAD:main || true
