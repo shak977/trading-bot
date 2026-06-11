@@ -240,6 +240,8 @@ def render_html(snap: dict) -> str:
   .more {{ color:var(--muted); font-size:12px; margin-top:10px;
     border-top:1px solid var(--line); padding-top:8px; }}
   .sym {{ font-size:18px; font-weight:700; }}
+  .logo {{ width:20px; height:20px; border-radius:4px; vertical-align:middle;
+    margin-right:7px; background:#fff; object-fit:contain; }}
   .cname {{ color:var(--muted); font-size:12px; margin-top:2px; }}
   .act {{ float:right; padding:2px 10px; border-radius:6px; font-size:12px; font-weight:700; }}
   .a-BUY {{ background:var(--buy); }} .a-SELL {{ background:var(--sell); }}
@@ -489,7 +491,8 @@ function makeCard(s) {{
   const hot = (s.rel_volume!=null && s.rel_volume>=1.5) ? ' hot' : '';
   const nNews = (s.news||[]).length;
   el.innerHTML = `
-    <div><span class="sym">${{s.symbol}}</span>
+    <div><img class="logo" src="https://assets.parqet.com/logos/symbol/${{s.symbol}}?format=png" alt="" onerror="this.style.display='none'">
+      <span class="sym">${{s.symbol}}</span>
       <span class="act a-${{cls}}">${{s.action}}</span></div>
     ${{s.name ? `<div class="cname">${{s.name}}${{s.exchange?` · ${{s.exchange}}`:''}}</div>`:''}}
     <div class="px" data-px="${{s.symbol}}">$${{s.price.toLocaleString()}}</div>`;
@@ -662,7 +665,7 @@ let mChart;
 function openModal(s) {{
   const cls = (s.action||'').replace(' ','');
   document.getElementById('mTitle').innerHTML =
-    `${{s.symbol}} <span class="act a-${{cls}}" style="float:none;font-size:13px;">${{s.action}}</span> &nbsp; <span data-px="${{s.symbol}}" style="color:var(--muted);font-size:15px;">$${{s.price.toLocaleString()}}</span>`
+    `<img class="logo" style="width:26px;height:26px;" src="https://assets.parqet.com/logos/symbol/${{s.symbol}}?format=png" alt="" onerror="this.style.display='none'"> ${{s.symbol}} <span class="act a-${{cls}}" style="float:none;font-size:13px;">${{s.action}}</span> &nbsp; <span data-px="${{s.symbol}}" style="color:var(--muted);font-size:15px;">$${{s.price.toLocaleString()}}</span>`
     + (s.name ? `<div class="cname" style="font-size:13px;margin-top:4px;">${{s.name}}${{s.exchange?` · ${{s.exchange}}`:''}}</div>` : '');
   document.getElementById('mSummary').textContent = s.summary || '';
   document.getElementById('mDesk').textContent = s.desk_read || '';
