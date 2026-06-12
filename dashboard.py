@@ -158,6 +158,7 @@ def build_snapshot() -> dict:
     import research
     # Consolidated (full-market) price + previous close so the cards match Google/Yahoo,
     # since the scan runs on Alpaca's IEX feed whose close can drift a few cents.
+    price_drops = []
     if live:
         try:
             yq = research.yahoo_quotes([r["symbol"] for r in shown])
@@ -166,6 +167,18 @@ def build_snapshot() -> dict:
                 if q:
                     r["quote_price"] = q["price"]
                     r["prev_close"] = q.get("prev_close")
+            # Cross-check: drop any signal whose scan (Alpaca IEX) price disagrees
+            # with the consolidated quote by >15% — that means the feed gave a bad
+            # price, so the whole signal (indicators, plan, levels) is untrustworthy.
+            bad = [r for r in shown
+                   if r.get("quote_price") and r.get("price")
+                   and abs(r["price"] / r["quote_price"] - 1) > 0.15]
+            if bad:
+                price_drops = [f"{r['symbol']} (scan ${r['price']:,.2f} vs ${r['quote_price']:,.2f})"
+                               for r in bad]
+                drop = {r["symbol"] for r in bad}
+                shown = [r for r in shown if r["symbol"] not in drop]
+                shown_syms = [r["symbol"] for r in shown]
         except Exception:  # noqa: BLE001
             pass
     for r in shown:
@@ -245,6 +258,7 @@ def build_snapshot() -> dict:
         "regime": regime,
         "sectors": sectors,
         "macro": macro,
+        "price_drops": price_drops,
         "momentum": [dict(m, name={r["symbol"]: r.get("name", "") for r in shown}.get(m["symbol"], ""))
                      for m in momentum_rows],
         "ipos": ipos,
@@ -481,6 +495,9 @@ def render_html(snap: dict) -> str:
     }[mode]
     track_html = _track_html(snap.get("track"))
     regime_html = _regime_html(snap.get("regime"))
+    _pd = snap.get("price_drops") or []
+    pdrop_html = (f' &middot; <span style="color:var(--muted);" title="{(" | ".join(_pd))[:300].replace(chr(34), chr(39))}">'
+                  f'{len(_pd)} dropped (bad feed price)</span>') if _pd else ""
     kpi_html = _kpi_html(snap.get("regime"), snap)
     momentum_html = _momentum_html(snap.get("momentum") or [])
     ipo_html = _ipo_html(snap.get("ipos") or [], snap.get("ipo_news") or [])
@@ -828,7 +845,7 @@ def render_html(snap: dict) -> str:
       <button id="themeToggle" class="themebtn">🌙 Dark</button>
     </div>
   </header>
-  <div class="subhead">Generated {snap['generated_at']} &middot; scanned {snap['scanned']} symbols{health_html}</div>
+  <div class="subhead">Generated {snap['generated_at']} &middot; scanned {snap['scanned']} symbols{health_html}{pdrop_html}</div>
   {kpi_html}
   <div class="note" style="margin-top:0;">{mode_note}</div>
   <div id="diag"></div>
