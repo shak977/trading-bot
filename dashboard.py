@@ -142,6 +142,18 @@ def build_snapshot() -> dict:
 
     # --- Research layer: news tone (free), analyst/fundamentals (Finnhub) ---
     import research
+    # Consolidated (full-market) price + previous close so the cards match Google/Yahoo,
+    # since the scan runs on Alpaca's IEX feed whose close can drift a few cents.
+    if live:
+        try:
+            yq = research.yahoo_quotes([r["symbol"] for r in shown])
+            for r in shown:
+                q = yq.get(r["symbol"])
+                if q:
+                    r["quote_price"] = q["price"]
+                    r["prev_close"] = q.get("prev_close")
+        except Exception:  # noqa: BLE001
+            pass
     for r in shown:
         r["sentiment"] = research.news_sentiment(r.get("news"))
     fundamentals = {}
@@ -965,11 +977,15 @@ function makeCard(s) {{
   const conv = s.conviction || {{}};
   const cpct = conv.score_pct || 0;
   const ccol = conv.label==='High' ? 'var(--buy)' : (conv.label==='Low' ? 'var(--sell)' : '#c08a1e');
-  const dc = s.context && s.context.day_change_pct;
-  // The static % is the move on the as-of bar (last close). Once live quotes flow,
-  // refreshLive() recomputes it as the real intraday change vs that close and relabels it "today".
-  const dchg = (dc!=null)
-    ? `<span class="card-day" data-chg="${{s.symbol}}" data-base="${{s.price}}" style="color:${{dc>=0?'var(--buy)':'var(--sell)'}};">${{dc>=0?'+':''}}${{dc.toFixed(2)}}% on ${{_shortDate(s.as_of)}}</span>`
+  // Prefer Yahoo's consolidated price + previous close so the card matches Google.
+  const _px = (s.quote_price != null) ? s.quote_price : s.price;
+  const _base = (s.prev_close != null) ? s.prev_close : s.price;
+  const _hasQ = (s.quote_price != null && s.prev_close);
+  const _dc = _hasQ ? (s.quote_price / s.prev_close - 1) * 100 : (s.context && s.context.day_change_pct);
+  const _lab = _hasQ ? 'today' : ('on ' + _shortDate(s.as_of));
+  // refreshLive() recomputes this live vs the previous close and relabels it "today".
+  const dchg = (_dc != null)
+    ? `<span class="card-day" data-chg="${{s.symbol}}" data-base="${{_base}}" style="color:${{_dc>=0?'var(--buy)':'var(--sell)'}};">${{_dc>=0?'+':''}}${{_dc.toFixed(2)}}% ${{_lab}}</span>`
     : '';
   const initials = (s.symbol.replace(/[^A-Za-z]/g,'').slice(0,2) || s.symbol.slice(0,2)).toUpperCase();
   const logo = `<span class="card-mono" style="background:hsl(${{_symHue(s.symbol)}},42%,42%);">${{initials}}`
@@ -992,7 +1008,7 @@ function makeCard(s) {{
     <div class="card-top">${{logo}}
       <div class="card-id"><div class="s">${{s.symbol}}</div><div class="n">${{s.name||s.exchange||''}}</div></div>
       <span class="act a-${{cls}}">${{s.action}}</span></div>
-    <div class="card-px-row"><span class="card-px" data-px="${{s.symbol}}">$${{s.price.toLocaleString()}}</span>${{dchg}}</div>
+    <div class="card-px-row"><span class="card-px" data-px="${{s.symbol}}">$${{_px.toLocaleString()}}</span>${{dchg}}</div>
     ${{conv.label ? `<div class="conv-wrap"><div class="conv-row"><span>Conviction · ${{conv.label}}</span><span>${{cpct}}%</span></div>`
       + `<div class="conv-meter"><div class="conv-fill" style="width:${{cpct}}%;background:${{ccol}};"></div></div></div>` : ''}}
     <div class="card-stats">${{st.join('')}}</div>

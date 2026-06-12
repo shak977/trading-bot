@@ -1,10 +1,12 @@
 name: Weekly Trading Signals
 
-# Runs every weekday at 22:00 UTC — ~2 hours after the US market close (4pm ET),
-# so each day's daily price bar is final. Also manual + on push.
+# Scans every weekday: two intraday refreshes (mid-morning + midday ET) plus a
+# final run ~2h after the US close when the daily bar is final. Also manual + on push.
 on:
   schedule:
-    - cron: "0 22 * * 1-5"
+    - cron: "30 14 * * 1-5"   # ~10:30 ET — mid-morning intraday scan
+    - cron: "0 17 * * 1-5"    # ~13:00 ET — midday intraday scan
+    - cron: "0 22 * * 1-5"    # ~18:00 ET — final, after close (daily bar settled)
   workflow_dispatch:
   push:
     branches: [main]   # redeploy the live site whenever code is updated

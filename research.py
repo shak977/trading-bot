@@ -173,6 +173,35 @@ _IPO_QUERIES = [
 ]
 
 
+def yahoo_quotes(symbols: list[str]) -> dict:
+    """Consolidated (full-market) last price + previous close per symbol, via Yahoo.
+
+    Keyless. Used to show card prices/day-change that match Google/Yahoo, since the
+    scan itself runs on Alpaca's IEX feed (one exchange) whose close can drift a bit.
+    Returns {SYM: {"price": float, "prev_close": float|None}}. Defensive — skips on error.
+    """
+    out: dict = {}
+    for sym in symbols:
+        try:
+            url = (f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}"
+                   "?range=5d&interval=1d")
+            r = requests.get(url, timeout=8, headers={"User-Agent": "Mozilla/5.0"})
+            if r.status_code != 200:
+                continue
+            res = ((r.json().get("chart", {}) or {}).get("result") or [None])[0]
+            if not res:
+                continue
+            meta = res.get("meta", {}) or {}
+            price = meta.get("regularMarketPrice")
+            prev = meta.get("chartPreviousClose") or meta.get("previousClose")
+            if price:
+                out[sym] = {"price": round(float(price), 2),
+                            "prev_close": round(float(prev), 2) if prev else None}
+        except Exception:  # noqa: BLE001
+            continue
+    return out
+
+
 def _parse_rss(xml_bytes: bytes, tag: str) -> list[dict]:
     """Parse a Google News RSS payload into [{headline,url,source,created_at}]."""
     import xml.etree.ElementTree as ET
