@@ -899,6 +899,10 @@ def render_html(snap: dict) -> str:
     background:var(--card); color:var(--txt); border:1px solid var(--line);
     border-radius:8px; box-shadow:var(--shadow-lg); font-size:12px; line-height:1.5;
     pointer-events:none; }}
+  #newbuild {{ position:fixed; left:50%; transform:translateX(-50%); bottom:18px; z-index:9998;
+    background:var(--accent); color:#fff; border:0; border-radius:999px; cursor:pointer;
+    padding:9px 16px; font-size:13px; font-weight:600; box-shadow:var(--shadow-lg); }}
+  #newbuild:hover {{ filter:brightness(1.08); }}
   .card-why {{ margin-top:11px; padding:9px 11px; background:var(--inset);
     border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:8px; }}
   .why-h {{ font-size:10.5px; text-transform:uppercase; letter-spacing:.04em;
@@ -1682,6 +1686,28 @@ async function refreshLive() {{
   }}
 }}
 if (LIVE_URL) {{ refreshLive(); setInterval(refreshLive, 30000); }}
+
+// Notice when a newer build has been published (the Action rebuilds every ~30 min in market
+// hours) and offer a one-click refresh — never reloads from under the user.
+(function watchForNewBuild() {{
+  const cur = (typeof DATA !== 'undefined' && DATA.generated_at) || '';
+  async function check() {{
+    if (document.hidden) return;
+    try {{
+      const r = await fetch('signals.json?cb=' + Date.now(), {{cache: 'no-store'}});
+      if (!r.ok) return;
+      const d = await r.json();
+      if (d.generated_at && d.generated_at !== cur && !document.getElementById('newbuild')) {{
+        const b = document.createElement('button');
+        b.id = 'newbuild';
+        b.textContent = '↻ New data available — refresh';
+        b.onclick = () => location.reload();
+        document.body.appendChild(b);
+      }}
+    }} catch (e) {{}}
+  }}
+  setInterval(check, 300000);  // check every 5 minutes
+}})();
 
 // ---- detail modal ----
 const overlay = document.getElementById('overlay');
