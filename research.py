@@ -26,21 +26,79 @@ _NEG = {"miss", "misses", "plunge", "plunges", "fall", "falls", "drop", "drops",
         "slashes", "slash", "lower", "sinks", "sink", "fears", "concerns", "sell"}
 
 
+# Source quality tiers — a Reuters headline should count more than an anonymous blog.
+_SRC_TOP = ("reuters", "bloomberg", "cnbc", "wall street journal", "wsj", "financial times",
+            "associated press", "barron", "the new york times", "ft.com", "dow jones")
+_SRC_MID = ("marketwatch", "yahoo finance", "benzinga", "forbes", "business insider",
+            "seeking alpha", "the motley fool", "investor's business daily", "thestreet",
+            "zacks", "investopedia", "cnn", "fortune")
+
+
+def _source_weight(source: str) -> float:
+    s = (source or "").lower()
+    if any(k in s for k in _SRC_TOP):
+        return 1.0
+    if any(k in s for k in _SRC_MID):
+        return 0.7
+    return 0.5
+
+
+def _recency_weight(created_at: str) -> float:
+    """Newer headlines matter more. Returns ~1.0 (today) down to ~0.3 (a month+ old)."""
+    import datetime as _dt
+    s = (created_at or "").strip()
+    if not s:
+        return 0.6
+    dt = None
+    try:
+        dt = _dt.datetime.fromisoformat(s.replace("Z", "+00:00"))
+    except Exception:  # noqa: BLE001
+        for fmt in ("%a, %d %b %Y %H:%M:%S %z", "%a, %d %b %Y %H:%M", "%a, %d %b %Y", "%Y-%m-%d"):
+            try:
+                dt = _dt.datetime.strptime(s, fmt)
+                break
+            except Exception:  # noqa: BLE001
+                continue
+    if dt is None:
+        return 0.6
+    now = _dt.datetime.now(_dt.timezone.utc)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=_dt.timezone.utc)
+    age = (now - dt).days
+    if age <= 2:
+        return 1.0
+    if age <= 7:
+        return 0.8
+    if age <= 14:
+        return 0.6
+    if age <= 30:
+        return 0.45
+    return 0.3
+
+
 def news_sentiment(news: list[dict]) -> dict | None:
-    """Light tone score of the headlines (no API key). -1..+1 with a label."""
+    """Tone score of the headlines (no API key), now WEIGHTED by source quality and
+    recency: a fresh Reuters headline moves the needle more than a stale blog post.
+    Returns -1..+1 with a label, plus the (weighted) pos/neg mass and count."""
     if not news:
         return None
-    pos = neg = 0
+    wpos = wneg = 0.0
     for n in news:
         words = (n.get("headline", "") or "").lower().replace(",", " ").replace(".", " ").split()
-        pos += sum(1 for w in words if w in _POS)
-        neg += sum(1 for w in words if w in _NEG)
-    total = pos + neg
+        p = sum(1 for w in words if w in _POS)
+        q = sum(1 for w in words if w in _NEG)
+        if not (p or q):
+            continue
+        w = _source_weight(n.get("source", "")) * _recency_weight(n.get("created_at", ""))
+        wpos += w * p
+        wneg += w * q
+    total = wpos + wneg
     if total == 0:
-        return {"label": "Neutral", "score": 0.0, "pos": 0, "neg": 0, "n": len(news)}
-    score = round((pos - neg) / total, 2)
+        return {"label": "Neutral", "score": 0.0, "pos": 0, "neg": 0, "n": len(news), "weighted": True}
+    score = round((wpos - wneg) / total, 2)
     label = "Positive" if score >= 0.25 else "Negative" if score <= -0.25 else "Mixed"
-    return {"label": label, "score": score, "pos": pos, "neg": neg, "n": len(news)}
+    return {"label": label, "score": score, "pos": round(wpos, 1), "neg": round(wneg, 1),
+            "n": len(news), "weighted": True}
 
 
 # ---------------------------------------------------------------- Finnhub

@@ -299,10 +299,16 @@ def build_snapshot() -> dict:
             except Exception:  # noqa: BLE001
                 ipos = []
 
-    # Optional AI analyst note per signal (silent no-op if no key).
+    # Optional AI analyst note — only for the strongest, actionable setups (High conviction
+    # BUY/SHORT/HOLD), capped, so we spend the API budget where it matters and keep builds fast.
     if CONFIG.llm_enabled:
         import llm
-        for r in shown:
+        _ai_picks = [r for r in shown
+                     if (r.get("conviction") or {}).get("label") == "High"
+                     and r.get("action") in ("BUY", "SHORT", "HOLD LONG", "HOLD SHORT")]
+        # rank best-first by conviction score, cap the number of paid calls
+        _ai_picks.sort(key=lambda r: -((r.get("conviction") or {}).get("score_pct") or 0))
+        for r in _ai_picks[:8]:
             note = llm.analyst_note(r, CONFIG, regime=regime, macro=macro)
             if note:
                 r["ai_read"] = note
@@ -872,6 +878,11 @@ def render_html(snap: dict) -> str:
   .card-warn {{ margin-top:9px; font-size:11.5px; color:var(--sell); font-weight:500; }}
   .hcell {{ cursor:help; text-decoration:underline dotted var(--muted); text-underline-offset:3px;
     text-decoration-thickness:1px; }}
+  .hint {{ cursor:help; }}
+  #tip {{ position:fixed; z-index:9999; display:none; max-width:300px; padding:9px 12px;
+    background:var(--card); color:var(--txt); border:1px solid var(--line);
+    border-radius:8px; box-shadow:var(--shadow-lg); font-size:12px; line-height:1.5;
+    pointer-events:none; }}
   .card-why {{ margin-top:11px; padding:9px 11px; background:var(--inset);
     border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:8px; }}
   .why-h {{ font-size:10.5px; text-transform:uppercase; letter-spacing:.04em;
@@ -1424,6 +1435,27 @@ const FAMILY_INFO = {{
 }};
 const _esc = t => String(t||'').replace(/"/g, '&quot;');
 
+// Custom tooltip: reliable + instant (native title= is slow and easy to miss). Any element
+// with a non-empty data-tip shows it on hover, positioned by the cursor.
+const _tipEl = document.createElement('div'); _tipEl.id = 'tip'; document.body.appendChild(_tipEl);
+function _placeTip(e) {{
+  const pad = 14, w = _tipEl.offsetWidth, h = _tipEl.offsetHeight;
+  let x = e.clientX + pad, y = e.clientY + pad;
+  if (x + w > window.innerWidth - 8) x = e.clientX - w - pad;
+  if (y + h > window.innerHeight - 8) y = e.clientY - h - pad;
+  _tipEl.style.left = Math.max(8, x) + 'px';
+  _tipEl.style.top = Math.max(8, y) + 'px';
+}}
+document.addEventListener('mouseover', e => {{
+  const t = e.target.closest && e.target.closest('[data-tip]');
+  const txt = t && t.getAttribute('data-tip');
+  if (txt) {{ _tipEl.textContent = txt; _tipEl.style.display = 'block'; _placeTip(e); }}
+}});
+document.addEventListener('mousemove', e => {{ if (_tipEl.style.display === 'block') _placeTip(e); }});
+document.addEventListener('mouseout', e => {{
+  if (e.target.closest && e.target.closest('[data-tip]')) _tipEl.style.display = 'none';
+}});
+
 const diag = document.getElementById('diag');
 if ((DATA.diagnostics||[]).length) {{
   diag.innerHTML = '<div style="background:#3a1e1e;border:1px solid #5a1e1e;color:#ff9b9b;'
@@ -1484,7 +1516,7 @@ function makeCard(s) {{
     if (agree.length) {{
       const pills = agree.slice(0,6).map(n => {{
         const tip = (STRAT_INFO[n]||'') + (fresh.includes(n) ? '  (this is the fresh trigger)' : '');
-        return `<span class="why-chip${{fresh.includes(n)?' trig':''}}" title="${{_esc(tip)}}">${{n}}</span>`;
+        return `<span class="why-chip${{fresh.includes(n)?' trig':''}} hint" data-tip="${{_esc(tip)}}">${{n}}</span>`;
       }});
       const extra = agree.length>6 ? `<span class="why-chip more">+${{agree.length-6}}</span>` : '';
       whyBody = `<div class="why-chips">${{pills.join('')}}${{extra}}</div>`;
@@ -1500,7 +1532,7 @@ function makeCard(s) {{
   if (!whyBody && s.action==='AVOID') {{ whyBody = `<div class="why-txt">Below trend with a weak/bearish setup — stay away.</div>`; famLabel='Trend filter'; }}
   const famTip = (famLabel || '').split(' + ').map(f => FAMILY_INFO[f]).filter(Boolean).join('  •  ')
                  || 'the strategy approach behind this signal';
-  const famTag = famLabel ? `<span class="why-fam" title="${{_esc(famTip)}}">${{famLabel}}</span>` : '';
+  const famTag = famLabel ? `<span class="why-fam hint" data-tip="${{_esc(famTip)}}">${{famLabel}}</span>` : '';
   const whyHtml = whyBody
     ? `<div class="card-why"><div class="why-h">📋 Why this ${{_actWord}}</div>${{famTag}}${{whyBody}}</div>` : '';
   const nNews = (s.news||[]).length;
@@ -1688,21 +1720,21 @@ function openModal(s) {{
     let chips = '';
     Object.keys(res).forEach(k => {{
       const r = res[k]; const cls = r.long ? (r.fresh ? 'bull' : 'neutral') : '';
-      chips += `<span class="chip mini ${{cls}}" style="cursor:help;" title="${{_esc(STRAT_INFO[r.label] || r.kind)}}">${{r.long ? '●' : '○'}} ${{r.label}}</span>`;
+      chips += `<span class="chip mini ${{cls}} hint" data-tip="${{_esc(STRAT_INFO[r.label] || r.kind)}}">${{r.long ? '●' : '○'}} ${{r.label}}</span>`;
     }});
     let rows = '';
     Object.keys(edges).forEach(k => {{
       const e = edges[k]; const wr = e.win_rate == null ? '–' : e.win_rate + '%';
       const ret = (e.total_return >= 0 ? '+' : '') + e.total_return + '%';
-      rows += `<tr><td class="hcell" title="${{_esc(STRAT_INFO[e.label] || '')}}">${{e.label}}</td>`
-        + `<td class="hcell" style="color:var(--muted);" title="${{_esc(TYPE_INFO[e.kind] || '')}}">${{e.kind}}</td>`
+      rows += `<tr><td class="hcell" data-tip="${{_esc(STRAT_INFO[e.label] || '')}}">${{e.label}}</td>`
+        + `<td class="hcell" style="color:var(--muted);" data-tip="${{_esc(TYPE_INFO[e.kind] || '')}}">${{e.kind}}</td>`
         + `<td style="text-align:right;">${{wr}}</td><td style="text-align:right;color:var(--muted);">${{e.n_trades}}</td>`
         + `<td style="text-align:right;" class="${{e.total_return >= 0 ? 'win' : 'loss'}}">${{ret}}</td></tr>`;
     }});
     const head = `<div style="margin-bottom:6px;font-size:13px;"><b>${{now.count || 0}}</b> of ${{now.total || 0}} strategies are long here right now (● long · ○ flat). <span style="color:var(--muted);">Hover any name for what it means.</span></div>`
       + `<div class="chips" style="margin-bottom:12px;">${{chips}}</div>`;
     const table = rows
-      ? `<table class="trackrec"><thead><tr><th class="hcell" title="The method being tested. Hover each row's name for a plain-English description.">Strategy</th><th class="hcell" title="The family the method belongs to — hover for what each type means.">Type</th><th style="text-align:right;" title="How often this method has been profitable on THIS stock historically.">Win</th><th style="text-align:right;" title="How many completed trades that win rate is based on — more = more reliable.">Trades</th><th style="text-align:right;" title="Total hypothetical return of this method on this stock (no fees/slippage).">Return</th></tr></thead><tbody>${{rows}}</tbody></table>`
+      ? `<table class="trackrec"><thead><tr><th class="hcell" data-tip="The method being tested. Hover each row's name for a plain-English description.">Strategy</th><th class="hcell" data-tip="The family the method belongs to — hover for what each type means.">Type</th><th class="hcell" style="text-align:right;" data-tip="How often this method has been profitable on THIS stock historically.">Win</th><th class="hcell" style="text-align:right;" data-tip="How many completed trades that win rate is based on — more = more reliable.">Trades</th><th class="hcell" style="text-align:right;" data-tip="Total hypothetical return of this method on this stock (no fees/slippage).">Return</th></tr></thead><tbody>${{rows}}</tbody></table>`
       : '<div style="color:var(--muted);font-size:13px;">Per-strategy backtests are computed for the shown signals.</div>';
     sel.innerHTML = head + table;
   }}
