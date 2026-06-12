@@ -10,6 +10,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+import analytics
 import market
 from config import Config
 from data import get_bars, synthetic_bars
@@ -133,10 +134,13 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
     qty = position_size(equity, price, cfg) if signal == 1 else 0
     tail = sig.tail(300)  # ~1+ year of daily bars, sliced client-side by range
     rv_rounded = None if np.isnan(relvol) else round(relvol, 2)
+    patterns, factors = analytics.detect(df, sig, cfg, rv_rounded)
+    edge = analytics.backtest_edge(df, cfg)
     summary, reasons = _reasoning(sig, cfg, action, price, rv_rounded)
     plan, context = _trade_plan(df, sig, cfg, price, equity)
-    conviction = _conviction(action, float(last["rsi"]), rv_rounded, plan, context, cfg)
-    desk_read = _desk_read(action, plan, context, conviction)
+    conviction = _conviction(action, float(last["rsi"]), rv_rounded, plan, context, cfg,
+                             factors, patterns, edge)
+    desk_read = _desk_read(action, plan, context, conviction, patterns, edge)
     return {
         "symbol": symbol,
         "action": action,
@@ -155,6 +159,9 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
         "context": context,
         "conviction": conviction,
         "desk_read": desk_read,
+        "patterns": patterns,
+        "factors": factors,
+        "edge": edge,
         "chart": _chart_data(tail),
     }
 
@@ -305,8 +312,15 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float):
     return plan, context
 
 
-def _conviction(action, rsi, relvol, plan, context, cfg: Config):
-    """Auto-scored pre-entry checklist for a long. Each check is pass/warn/fail."""
+def _conviction(action, rsi, relvol, plan, context, cfg: Config,
+                factors=None, patterns=None, edge=None):
+    """Auto-scored pre-entry checklist for a long. Each check is pass/warn/fail.
+
+    v2: now also weighs MACD momentum and the strategy's *historical* win rate on
+    this specific stock — so conviction reflects multi-factor confluence, not just
+    the moving-average cross.
+    """
+    factors = factors or {}
     checks = []
 
     def add(label, status, note):
@@ -363,6 +377,25 @@ def _conviction(action, rsi, relvol, plan, context, cfg: Config):
     else:
         add("Good timing?", "fail", "No buy trigger right now — nothing to act on yet.")
 
+    mh = factors.get("macd_hist")
+    if mh is None:
+        add("Momentum building?", "warn", "Momentum (MACD) reading unavailable.")
+    elif mh > 0:
+        add("Momentum building?", "pass", "Yes — MACD momentum is positive, so buyers have the upper hand.")
+    else:
+        add("Momentum building?", "warn", "Not yet — MACD momentum is negative, so sellers still have control.")
+
+    wr = (edge or {}).get("win_rate")
+    nt = (edge or {}).get("n_trades") or 0
+    if not edge or wr is None or nt < 3:
+        add("Worked here before?", "warn", "Not enough past trades on this stock to judge the edge yet.")
+    elif wr >= 50:
+        add("Worked here before?", "pass", f"Yes — this strategy won {wr}% of its {nt} past trades on this stock.")
+    elif wr >= 35:
+        add("Worked here before?", "warn", f"Mixed — a {wr}% win rate across {nt} past trades on this stock.")
+    else:
+        add("Worked here before?", "fail", f"Weak — only {wr}% of {nt} past trades on this stock worked out.")
+
     pts = {"pass": 1.0, "warn": 0.5, "fail": 0.0}
     score = sum(pts[c["status"]] for c in checks) / len(checks)
     label = "High" if score >= 0.75 else "Medium" if score >= 0.5 else "Low"
@@ -371,8 +404,8 @@ def _conviction(action, rsi, relvol, plan, context, cfg: Config):
             "total": len(checks), "checks": checks}
 
 
-def _desk_read(action, plan, context, conviction) -> str:
-    """A short risk-strategist read, composed from the computed levels."""
+def _desk_read(action, plan, context, conviction, patterns=None, edge=None) -> str:
+    """A short risk-strategist read, composed from the computed levels + patterns."""
     stop, target = plan.get("stop"), plan.get("target")
     rr = plan.get("rr")
     stop_pct, tgt_pct = plan.get("stop_pct"), plan.get("target_pct")
@@ -392,6 +425,18 @@ def _desk_read(action, plan, context, conviction) -> str:
             f"(−{stop_pct}%), sell to cut the loss. If it climbs to ${target:,.2f} (+{tgt_pct}%), take the win. "
             f"So you'd be risking a little to aim for about {rr}× as much."
         )
+    bull = [p["label"] for p in (patterns or []) if p["kind"] == "bull"]
+    bear = [p["label"] for p in (patterns or []) if p["kind"] == "bear"]
+    if bull or bear:
+        parts = []
+        if bull:
+            parts.append("in its favour — " + ", ".join(bull[:3]))
+        if bear:
+            parts.append("watch-outs — " + ", ".join(bear[:3]))
+        bits.append("On the chart, " + "; ".join(parts) + ".")
+    if edge and edge.get("win_rate") is not None and (edge.get("n_trades") or 0) >= 3:
+        bits.append(f"History check: this strategy has won {edge['win_rate']}% of its "
+                    f"{edge['n_trades']} past trades on this stock (hypothetical, no fees).")
     weak = [c["label"].rstrip('?').lower() for c in conviction["checks"] if c["status"] != "pass"]
     if weak:
         bits.append(f"Overall confidence: {conv}. Weaker spots: {', '.join(weak)}.")

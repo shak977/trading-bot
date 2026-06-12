@@ -10,16 +10,30 @@ live keys and explicitly set `ALPACA_PAPER=false`.
 | File            | Role                                                            |
 |-----------------|-----------------------------------------------------------------|
 | `config.py`     | All settings + secrets from env. Paper trading on by default.   |
-| `indicators.py` | SMA and RSI in pure pandas (no TA-Lib).                         |
+| `indicators.py` | SMA, RSI, ATR, MACD, Bollinger, ADX, rolling highs/lows.        |
 | `strategy.py`   | MA-crossover entry, gated by an RSI filter. Emits 0/1 signals.  |
+| `analytics.py`  | Chart-pattern detection + per-stock historical edge (backtest). |
 | `data.py`       | Real Alpaca bars **or** deterministic synthetic bars (no keys). |
-| `market.py`     | Alpaca REST helpers: most-active, movers, news.                 |
-| `scanner.py`    | Dynamic universe scan + ranking + relative-volume flow proxy.   |
+| `market.py`     | Alpaca REST helpers: most-active, movers, news, assets.         |
+| `scanner.py`    | Dynamic scan + multi-factor conviction + reasoning/desk read.   |
+| `tracker.py`    | Logs every BUY call and grades it vs real prices over time.     |
 | `risk.py`       | Risk-based position sizing, stop-loss, take-profit.             |
 | `backtest.py`   | Bar-by-bar backtester → equity curve + metrics.                |
 | `broker.py`     | Alpaca order wrapper (paper by default).                        |
-| `dashboard.py`  | Builds `dashboard.html` + `signals.json` (scan, signals, news). |
+| `llm.py`        | Optional Anthropic analyst note (desk-trader style).            |
+| `dashboard.py`  | Builds `dashboard.html` + `signals.json` (scan/analytics/UI).   |
+| `selftest.py`   | `python3 selftest.py` — checks indicators/strategy/analytics.   |
 | `run.py`        | CLI: `backtest` and `trade`.                                    |
+
+## What the analysis does (overnight upgrade)
+
+Beyond the moving-average cross, each stock now gets a **multi-factor read** like a
+desk trader would: trend + RSI/MACD momentum + ADX trend-strength + volume + Bollinger
+position + distance from highs/lows + risk:reward, **plus a per-stock historical edge**
+(the strategy is backtested on that stock's own history to see how often it has worked).
+The detail panel flags **chart patterns** (golden/death cross, breakouts, pullbacks,
+oversold bounces, MACD crosses) and the dashboard shows a **market-regime banner**
+(breadth/Risk-on–off) and **sector strength** ranking.
 
 ## Dashboard & weekly signals
 

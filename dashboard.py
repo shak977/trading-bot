@@ -45,6 +45,39 @@ def _synthetic_news(symbols: list[str]) -> list[dict]:
     return out
 
 
+def _market_regime(rows: list[dict]) -> dict | None:
+    """Read the overall tape: breadth (% above trend), average momentum, # buys."""
+    if not rows:
+        return None
+    above = sum(1 for r in rows if (r.get("context", {}).get("vs_slow_ma_pct") or 0) > 0)
+    breadth = round(above / len(rows) * 100)
+    rsis = [r["rsi"] for r in rows if r.get("rsi") is not None]
+    avg_rsi = round(sum(rsis) / len(rsis), 1) if rsis else None
+    buys = sum(1 for r in rows if r["action"] == "BUY")
+    if breadth >= 60 and (avg_rsi or 0) >= 50:
+        label, note = "Risk-on", "Most stocks are trending up — a friendlier backdrop for buying."
+    elif breadth <= 40 or (avg_rsi or 100) < 45:
+        label, note = "Risk-off", "Most stocks are below trend — be choosier; long signals are fighting the tape."
+    else:
+        label, note = "Neutral", "Mixed tape — no strong market-wide direction; pick spots carefully."
+    return {"label": label, "breadth": breadth, "avg_rsi": avg_rsi,
+            "buys": buys, "total": len(rows), "note": note}
+
+
+def _sector_strength(rows: list[dict]) -> list[dict]:
+    """Rank sectors by how many of their stocks are above their trend line."""
+    from collections import defaultdict
+    by = defaultdict(list)
+    for r in rows:
+        by[scanner.sector_of(r["symbol"])].append(r)
+    out = []
+    for sec, rs in by.items():
+        up = sum(1 for r in rs if (r.get("context", {}).get("vs_slow_ma_pct") or 0) > 0)
+        out.append({"sector": sec, "count": len(rs), "pct_up": round(up / len(rs) * 100)})
+    out.sort(key=lambda x: -x["pct_up"])
+    return out
+
+
 def build_snapshot() -> dict:
     mode = _mode()
     live = mode != "SYNTHETIC"
@@ -53,6 +86,10 @@ def build_snapshot() -> dict:
 
     # split chart data out of each row for compactness
     charts = {r["symbol"]: r.pop("chart") for r in rows}
+
+    # Market regime + sector strength from the FULL scanned set (the "tape").
+    regime = _market_regime(rows)
+    sectors = _sector_strength(rows)
 
     shown = rows[: CONFIG.show_top]
     shown_syms = [r["symbol"] for r in shown]
@@ -107,7 +144,7 @@ def build_snapshot() -> dict:
     if CONFIG.llm_enabled:
         import llm
         for r in shown:
-            note = llm.analyst_note(r, CONFIG)
+            note = llm.analyst_note(r, CONFIG, regime=regime)
             if note:
                 r["ai_read"] = note
 
@@ -141,6 +178,8 @@ def build_snapshot() -> dict:
         "diagnostics": list(scanner.LAST_ERRORS),
         "benchmark": benchmark,
         "track": track,
+        "regime": regime,
+        "sectors": sectors,
         "params": {
             "fast_ma": CONFIG.fast_ma, "slow_ma": CONFIG.slow_ma,
             "rsi_period": CONFIG.rsi_period, "risk_per_trade": CONFIG.risk_per_trade,
@@ -151,6 +190,32 @@ def build_snapshot() -> dict:
         "charts": {k: charts[k] for k in shown_syms if k in charts},
         "news": news,
     }
+
+
+def _regime_html(reg: dict | None) -> str:
+    if not reg:
+        return ""
+    palette = {"Risk-on": ("#15361f", "#7ee2a0"), "Neutral": ("#3a2e12", "#e8c878"),
+               "Risk-off": ("#3a1e1e", "#ff9b9b")}
+    bg, fg = palette.get(reg["label"], ("#1a212b", "#c4ccd6"))
+    return (f'<div class="regime" style="background:{bg};">'
+            f'<span class="rlabel" style="color:{fg};">Market: {reg["label"]}</span>'
+            f'<span class="rdetail">{reg["breadth"]}% of {reg["total"]} scanned above trend &middot; '
+            f'avg momentum {reg["avg_rsi"]}/100 &middot; {reg["buys"]} fresh buys</span>'
+            f'<span class="rnote">{reg["note"]}</span></div>')
+
+
+def _sectors_html(secs: list[dict]) -> str:
+    if not secs:
+        return ""
+    rows = "".join(
+        f'<div class="secrow"><span class="secname">{s["sector"]}</span>'
+        f'<div class="secbar"><div class="secfill" style="width:{s["pct_up"]}%;"></div></div>'
+        f'<span class="secpct">{s["pct_up"]}% up · {s["count"]}</span></div>'
+        for s in secs)
+    return ('<div class="ovbox"><div class="ovhead">🧭 Sector strength '
+            '<span style="font-weight:400;color:var(--muted);font-size:12px;">— share of each sector trending up</span></div>'
+            f'{rows}</div>')
 
 
 def _track_html(track: dict | None) -> str:
@@ -205,6 +270,8 @@ def render_html(snap: dict) -> str:
         "SYNTHETIC": "Synthetic data — NOT real prices or news. Add Alpaca keys for the real thing.",
     }[mode]
     track_html = _track_html(snap.get("track"))
+    regime_html = _regime_html(snap.get("regime"))
+    sectors_html = _sectors_html(snap.get("sectors"))
     return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -304,6 +371,13 @@ def render_html(snap: dict) -> str:
   .readout .rprice {{ font-size:24px; font-weight:700; }}
   .readout .rchg {{ font-size:15px; font-weight:600; }}
   .readout .rdate {{ color:var(--muted); font-size:13px; margin-left:auto; }}
+  .chips {{ display:flex; flex-wrap:wrap; gap:7px; }}
+  .chip {{ font-size:12px; font-weight:600; padding:3px 10px; border-radius:999px;
+    border:1px solid var(--line); }}
+  .chip.bull {{ background:#15361f; color:#7ee2a0; border-color:#1d4a2b; }}
+  .chip.bear {{ background:#3a1e1e; color:#ff9b9b; border-color:#5a1e1e; }}
+  .chip.neutral {{ background:#1a212b; color:#c4ccd6; }}
+  .chip.mini {{ font-size:10.5px; padding:1px 7px; }}
   .tabs {{ display:flex; gap:4px; flex-wrap:wrap; border-bottom:1px solid var(--line);
     margin:18px 0 22px; position:sticky; top:0; background:var(--bg); z-index:10; padding-top:6px; }}
   .tabs button {{ background:none; border:none; color:var(--muted); font-size:15px;
@@ -317,6 +391,16 @@ def render_html(snap: dict) -> str:
     padding:14px 16px; margin-bottom:22px; }}
   .ovhead {{ font-weight:700; font-size:14px; margin-bottom:8px; }}
   .viewctl {{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px; }}
+  .regime {{ border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin:14px 0 4px;
+    display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 12px; }}
+  .regime .rlabel {{ font-weight:700; font-size:15px; }}
+  .regime .rdetail {{ color:var(--txt); font-size:13px; }}
+  .regime .rnote {{ color:var(--muted); font-size:12px; width:100%; }}
+  .secrow {{ display:flex; align-items:center; gap:10px; margin:6px 0; font-size:13px; }}
+  .secname {{ width:130px; color:var(--txt); }}
+  .secbar {{ flex:1; height:8px; background:#0f1722; border-radius:5px; overflow:hidden; }}
+  .secfill {{ height:100%; background:linear-gradient(90deg,#388bfd,#2ea043); }}
+  .secpct {{ width:90px; text-align:right; color:var(--muted); }}
   .track {{ background:var(--card); border:1px solid var(--line); border-radius:12px;
     padding:16px 18px; margin:18px 0; }}
   .track h2 {{ margin:0 0 4px; }}
@@ -354,6 +438,7 @@ def render_html(snap: dict) -> str:
     <span class="badge m-{mode}">{mode}</span> &middot;
     scanned {snap['scanned']} symbols <span id="liveStatus"></span></div>
   <div class="note">{mode_note}</div>
+{regime_html}
   <div id="diag"></div>
 
   <nav class="tabs" id="tabs">
@@ -369,6 +454,7 @@ def render_html(snap: dict) -> str:
       <div class="ovhead">📈 Live overview — S&amp;P 500 vs your top signals <span style="font-weight:400;color:var(--muted);">(% change)</span> <span id="ovStatus"></span></div>
       <canvas id="overviewChart" height="92"></canvas>
     </div>
+{sectors_html}
     <div class="viewctl"><span style="color:var(--muted);font-size:13px;">View:</span>
       <span class="ctlgrp" id="viewBtns"></span></div>
     <div id="cards"></div>
@@ -406,13 +492,24 @@ def render_html(snap: dict) -> str:
         position sized so a stop-out costs only about {snap['params']['risk_per_trade']:.0%} of the account.</li>
       </ol>
 
-      <h4>The three things each signal checks</h4>
+      <h4>How each signal is graded (multi-factor confluence)</h4>
+      <p>A good trade rarely rests on one signal. Each stock is scored on several factors, the way a
+      desk trader weighs confluence:</p>
       <ul>
-        <li><b>Trend</b> — is the short-term average above the long-term one? (direction)</li>
-        <li><b>Momentum (RSI)</b> — a 0–100 gauge of how fast/far price has moved; we want room to rise,
-        not already overheated.</li>
-        <li><b>Volume</b> — are more people trading it than usual? Heavy volume gives a move more conviction.</li>
+        <li><b>Trend</b> — short-term average above the long-term one (direction).</li>
+        <li><b>Momentum</b> — RSI (overbought/oversold) and MACD (is momentum building?).</li>
+        <li><b>Trend strength</b> — ADX, to tell a real trend from chop.</li>
+        <li><b>Volume</b> — heavier-than-usual trading confirms a move.</li>
+        <li><b>Where price sits</b> — Bollinger band position, distance from 1-year highs/lows, and
+        whether it's stretched (chasing) or pulling back to the trend.</li>
+        <li><b>Risk : reward</b> — the target must pay enough for the risk taken.</li>
+        <li><b>Historical edge</b> — we <i>backtest this exact strategy on that stock's own history</i>
+        and factor in how often it has actually worked there.</li>
       </ul>
+      <p>The detail panel also flags <b>chart patterns</b> (golden cross, breakouts, pullbacks, MACD
+      crosses, oversold bounces…) and reads the <b>market backdrop</b> — overall breadth (how many
+      stocks are trending up) and which <b>sectors</b> are strongest — because signals work better when
+      the broader tape agrees.</p>
 
       <h4>How to use it</h4>
       <p>Each card shows the action and a <b>conviction score</b> (how well it fits the rules). Click any
@@ -451,8 +548,12 @@ def render_html(snap: dict) -> str:
     <div class="deskread" id="mAI" style="display:none;border-left-color:#9b59b6;"></div>
     <div class="sech">The bottom line</div>
     <div class="deskread" id="mDesk"></div>
+    <div class="sech">Patterns spotted</div>
+    <div class="chips" id="mPatterns"></div>
     <div class="sech">Should you take it? <span id="mConvScore"></span></div>
     <ul class="checks" id="mChecks"></ul>
+    <div class="sech">How this strategy has done on this stock <span style="text-transform:none;color:var(--muted);">(backtest)</span></div>
+    <div class="plangrid" id="mEdge"></div>
     <div class="sech">The trade plan <span id="mPlanNote" style="text-transform:none;color:var(--muted);"></span></div>
     <div class="plangrid" id="mPlan"></div>
     <div class="sech">Price chart</div>
@@ -503,6 +604,7 @@ function makeCard(s) {{
     ${{s.stop!=null ? `<div class="kv"><span>Stop / Target</span><span>$${{s.stop}} / $${{s.target}}</span></div>`:''}}
     ${{s.suggested_shares ? `<div class="kv"><span>Suggested size</span><span>${{s.suggested_shares}} sh</span></div>`:''}}
     ${{s.conviction ? `<div class="kv"><span>Conviction</span><span><span class="convbadge conv-${{s.conviction.label}}" style="font-size:11px;">${{s.conviction.label}} ${{s.conviction.score_pct}}%</span></span></div>`:''}}
+    ${{(s.patterns||[]).length ? `<div class="chips" style="margin-top:8px;">${{(s.patterns||[]).slice(0,3).map(p=>`<span class="chip mini ${{p.kind}}">${{p.label}}</span>`).join('')}}</div>`:''}}
     <div class="more">${{nNews ? nNews+' news &middot; ':''}}click for full plan + reasoning →</div>`;
   el.addEventListener('click', () => openModal(s));
   return el;
@@ -672,6 +774,21 @@ function openModal(s) {{
     + (s.name ? `<div class="cname" style="font-size:13px;margin-top:4px;">${{s.name}}${{s.exchange?` · ${{s.exchange}}`:''}}</div>` : '');
   document.getElementById('mSummary').textContent = s.summary || '';
   document.getElementById('mDesk').textContent = s.desk_read || '';
+  const pel = document.getElementById('mPatterns');
+  pel.innerHTML = (s.patterns||[]).length
+    ? (s.patterns||[]).map(p => `<span class="chip ${{p.kind}}">${{p.label}}</span>`).join('')
+    : '<span style="color:var(--muted);font-size:13px;">No standout chart patterns right now.</span>';
+  const eel = document.getElementById('mEdge'), e = s.edge;
+  if (e && e.n_trades) {{
+    const money = v => (v==null?'–':(v>0?'+':'')+v+'%');
+    eel.innerHTML =
+      `<div class="stat"><div class="l">Win rate</div><div class="v">${{e.win_rate==null?'–':e.win_rate+'%'}}</div></div>`
+      + `<div class="stat"><div class="l">Past trades</div><div class="v">${{e.n_trades}}</div></div>`
+      + `<div class="stat"><div class="l">Total return</div><div class="v ${{e.total_return>=0?'buy':'sell'}}">${{money(e.total_return)}}</div></div>`
+      + `<div class="stat"><div class="l">Worst drawdown</div><div class="v sell">${{money(e.max_drawdown)}}</div></div>`;
+  }} else {{
+    eel.innerHTML = '<div style="color:var(--muted);font-size:13px;">Not enough past trades on this stock to measure an edge yet.</div>';
+  }}
   const aiHead = document.getElementById('mAIHead'), aiBox = document.getElementById('mAI');
   if (s.ai_read) {{
     aiBox.textContent = s.ai_read; aiBox.style.display = 'block'; aiHead.style.display = 'block';
