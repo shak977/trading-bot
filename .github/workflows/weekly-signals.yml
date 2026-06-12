@@ -52,6 +52,17 @@ jobs:
           cp signals.json _site/signals.json
           cp track_record.json _site/track_record.json 2>/dev/null || true
 
+      - name: Data-integrity audit
+        if: ${{ github.event_name != 'schedule' || steps.gate.outputs.trading == 'true' }}
+        continue-on-error: true
+        run: |
+          python audit.py signals.json | tee audit_out.txt
+          echo "### Data audit" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat audit_out.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -q "flagged" audit_out.txt && echo "::warning::Data audit flagged anomalies — see job summary" || true
+
       # --- Deploy FIRST so a track-record push race can never block the site ---
       - uses: actions/upload-pages-artifact@v3
         if: ${{ github.event_name != 'schedule' || steps.gate.outputs.trading == 'true' }}

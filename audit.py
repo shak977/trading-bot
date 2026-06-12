@@ -14,20 +14,6 @@ import urllib.request
 
 DEFAULT_URL = "https://shak977.github.io/trading-bot/signals.json"
 
-flags: list[str] = []
-checks = 0
-
-
-def flag(msg):
-    flags.append(msg)
-
-
-def chk(cond, msg):
-    global checks
-    checks += 1
-    if not cond:
-        flag(msg)
-
 
 def load(src):
     if src.startswith("http"):
@@ -37,9 +23,18 @@ def load(src):
         return json.load(f)
 
 
-def audit(d):
-    print(f"Auditing {d.get('mode')} build @ {d.get('generated_at')} — "
-          f"{len(d.get('signals', []))} signals shown\n")
+def audit_data(d):
+    """Pure audit: returns (n_checks, [flag, ...]). No printing."""
+    flags: list[str] = []
+    state = {"checks": 0}
+
+    def flag(msg):
+        flags.append(msg)
+
+    def chk(cond, msg):
+        state["checks"] += 1
+        if not cond:
+            flag(msg)
 
     # ---- macro ----
     m = d.get("macro")
@@ -149,15 +144,23 @@ def audit(d):
                 if abs(ret) > 200:
                     F(f"~3mo return {ret:.0f}% — extreme, check for split/data error")
 
+    return state["checks"], flags
+
+
+def main(src):
+    d = load(src)
+    print(f"Auditing {d.get('mode')} build @ {d.get('generated_at')} — "
+          f"{len(d.get('signals', []))} signals shown\n")
+    checks, flags = audit_data(d)
     print(f"Ran {checks} structural checks.")
     if flags:
         print(f"\n⚠  {len(flags)} item(s) flagged:")
         for f in flags:
             print("  -", f)
-    else:
-        print("\n✅ No anomalies found — all data points look sane.")
+        return 1
+    print("\n✅ No anomalies found — all data points look sane.")
+    return 0
 
 
 if __name__ == "__main__":
-    src = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_URL
-    audit(load(src))
+    sys.exit(main(sys.argv[1] if len(sys.argv) > 1 else DEFAULT_URL))

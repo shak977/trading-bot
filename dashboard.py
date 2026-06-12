@@ -321,6 +321,14 @@ def render_html(snap: dict) -> str:
     regime_html = _regime_html(snap.get("regime"))
     sectors_html = _sectors_html(snap.get("sectors"))
     macro_html = _macro_html(snap.get("macro"))
+    dh = snap.get("data_health")
+    if not dh:
+        health_html = ""
+    elif dh.get("ok"):
+        health_html = f' &middot; <span style="color:#2ea043;" title="{dh.get("checks",0)} integrity checks passed">data check ✓</span>'
+    else:
+        tip = " | ".join(dh.get("flags", []))[:400].replace('"', "'")
+        health_html = f' &middot; <span style="color:#e8c878;" title="{tip}">data check ⚠ {len(dh.get("flags", []))}</span>'
     return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -493,7 +501,7 @@ def render_html(snap: dict) -> str:
   <h1>Trading Signals Dashboard</h1>
   <div class="meta">Generated {snap['generated_at']} &middot;
     <span class="badge m-{mode}">{mode}</span> &middot;
-    scanned {snap['scanned']} symbols <span id="liveStatus"></span></div>
+    scanned {snap['scanned']} symbols{health_html} <span id="liveStatus"></span></div>
   <div class="note">{mode_note}</div>
 {regime_html}
   <div id="diag"></div>
@@ -1369,6 +1377,20 @@ buildOverview();
 
 def main() -> None:
     snap = build_snapshot()
+    # Self-audit the data and record a health badge for the dashboard.
+    try:
+        import audit
+        checks, flags = audit.audit_data(snap)
+        snap["data_health"] = {"ok": not flags, "checks": checks, "flags": flags[:20]}
+        if flags:
+            print(f"DATA AUDIT: {len(flags)} flag(s) over {checks} checks:")
+            for fl in flags[:20]:
+                print("  -", fl)
+        else:
+            print(f"DATA AUDIT: clean ({checks} checks).")
+    except Exception as exc:  # noqa: BLE001
+        snap["data_health"] = None
+        print("DATA AUDIT: skipped —", exc)
     with open("signals.json", "w") as f:
         json.dump(snap, f, indent=2)
     with open("dashboard.html", "w") as f:
