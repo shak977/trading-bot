@@ -87,6 +87,9 @@ def build_snapshot() -> dict:
     # split chart data out of each row for compactness
     charts = {r["symbol"]: r.pop("chart") for r in rows}
 
+    # Dual-momentum leaderboard over the whole scanned universe (best-validated strategy).
+    momentum_rows = _momentum_rank(charts)
+
     # Market regime + sector strength from the FULL scanned set (the "tape").
     regime = _market_regime(rows)
     sectors = _sector_strength(rows)
@@ -242,6 +245,8 @@ def build_snapshot() -> dict:
         "regime": regime,
         "sectors": sectors,
         "macro": macro,
+        "momentum": [dict(m, name={r["symbol"]: r.get("name", "") for r in shown}.get(m["symbol"], ""))
+                     for m in momentum_rows],
         "ipos": ipos,
         "ipo_news": ipo_news,
         "params": {
@@ -335,6 +340,58 @@ def _ipo_html(ipos: list[dict], ipo_news: list[dict]) -> str:
             f'{news}')
 
 
+def _momentum_rank(charts: dict, top: int = 15) -> list[dict]:
+    """Dual-momentum leaderboard from the embedded daily closes: 12-1 momentum,
+    kept only if positive AND above the 200-day average (the trend filter)."""
+    out = []
+    for sym, ch in charts.items():
+        cl = [c for c in (ch.get("close") or []) if c is not None]
+        n = len(cl)
+        if n < 230:
+            continue
+        lb = min(252, n - 1)
+        sk = 21 if n > 257 else 0
+        base = cl[-lb]
+        recent = cl[-1 - sk] if sk else cl[-1]
+        if not base:
+            continue
+        score = recent / base - 1
+        sma200 = sum(cl[-200:]) / 200 if n >= 200 else sum(cl) / n
+        if score > 0 and cl[-1] > sma200:
+            out.append({"symbol": sym, "score": round(score * 100, 1),
+                        "price": round(cl[-1], 2), "sector": scanner.sector_of(sym)})
+    out.sort(key=lambda x: -x["score"])
+    return out[:top]
+
+
+def _momentum_html(rows: list[dict]) -> str:
+    intro = ('<p style="color:var(--muted);font-size:13px;margin:0 0 12px;max-width:680px;">'
+             'Ranked by <b>12-1 momentum</b> (return over the last ~12 months, skipping the most '
+             'recent month), keeping only names in their own uptrend (above the 200-day average). '
+             'This is the dual-momentum approach factor funds use — the one strategy that beat the '
+             'index on risk-adjusted terms across a full cycle in our backtest.</p>')
+    if not rows:
+        return intro + ('<p style="color:var(--muted);font-size:13px;">Not enough price history to '
+                        'rank momentum right now.</p>')
+    body = ""
+    for i, m in enumerate(rows, 1):
+        nm = f' <span style="color:var(--muted);font-weight:400;">{m.get("name","")}</span>' if m.get("name") else ""
+        body += (f'<tr><td>{i}</td><td><b>{m["symbol"]}</b>{nm}</td>'
+                 f'<td style="color:var(--muted);">{m.get("sector","")}</td>'
+                 f'<td style="text-align:right;font-variant-numeric:tabular-nums;">${m["price"]:,.2f}</td>'
+                 f'<td style="text-align:right;font-variant-numeric:tabular-nums;" class="win">+{m["score"]}%</td></tr>')
+    table = ('<table class="trackrec"><thead><tr><th>#</th><th>Stock</th><th>Sector</th>'
+             '<th style="text-align:right;">Price</th><th style="text-align:right;">12-1 momentum</th>'
+             f'</tr></thead><tbody>{body}</tbody></table>')
+    caveats = ('<div class="deskread" style="margin-top:16px;border-left-color:#e8c878;">'
+               '<b>Read before using.</b> This is a monthly-rebalanced approach (hold the leaders, '
+               're-rank ~monthly) — not a day-trade list. In backtest it earned a higher Sharpe than '
+               'the index over ~9 years <i>including</i> the 2022 bear, but with a deeper ~31% drawdown, '
+               'and the figures are flattered by survivorship bias (this watchlist is today\'s winners). '
+               'Expect a smaller real edge and real drawdowns. Educational only — not financial advice.</div>')
+    return intro + table + caveats
+
+
 def _sectors_html(secs: list[dict]) -> str:
     if not secs:
         return ""
@@ -425,6 +482,7 @@ def render_html(snap: dict) -> str:
     track_html = _track_html(snap.get("track"))
     regime_html = _regime_html(snap.get("regime"))
     kpi_html = _kpi_html(snap.get("regime"), snap)
+    momentum_html = _momentum_html(snap.get("momentum") or [])
     ipo_html = _ipo_html(snap.get("ipos") or [], snap.get("ipo_news") or [])
     sectors_html = _sectors_html(snap.get("sectors"))
     macro_html = _macro_html(snap.get("macro"))
@@ -778,6 +836,7 @@ def render_html(snap: dict) -> str:
   <nav class="tabs" id="tabs">
     <button data-page="signals" class="on">Signals</button>
     <button data-page="markets">Markets</button>
+    <button data-page="momentum">Momentum</button>
     <button data-page="ipos">IPO watch</button>
     <button data-page="track">Track record</button>
     <button data-page="method">How it works</button>
@@ -823,6 +882,11 @@ def render_html(snap: dict) -> str:
     <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Sort &amp; filter:</span>
       <span class="ctlgrp" id="viewBtns"></span></div>
     <div id="cards"></div>
+  </section>
+
+  <section class="page" id="page-momentum">
+    <h2 style="margin-top:0;">Momentum leaders <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— dual-momentum ranking (our best backtested strategy)</span></h2>
+{momentum_html}
   </section>
 
   <section class="page" id="page-ipos">
