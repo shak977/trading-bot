@@ -372,8 +372,11 @@ def _momentum_rank(charts: dict, top: int = 15) -> list[dict]:
         score = recent / base - 1
         sma200 = sum(cl[-200:]) / 200 if n >= 200 else sum(cl) / n
         if score > 0 and cl[-1] > sma200:
+            ext = (cl[-1] / sma200 - 1) * 100 if sma200 else 0.0           # how far above its 200d trend
+            r1m = (cl[-1] / cl[-22] - 1) * 100 if n >= 22 and cl[-22] else None  # last ~1 month (is it cooling?)
             out.append({"symbol": sym, "score": round(score * 100, 1),
-                        "price": round(cl[-1], 2), "sector": scanner.sector_of(sym)})
+                        "price": round(cl[-1], 2), "sector": scanner.sector_of(sym),
+                        "ext": round(ext, 1), "r1m": round(r1m, 1) if r1m is not None else None})
     out.sort(key=lambda x: -x["score"])
     return out[:top]
 
@@ -390,13 +393,28 @@ def _momentum_html(rows: list[dict]) -> str:
     body = ""
     for i, m in enumerate(rows, 1):
         nm = f' <span style="color:var(--muted);font-weight:400;">{m.get("name","")}</span>' if m.get("name") else ""
+        r1m = m.get("r1m")
+        if r1m is None:
+            r1m_cell = '<td style="text-align:right;color:var(--muted);">—</td>'
+        else:
+            r1m_cell = (f'<td style="text-align:right;font-variant-numeric:tabular-nums;" '
+                        f'class="{"win" if r1m >= 0 else "loss"}">{"+" if r1m >= 0 else ""}{r1m}%</td>')
         body += (f'<tr><td>{i}</td><td><b>{m["symbol"]}</b>{nm}</td>'
                  f'<td style="color:var(--muted);">{m.get("sector","")}</td>'
                  f'<td style="text-align:right;font-variant-numeric:tabular-nums;">${m["price"]:,.2f}</td>'
-                 f'<td style="text-align:right;font-variant-numeric:tabular-nums;" class="win">+{m["score"]}%</td></tr>')
+                 f'<td style="text-align:right;font-variant-numeric:tabular-nums;" class="win">+{m["score"]}%</td>'
+                 f'<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--muted);">+{m.get("ext",0)}%</td>'
+                 f'{r1m_cell}</tr>')
     table = ('<table class="trackrec"><thead><tr><th>#</th><th>Stock</th><th>Sector</th>'
-             '<th style="text-align:right;">Price</th><th style="text-align:right;">12-1 momentum</th>'
-             f'</tr></thead><tbody>{body}</tbody></table>')
+             '<th style="text-align:right;">Price</th>'
+             '<th style="text-align:right;" title="return over ~12 months, skipping the last month">12-1 momentum</th>'
+             '<th style="text-align:right;" title="how far above its 200-day average — bigger = more extended">vs 200d</th>'
+             '<th style="text-align:right;" title="last ~1 month return — negative means the leader is cooling off">1-mo</th>'
+             f'</tr></thead><tbody>{body}</tbody></table>'
+             '<p style="color:var(--muted);font-size:12px;margin:8px 0 0;">'
+             'Columns: <b>12-1 momentum</b> = the ranking signal · <b>vs 200d</b> = how extended above trend '
+             '(very high = chasing risk) · <b>1-mo</b> = recent month (negative = a leader losing steam). '
+             'Re-rank monthly and rotate out names that drop off the list.</p>')
     caveats = ('<div class="deskread" style="margin-top:16px;border-left-color:#e8c878;">'
                '<b>Read before using.</b> This is a monthly-rebalanced approach (hold the leaders, '
                're-rank ~monthly) — not a day-trade list. In backtest it earned a higher Sharpe than '
@@ -532,6 +550,7 @@ def render_html(snap: dict) -> str:
 <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.1/dist/chartjs-chart-financial.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+<script src="https://s3.tradingview.com/tv.js"></script>
 <script src="chart_engine.js"></script>
 <style>
   /* Light "Capital IQ Pro" palette is the default; dark is a toggle. */
@@ -773,6 +792,10 @@ def render_html(snap: dict) -> str:
   .tc-readout .tc-date {{ color:var(--muted); font-size:12px; margin-left:auto; }}
   .tc-wrap {{ position:relative; height:380px; }}
   .tc-compact .tc-wrap {{ height:300px; }}
+  /* TradingView widget containers */
+  .tv-wrap {{ position:relative; height:520px; width:100%; }}
+  .tv-wrap.tv-compact {{ height:420px; }}
+  @media (max-width:760px) {{ .tv-wrap {{ height:380px; }} }}
   .tc-sub {{ position:relative; height:84px; margin-top:6px; }}
   .tc-sublab {{ font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:2px; }}
   .tc-key {{ color:var(--muted); font-size:12px; margin-top:8px; line-height:1.6; }}
