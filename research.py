@@ -202,8 +202,8 @@ def yahoo_quotes(symbols: list[str]) -> dict:
     return out
 
 
-def _parse_rss(xml_bytes: bytes, tag: str) -> list[dict]:
-    """Parse a Google News RSS payload into [{headline,url,source,created_at}]."""
+def _parse_rss(xml_bytes: bytes, tag: str, default_source: str = "Google News") -> list[dict]:
+    """Parse an RSS payload (Google News / Yahoo Finance) into [{headline,url,source,created_at}]."""
     import xml.etree.ElementTree as ET
     out = []
     root = ET.fromstring(xml_bytes)
@@ -212,11 +212,65 @@ def _parse_rss(xml_bytes: bytes, tag: str) -> list[dict]:
         link = (item.findtext("link") or "").strip()
         pub = (item.findtext("pubDate") or "").strip()
         src_el = item.find("source")
-        source = (src_el.text.strip() if src_el is not None and src_el.text else "Google News")
+        source = (src_el.text.strip() if src_el is not None and src_el.text else default_source)
         if title:
             out.append({"headline": title, "url": link, "source": source,
                         "created_at": pub[:16], "match": tag})
     return out
+
+
+_UA = {"User-Agent": "Mozilla/5.0"}
+
+
+def gather_symbol_news(symbols: list[str], cfg: Config, per_symbol: int = 6,
+                       max_symbols: int = 30) -> list[dict]:
+    """Pull recent per-ticker headlines from multiple FREE feeds and merge them.
+
+    Sources (all keyless): Google News (which itself aggregates Reuters, Bloomberg, CNBC,
+    MarketWatch, WSJ, etc.) and Yahoo Finance. This widens coverage far beyond the single
+    Benzinga feed Alpaca returns, so the tone score that feeds conviction sees more signal.
+    Fetched in parallel (threaded) with short timeouts; any source failing is skipped."""
+    import concurrent.futures as _cf
+    import urllib.parse as _up
+    syms = [s for s in dict.fromkeys(symbols) if s][:max_symbols]
+    if not syms:
+        return []
+
+    def _fetch(sym: str) -> list[dict]:
+        items: list[dict] = []
+        gq = _up.quote(f"{sym} stock")
+        feeds = [
+            (f"https://news.google.com/rss/search?q={gq}&hl=en-US&gl=US&ceid=US:en", "Google News"),
+            (f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={sym}&region=US&lang=en-US", "Yahoo Finance"),
+        ]
+        for url, dflt in feeds:
+            try:
+                r = requests.get(url, timeout=6, headers=_UA)
+                if r.status_code == 200:
+                    items += _parse_rss(r.content, sym, dflt)[:per_symbol]
+            except Exception:  # noqa: BLE001
+                continue
+        seen, out = set(), []
+        for it in items:
+            h = (it.get("headline") or "").strip()
+            key = h.lower()
+            if not h or key in seen:
+                continue
+            seen.add(key)
+            out.append({"headline": h, "source": it.get("source", ""),
+                        "created_at": it.get("created_at", ""), "url": it.get("url", ""),
+                        "symbols": [sym]})
+        return out[: per_symbol * 2]
+
+    merged: list[dict] = []
+    try:
+        with _cf.ThreadPoolExecutor(max_workers=8) as ex:
+            for got in ex.map(_fetch, syms):
+                merged.extend(got)
+    except Exception:  # noqa: BLE001
+        for s in syms:
+            merged.extend(_fetch(s))
+    return merged
 
 
 def ipo_buzz_news(cfg: Config, limit: int = 16) -> list[dict]:

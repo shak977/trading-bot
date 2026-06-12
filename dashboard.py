@@ -150,14 +150,30 @@ def build_snapshot() -> dict:
                     0, "🛑 Market regime is Risk-on — standing down on new shorts; this setup is "
                        "shown as Watch, not a fresh entry against a rising market.")
 
-    # Pull news once for everything shown, then bucket per ticker.
+    # Pull news once for everything shown, from MULTIPLE feeds, then bucket per ticker.
     if live:
-        try:
+        import research as _rn
+        news = []
+        try:                       # Alpaca/Benzinga (symbol-keyed)
             news = market.get_news(shown_syms, CONFIG,
                                    limit=CONFIG.news_per_symbol * max(len(shown_syms), 1))
-        except Exception as exc:  # noqa: BLE001
-            news = [{"headline": f"(news unavailable: {exc})", "source": "",
-                     "created_at": "", "url": "", "symbols": []}]
+        except Exception:  # noqa: BLE001
+            news = []
+        try:                       # + free feeds: Google News (Reuters/Bloomberg/CNBC/…) + Yahoo Finance
+            news += _rn.gather_symbol_news(shown_syms, CONFIG,
+                                           per_symbol=6, max_symbols=CONFIG.research_top)
+        except Exception:  # noqa: BLE001
+            pass
+        # global dedupe by headline, preserving order (Benzinga → Google → Yahoo)
+        _seen, _merged = set(), []
+        for _n in news:
+            _h = (_n.get("headline") or "").strip().lower()
+            if not _h or _h in _seen:
+                continue
+            _seen.add(_h)
+            _merged.append(_n)
+        news = _merged or [{"headline": "(no recent news found)", "source": "",
+                            "created_at": "", "url": "", "symbols": []}]
     else:
         news = _synthetic_news(shown_syms)
 
@@ -181,7 +197,8 @@ def build_snapshot() -> dict:
     # Attach each ticker's own headlines to its row (for the click-through detail),
     # and fold a plain-English news line into the reasoning so it's news-aware.
     for r in shown:
-        r["news"] = [n for n in news if r["symbol"] in (n.get("symbols") or [])][: CONFIG.news_per_symbol]
+        # keep more headlines per ticker now that several feeds contribute — richer tone signal
+        r["news"] = [n for n in news if r["symbol"] in (n.get("symbols") or [])][: max(CONFIG.news_per_symbol, 10)]
         if r["news"]:
             top = r["news"][0]["headline"]
             n = len(r["news"])
