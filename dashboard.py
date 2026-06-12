@@ -903,6 +903,68 @@ def render_html(snap: dict) -> str:
     background:var(--accent); color:#fff; border:0; border-radius:999px; cursor:pointer;
     padding:9px 16px; font-size:13px; font-weight:600; box-shadow:var(--shadow-lg); }}
   #newbuild:hover {{ filter:brightness(1.08); }}
+  /* ---- alternate layouts ---- */
+  .mono2 {{ display:inline-flex; align-items:center; justify-content:center; border-radius:5px;
+    color:#fff; font-weight:700; overflow:hidden; position:relative; flex:none; }}
+  .mono2 img {{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#fff; }}
+  .tmwrap {{ background:#0a0e13; border:1px solid #1b242e; border-radius:10px; overflow:hidden;
+    font-family:ui-monospace,Menlo,Consolas,monospace; }}
+  .tmrow {{ display:flex; align-items:center; gap:10px; padding:7px 12px; border-bottom:1px solid #1b242e; cursor:pointer; }}
+  .tmrow:last-child {{ border-bottom:0; }} .tmrow:hover {{ background:#0f1620; }}
+  .tmsym {{ color:#d7e0ea; font-weight:600; width:60px; }}
+  .tmact {{ width:86px; font-size:12px; }} .tmpx {{ color:#d7e0ea; width:88px; text-align:right; font-variant-numeric:tabular-nums; }}
+  .tmconv {{ color:#7c8a99; width:46px; text-align:right; }} .tmfam {{ color:#7c8a99; margin-left:auto; font-size:12px; }}
+  .lanes {{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; align-items:start; }}
+  .lanehd {{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; }}
+  .lcard {{ background:var(--card); border:1px solid var(--line); border-left:3px solid var(--muted);
+    border-radius:8px; padding:9px 10px; margin-bottom:8px; cursor:pointer; }}
+  .lcard:hover {{ background:var(--hover); }}
+  .lcard-t {{ display:flex; align-items:center; gap:7px; }} .lsym {{ font-weight:600; }}
+  .lconv {{ margin-left:auto; color:var(--muted); font-size:12px; }} .lsub {{ color:var(--muted); font-size:11px; margin-top:3px; }}
+  .gauges {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); gap:16px; }}
+  .gauge {{ text-align:center; cursor:pointer; }}
+  .gring {{ width:64px; height:64px; border-radius:50%; margin:0 auto; display:flex; align-items:center; justify-content:center; }}
+  .ghole {{ width:48px; height:48px; border-radius:50%; background:var(--card); display:flex; align-items:center; justify-content:center; font-weight:700; }}
+  .glab {{ display:flex; align-items:center; justify-content:center; gap:5px; margin-top:7px; font-weight:600; font-size:13px; }}
+  .gact {{ font-size:11px; }}
+  .feedwrap {{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:2px 14px; }}
+  .feeditem {{ display:flex; align-items:center; gap:11px; padding:11px 0; border-bottom:1px solid var(--line); cursor:pointer; }}
+  .feeditem:last-child {{ border-bottom:0; }} .feedtxt {{ font-size:13px; }}
+  .feedsub {{ color:var(--muted); font-size:11px; margin-top:2px; }}
+  .bento {{ display:grid; grid-template-columns:1.3fr 1fr 1fr; gap:10px; }}
+  .bento-regime {{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px;
+    grid-row:span 2; display:flex; flex-direction:column; justify-content:center; }}
+  .bento-feat {{ grid-column:span 2; background:var(--card); border:1px solid var(--line); border-left:3px solid var(--buy);
+    border-radius:10px; padding:12px; display:flex; align-items:center; gap:10px; cursor:pointer; }}
+  .bento-tile {{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px;
+    display:flex; align-items:center; gap:8px; cursor:pointer; }}
+  .blab {{ font-size:10px; text-transform:uppercase; color:var(--muted); letter-spacing:.04em; }}
+  .bval {{ font-size:20px; font-weight:700; }} .btk {{ font-weight:600; font-size:13px; }}
+  .mag {{ display:grid; grid-template-columns:1.5fr 1fr; gap:12px; align-items:start; }}
+  .mag-hero {{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:13px; cursor:pointer; }}
+  .mag-hero-t {{ display:flex; align-items:center; gap:9px; margin-bottom:6px; }}
+  .mag-side {{ display:flex; flex-direction:column; gap:6px; }}
+  .magrow {{ display:flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--line);
+    border-radius:8px; padding:7px 9px; cursor:pointer; }}
+  .magrk {{ color:var(--muted); font-size:11px; width:14px; }} .magsym {{ font-weight:600; }} .magc {{ margin-left:auto; font-size:12px; }}
+  .tktape {{ overflow:hidden; background:var(--inset); border:1px solid var(--line); border-radius:8px; white-space:nowrap; }}
+  .tktape-in {{ display:inline-block; padding:8px 0; animation:tkscroll 45s linear infinite; }}
+  .tkitem {{ margin:0 18px; font-variant-numeric:tabular-nums; font-size:13px; }}
+  @keyframes tkscroll {{ from {{ transform:translateX(0); }} to {{ transform:translateX(-50%); }} }}
+  .tkbody {{ margin-top:10px; background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; }}
+  .tkrow {{ display:flex; align-items:center; gap:10px; padding:9px 13px; border-bottom:1px solid var(--line); cursor:pointer; }}
+  .tkrow:last-child {{ border-bottom:0; }} .tkrow:hover {{ background:var(--hover); }}
+  .tksym {{ font-weight:600; width:58px; }} .tkpx {{ width:88px; font-variant-numeric:tabular-nums; }}
+  .tkfam {{ color:var(--muted); font-size:12px; width:120px; }} .tklv {{ margin-left:auto; color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; }}
+  .splitwrap {{ display:grid; grid-template-columns:172px 1fr; gap:12px; align-items:start; }}
+  .splitlist {{ display:flex; flex-direction:column; gap:3px; max-height:540px; overflow:auto; }}
+  .splititem {{ display:flex; align-items:center; gap:7px; padding:7px 8px; border-radius:8px; cursor:pointer; }}
+  .splititem:hover {{ background:var(--hover); }} .splititem.on {{ background:var(--inset); }}
+  .splitsym {{ font-weight:600; font-size:13px; }} .splitact {{ margin-left:auto; font-size:10px; white-space:nowrap; }}
+  .splitdetail {{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:13px; min-height:160px; }}
+  .sd-top {{ display:flex; align-items:center; gap:9px; margin-bottom:8px; }}
+  .sd-full {{ margin-top:11px; background:var(--accent); color:#fff; border:0; border-radius:7px; padding:7px 13px; font-size:12px; font-weight:600; cursor:pointer; }}
+  @media (max-width:760px) {{ .lanes,.bento,.mag,.splitwrap {{ grid-template-columns:1fr; }} }}
   .card-why {{ margin-top:11px; padding:9px 11px; background:var(--inset);
     border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:8px; }}
   .why-h {{ font-size:10.5px; text-transform:uppercase; letter-spacing:.04em;
@@ -1248,6 +1310,8 @@ def render_html(snap: dict) -> str:
 
   <section class="page on" id="page-signals">
     <div class="strat-badge"><span class="k">Strategy type</span><span class="v">Multi-strategy confluence · 7 long + 7 short, trend-gated</span></div>
+    <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Layout:</span>
+      <span class="ctlgrp" id="layoutBtns"></span></div>
     <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Sort &amp; filter:</span>
       <span class="ctlgrp" id="viewBtns"></span></div>
     <div id="cards"></div>
@@ -1581,9 +1645,185 @@ function makeCard(s) {{
 const _ACT_ORDER = {{'BUY':0, 'SHORT':1, 'HOLD LONG':2, 'HOLD SHORT':3, 'EXIT':4,
                      'WATCH LONG':5, 'WATCH SHORT':6, 'AVOID':7, 'SELL':7, 'FLAT':8}};
 const _conv = s => (s.conviction ? s.conviction.score_pct : -1);
+
+// ===== Alternate layouts (view switcher) ===========================================
+let _layout = 'cards';
+try {{ _layout = localStorage.getItem('layout') || 'cards'; }} catch(e) {{}}
+function _pxOf(s) {{ return (s.quote_price != null) ? s.quote_price : s.price; }}
+function _dirCol(s) {{
+  if (s.direction === 'SHORT') return 'var(--sell)';
+  if (s.action === 'BUY' || s.action === 'HOLD LONG' || s.action === 'WATCH LONG') return 'var(--buy)';
+  return 'var(--muted)';
+}}
+function _logo2(sym, px) {{
+  const ini = (sym.replace(/[^A-Za-z]/g,'').slice(0,2) || sym.slice(0,2)).toUpperCase();
+  return `<span class="mono2" style="width:${{px}}px;height:${{px}}px;font-size:${{Math.round(px*0.4)}}px;background:hsl(${{_symHue(sym)}},42%,42%);">${{ini}}`
+    + `<img src="https://financialmodelingprep.com/image-stock/${{sym}}.png" alt="" loading="lazy" onerror="this.remove()">` + `</span>`;
+}}
+function _spark2(sym, color, w, h) {{
+  const ch = (DATA.charts||{{}})[sym]; const c = (ch && ch.close ? ch.close : []).filter(x=>x!=null).slice(-40);
+  if (c.length < 3) return `<svg viewBox="0 0 ${{w}} ${{h}}" style="width:${{w}}px;height:${{h}}px;"></svg>`;
+  const mn=Math.min(...c), mx=Math.max(...c), rng=(mx-mn)||1;
+  const pts = c.map((v,i)=>`${{(i/(c.length-1)*w).toFixed(1)}},${{(h-((v-mn)/rng)*(h-3)-1.5).toFixed(1)}}`).join(' ');
+  return `<svg viewBox="0 0 ${{w}} ${{h}}" style="width:${{w}}px;height:${{h}}px;"><polyline points="${{pts}}" fill="none" stroke="${{color}}" stroke-width="1.5"/></svg>`;
+}}
+function _famOf(s) {{
+  const co = (s.direction==='SHORT') ? (s.strategies&&s.strategies.short) : (s.strategies&&s.strategies.now);
+  const F={{trend:'Trend',momentum:'Momentum',breakout:'Breakout',breakdown:'Breakout','mean-reversion':'Mean-rev'}};
+  if(!co||!co.results) return '';
+  const cnt={{}}; Object.values(co.results).forEach(r=>{{ if(s.direction==='SHORT'?r.short:r.long){{const f=F[r.kind]||r.kind;cnt[f]=(cnt[f]||0)+1;}}}});
+  return Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]).slice(0,2).join(' + ');
+}}
+function _levelsInline(s) {{
+  const p=s.plan||{{}}; if(p.entry==null||p.stop==null||p.target==null) return '';
+  return `${{p.entry}} · <span style="color:var(--sell);">${{p.stop}}</span> · <span style="color:var(--buy);">${{p.target}}</span>`;
+}}
+function _empty() {{ return '<div style="color:var(--muted);padding:14px;">Nothing matches this view right now.</div>'; }}
+function _applyView(list, view) {{
+  if (view==='favs') list = list.filter(s=>FAVS.has(s.symbol));
+  else if (view==='buys') list = list.filter(s=>s.action==='BUY'||s.action==='HOLD LONG');
+  else if (view==='shorts') list = list.filter(s=>s.action==='SHORT'||s.action==='HOLD SHORT');
+  else if (view==='watch') list = list.filter(s=>s.action==='WATCH LONG'||s.action==='WATCH SHORT');
+  else if (view==='actionable') list = list.filter(s=>['BUY','SHORT','HOLD LONG','HOLD SHORT','EXIT'].includes(s.action));
+  if (view==='conviction') list.sort((a,b)=>_conv(b)-_conv(a));
+  else if (view==='movers') list.sort((a,b)=>(b.rel_volume||0)-(a.rel_volume||0));
+  else list.sort((a,b)=>(_ACT_ORDER[a.action]-_ACT_ORDER[b.action])||(_conv(b)-_conv(a)));
+  return list;
+}}
+function _reapplyLive() {{
+  document.querySelectorAll('[data-px]').forEach(el => {{
+    const p = (typeof LIVE !== 'undefined') ? LIVE[el.dataset.px] : null;
+    if (p != null) el.textContent = _fmtPx(p);
+  }});
+}}
+function _bindAll(container, list) {{
+  const bySym = {{}}; list.forEach(s=>bySym[s.symbol]=s);
+  container.querySelectorAll('[data-open]').forEach(el => {{
+    el.addEventListener('click', () => {{ const s = bySym[el.getAttribute('data-open')]; if (s) openModal(s); }});
+  }});
+  return container;
+}}
+const _wrap = (cls, html) => {{ const d=document.createElement('div'); d.className=cls; d.innerHTML=html||_empty(); return d; }};
+
+function L_terminal(list) {{
+  const rows = list.map(s=>`<div class="tmrow" data-open="${{s.symbol}}">${{_logo2(s.symbol,18)}}`
+    + `<span class="tmsym">${{s.symbol}}</span>`
+    + `<span class="tmact" style="color:${{_dirCol(s)}};">${{s.action}}</span>`
+    + `<span class="tmpx" data-px="${{s.symbol}}">$${{_pxOf(s).toLocaleString()}}</span>`
+    + `<span class="tmconv">${{_conv(s)>=0?_conv(s)+'%':'—'}}</span>`
+    + `<span class="tmfam">${{_famOf(s)}}</span></div>`).join('');
+  return _bindAll(_wrap('tmwrap', rows), list);
+}}
+function L_lanes(list) {{
+  const lane = (title, col, items) => `<div class="lane"><div class="lanehd" style="color:${{col}};">${{title}} · ${{items.length}}</div>`
+    + (items.map(s=>`<div class="lcard" data-open="${{s.symbol}}" style="border-left-color:${{col}};">`
+      + `<div class="lcard-t">${{_logo2(s.symbol,18)}}<span class="lsym">${{s.symbol}}</span><span class="lconv">${{_conv(s)>=0?_conv(s)+'%':'—'}}</span></div>`
+      + `${{_spark2(s.symbol, col, 150, 26)}}`
+      + `<div class="lsub">${{_pxOf(s).toLocaleString ? '$'+_pxOf(s).toLocaleString() : ''}} · ${{_famOf(s)}}</div></div>`).join('') || '<div class="lsub" style="padding:6px;">—</div>') + '</div>';
+  const buys = list.filter(s=>['BUY','HOLD LONG'].includes(s.action));
+  const shorts = list.filter(s=>['SHORT','HOLD SHORT'].includes(s.action));
+  const watch = list.filter(s=>['WATCH LONG','WATCH SHORT','EXIT','AVOID','FLAT'].includes(s.action));
+  return _bindAll(_wrap('lanes', lane('↑ Long','var(--buy)',buys)+lane('↓ Short','var(--sell)',shorts)+lane('◷ Watch','var(--muted)',watch)), list);
+}}
+function L_gauges(list) {{
+  const cells = list.map(s=>{{
+    const pc=_conv(s), col=_dirCol(s);
+    return `<div class="gauge" data-open="${{s.symbol}}"><div class="gring" style="background:conic-gradient(${{col}} ${{pc}}%, var(--inset) 0);">`
+      + `<div class="ghole">${{pc||'—'}}</div></div>`
+      + `<div class="glab">${{_logo2(s.symbol,16)}}<span>${{s.symbol}}</span></div>`
+      + `<div class="gact" style="color:${{col}};">${{s.action}}</div></div>`;
+  }}).join('');
+  return _bindAll(_wrap('gauges', cells), list);
+}}
+function L_feed(list) {{
+  const rows = list.map(s=>{{
+    const co=(s.direction==='SHORT')?(s.strategies&&s.strategies.short):(s.strategies&&s.strategies.now);
+    const trig=(co&&co.fresh&&co.fresh[0])||_famOf(s)||'multiple methods';
+    const verb = s.action.indexOf('WATCH')>=0?'is building a':(s.action.indexOf('HOLD')>=0?'is holding a':'triggered a');
+    return `<div class="feeditem" data-open="${{s.symbol}}">${{_logo2(s.symbol,26)}}`
+      + `<div class="feedtxt"><div><b>${{s.symbol}}</b> ${{verb}} <span style="color:${{_dirCol(s)}};font-weight:600;">${{s.action}}</span> — ${{trig}}</div>`
+      + `<div class="feedsub">${{_conv(s)>=0?_conv(s)+'% conviction · ':''}}$${{_pxOf(s).toLocaleString()}} · as of ${{s.as_of||''}}</div></div></div>`;
+  }}).join('');
+  return _bindAll(_wrap('feedwrap', rows), list);
+}}
+function L_bento(list) {{
+  const r = DATA.regime || {{}};
+  const top = list.slice().sort((a,b)=>_conv(b)-_conv(a))[0];
+  let html = `<div class="bento">`;
+  html += `<div class="bento-regime"><div class="blab">Market regime</div><div class="bval">${{r.label||'—'}}</div>`
+    + `<div class="bsub">${{r.breadth!=null?r.breadth+'% breadth':''}} ${{r.buys!=null?'· '+r.buys+' buys':''}}</div></div>`;
+  if (top) html += `<div class="bento-feat" data-open="${{top.symbol}}">${{_logo2(top.symbol,30)}}`
+    + `<div style="flex:1;"><div><b>${{top.symbol}}</b> <span style="color:${{_dirCol(top)}};font-size:11px;">${{top.action}} ${{_conv(top)}}%</span></div>`
+    + `<div class="bsub">$${{_pxOf(top).toLocaleString()}} · ${{_famOf(top)}}</div></div>${{_spark2(top.symbol,_dirCol(top),90,30)}}</div>`;
+  list.filter(s=>top&&s.symbol!==top.symbol).slice(0,8).forEach(s=>{{
+    html += `<div class="bento-tile" data-open="${{s.symbol}}">${{_logo2(s.symbol,18)}}<div><div class="btk">${{s.symbol}}</div>`
+      + `<div class="bsub" style="color:${{_dirCol(s)}};">${{s.action}} ${{_conv(s)>=0?_conv(s):''}}</div></div></div>`;
+  }});
+  html += `</div>`;
+  return _bindAll(_wrap('', html), list);
+}}
+function L_magazine(list) {{
+  const sorted = list.slice().sort((a,b)=>_conv(b)-_conv(a));
+  const hero = sorted[0];
+  if (!hero) return _wrap('', _empty());
+  let side = sorted.slice(1,9).map((s,i)=>`<div class="magrow" data-open="${{s.symbol}}"><span class="magrk">${{i+2}}</span>${{_logo2(s.symbol,18)}}`
+    + `<span class="magsym">${{s.symbol}}</span><span class="magc" style="color:${{_dirCol(s)}};">${{_conv(s)>=0?_conv(s)+'%':s.action}}</span></div>`).join('');
+  const html = `<div class="mag"><div class="mag-hero" data-open="${{hero.symbol}}">`
+    + `<div class="mag-hero-t">${{_logo2(hero.symbol,30)}}<div><div><b>${{hero.symbol}}</b></div><div class="bsub">${{hero.name||''}} · top pick ${{_conv(hero)}}%</div></div>`
+    + `<span class="act ${{'a-'+(hero.action||'').replace(/ /g,'')}}" style="margin-left:auto;">${{hero.action}}</span></div>`
+    + `${{_spark2(hero.symbol,_dirCol(hero),300,60)}}`
+    + `<div class="bsub">$${{_pxOf(hero).toLocaleString()}} · ${{_levelsInline(hero)}} · ${{_famOf(hero)}}</div></div>`
+    + `<div class="mag-side">${{side}}</div></div>`;
+  return _bindAll(_wrap('', html), list);
+}}
+function L_ticker(list) {{
+  const tape = list.map(s=>`<span class="tkitem"><b>${{s.symbol}}</b> <span data-px="${{s.symbol}}" style="color:${{_dirCol(s)}};">$${{_pxOf(s).toLocaleString()}}</span></span>`).join('');
+  const rows = list.map(s=>`<div class="tkrow" data-open="${{s.symbol}}">${{_logo2(s.symbol,22)}}`
+    + `<span class="tksym">${{s.symbol}}</span><span style="color:${{_dirCol(s)}};font-weight:600;width:80px;">${{s.action}}</span>`
+    + `<span class="tkpx" data-px="${{s.symbol}}">$${{_pxOf(s).toLocaleString()}}</span>`
+    + `<span class="tkfam">${{_famOf(s)}}</span><span class="tklv">${{_levelsInline(s)}}</span></div>`).join('');
+  return _bindAll(_wrap('', `<div class="tktape"><div class="tktape-in">${{tape}}${{tape}}</div></div><div class="tkbody">${{rows}}</div>`), list);
+}}
+let _splitSel = null;
+function _splitDetailHTML(s) {{
+  if (!s) return '<div style="color:var(--muted);padding:14px;">Select a name on the left.</div>';
+  return `<div class="sd-top">${{_logo2(s.symbol,28)}}<div><div><b>${{s.symbol}}</b></div><div class="bsub">${{s.name||''}}</div></div>`
+    + `<span class="act ${{'a-'+(s.action||'').replace(/ /g,'')}}" style="margin-left:auto;">${{s.action}}</span></div>`
+    + `${{_spark2(s.symbol,_dirCol(s),320,54)}}`
+    + `<div class="bsub" style="margin-top:6px;">$${{_pxOf(s).toLocaleString()}} · Conviction ${{_conv(s)>=0?_conv(s)+'%':'—'}} · ${{_famOf(s)}}</div>`
+    + `<div class="bsub" style="margin-top:4px;">Entry ${{(s.plan||{{}}).entry}} · Stop <span style="color:var(--sell);">${{(s.plan||{{}}).stop}}</span> · Target <span style="color:var(--buy);">${{(s.plan||{{}}).target}}</span></div>`
+    + `<button class="sd-full" data-open="${{s.symbol}}">Full breakdown →</button>`;
+}}
+function L_split(list) {{
+  if (!_splitSel || !list.find(s=>s.symbol===_splitSel)) _splitSel = list[0] && list[0].symbol;
+  const sel = list.find(s=>s.symbol===_splitSel);
+  const items = list.map(s=>`<div class="splititem${{s.symbol===_splitSel?' on':''}}" data-sel="${{s.symbol}}">${{_logo2(s.symbol,18)}}`
+    + `<span class="splitsym">${{s.symbol}}</span><span class="splitact" style="color:${{_dirCol(s)}};">${{s.action.replace(' ','\\u00a0')}}</span></div>`).join('');
+  const node = _wrap('splitwrap', `<div class="splitlist">${{items||_empty()}}</div><div class="splitdetail" id="splitDetail">${{_splitDetailHTML(sel)}}</div>`);
+  const bySym={{}}; list.forEach(s=>bySym[s.symbol]=s);
+  node.querySelectorAll('[data-sel]').forEach(el=>el.addEventListener('click',()=>{{
+    _splitSel = el.getAttribute('data-sel');
+    node.querySelectorAll('.splititem').forEach(x=>x.classList.toggle('on', x.getAttribute('data-sel')===_splitSel));
+    const d=node.querySelector('#splitDetail'); d.innerHTML=_splitDetailHTML(bySym[_splitSel]);
+    d.querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>openModal(bySym[b.getAttribute('data-open')])));
+    _reapplyLive();
+  }}));
+  node.querySelectorAll('.splitdetail [data-open]').forEach(b=>b.addEventListener('click',()=>openModal(bySym[b.getAttribute('data-open')])));
+  return node;
+}}
+const LAYOUT_RENDER = {{terminal:L_terminal, lanes:L_lanes, gauges:L_gauges, feed:L_feed,
+                       bento:L_bento, magazine:L_magazine, ticker:L_ticker, split:L_split}};
+// ===================================================================================
+
 function renderCards(view) {{
   _curView = view;
   cards.innerHTML = '';
+  if (_layout && _layout !== 'cards' && LAYOUT_RENDER[_layout]) {{
+    const l = _applyView(DATA.signals.slice(), view);
+    cards.appendChild(LAYOUT_RENDER[_layout](l));
+    _reapplyLive();
+    return;
+  }}
   let list = DATA.signals.slice();
   if (view === 'favs') {{
     list = list.filter(s => FAVS.has(s.symbol));
@@ -1637,6 +1877,21 @@ function renderCards(view) {{
       renderCards(v);
     }};
     bar.appendChild(b);
+  }});
+  // --- layout switcher (visual form: cards / terminal / lanes / …) ---
+  const lbar = document.getElementById('layoutBtns');
+  const layouts = [['cards','Cards'],['lanes','Lanes'],['terminal','Terminal'],['split','Split'],
+                   ['gauges','Gauges'],['feed','Feed'],['bento','Bento'],['magazine','Magazine'],['ticker','Ticker']];
+  layouts.forEach(([v,lab]) => {{
+    const b = document.createElement('button'); b.textContent = lab; b.dataset.layout = v;
+    if (v === _layout) b.className = 'on';
+    b.onclick = () => {{
+      _layout = v;
+      try {{ localStorage.setItem('layout', v); }} catch(e) {{}}
+      lbar.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.layout === v));
+      renderCards(_curView || cur);
+    }};
+    lbar.appendChild(b);
   }});
   renderCards(cur);
 }})();
