@@ -131,6 +131,77 @@ def finnhub_for_symbols(symbols: list[str], cfg: Config, pause: float = 1.05) ->
     return out
 
 
+# ---------------------------------------------------- IPOs + pre-IPO buzz
+# Notable private/pre-IPO names worth surfacing even before they have a ticker.
+_PREIPO = ["spacex", "starlink", "stripe", "databricks", "openai", "anthropic",
+           "discord", "klarna", "canva", "revolut", "chime", "shein", "fanatics",
+           "ramp", "anduril", "cerebras", "figure", "rippling"]
+_IPO_KW = _PREIPO + ["ipo", "going public", "public debut", "files to go public",
+                     "confidentially filed", "prospectus", "s-1", "direct listing",
+                     "set to debut", "raise in its ipo"]
+
+
+def ipo_calendar(cfg: Config, days_ahead: int = 90) -> list[dict]:
+    """Upcoming IPO calendar from Finnhub (next ~90 days). [] if no key/none."""
+    key = cfg.finnhub_api_key
+    if not key:
+        return []
+    try:
+        import datetime as _dt
+        today = _dt.date.today()
+        data = _fh_get("/calendar/ipo", key, {
+            "from": today.isoformat(),
+            "to": (today + _dt.timedelta(days=days_ahead)).isoformat()})
+        rows = (data or {}).get("ipoCalendar", []) or []
+        out = [{
+            "date": r.get("date"), "name": r.get("name"), "symbol": r.get("symbol"),
+            "exchange": r.get("exchange"), "shares": r.get("numberOfShares"),
+            "price": r.get("price"), "value": r.get("totalSharesValue"),
+            "status": r.get("status"),
+        } for r in rows]
+        out.sort(key=lambda x: x.get("date") or "")
+        return out
+    except Exception:  # noqa: BLE001
+        return []
+
+
+def ipo_buzz_news(cfg: Config, limit: int = 14) -> list[dict]:
+    """General market headlines mentioning notable pre-IPO names or IPO keywords.
+
+    This is how a private company like SpaceX (no ticker yet) still surfaces — the
+    symbol-keyed feed can't see it, but the general news feed can.
+    """
+    key = cfg.finnhub_api_key
+    if not key:
+        return []
+    try:
+        import datetime as _dt
+        items = _fh_get("/news", key, {"category": "general"}) or []
+        out, seen = [], set()
+        for n in items:
+            text = ((n.get("headline", "") or "") + " " + (n.get("summary", "") or "")).lower()
+            hit = next((k for k in _IPO_KW if k in text), None)
+            if not hit:
+                continue
+            h = n.get("headline", "")
+            if not h or h in seen:
+                continue
+            seen.add(h)
+            ts = n.get("datetime")
+            try:
+                when = _dt.datetime.utcfromtimestamp(int(ts)).strftime("%Y-%m-%d %H:%M") if ts else ""
+            except Exception:  # noqa: BLE001
+                when = ""
+            out.append({"headline": h, "source": n.get("source", ""), "url": n.get("url", ""),
+                        "summary": (n.get("summary", "") or "")[:240], "created_at": when,
+                        "match": hit.title()})
+            if len(out) >= limit:
+                break
+        return out
+    except Exception:  # noqa: BLE001
+        return []
+
+
 # ---------------------------------------------------------------- FRED macro
 _FRED = "https://api.stlouisfed.org/fred/series/observations"
 

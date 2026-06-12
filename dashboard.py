@@ -164,6 +164,19 @@ def build_snapshot() -> dict:
         except Exception:  # noqa: BLE001
             macro = None
 
+    # IPO watch: upcoming-IPO calendar + general news mentioning pre-IPO names
+    # (e.g. SpaceX). Private names have no ticker, so this is the only way they surface.
+    ipos, ipo_news = [], []
+    if live and CONFIG.finnhub_api_key:
+        try:
+            ipos = research.ipo_calendar(CONFIG)
+        except Exception:  # noqa: BLE001
+            ipos = []
+        try:
+            ipo_news = research.ipo_buzz_news(CONFIG)
+        except Exception:  # noqa: BLE001
+            ipo_news = []
+
     # Optional AI analyst note per signal (silent no-op if no key).
     if CONFIG.llm_enabled:
         import llm
@@ -205,6 +218,8 @@ def build_snapshot() -> dict:
         "regime": regime,
         "sectors": sectors,
         "macro": macro,
+        "ipos": ipos,
+        "ipo_news": ipo_news,
         "params": {
             "fast_ma": CONFIG.fast_ma, "slow_ma": CONFIG.slow_ma,
             "rsi_period": CONFIG.rsi_period, "risk_per_trade": CONFIG.risk_per_trade,
@@ -253,6 +268,48 @@ def _kpi_html(reg: dict | None, snap: dict) -> str:
     tiles += tile("Signals shown", str(len(sigs)), "", "ranked candidates")
     tiles += tile("Track record", wr_txt, "", f'{tk.get("resolved", 0)} calls resolved')
     return f'<div class="kpis">{tiles}</div>'
+
+
+def _ipo_html(ipos: list[dict], ipo_news: list[dict]) -> str:
+    """Upcoming-IPO calendar + general headlines mentioning pre-IPO names (SpaceX etc.)."""
+    if ipos:
+        rows = ""
+        for r in ipos[:30]:
+            price = r.get("price") or "—"
+            val = r.get("value")
+            try:
+                valtxt = f'${float(val) / 1e6:,.0f}M' if val else "—"
+            except Exception:  # noqa: BLE001
+                valtxt = "—"
+            rows += (f'<tr><td>{r.get("date","")}</td><td><b>{r.get("name","")}</b></td>'
+                     f'<td>{r.get("symbol","") or "—"}</td><td>{r.get("exchange","") or ""}</td>'
+                     f'<td style="text-align:right;">{price}</td>'
+                     f'<td style="text-align:right;color:var(--muted);">{valtxt}</td>'
+                     f'<td>{r.get("status","") or ""}</td></tr>')
+        cal = ('<table class="trackrec"><thead><tr><th>Date</th><th>Company</th><th>Ticker</th>'
+               '<th>Exchange</th><th style="text-align:right;">Price</th>'
+               '<th style="text-align:right;">Deal size</th><th>Status</th></tr></thead>'
+               f'<tbody>{rows}</tbody></table>')
+    else:
+        cal = ('<p style="color:var(--muted);font-size:13px;">No confirmed IPOs on the calendar for the next ~90 days '
+               '(or add a Finnhub key to enable it). Rumoured deals like SpaceX show up in the buzz feed below '
+               'until they formally file.</p>')
+    if ipo_news:
+        items = ""
+        for n in ipo_news:
+            t = (f'<a href="{n["url"]}" target="_blank" rel="noopener">{n["headline"]}</a>'
+                 if n.get("url") else f'<span class="h">{n["headline"]}</span>')
+            items += (f'<li>{t}<div class="src">{n.get("source","")} {n.get("created_at","")} '
+                      f'&middot; <span class="chip mini neutral">{n.get("match","")}</span></div></li>')
+        news = f'<ul class="news">{items}</ul>'
+    else:
+        news = '<p style="color:var(--muted);font-size:13px;">No pre-IPO headlines matched right now.</p>'
+    return (f'<div class="sech" style="margin-top:0;">Upcoming IPO calendar</div>{cal}'
+            '<div class="sech">Pre-IPO buzz — including private names like SpaceX</div>'
+            '<p style="color:var(--muted);font-size:12.5px;margin:0 0 8px;">'
+            'Private companies have no ticker, so they can\'t be scanned or charted — these are '
+            'general-market headlines mentioning notable pre-IPO names and IPO filings.</p>'
+            f'{news}')
 
 
 def _sectors_html(secs: list[dict]) -> str:
@@ -345,6 +402,7 @@ def render_html(snap: dict) -> str:
     track_html = _track_html(snap.get("track"))
     regime_html = _regime_html(snap.get("regime"))
     kpi_html = _kpi_html(snap.get("regime"), snap)
+    ipo_html = _ipo_html(snap.get("ipos") or [], snap.get("ipo_news") or [])
     sectors_html = _sectors_html(snap.get("sectors"))
     macro_html = _macro_html(snap.get("macro"))
     dh = snap.get("data_health")
@@ -686,6 +744,7 @@ def render_html(snap: dict) -> str:
   <nav class="tabs" id="tabs">
     <button data-page="signals" class="on">Signals</button>
     <button data-page="markets">Markets</button>
+    <button data-page="ipos">IPO watch</button>
     <button data-page="track">Track record</button>
     <button data-page="method">How it works</button>
     <button data-page="news">Market news</button>
@@ -730,6 +789,11 @@ def render_html(snap: dict) -> str:
     <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Sort &amp; filter:</span>
       <span class="ctlgrp" id="viewBtns"></span></div>
     <div id="cards"></div>
+  </section>
+
+  <section class="page" id="page-ipos">
+    <h2 style="margin-top:0;">IPO watch <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— upcoming listings + pre-IPO buzz (SpaceX, Stripe, etc.)</span></h2>
+{ipo_html}
   </section>
 
   <section class="page" id="page-track">
