@@ -666,7 +666,7 @@ function makeCard(s) {{
     ${{s.stop!=null ? `<div class="kv"><span>Stop / Target</span><span>$${{s.stop}} / $${{s.target}}</span></div>`:''}}
     ${{s.suggested_shares ? `<div class="kv"><span>Suggested size</span><span>${{s.suggested_shares}} sh</span></div>`:''}}
     ${{s.conviction ? `<div class="kv"><span>Conviction</span><span><span class="convbadge conv-${{s.conviction.label}}" style="font-size:11px;">${{s.conviction.label}} ${{s.conviction.score_pct}}%</span></span></div>`:''}}
-    ${{(s.patterns||[]).length ? `<div class="chips" style="margin-top:8px;">${{(s.patterns||[]).slice(0,3).map(p=>`<span class="chip mini ${{p.kind}}">${{p.label}}</span>`).join('')}}</div>`:''}}
+    ${{(() => {{ const ed=(s.fundamentals||{{}}).earnings_days; const ch=(s.patterns||[]).slice(0,3).map(p=>`<span class="chip mini ${{p.kind}}">${{p.label}}</span>`); if(ed!=null && ed<=7) ch.unshift(`<span class="chip mini bear">⚠ Earnings ${{ed}}d</span>`); return ch.length?`<div class="chips" style="margin-top:8px;">${{ch.join('')}}</div>`:''; }})()}}
     <div class="more">${{nNews ? nNews+' news &middot; ':''}}click for full plan + reasoning →</div>`;
   el.addEventListener('click', () => openModal(s));
   return el;
@@ -860,6 +860,10 @@ function openModal(s) {{
             + statc('Upside to target', (up>=0?'+':'')+up.toFixed(0)+'%', up>=0?'buy':'sell');
   }}
   if (fu.pe) rcells += statc('P/E ratio', fu.pe);
+  if (fu.earnings_date) {{
+    const ed = fu.earnings_days;
+    rcells += statc('Next earnings', fu.earnings_date + (ed!=null?` (${{ed}}d)`:''), (ed!=null && ed<=7)?'sell':'');
+  }}
   if (sen && sen.label) rcells += statc('News tone', sen.label, sen.label==='Positive'?'buy':sen.label==='Negative'?'sell':'');
   rel.innerHTML = rcells || '<div style="color:var(--muted);font-size:13px;">No analyst/fundamental data available'
     + (sen ? '' : ' (add a Finnhub key to enable it)') + '.</div>';

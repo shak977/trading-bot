@@ -100,6 +100,21 @@ def finnhub_snapshot(symbol: str, cfg: Config) -> dict | None:
             out["wk52_low"] = round(float(lo), 2)
     except Exception:  # noqa: BLE001
         pass
+    try:
+        import datetime as _dt
+        today = _dt.date.today()
+        cal = _fh_get("/calendar/earnings", key, {
+            "symbol": symbol, "from": today.isoformat(),
+            "to": (today + _dt.timedelta(days=90)).isoformat()})
+        evs = sorted((cal or {}).get("earningsCalendar", []), key=lambda e: e.get("date", ""))
+        for e in evs:
+            d = e.get("date")
+            if d and d >= today.isoformat():
+                out["earnings_date"] = d
+                out["earnings_days"] = (_dt.date.fromisoformat(d) - today).days
+                break
+    except Exception:  # noqa: BLE001
+        pass
     return out or None
 
 

@@ -436,6 +436,13 @@ def _conviction(action, rsi, relvol, plan, context, cfg: Config,
                 add("Upside to target?", "warn", f"Avg target ${tm:,.0f} is only {up:.0f}% above today — limited room.")
             else:
                 add("Upside to target?", "fail", f"Price is already above the avg analyst target (${tm:,.0f}).")
+        ed = fundamentals.get("earnings_days")
+        if ed is not None:
+            if ed <= 7:
+                add("Earnings clear?", "warn",
+                    f"Earnings in {ed} day{'s' if ed != 1 else ''} — a binary event that can gap the price either way.")
+            else:
+                add("Earnings clear?", "pass", f"No earnings for ~{ed} days, so no imminent event risk.")
 
     pts = {"pass": 1.0, "warn": 0.5, "fail": 0.0}
     score = sum(pts[c["status"]] for c in checks) / len(checks)
@@ -504,6 +511,9 @@ def _desk_read(action, plan, context, conviction, patterns=None, edge=None,
             seg.append(f"P/E {fundamentals['pe']}")
         if seg:
             bits.append("Research: " + ", ".join(seg) + ".")
+        ed = fundamentals.get("earnings_days")
+        if ed is not None and ed <= 10:
+            bits.append(f"⚠️ Earnings are {ed} day{'s' if ed != 1 else ''} away — expect a possible sharp move around the report.")
     weak = [c["label"].rstrip('?').lower() for c in conviction["checks"] if c["status"] != "pass"]
     if weak:
         bits.append(f"Overall confidence: {conv}. Weaker spots: {', '.join(weak)}.")
