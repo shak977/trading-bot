@@ -488,9 +488,17 @@ def _track_html(track: dict | None) -> str:
         rows += (f"<tr><td>{t['symbol']}</td><td>{t['advised_date']}</td>"
                  f"<td>{icon.get(t['status'], t['status'])}</td>"
                  f"<td>{ret_s}</td><td>{t.get('days_held','—')}d</td></tr>")
-    table = (f'<table class="trackrec"><tr><th>Stock</th><th>Advised</th><th>Outcome</th>'
-             f'<th>Return</th><th>Held</th></tr>{rows}</table>') if rows else \
-        '<p style="color:var(--muted);font-size:13px;">No calls have resolved yet — check back as trades play out.</p>'
+    if rows:
+        table = (f'<table class="trackrec"><tr><th>Stock</th><th>Advised</th><th>Outcome</th>'
+                 f'<th>Return</th><th>Held</th></tr>{rows}</table>')
+    elif track.get("advised"):
+        table = (f'<p style="color:var(--muted);font-size:13px;">{track["advised"]} call'
+                 f'{"s" if track["advised"] != 1 else ""} logged and still open — results appear here as each '
+                 'hits its target or stop (usually within a few days).</p>')
+    else:
+        table = ('<p style="color:var(--muted);font-size:13px;">Building your track record — every BUY the screen '
+                 'flags gets logged as it runs each weekday, and the first resolved results land within a day or two '
+                 'as trades play out. Nothing to show yet.</p>')
     return f"""
   <div class="track">
     <h2 style="border:0;padding:0;">📊 Track record — how past BUY calls have done</h2>
@@ -544,12 +552,6 @@ def render_html(snap: dict) -> str:
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Trading Signals Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.1/dist/chartjs-chart-financial.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 <script src="https://s3.tradingview.com/tv.js"></script>
 <script src="chart_engine.js"></script>
 <style>
@@ -1201,182 +1203,13 @@ async function refreshLive() {{
     }});
     if (featTC) featTC.onLive(LIVE);
     if (modalTC) modalTC.onLive(LIVE);
-    _updateOverviewLive();
     const tm = new Date(d.at || Date.now()).toLocaleTimeString();
     st.innerHTML = '&middot; <span style="color:#2ea043;">● Live</span> <span style="color:#8b97a6;">'+tm+'</span>';
-    const ov = document.getElementById('ovStatus');
-    if (ov) ov.innerHTML = '<span style="color:#2ea043;font-size:12px;">● live ' + tm + '</span>';
   }} catch (e) {{
     st.innerHTML = '&middot; <span style="color:#8b97a6;">live prices unavailable</span>';
   }}
 }}
 if (LIVE_URL) {{ refreshLive(); setInterval(refreshLive, 30000); }}
-
-// ---- live overview: dim-by-default % chart + sorted leaderboard (click to highlight) ----
-let ovChart = null;
-const OV_WIN = 60;      // ~3 months of daily bars
-const OV_PALETTE = ['#388bfd','#2ea043','#f0883e','#f85149','#a371f7','#e8c878',
-                    '#56d4dd','#db61a2','#6cc644','#bd8b00','#ff7b72','#79c0ff'];
-const OV = {{ items: [], pinned: new Set(), range: 'D', intra: {{}}, colorAll: false }};  // range: D=daily, 1W, 1D
-function _rebase(t, close) {{
-  const n = close.length, st = Math.max(0, n - OV_WIN);
-  const T = t.slice(st), C = close.slice(st);
-  let base = null;
-  for (const v of C) {{ if (v != null) {{ base = v; break; }} }}
-  if (!base) return {{ pts: [], base: null }};
-  return {{ pts: T.map((tt, i) => ({{x: tt, y: (C[i]/base - 1) * 100}})), base }};
-}}
-// draw the series name at the end of each *active* (benchmark/pinned) line
-const _ovEndLabel = {{
-  id: 'ovEndLabel',
-  afterDatasetsDraw(chart) {{
-    const xs = chart.scales.x, ys = chart.scales.y, ctx = chart.ctx;
-    chart.data.datasets.forEach(ds => {{
-      if (!ds._active || !ds.data.length) return;
-      const last = ds.data[ds.data.length - 1];
-      const px = xs.getPixelForValue(last.x), py = ys.getPixelForValue(last.y);
-      if (px == null || py == null) return;
-      ctx.save(); ctx.fillStyle = ds.borderColor; ctx.font = '600 11px -apple-system,sans-serif';
-      ctx.textBaseline = 'middle'; ctx.fillText(' ' + ds.label, px + 2, py); ctx.restore();
-    }});
-  }}
-}};
-function _ovChart(plot, unit, intraday) {{
-  const cv = document.getElementById('overviewChart'); if (!cv) return;
-  const datasets = plot.map(it => ({{
-    label: it.label, data: it.pts, _sym: it.sym, _active: it.active,
-    borderColor: it.bench ? _cv('--txt','#e6edf3')
-                 : (it.active ? it.color : (OV.colorAll ? it.color : 'rgba(139,151,166,0.22)')),
-    borderWidth: it.bench ? 2.4 : (it.active ? 2 : (OV.colorAll ? 1.3 : 1)), pointRadius: 0, fill: false,
-    order: it.active ? 1 : 5 }}));
-  // correct min/max: fit the axis so no line is ever clipped. When the user has
-  // pinned/highlighted names, scale to those (+ the benchmark); otherwise fit all.
-  const anyPin = OV.pinned && OV.pinned.size > 0;
-  const src = anyPin ? plot.filter(it => it.active) : plot;
-  const allY = [0];
-  src.forEach(it => it.pts.forEach(p => {{ if (p.y != null) allY.push(p.y); }}));
-  const lo = Math.min(...allY), hi = Math.max(...allY);
-  const pad = Math.max((hi - lo) * 0.05, 1);
-  const ymin = Math.floor(lo - pad), ymax = Math.ceil(hi + pad);
-  if (ovChart) ovChart.destroy();
-  ovChart = new Chart(cv, {{
-    type:'line', data:{{datasets}},
-    options:{{responsive:true, parsing:false, interaction:{{mode:'index',intersect:false}},
-      layout:{{padding:{{right:46}}}}, elements:{{line:{{tension:0.15}}}},
-      plugins:{{
-        legend:{{display:false}},
-        tooltip:{{mode:'index', intersect:false, itemSort:(a,b)=>b.parsed.y-a.parsed.y,
-          callbacks:{{
-            title:(its)=> {{ const d=new Date(its[0].parsed.x); return intraday
-              ? d.toLocaleString([], {{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}})
-              : d.toLocaleDateString([], {{year:'numeric',month:'short',day:'numeric'}}); }},
-            label:(it)=>` ${{it.dataset.label}}: ${{it.parsed.y>=0?'+':''}}${{it.parsed.y.toFixed(1)}}%`}}}},
-        zoom:{{zoom:{{wheel:{{enabled:true}}, pinch:{{enabled:true}}, mode:'x'}}, pan:{{enabled:true, mode:'x'}}}}
-      }},
-      scales:{{
-        x:{{type:'time', time:{{unit}}, ticks:{{color:_cv('--muted','#8b97a6'),maxTicksLimit:7}}, grid:{{display:false}}}},
-        y:{{position:'right', min:ymin, max:ymax, ticks:{{color:_cv('--muted','#8b97a6'), maxTicksLimit:8, callback:v=>(v>0?'+':'')+Math.round(v)+'%'}},
-           grid:{{ color:(c)=> c.tick.value===0 ? _cv('--muted','rgba(139,151,166,0.6)') : _cv('--grid','rgba(42,52,65,0.5)'),
-                   lineWidth:(c)=> c.tick.value===0 ? 1.5 : 1 }}}}
-      }}
-    }},
-    plugins:[_ovEndLabel]
-  }});
-}}
-function buildOverview() {{
- try {{
-  if (typeof Chart === 'undefined') return;
-  // daily items power the leaderboard (and daily mode)
-  const items = [];
-  if (DATA.benchmark) {{
-    const r = _rebase(DATA.benchmark.t, DATA.benchmark.close);
-    if (r.pts.length) items.push({{sym:'SPY', label:'S&P 500', pts:r.pts, base:r.base, color:_cv('--txt','#e6edf3'), bench:true}});
-  }}
-  DATA.signals.forEach((s, i) => {{
-    const c = DATA.charts[s.symbol]; if (!c) return;
-    const r = _rebase(c.t, c.close); if (!r.pts.length) return;
-    items.push({{sym:s.symbol, label:s.symbol, pts:r.pts, base:r.base, color:OV_PALETTE[i % OV_PALETTE.length]}});
-  }});
-  OV.items = items;
-  _buildBoard();
-  const key = document.getElementById('mChartKey');  // (unused here)
-  if (OV.range === 'D') {{
-    const plot = items.map(it => Object.assign({{}}, it, {{active: it.bench || OV.pinned.has(it.sym)}}));
-    _ovChart(plot, 'month', false);
-  }} else {{
-    _ovIntra();
-  }}
- }} catch (e) {{ console.error('overview chart failed', e); }}
-}}
-function _ovIntra() {{
-  if (!LIVE_URL) {{ OV.range = 'D'; buildOverview(); return; }}
-  const active = ['SPY', ...OV.pinned];
-  const tf = OV.range === '1D' ? '15Min' : '1Hour';
-  const days = OV.range === '1D' ? 3 : 8;
-  const colorOf = sym => sym === 'SPY' ? _cv('--txt','#e6edf3') : ((OV.items.find(it => it.sym === sym) || {{}}).color || '#388bfd');
-  Promise.all(active.map(sym => {{
-    const ck = sym + ':' + OV.range;
-    if (OV.intra[ck]) return Promise.resolve({{sym, bars: OV.intra[ck]}});
-    return fetch(LIVE_URL + '?bars=' + encodeURIComponent(sym) + '&tf=' + tf + '&days=' + days)
-      .then(r => r.json()).then(d => {{
-        let b = d.bars || [];
-        if (OV.range === '1D' && b.length) {{
-          const ld = new Date(b[b.length-1].t).toDateString();
-          const t = b.filter(x => new Date(x.t).toDateString() === ld);
-          b = t.length >= 2 ? t : b.slice(-26);
-        }}
-        OV.intra[ck] = b; return {{sym, bars: b}};
-      }}).catch(() => ({{sym, bars: []}}));
-  }})).then(res => {{
-    const plot = res.filter(r => r.bars.length).map(r => {{
-      const base = r.bars[0].c;
-      return {{sym:r.sym, label: r.sym==='SPY'?'S&P 500':r.sym, bench: r.sym==='SPY', active:true,
-        color: colorOf(r.sym), pts: r.bars.map(b => ({{x:b.t, y:(b.c/base - 1)*100}}))}};
-    }});
-    _ovChart(plot, OV.range === '1D' ? 'hour' : 'day', true);
-  }});
-}}
-function _setupOvRange() {{
-  const bar = document.getElementById('ovRangeBtns'); if (!bar || bar.childElementCount) return;
-  [['D','Daily'],['1W','1W'],['1D','1D']].forEach(([v,lab]) => {{
-    const b = document.createElement('button'); b.textContent = lab; b.dataset.r = v;
-    if (v === OV.range) b.className = 'on';
-    b.onclick = () => {{ OV.range = v; bar.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x.dataset.r===v)); buildOverview(); }};
-    bar.appendChild(b);
-  }});
-  const cb = document.getElementById('ovColorBtn');
-  if (cb) {{ cb.classList.toggle('on', OV.colorAll);
-    cb.onclick = () => {{ OV.colorAll = !OV.colorAll; cb.classList.toggle('on', OV.colorAll); buildOverview(); }}; }}
-}}
-function _buildBoard() {{
-  const board = document.getElementById('ovBoard'); if (!board || !OV.items.length) return;
-  const rows = OV.items.map(it => ({{sym:it.sym, label:it.label,
-    val: it.pts[it.pts.length-1].y, color: it.color, bench: it.bench}}));
-  rows.sort((a, b) => b.val - a.val);
-  board.innerHTML = rows.map(r => {{
-    const on = r.bench || OV.pinned.has(r.sym);
-    return `<div class="ovrow ${{on?'on':''}}" data-sym="${{r.sym}}">`
-      + `<span class="ovdot" style="background:${{(on||OV.colorAll) ? r.color : 'rgba(139,151,166,0.4)'}};"></span>`
-      + `<span class="ovsym">${{r.label}}</span>`
-      + `<span class="ovval" style="color:${{r.val>=0?'#2ea043':'#f85149'}};">${{r.val>=0?'+':''}}${{r.val.toFixed(1)}}%</span></div>`;
-  }}).join('');
-  board.querySelectorAll('.ovrow').forEach(el => {{
-    el.onclick = () => {{
-      const sym = el.dataset.sym; if (sym === 'SPY') return;  // benchmark always on
-      if (OV.pinned.has(sym)) OV.pinned.delete(sym); else OV.pinned.add(sym);
-      buildOverview();
-    }};
-  }});
-}}
-function _updateOverviewLive() {{
-  if (!ovChart || !OV.items.length || OV.range !== 'D') return;  // live-nudge daily mode only
-  OV.items.forEach(it => {{
-    const lp = LIVE[it.sym];
-    if (lp != null && it.base) it.pts[it.pts.length-1].y = (lp / it.base - 1) * 100;
-  }});
-  ovChart.update('none');
-  _buildBoard();
-}}
 
 // ---- detail modal ----
 const overlay = document.getElementById('overlay');
@@ -1552,7 +1385,6 @@ function _initCharts() {{
     if (btn) btn.textContent = (t === 'dark') ? '☀ Light' : '🌙 Dark';
     if (featTC) featTC.applyTheme();
     if (modalTC) modalTC.applyTheme();
-    if (typeof buildOverview === 'function') {{ try {{ buildOverview(); }} catch (e) {{}} }}
   }}
   let cur = 'light';
   try {{ cur = localStorage.getItem(KEY) || 'light'; }} catch (e) {{}}
@@ -1566,10 +1398,9 @@ function _initCharts() {{
     }};
   }}
 }})();
-// resize the featured + overview charts when their panel becomes visible
+// resize the featured chart when its panel becomes visible
 function _refitCharts() {{
   try {{ if (featTC) featTC.resize(); }} catch (e) {{}}
-  try {{ if (typeof ovChart !== 'undefined' && ovChart) ovChart.resize(); }} catch (e) {{}}
 }}
 _initCharts();
 
@@ -1634,8 +1465,6 @@ const news = document.getElementById('news');
 if (!(DATA.news||[]).length) news.innerHTML = '<li class="src">No news for flagged symbols.</li>';
 
 // build the overview chart last so nothing else can be blocked by it
-_setupOvRange();
-buildOverview();
 </script></body></html>"""
 
 
