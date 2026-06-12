@@ -184,12 +184,23 @@ def _chart_data(tail) -> dict:
             buys[i] = close[i]        # entry: flat -> long
         elif sig_vals[i] == 0 and sig_vals[i - 1] == 1:
             sells[i] = close[i]       # exit: long -> flat
+
+    # Bollinger bands (20,2) + MACD histogram for the depth view
+    from indicators import bollinger as _bb, macd as _macd
+    _, bb_up, bb_lo, _ = _bb(tail["close"], 20, 2.0)
+    macd_line, macd_sig, macd_hist = _macd(tail["close"])
+
+    def _ser(s):
+        return [None if np.isnan(x) else round(float(x), 3) for x in s]
+
     return {
         "dates": dates,
         "t": t,
         "open": o, "high": h, "low": low, "close": close,
         "fast": [None if np.isnan(x) else round(float(x), 2) for x in tail["fast"]],
         "slow": [None if np.isnan(x) else round(float(x), 2) for x in tail["slow"]],
+        "bb_up": _ser(bb_up), "bb_lo": _ser(bb_lo),
+        "macd": _ser(macd_line), "macd_sig": _ser(macd_sig), "macd_hist": _ser(macd_hist),
         "buys": buys,
         "sells": sells,
     }

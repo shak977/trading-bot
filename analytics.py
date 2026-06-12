@@ -59,15 +59,15 @@ def detect(df: pd.DataFrame, sig: pd.DataFrame, cfg: Config, relvol):
     if len(idx):
         days = (sig.index[-1] - idx[-1]).days
         if rel.loc[idx[-1]] == 1 and days <= cfg.buy_window * 4:
-            pats.append({"label": f"Golden cross ({days}d ago)", "kind": "bull"})
+            pats.append({"label": f"Trend flipped up {days} days ago", "kind": "bull"})
         elif rel.loc[idx[-1]] == 0 and days <= cfg.buy_window * 4:
-            pats.append({"label": f"Death cross ({days}d ago)", "kind": "bear"})
+            pats.append({"label": f"Trend flipped down {days} days ago", "kind": "bear"})
 
     # 2) 20-day breakout (closing above the prior 20-day high)
     if n > 21:
         prior_high = _f(df["high"].iloc[-21:-1].max())
         if px >= prior_high:
-            pats.append({"label": "20-day breakout", "kind": "bull"})
+            pats.append({"label": "Broke to a 1-month high", "kind": "bull"})
 
     # 3) Proximity to 1-year high/low
     if n >= 60:
@@ -75,9 +75,9 @@ def detect(df: pd.DataFrame, sig: pd.DataFrame, cfg: Config, relvol):
         hi = _f(df["high"].iloc[-look:].max())
         lo = _f(df["low"].iloc[-look:].min())
         if hi and px >= 0.98 * hi:
-            pats.append({"label": "Near 1-year high", "kind": "bull"})
+            pats.append({"label": "Near its 1-year high", "kind": "bull"})
         if lo and px <= 1.03 * lo:
-            pats.append({"label": "Near 1-year low", "kind": "bear"})
+            pats.append({"label": "Near its 1-year low", "kind": "bear"})
 
     # 4) Pullback to a rising trend line (buy-the-dip in an uptrend)
     slow_series = sig["slow"]
@@ -85,16 +85,16 @@ def detect(df: pd.DataFrame, sig: pd.DataFrame, cfg: Config, relvol):
         dist = (px - slow) / slow * 100
         slope_up = len(slow_series) > 6 and _f(slow_series.iloc[-1]) > _f(slow_series.iloc[-6])
         if 0 <= dist <= 3 and slope_up:
-            pats.append({"label": "Pullback to rising trend line", "kind": "bull"})
+            pats.append({"label": "Dipped back to its rising trend", "kind": "bull"})
 
     # 5) RSI extremes + oversold turn-up
     if rsi_v >= 70:
-        pats.append({"label": f"Overbought (RSI {rsi_v:.0f})", "kind": "bear"})
+        pats.append({"label": "Run up fast (may need a breather)", "kind": "bear"})
     elif rsi_v <= 30:
-        pats.append({"label": f"Oversold (RSI {rsi_v:.0f})", "kind": "bull"})
+        pats.append({"label": "Beaten down (could bounce)", "kind": "bull"})
     rsi_series = sig["rsi"]
     if len(rsi_series) > 5 and _f(rsi_series.iloc[-5:].min()) <= 32 and rsi_v > _f(rsi_series.iloc[-2]):
-        pats.append({"label": "Turning up from oversold", "kind": "bull"})
+        pats.append({"label": "Bouncing back from a dip", "kind": "bull"})
 
     # 6) MACD cross
     _, _, hist = ind.macd(close)
@@ -102,26 +102,26 @@ def detect(df: pd.DataFrame, sig: pd.DataFrame, cfg: Config, relvol):
     if len(hist.dropna()) > 2:
         h1, h0 = _f(hist.iloc[-1]), _f(hist.iloc[-2])
         if h1 > 0 and h0 <= 0:
-            pats.append({"label": "MACD bullish cross", "kind": "bull"})
+            pats.append({"label": "Momentum just turned up", "kind": "bull"})
         elif h1 < 0 and h0 >= 0:
-            pats.append({"label": "MACD bearish cross", "kind": "bear"})
+            pats.append({"label": "Momentum just turned down", "kind": "bear"})
 
     # 7) Bollinger position
     _, _, _, pb = ind.bollinger(close)
     pbv = _f(pb.iloc[-1]) if len(pb) else float("nan")
     if not np.isnan(pbv):
         if pbv >= 1:
-            pats.append({"label": "Above upper Bollinger band", "kind": "bear"})
+            pats.append({"label": "Stretched above its normal range", "kind": "bear"})
         elif pbv <= 0:
-            pats.append({"label": "Below lower Bollinger band", "kind": "bull"})
+            pats.append({"label": "Below its normal range (cheap)", "kind": "bull"})
 
     # 8) Trend strength (ADX) and unusual volume
     adx_series = ind.adx(df)
     adxv = _f(adx_series.iloc[-1]) if len(adx_series) else float("nan")
     if not np.isnan(adxv) and adxv >= 25:
-        pats.append({"label": f"Strong trend (ADX {adxv:.0f})", "kind": "neutral"})
+        pats.append({"label": "Strong, steady trend", "kind": "neutral"})
     if relvol is not None and relvol >= 1.5:
-        pats.append({"label": f"Heavy volume ({relvol}x)", "kind": "neutral"})
+        pats.append({"label": "Unusually heavy trading", "kind": "neutral"})
 
     extra = {
         "adx": None if np.isnan(adxv) else round(adxv, 1),

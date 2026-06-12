@@ -561,9 +561,19 @@ def render_html(snap: dict) -> str:
     <div class="chartctl">
       <span class="ctlgrp" id="rangeBtns"></span>
       <span class="ctlgrp" id="typeBtns"></span>
+      <span class="ctlgrp" id="indBtns"></span>
       <label class="ctltog"><input type="checkbox" id="benchToggle"> vs S&amp;P 500</label>
+      <span class="ctlgrp">
+        <button id="zoomOut" title="Zoom out">&minus;</button>
+        <button id="zoomIn" title="Zoom in">+</button>
+      </span>
+      <button class="ctlbtn" id="zoomReset">Reset</button>
     </div>
     <div class="chartbox"><canvas id="mChart" height="140"></canvas></div>
+    <div class="chartbox" id="macdBox" style="display:none; margin-top:8px;">
+      <div style="color:var(--muted);font-size:11px;margin-bottom:4px;">MACD — momentum (above 0 = bullish)</div>
+      <canvas id="mMacd" height="70"></canvas>
+    </div>
     <div class="chartkey" id="mChartKey"></div>
     <div class="sech">The details, explained</div>
     <ul class="reasons" id="mReasons"></ul>
@@ -747,10 +757,15 @@ function buildOverview() {{
     type:'line',
     data:{{datasets:ds}},
     options:{{responsive:true, parsing:false, interaction:{{mode:'index',intersect:false}},
-      plugins:{{legend:{{labels:{{color:'#8b97a6', usePointStyle:true, boxWidth:8, font:{{size:11}}}}}},
-        zoom:{{zoom:{{wheel:{{enabled:true}}, pinch:{{enabled:true}}, mode:'x'}}, pan:{{enabled:true, mode:'x'}}}}}},
-      scales:{{x:{{type:'time', time:{{unit:'month'}}, ticks:{{color:'#8b97a6',maxTicksLimit:8}}, grid:{{color:'#2a3441'}}}},
-               y:{{ticks:{{color:'#8b97a6', callback:v=>(v>0?'+':'')+v+'%'}}, grid:{{color:'#2a3441'}}}}}}}}
+      elements:{{line:{{tension:0.15}}}},
+      plugins:{{
+        legend:{{labels:{{color:'#8b97a6', usePointStyle:true, boxWidth:8, font:{{size:11}}}}}},
+        tooltip:{{mode:'index', intersect:false, itemSort:(a,b)=>b.parsed.y-a.parsed.y,
+          callbacks:{{label:(it)=>` ${{it.dataset.label}}: ${{it.parsed.y>=0?'+':''}}${{it.parsed.y.toFixed(1)}}%`}}}},
+        zoom:{{zoom:{{wheel:{{enabled:true}}, pinch:{{enabled:true}}, mode:'x'}}, pan:{{enabled:true, mode:'x'}}}}
+      }},
+      scales:{{x:{{type:'time', time:{{unit:'month'}}, ticks:{{color:'#8b97a6',maxTicksLimit:7}}, grid:{{display:false}}}},
+               y:{{position:'right', ticks:{{color:'#8b97a6', callback:v=>(v>0?'+':'')+v+'%'}}, grid:{{color:'rgba(42,52,65,0.55)'}}}}}}}}
   }});
  }} catch (e) {{ console.error('overview chart failed', e); }}
 }}
@@ -846,8 +861,9 @@ function openModal(s) {{
 
 // ---- stateful modal chart ----
 let MODAL = null;
-const CSTATE = {{ range:'6M', type:'line', bench:false }};
+const CSTATE = {{ range:'6M', type:'line', bench:false, avgs:true, boll:true, macd:false }};
 const INTRA = {{}};  // cache for intraday bars (5D only)
+let macdChart = null;
 let CUR = {{ prices:[], times:[], base:null, intraday:false }};  // for the hover readout
 let _finOK = false;
 try {{ _finOK = !!(window.Chart && Chart.registry.getController('candlestick')); }} catch(e) {{ _finOK = false; }}
@@ -905,7 +921,13 @@ function _cleanOpts(unit, y2) {{
     responsive:true, parsing:false, interaction:{{mode:'index', intersect:false}},
     onHover:(e, act) => {{ _updateReadout(act && act.length ? act[0].index : null); }},
     elements:{{line:{{tension:0.15}}}},
-    plugins:{{ legend:{{labels:{{color:'#8b97a6', usePointStyle:true, boxWidth:8}}}}, tooltip:{{enabled:false}} }},
+    plugins:{{
+      legend:{{labels:{{color:'#8b97a6', usePointStyle:true, boxWidth:8,
+        filter:(it)=> it.text && it.text[0] !== '_'}}}},
+      tooltip:{{enabled:false}},
+      zoom:{{ zoom:{{wheel:{{enabled:true}}, pinch:{{enabled:true}}, mode:'x'}},
+              pan:{{enabled:true, mode:'x'}}, limits:{{x:{{minRange:5*86400000}}}} }}
+    }},
     scales
   }};
 }}
@@ -930,7 +952,7 @@ function renderModalChart() {{
   const c = DATA.charts[s.symbol], p = s.plan || {{}};
   const key = document.getElementById('mChartKey');
   if (mChart) mChart.destroy();
-  if (!c) {{ key.innerHTML = ''; return; }}
+  if (!c) {{ key.innerHTML = ''; _hideMacd(); return; }}
   const st = _winStart(c, CSTATE.range);
   const T = c.t.slice(st), close=c.close.slice(st), fast=c.fast.slice(st), slow=c.slow.slice(st);
   const op=c.open.slice(st), hi=c.high.slice(st), lo=c.low.slice(st);
@@ -953,10 +975,20 @@ function renderModalChart() {{
     ds.push({{type:'line', label:'Price', order:3, borderColor:pcol, borderWidth:2,
       pointRadius:0, fill:true, backgroundColor:_areaFill(pcol), data:T.map((t,i)=>({{x:t,y:close[i]}}))}});
   }}
-  ds.push({{type:'line', label:'20-day avg', order:4, borderColor:'rgba(56,139,253,0.6)', borderWidth:1,
-    pointRadius:0, fill:false, data:T.map((t,i)=>({{x:t,y:fast[i]}}))}});
-  ds.push({{type:'line', label:'50-day avg', order:4, borderColor:'rgba(240,136,62,0.6)', borderWidth:1,
-    pointRadius:0, fill:false, data:T.map((t,i)=>({{x:t,y:slow[i]}}))}});
+  if (CSTATE.avgs) {{
+    ds.push({{type:'line', label:'20-day avg', order:4, borderColor:'rgba(56,139,253,0.65)', borderWidth:1,
+      pointRadius:0, fill:false, data:T.map((t,i)=>({{x:t,y:fast[i]}}))}});
+    ds.push({{type:'line', label:'50-day avg', order:4, borderColor:'rgba(240,136,62,0.65)', borderWidth:1,
+      pointRadius:0, fill:false, data:T.map((t,i)=>({{x:t,y:slow[i]}}))}});
+  }}
+  if (CSTATE.boll && c.bb_up) {{
+    const bu=c.bb_up.slice(st), bl=c.bb_lo.slice(st);
+    ds.push({{type:'line', label:'Normal range (Bollinger)', order:5, borderColor:'rgba(163,113,247,0.5)',
+      borderWidth:1, borderDash:[3,3], pointRadius:0, fill:false, data:T.map((t,i)=>({{x:t,y:bu[i]}}))}});
+    ds.push({{type:'line', label:'_bblo', order:5, borderColor:'rgba(163,113,247,0.5)',
+      borderWidth:1, borderDash:[3,3], pointRadius:0, fill:'-1', backgroundColor:'rgba(163,113,247,0.06)',
+      data:T.map((t,i)=>({{x:t,y:bl[i]}}))}});
+  }}
   const buyPts = T.map((t,i)=> buys[i]!=null ? {{x:t,y:buys[i]}} : null).filter(Boolean);
   const sellPts = T.map((t,i)=> sells[i]!=null ? {{x:t,y:sells[i]}} : null).filter(Boolean);
   ds.push({{type:'scatter', label:'Buy signal', data:buyPts, backgroundColor:'#2ea043',
@@ -985,12 +1017,39 @@ function renderModalChart() {{
   mChart = new Chart(document.getElementById('mChart'),
     {{ data:{{datasets:ds}}, options:_cleanOpts(CSTATE.range==='1M'?'week':'month', y2) }});
   _updateReadout();
+  _renderMacd(s, T, st);
   const nB=buyPts.length, nS=sellPts.length;
   key.innerHTML = `Hover to scrub. ▲ ${{nB}} past buys &nbsp; ▼ ${{nS}} past sells &nbsp; dashed = entry / target / stop.` + benchNote;
 }}
 
+function _hideMacd() {{
+  if (macdChart) {{ macdChart.destroy(); macdChart = null; }}
+  const b = document.getElementById('macdBox'); if (b) b.style.display = 'none';
+}}
+function _renderMacd(s, T, st) {{
+  const c = DATA.charts[s.symbol];
+  if (!CSTATE.macd || !c || !c.macd) {{ _hideMacd(); return; }}
+  document.getElementById('macdBox').style.display = 'block';
+  const ml=c.macd.slice(st), msig=c.macd_sig.slice(st), mh=c.macd_hist.slice(st);
+  const ds = [
+    {{type:'bar', label:'_h', data:T.map((t,i)=>({{x:t,y:mh[i]}})), order:3, borderWidth:0,
+      backgroundColor:T.map((t,i)=> (mh[i]>=0?'rgba(46,160,67,0.6)':'rgba(248,81,73,0.6)'))}},
+    {{type:'line', label:'_m', data:T.map((t,i)=>({{x:t,y:ml[i]}})), borderColor:'#388bfd', borderWidth:1.2, pointRadius:0, order:1}},
+    {{type:'line', label:'_s', data:T.map((t,i)=>({{x:t,y:msig[i]}})), borderColor:'#f0883e', borderWidth:1.2, pointRadius:0, order:1}},
+  ];
+  if (macdChart) macdChart.destroy();
+  macdChart = new Chart(document.getElementById('mMacd'), {{
+    data:{{datasets:ds}},
+    options:{{responsive:true, parsing:false, interaction:{{mode:'index',intersect:false}},
+      plugins:{{legend:{{display:false}}, tooltip:{{enabled:false}}}},
+      scales:{{x:{{type:'time', time:{{unit: CSTATE.range==='1M'?'week':'month'}}, ticks:{{display:false}}, grid:{{display:false}}}},
+               y:{{position:'right', ticks:{{color:'#8b97a6', maxTicksLimit:3}}, grid:{{color:'rgba(42,52,65,0.5)'}}}}}}}}
+  }});
+}}
+
 // ---- intraday (1D / 5D) — fetched live from the Worker proxy ----
 function _renderIntraday(s) {{
+  _hideMacd();
   const key = document.getElementById('mChartKey');
   if (mChart) {{ mChart.destroy(); mChart = null; }}
   if (!LIVE_URL) {{ key.innerHTML = 'Intraday view needs the live data proxy (LIVE_QUOTES_URL).'; return; }}
@@ -1064,6 +1123,19 @@ function _drawIntra(s, bars) {{
   const bt = document.getElementById('benchToggle');
   bt.checked = CSTATE.bench;
   bt.onchange = () => {{ CSTATE.bench = bt.checked; renderModalChart(); }};
+  // indicator toggles
+  const ib = document.getElementById('indBtns');
+  [['avgs','Averages'],['boll','Bollinger'],['macd','MACD']].forEach(([k,lab]) => {{
+    const b=document.createElement('button'); b.textContent=lab; b.dataset.ind=k;
+    if (CSTATE[k]) b.className='on';
+    b.onclick=()=>{{ CSTATE[k]=!CSTATE[k]; b.classList.toggle('on', CSTATE[k]); renderModalChart(); }};
+    ib.appendChild(b);
+  }});
+  // zoom buttons (x-axis)
+  const zi=document.getElementById('zoomIn'), zo=document.getElementById('zoomOut'), zr=document.getElementById('zoomReset');
+  if (zi) zi.onclick=()=>{{ if(mChart&&mChart.zoom) mChart.zoom(1.3); }};
+  if (zo) zo.onclick=()=>{{ if(mChart&&mChart.zoom) mChart.zoom(0.77); }};
+  if (zr) zr.onclick=()=>{{ if(mChart&&mChart.resetZoom) mChart.resetZoom(); }};
 }})();
 
 function closeModal() {{ overlay.classList.remove('open'); }}
