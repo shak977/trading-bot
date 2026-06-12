@@ -857,13 +857,13 @@ def render_html(snap: dict) -> str:
     text-decoration-thickness:1px; }}
   .card-why {{ margin-top:11px; padding:9px 11px; background:var(--inset);
     border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:8px; }}
-  .why-h {{ display:flex; align-items:center; justify-content:space-between; gap:8px;
-    font-size:10.5px; text-transform:uppercase; letter-spacing:.04em;
+  .why-h {{ font-size:10.5px; text-transform:uppercase; letter-spacing:.04em;
     font-weight:800; color:var(--muted); margin-bottom:7px; }}
-  .why-fam {{ text-transform:none; letter-spacing:0; font-weight:700; font-size:11px;
+  .why-fam {{ display:inline-block; max-width:100%; box-sizing:border-box;
+    font-weight:700; font-size:11px; margin:0 0 9px; white-space:normal;
     color:var(--accent); background:color-mix(in srgb, var(--accent) 14%, transparent);
     border:1px solid color-mix(in srgb, var(--accent) 32%, transparent);
-    padding:1px 8px; border-radius:999px; white-space:nowrap; }}
+    padding:2px 9px; border-radius:999px; }}
   .strat-badge {{ display:inline-flex; align-items:center; gap:9px; margin:0 0 14px;
     padding:6px 13px; border-radius:999px; background:color-mix(in srgb, var(--accent) 12%, transparent);
     border:1px solid color-mix(in srgb, var(--accent) 30%, transparent); }}
@@ -1485,7 +1485,7 @@ function makeCard(s) {{
                  || 'the strategy approach behind this signal';
   const famTag = famLabel ? `<span class="why-fam" title="${{_esc(famTip)}}">${{famLabel}}</span>` : '';
   const whyHtml = whyBody
-    ? `<div class="card-why"><div class="why-h"><span>📋 Why this ${{_actWord}} — strategies firing</span>${{famTag}}</div>${{whyBody}}</div>` : '';
+    ? `<div class="card-why"><div class="why-h">📋 Why this ${{_actWord}}</div>${{famTag}}${{whyBody}}</div>` : '';
   const nNews = (s.news||[]).length;
   el.innerHTML = `
     <div class="card-top">${{logo}}
