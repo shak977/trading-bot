@@ -42,6 +42,10 @@ class Config:
     min_price: float = 5.0           # ignore sub-$5 names
     max_atr_pct: float = 18.0        # skip hyper-volatile names (ATR > this % of price/day = penny chaos)
     max_day_move_pct: float = 25.0   # skip names that already moved more than this today (chasing/junk)
+    max_momentum_pct: float = 200.0  # drop momentum-leaderboard names whose 12-1 score exceeds this — a
+                                     # 12-month return >200% on a scanned large/mid-cap almost always means
+                                     # a corrupt historical bar (bad IEX print) inflated the base, not real edge
+    bad_bar_jump_pct: float = 50.0   # a single-day move > this that immediately reverses = bad print → drop the name
     rel_volume_window: int = 20      # days for the relative-volume (flow proxy) average
     news_per_symbol: int = 4         # headlines pulled per flagged symbol
     show_top: int = 40               # cards shown on the dashboard

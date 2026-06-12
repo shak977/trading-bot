@@ -402,15 +402,45 @@ def _ipo_html(ipos: list[dict], ipo_news: list[dict]) -> str:
             f'{news}')
 
 
+def _has_bad_bar(cl: list, jump: float = 0.50) -> bool:
+    """True if the close series contains a spike-and-revert bad print: a single-day move
+    larger than `jump` that is undone (mostly) the very next day. A genuine split or a real
+    trend move does NOT immediately reverse, so this isolates corrupt IEX bars without
+    flagging legitimate big movers. One such bar anywhere in the ~12-month window can wreck
+    the momentum base, so any occurrence disqualifies the name from the leaderboard."""
+    for i in range(1, len(cl) - 1):
+        p0, p1, p2 = cl[i - 1], cl[i], cl[i + 1]
+        if not p0 or not p1:
+            continue
+        r1 = p1 / p0 - 1.0          # move into the suspect bar
+        if abs(r1) <= jump:
+            continue
+        if not p2:
+            return True             # huge move with no valid confirmation bar — distrust it
+        r2 = p2 / p1 - 1.0          # move out of it
+        # reverses if the next day undoes most of the spike (opposite sign, similar size)
+        if r1 * r2 < 0 and abs(r2) >= jump * 0.6:
+            return True
+    return False
+
+
 def _momentum_rank(charts: dict, top: int = 15, per_sector: int = 3) -> list[dict]:
     """Dual-momentum leaderboard: 12-1 momentum, kept only if positive AND above the
     200-day average. Then capped to ``per_sector`` names per sector (diversification)
     and assigned inverse-volatility suggested weights (risk-parity, like factor funds)."""
+    max_mom = getattr(CONFIG, "max_momentum_pct", 200.0)
+    jump = getattr(CONFIG, "bad_bar_jump_pct", 50.0) / 100.0
     cand = []
     for sym, ch in charts.items():
         cl = [c for c in (ch.get("close") or []) if c is not None]
         n = len(cl)
         if n < 230:
+            continue
+        # Bad-bar guard: a single-day move > `jump` that immediately reverses (spike-and-
+        # revert) is the signature of a corrupt IEX print, not a real move or a split. Such
+        # a bad bar ~12 months back deflates the momentum base and balloons the score
+        # (this is what produced MU +591% / INTC +479%). Drop the name rather than trust it.
+        if _has_bad_bar(cl, jump):
             continue
         lb = min(252, n - 1)
         sk = 21 if n > 257 else 0
@@ -421,6 +451,11 @@ def _momentum_rank(charts: dict, top: int = 15, per_sector: int = 3) -> list[dic
         score = recent / base - 1
         sma200 = sum(cl[-200:]) / 200 if n >= 200 else sum(cl) / n
         if not (score > 0 and cl[-1] > sma200):
+            continue
+        # Score sanity cap: a 12-1 momentum above `max_mom`% on a scanned large/mid-cap is
+        # almost certainly a leftover data artifact (a bad base the spike check missed), not
+        # a tradeable winner. Drop it so the leaderboard never publishes impossible numbers.
+        if score * 100 > max_mom:
             continue
         rets = [cl[i] / cl[i - 1] - 1 for i in range(max(1, n - 21), n) if cl[i - 1]]
         vol = (sum((x - sum(rets) / len(rets)) ** 2 for x in rets) / len(rets)) ** 0.5 if len(rets) > 1 else 0.0

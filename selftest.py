@@ -156,6 +156,27 @@ def test_tracker_no_lookahead():
     _ok("same-day trade stays open (no look-ahead)", json.load(open(tf))[0]["status"] == "open")
 
 
+def test_momentum_dataquality():
+    print("momentum data-quality guards:")
+    import pandas as pd
+    import momentum as mom
+    idx = pd.date_range("2024-01-01", periods=300)
+    clean = list(np.linspace(100, 220, 300))                 # real winner, ~+77% 12-1
+    _ok("clean series not flagged", not mom.has_bad_bar(pd.Series(clean, index=idx)))
+    bad = clean.copy(); bad[40] = clean[40] * 6; bad[41] = clean[41]  # spike-and-revert print
+    _ok("spike-and-revert flagged", mom.has_bad_bar(pd.Series(bad, index=idx)))
+    _ok("bad-bar name dropped from rank",
+        mom.rank({"B": pd.DataFrame({"close": bad}, index=idx)}) == [])
+    hot = list(np.linspace(30, 300, 300))                    # smooth but >200% 12-1
+    _ok("over-cap score dropped",
+        mom.rank({"H": pd.DataFrame({"close": hot}, index=idx)}, max_score_pct=200.0) == [])
+    _ok("over-cap kept when cap lifted",
+        mom.rank({"H": pd.DataFrame({"close": hot}, index=idx)}, max_score_pct=999.0) != [])
+    import dashboard as d
+    _ok("dashboard helper agrees (clean)", not d._has_bad_bar(clean))
+    _ok("dashboard helper agrees (bad)", d._has_bad_bar(bad))
+
+
 def main():
     test_indicators()
     test_strategy_backtest()
@@ -163,6 +184,7 @@ def main():
     test_strategies()
     test_confluence_in_scan()
     test_tracker_no_lookahead()
+    test_momentum_dataquality()
     test_research()
     test_rescore()
     test_llm_prompt()

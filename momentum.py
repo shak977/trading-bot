@@ -37,16 +37,34 @@ def above_trend(close: pd.Series, win: int = 200) -> bool:
     return bool(close.iloc[-1] > close.iloc[-win:].mean())
 
 
-def rank(bars: dict, lookback: int = 252, skip: int = 21) -> list[tuple]:
+def has_bad_bar(close: pd.Series, jump: float = 0.50) -> bool:
+    """True if the series contains a spike-and-revert bad print: a >`jump` single-day move
+    undone the next day. Isolates corrupt data bars (which wreck the momentum base) without
+    flagging real trends or splits, which don't immediately reverse."""
+    if close is None or len(close) < 3:
+        return False
+    r = close.pct_change()
+    rev = (r.shift(-1) * r < 0) & (r.abs() > jump) & (r.shift(-1).abs() >= jump * 0.6)
+    return bool(rev.fillna(False).any())
+
+
+def rank(bars: dict, lookback: int = 252, skip: int = 21,
+         max_score_pct: float = 200.0, bad_bar_jump: float = 0.50) -> list[tuple]:
     """Return [(symbol, momentum%)] for names passing the dual-momentum filter,
-    ranked best-first. Filter = positive 12-1 momentum AND above the 200-day MA."""
+    ranked best-first. Filter = positive 12-1 momentum AND above the 200-day MA.
+
+    Data-quality guards: drop names with a spike-and-revert bad bar in their history, and
+    cap the score at `max_score_pct`% — a 12-1 return above that on a large/mid-cap almost
+    always means a corrupt price inflated the base (e.g. the MU +591% IEX artifact), not edge."""
     out = []
     for sym, df in bars.items():
         c = df["close"]
+        if has_bad_bar(c, bad_bar_jump):
+            continue
         s = momentum_score(c, lookback, skip)
         if np.isnan(s):
             continue
-        if s > 0 and above_trend(c):
+        if s > 0 and s * 100 <= max_score_pct and above_trend(c):
             out.append((sym, round(s * 100, 1)))
     out.sort(key=lambda x: -x[1])
     return out
