@@ -509,7 +509,8 @@ def render_html(snap: dict) -> str:
     <h2 style="margin-top:0;">Signals <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— grouped by sector · click any card for the full reasoning</span></h2>
     <div class="ovbox">
       <div class="ovhead">📈 Live overview — % change vs S&amp;P 500 <span id="ovStatus"></span>
-        <span style="font-weight:400;color:var(--muted);font-size:12px;"> · click a name on the right to highlight its line</span></div>
+        <span class="ctlgrp" id="ovRangeBtns" style="margin-left:8px;"></span>
+        <span style="font-weight:400;color:var(--muted);font-size:12px;"> · click a name to highlight</span></div>
       <div class="ovwrap">
         <div class="ovchart"><canvas id="overviewChart" height="150"></canvas></div>
         <div class="ovboard" id="ovBoard"></div>
@@ -787,7 +788,7 @@ let ovChart = null;
 const OV_WIN = 60;      // ~3 months of daily bars
 const OV_PALETTE = ['#388bfd','#2ea043','#f0883e','#f85149','#a371f7','#e8c878',
                     '#56d4dd','#db61a2','#6cc644','#bd8b00','#ff7b72','#79c0ff'];
-const OV = {{ items: [], pinned: new Set() }};  // items: {{sym,label,pts,base,color,bench}}
+const OV = {{ items: [], pinned: new Set(), range: 'D', intra: {{}} }};  // range: D=daily, 1W, 1D
 function _rebase(t, close) {{
   const n = close.length, st = Math.max(0, n - OV_WIN);
   const T = t.slice(st), C = close.slice(st);
@@ -811,30 +812,14 @@ const _ovEndLabel = {{
     }});
   }}
 }};
-function buildOverview() {{
- try {{
-  const cv = document.getElementById('overviewChart');
-  if (!cv || typeof Chart === 'undefined') return;
-  const items = [];
-  if (DATA.benchmark) {{
-    const r = _rebase(DATA.benchmark.t, DATA.benchmark.close);
-    if (r.pts.length) items.push({{sym:'SPY', label:'S&P 500', pts:r.pts, base:r.base, color:'#e6edf3', bench:true}});
-  }}
-  DATA.signals.forEach((s, i) => {{
-    const c = DATA.charts[s.symbol]; if (!c) return;
-    const r = _rebase(c.t, c.close); if (!r.pts.length) return;
-    items.push({{sym:s.symbol, label:s.symbol, pts:r.pts, base:r.base, color:OV_PALETTE[i % OV_PALETTE.length]}});
-  }});
-  OV.items = items;
-  const datasets = items.map(it => {{
-    const active = it.bench || OV.pinned.has(it.sym);
-    return {{ label: it.label, data: it.pts, _sym: it.sym, _active: active,
-      borderColor: it.bench ? '#e6edf3' : (active ? it.color : 'rgba(139,151,166,0.16)'),
-      borderWidth: it.bench ? 2.4 : (active ? 2 : 1), pointRadius: 0, fill: false,
-      order: active ? 1 : 5 }};
-  }});
-  // percentile-clip the y-axis so a single outlier can't squash everyone
-  const allY = []; items.forEach(it => it.pts.forEach(p => allY.push(p.y)));
+function _ovChart(plot, unit, intraday) {{
+  const cv = document.getElementById('overviewChart'); if (!cv) return;
+  const datasets = plot.map(it => ({{
+    label: it.label, data: it.pts, _sym: it.sym, _active: it.active,
+    borderColor: it.bench ? '#e6edf3' : (it.active ? it.color : 'rgba(139,151,166,0.16)'),
+    borderWidth: it.bench ? 2.4 : (it.active ? 2 : 1), pointRadius: 0, fill: false,
+    order: it.active ? 1 : 5 }}));
+  const allY = []; plot.forEach(it => it.pts.forEach(p => allY.push(p.y)));
   allY.sort((a, b) => a - b);
   const q = p => allY.length ? allY[Math.min(allY.length-1, Math.max(0, Math.round(p*(allY.length-1))))] : 0;
   const ymin = Math.min(q(0.04), 0) - 2, ymax = Math.max(q(0.96), 0) + 3;
@@ -847,12 +832,14 @@ function buildOverview() {{
         legend:{{display:false}},
         tooltip:{{mode:'index', intersect:false, itemSort:(a,b)=>b.parsed.y-a.parsed.y,
           callbacks:{{
-            title:(its)=> new Date(its[0].parsed.x).toLocaleDateString([], {{year:'numeric',month:'short',day:'numeric'}}),
+            title:(its)=> {{ const d=new Date(its[0].parsed.x); return intraday
+              ? d.toLocaleString([], {{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}})
+              : d.toLocaleDateString([], {{year:'numeric',month:'short',day:'numeric'}}); }},
             label:(it)=>` ${{it.dataset.label}}: ${{it.parsed.y>=0?'+':''}}${{it.parsed.y.toFixed(1)}}%`}}}},
         zoom:{{zoom:{{wheel:{{enabled:true}}, pinch:{{enabled:true}}, mode:'x'}}, pan:{{enabled:true, mode:'x'}}}}
       }},
       scales:{{
-        x:{{type:'time', time:{{unit:'month'}}, ticks:{{color:'#8b97a6',maxTicksLimit:7}}, grid:{{display:false}}}},
+        x:{{type:'time', time:{{unit}}, ticks:{{color:'#8b97a6',maxTicksLimit:7}}, grid:{{display:false}}}},
         y:{{position:'right', min:ymin, max:ymax, ticks:{{color:'#8b97a6', callback:v=>(v>0?'+':'')+v+'%'}},
            grid:{{ color:(c)=> c.tick.value===0 ? 'rgba(139,151,166,0.6)' : 'rgba(42,52,65,0.5)',
                    lineWidth:(c)=> c.tick.value===0 ? 1.5 : 1 }}}}
@@ -860,8 +847,68 @@ function buildOverview() {{
     }},
     plugins:[_ovEndLabel]
   }});
+}}
+function buildOverview() {{
+ try {{
+  if (typeof Chart === 'undefined') return;
+  // daily items power the leaderboard (and daily mode)
+  const items = [];
+  if (DATA.benchmark) {{
+    const r = _rebase(DATA.benchmark.t, DATA.benchmark.close);
+    if (r.pts.length) items.push({{sym:'SPY', label:'S&P 500', pts:r.pts, base:r.base, color:'#e6edf3', bench:true}});
+  }}
+  DATA.signals.forEach((s, i) => {{
+    const c = DATA.charts[s.symbol]; if (!c) return;
+    const r = _rebase(c.t, c.close); if (!r.pts.length) return;
+    items.push({{sym:s.symbol, label:s.symbol, pts:r.pts, base:r.base, color:OV_PALETTE[i % OV_PALETTE.length]}});
+  }});
+  OV.items = items;
   _buildBoard();
+  const key = document.getElementById('mChartKey');  // (unused here)
+  if (OV.range === 'D') {{
+    const plot = items.map(it => Object.assign({{}}, it, {{active: it.bench || OV.pinned.has(it.sym)}}));
+    _ovChart(plot, 'month', false);
+  }} else {{
+    _ovIntra();
+  }}
  }} catch (e) {{ console.error('overview chart failed', e); }}
+}}
+function _ovIntra() {{
+  if (!LIVE_URL) {{ OV.range = 'D'; buildOverview(); return; }}
+  const active = ['SPY', ...OV.pinned];
+  const tf = OV.range === '1D' ? '15Min' : '1Hour';
+  const days = OV.range === '1D' ? 3 : 8;
+  const colorOf = sym => sym === 'SPY' ? '#e6edf3' : ((OV.items.find(it => it.sym === sym) || {{}}).color || '#388bfd');
+  Promise.all(active.map(sym => {{
+    const ck = sym + ':' + OV.range;
+    if (OV.intra[ck]) return Promise.resolve({{sym, bars: OV.intra[ck]}});
+    return fetch(LIVE_URL + '?bars=' + encodeURIComponent(sym) + '&tf=' + tf + '&days=' + days)
+      .then(r => r.json()).then(d => {{
+        let b = d.bars || [];
+        if (OV.range === '1D' && b.length) {{
+          const ld = new Date(b[b.length-1].t).toDateString();
+          const t = b.filter(x => new Date(x.t).toDateString() === ld);
+          b = t.length >= 2 ? t : b.slice(-26);
+        }}
+        OV.intra[ck] = b; return {{sym, bars: b}};
+      }}).catch(() => ({{sym, bars: []}}));
+  }})).then(res => {{
+    const plot = res.filter(r => r.bars.length).map(r => {{
+      const base = r.bars[0].c;
+      return {{sym:r.sym, label: r.sym==='SPY'?'S&P 500':r.sym, bench: r.sym==='SPY', active:true,
+        color: colorOf(r.sym), pts: r.bars.map(b => ({{x:b.t, y:(b.c/base - 1)*100}}))}};
+    }});
+    _ovChart(plot, OV.range === '1D' ? 'hour' : 'day', true);
+  }});
+}}
+function _setupOvRange() {{
+  const bar = document.getElementById('ovRangeBtns'); if (!bar || bar.childElementCount) return;
+  [['D','Daily'],['1W','1W'],['1D','1D']].forEach(([v,lab]) => {{
+    const b = document.createElement('button'); b.textContent = lab; b.dataset.r = v;
+    if (v === OV.range) b.className = 'on';
+    b.onclick = () => {{ OV.range = v; bar.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x.dataset.r===v)); buildOverview(); }};
+    bar.appendChild(b);
+  }});
 }}
 function _buildBoard() {{
   const board = document.getElementById('ovBoard'); if (!board || !OV.items.length) return;
@@ -884,7 +931,7 @@ function _buildBoard() {{
   }});
 }}
 function _updateOverviewLive() {{
-  if (!ovChart || !OV.items.length) return;
+  if (!ovChart || !OV.items.length || OV.range !== 'D') return;  // live-nudge daily mode only
   OV.items.forEach(it => {{
     const lp = LIVE[it.sym];
     if (lp != null && it.base) it.pts[it.pts.length-1].y = (lp / it.base - 1) * 100;
@@ -1306,6 +1353,7 @@ const news = document.getElementById('news');
 if (!(DATA.news||[]).length) news.innerHTML = '<li class="src">No news for flagged symbols.</li>';
 
 // build the overview chart last so nothing else can be blocked by it
+_setupOvRange();
 buildOverview();
 </script></body></html>"""
 
