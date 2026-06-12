@@ -111,6 +111,16 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
     price = float(last["close"])
     if price < cfg.min_price:
         return None
+    # Quality gate: drop hyper-volatile penny-chaos before the heavy analysis.
+    # (Sub-$5 is already filtered; this catches the $5+ names with absurd swings —
+    # e.g. +47%/day movers with ~28% ATR that aren't tradeable trend signals and
+    # only add noise / trip the data auditor.)
+    _atr_s = atr(df, cfg.atr_period)
+    _atrp = (float(_atr_s.iloc[-1]) / price * 100) if (len(_atr_s) and not np.isnan(_atr_s.iloc[-1])) else 0.0
+    _prev = float(df["close"].iloc[-2]) if len(df) > 1 else price
+    _dmove = abs(price / _prev - 1) * 100 if _prev else 0.0
+    if _atrp > cfg.max_atr_pct or _dmove > cfg.max_day_move_pct:
+        return None
     signal = int(last["signal"])
 
     # How many bars since the signal last flipped (i.e. how fresh is this state)?

@@ -40,6 +40,8 @@ class Config:
     max_candidates: int = 90         # cap symbols actually analysed per run
     buy_window: int = 5              # a crossover within this many days still counts as a fresh BUY/SELL
     min_price: float = 5.0           # ignore sub-$5 names
+    max_atr_pct: float = 18.0        # skip hyper-volatile names (ATR > this % of price/day = penny chaos)
+    max_day_move_pct: float = 25.0   # skip names that already moved more than this today (chasing/junk)
     rel_volume_window: int = 20      # days for the relative-volume (flow proxy) average
     news_per_symbol: int = 4         # headlines pulled per flagged symbol
     show_top: int = 40               # cards shown on the dashboard

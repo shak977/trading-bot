@@ -25,16 +25,16 @@ def load(src):
 
 def audit_data(d):
     """Pure audit: returns (n_checks, [flag, ...]). No printing."""
-    flags: list[str] = []
+    flags: list[dict] = []
     state = {"checks": 0}
 
-    def flag(msg):
-        flags.append(msg)
+    def flag(msg, level="error"):
+        flags.append({"level": level, "msg": msg})
 
     def chk(cond, msg):
         state["checks"] += 1
         if not cond:
-            flag(msg)
+            flag(msg, "error")
 
     # ---- macro ----
     m = d.get("macro")
@@ -48,8 +48,8 @@ def audit_data(d):
     charts = d.get("charts", {})
     for s in d.get("signals", []):
         sym, px = s.get("symbol"), s.get("price")
-        def F(msg):  # noqa: E306
-            flag(f"[{sym}] {msg}")
+        def F(msg, level="warn"):  # noqa: E306  (extreme-but-plausible by default)
+            flag(f"[{sym}] {msg}", level)
 
         # ---- core fields ----
         chk(isinstance(px, (int, float)) and px > 0, f"[{sym}] price not positive: {px}")
@@ -116,7 +116,7 @@ def audit_data(d):
             chk(n > 0, f"[{sym}] empty chart")
             # timestamps strictly increasing
             if t and any(t[i] >= t[i + 1] for i in range(len(t) - 1)):
-                F("chart timestamps not strictly increasing")
+                F("chart timestamps not strictly increasing", "error")
             # OHLC integrity + split-artifact detection
             bad_ohlc = day_jumps = 0
             for i in range(n):
@@ -128,15 +128,15 @@ def audit_data(d):
                     if abs(cl[i] / cl[i - 1] - 1) > 0.5:   # >50% one-day jump
                         day_jumps += 1
             if bad_ohlc:
-                F(f"{bad_ohlc} bars violate OHLC (high<low etc.)")
+                F(f"{bad_ohlc} bars violate OHLC (high<low etc.)", "error")
             if day_jumps:
-                F(f"{day_jumps} one-day jumps >50% (likely unadjusted split)")
+                F(f"{day_jumps} one-day jumps >50% (likely unadjusted split)", "error")
             # Bollinger band order
             bu, bl = ch.get("bb_up"), ch.get("bb_lo")
             if bu and bl:
                 viol = sum(1 for i in range(len(bu)) if bu[i] is not None and bl[i] is not None and bu[i] < bl[i])
                 if viol:
-                    F(f"{viol} Bollinger bars upper<lower")
+                    F(f"{viol} Bollinger bars upper<lower", "error")
             # window return (overview-style). A *smooth* big move is a real rally,
             # not an error — so only flag a large 3mo move when it's driven by a
             # single-day discontinuity (the true split/bad-print signature), or when
@@ -166,13 +166,19 @@ def main(src):
           f"{len(d.get('signals', []))} signals shown\n")
     checks, flags = audit_data(d)
     print(f"Ran {checks} structural checks.")
-    if flags:
-        print(f"\n⚠  {len(flags)} item(s) flagged:")
-        for f in flags:
-            print("  -", f)
-        return 1
-    print("\n✅ No anomalies found — all data points look sane.")
-    return 0
+    errs = [f["msg"] for f in flags if f.get("level") == "error"]
+    warns = [f["msg"] for f in flags if f.get("level") == "warn"]
+    if errs:
+        print(f"\n❌ {len(errs)} likely DATA ERROR(s) flagged:")
+        for m in errs:
+            print("  -", m)
+    if warns:
+        print(f"\n⚠  {len(warns)} extreme-but-likely-real item(s) (volatile names, verify):")
+        for m in warns:
+            print("  -", m)
+    if not flags:
+        print("\n✅ No anomalies found — all data points look sane.")
+    return 1 if errs else 0
 
 
 if __name__ == "__main__":

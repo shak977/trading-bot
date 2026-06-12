@@ -408,11 +408,22 @@ def render_html(snap: dict) -> str:
     dh = snap.get("data_health")
     if not dh:
         health_html = ""
-    elif dh.get("ok"):
-        health_html = f' &middot; <span style="color:#2ea043;" title="{dh.get("checks",0)} integrity checks passed">data check ✓</span>'
     else:
-        tip = " | ".join(dh.get("flags", []))[:400].replace('"', "'")
-        health_html = f' &middot; <span style="color:#e8c878;" title="{tip}">data check ⚠ {len(dh.get("flags", []))}</span>'
+        n_err = dh.get("n_err", 0)
+        n_warn = dh.get("n_warn", 0)
+        if n_err:
+            tip = " | ".join(dh.get("errors", []))[:400].replace('"', "'")
+            health_html = (f' &middot; <span style="color:var(--sell);" title="{tip}">'
+                           f'data check ⚠ {n_err} to review</span>')
+        elif n_warn:
+            tip = ("Extreme but likely-real movers (volatile names): "
+                   + " | ".join(dh.get("warnings", []))[:380]).replace('"', "'")
+            health_html = (f' &middot; <span style="color:#2ea043;" title="{tip}">data check ✓</span>'
+                           f' <span style="color:var(--muted);font-size:12px;" title="{tip}">'
+                           f'· {n_warn} volatile</span>')
+        else:
+            health_html = (f' &middot; <span style="color:#2ea043;" '
+                           f'title="{dh.get("checks",0)} integrity checks passed">data check ✓</span>')
     return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -1513,10 +1524,14 @@ def main() -> None:
     try:
         import audit
         checks, flags = audit.audit_data(snap)
-        snap["data_health"] = {"ok": not flags, "checks": checks, "flags": flags[:20]}
-        if flags:
-            print(f"DATA AUDIT: {len(flags)} flag(s) over {checks} checks:")
-            for fl in flags[:20]:
+        errs = [f["msg"] for f in flags if f.get("level") == "error"]
+        warns = [f["msg"] for f in flags if f.get("level") == "warn"]
+        snap["data_health"] = {"ok": not errs, "checks": checks,
+                               "errors": errs[:20], "warnings": warns[:20],
+                               "n_err": len(errs), "n_warn": len(warns)}
+        if errs or warns:
+            print(f"DATA AUDIT: {len(errs)} error(s), {len(warns)} warning(s) over {checks} checks:")
+            for fl in (errs + warns)[:25]:
                 print("  -", fl)
         else:
             print(f"DATA AUDIT: clean ({checks} checks).")
