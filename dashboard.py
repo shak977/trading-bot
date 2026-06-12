@@ -222,7 +222,7 @@ def _regime_html(reg: dict | None) -> str:
         return ""
     palette = {"Risk-on": ("#15361f", "#7ee2a0"), "Neutral": ("#3a2e12", "#e8c878"),
                "Risk-off": ("#3a1e1e", "#ff9b9b")}
-    bg, fg = palette.get(reg["label"], ("#1a212b", "#c4ccd6"))
+    bg, fg = palette.get(reg["label"], ("#1a212b", "var(--txt2)"))
     return (f'<div class="regime" style="background:{bg};">'
             f'<span class="rlabel" style="color:{fg};">Market: {reg["label"]}</span>'
             f'<span class="rdetail">{reg["breadth"]}% of {reg["total"]} scanned above trend &middot; '
@@ -344,23 +344,43 @@ def render_html(snap: dict) -> str:
 <script src="chart_engine.js"></script>
 <style>
   /* Light "Capital IQ Pro" palette is the default; dark is a toggle. */
-  :root {{ --bg:#f4f6f8; --card:#ffffff; --line:#dfe3e8; --txt:#1a212b;
-    --muted:#5b6776; --buy:#178a3a; --sell:#d1242f; --hold:#0b5cad; --flat:#8a96a3;
-    --accent:#003087; --grid:rgba(120,130,145,0.18); --cross:rgba(60,70,85,0.45);
-    --shadow:0 1px 3px rgba(16,24,40,0.08); }}
-  html[data-theme="dark"] {{ --bg:#0f1419; --card:#1a212b; --line:#2a3441; --txt:#e6edf3;
-    --muted:#8b97a6; --buy:#2ea043; --sell:#f85149; --hold:#388bfd; --flat:#6e7681;
-    --accent:#79c0ff; --grid:rgba(42,52,65,0.55); --cross:rgba(139,151,166,0.45);
-    --shadow:none; }}
+  :root {{ --bg:#f5f7fa; --card:#ffffff; --line:#e4e8ed; --txt:var(--inset);
+    --muted:#5b6776; --txt2:#3d4757; --buy:#0f9d58; --sell:#d1242f; --hold:#0b5cad; --flat:#8a96a3;
+    --accent:#0b5cad; --grid:rgba(120,130,145,0.16); --cross:rgba(60,70,85,0.4);
+    --inset:#f1f4f8; --hover:#eef2f7; --ring:rgba(11,92,173,.40);
+    --shadow:0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.06);
+    --shadow-lg:0 6px 20px rgba(16,24,40,0.10); }}
+  html[data-theme="dark"] {{ --bg:#0d1117; --card:#161b22; --line:#262d36; --txt:#e6edf3;
+    --muted:#8b97a6; --txt2:var(--txt2); --buy:#2ea043; --sell:#f85149; --hold:#58a6ff; --flat:#6e7681;
+    --accent:#58a6ff; --grid:rgba(42,52,65,0.55); --cross:rgba(139,151,166,0.45);
+    --inset:var(--inset); --hover:#1c2530; --ring:rgba(88,166,255,.45);
+    --shadow:0 1px 2px rgba(0,0,0,0.4); --shadow-lg:0 8px 28px rgba(0,0,0,0.5); }}
   * {{ box-sizing:border-box; }}
+  /* ---- global polish: motion, focus, numerals, scrollbars ---- */
+  button, select, .card, .wl, summary, .tabs button, .ctlgrp button, .ctlbtn, .tc-seg button {{
+    transition:background-color .15s ease, border-color .15s ease, color .15s ease,
+               transform .15s ease, box-shadow .15s ease; }}
+  button {{ font-family:inherit; }}
+  :focus-visible {{ outline:2px solid var(--ring); outline-offset:2px; border-radius:6px; }}
+  a {{ color:var(--accent); text-underline-offset:2px; }}
+  .px, .stat .v, .kv span:last-child, .trackrec td, .secpct, .readout .rprice,
+  .wl-px, .wl-chg, .convbadge {{ font-variant-numeric:tabular-nums; font-feature-settings:'tnum' 1; }}
+  ::-webkit-scrollbar {{ width:10px; height:10px; }}
+  ::-webkit-scrollbar-thumb {{ background:var(--line); border-radius:6px; border:2px solid transparent;
+    background-clip:padding-box; }}
+  ::-webkit-scrollbar-thumb:hover {{ background:var(--muted); background-clip:padding-box; }}
+  ::-webkit-scrollbar-track {{ background:transparent; }}
+  @media (prefers-reduced-motion: reduce) {{
+    *, *::before, *::after {{ transition:none !important; animation:none !important; scroll-behavior:auto !important; }}
+    .card:hover {{ transform:none; }} }}
   html, body {{ max-width:100%; overflow-x:hidden; }}
   body {{ margin:0; font:15px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;
     background:var(--bg); color:var(--txt); }}
   .wrap {{ width:100%; max-width:1480px; margin:0 auto; padding:28px 24px 60px; }}
   .grid-stack {{ width:100%; }}
-  h1 {{ font-size:22px; margin:0 0 4px; }}
-  h2 {{ font-size:16px; margin:30px 0 12px; color:var(--muted);
-    text-transform:uppercase; letter-spacing:.05em; }}
+  h1 {{ font-size:25px; font-weight:800; letter-spacing:-.015em; margin:0 0 5px; }}
+  h2 {{ font-size:13px; margin:30px 0 12px; color:var(--muted); font-weight:700;
+    text-transform:uppercase; letter-spacing:.06em; }}
   .meta {{ color:var(--muted); font-size:13px; margin-bottom:6px; }}
   .badge {{ display:inline-block; padding:2px 10px; border-radius:999px;
     font-size:12px; font-weight:600; }}
@@ -371,15 +391,16 @@ def render_html(snap: dict) -> str:
   .grid {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
     gap:14px; }}
   .card {{ background:var(--card); border:1px solid var(--line); border-radius:12px;
-    padding:16px; cursor:pointer; transition:border-color .12s, transform .12s; }}
-  .card:hover {{ border-color:#3d4d5f; transform:translateY(-2px); }}
+    padding:16px; cursor:pointer; box-shadow:var(--shadow); }}
+  .card:hover {{ border-color:color-mix(in srgb, var(--accent) 45%, var(--line));
+    transform:translateY(-2px); box-shadow:var(--shadow-lg); }}
   .more {{ color:var(--muted); font-size:12px; margin-top:10px;
     border-top:1px solid var(--line); padding-top:8px; }}
   .sym {{ font-size:18px; font-weight:700; }}
   .logo {{ width:20px; height:20px; border-radius:4px; vertical-align:middle;
     margin-right:7px; background:#fff; object-fit:contain; }}
   .cname {{ color:var(--muted); font-size:12px; margin-top:2px; }}
-  .act {{ float:right; padding:2px 10px; border-radius:6px; font-size:12px; font-weight:700; }}
+  .act {{ float:right; padding:2px 10px; border-radius:6px; font-size:12px; font-weight:700; color:#fff; }}
   .a-BUY {{ background:var(--buy); }} .a-SELL {{ background:var(--sell); }}
   .a-HOLDLONG {{ background:var(--hold); }} .a-FLAT {{ background:var(--flat); }}
   .px {{ font-size:26px; font-weight:700; margin:8px 0 2px; }}
@@ -415,16 +436,16 @@ def render_html(snap: dict) -> str:
   .modal .chartbox {{ margin-top:0; }}
   .plangrid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
     gap:10px; }}
-  .stat {{ background:#0f1722; border:1px solid var(--line); border-radius:10px;
+  .stat {{ background:var(--inset); border:1px solid var(--line); border-radius:10px;
     padding:10px 12px; }}
   .stat .l {{ color:var(--muted); font-size:11px; text-transform:uppercase;
     letter-spacing:.04em; }}
   .stat .v {{ font-size:17px; font-weight:700; margin-top:2px; }}
   .stat .v.buy {{ color:var(--buy); }} .stat .v.sell {{ color:var(--sell); }}
   .stat .sub {{ color:var(--muted); font-size:11px; }}
-  .deskread {{ background:#0f1722; border:1px solid var(--line); border-left:3px solid var(--hold);
+  .deskread {{ background:var(--inset); border:1px solid var(--line); border-left:3px solid var(--hold);
     border-radius:10px; padding:12px 14px; font-size:14px; margin:14px 0; }}
-  .convbadge {{ font-size:13px; font-weight:700; padding:2px 10px; border-radius:999px; }}
+  .convbadge {{ font-size:13px; font-weight:700; padding:2px 10px; border-radius:999px; color:#fff; }}
   .conv-High {{ background:var(--buy); }} .conv-Medium {{ background:#9e6a1e; }}
   .conv-Low {{ background:var(--sell); }}
   .checks {{ list-style:none; padding:0; margin:8px 0; }}
@@ -443,15 +464,20 @@ def render_html(snap: dict) -> str:
   .chips {{ display:flex; flex-wrap:wrap; gap:7px; }}
   .chip {{ font-size:12px; font-weight:600; padding:3px 10px; border-radius:999px;
     border:1px solid var(--line); }}
-  .chip.bull {{ background:#15361f; color:#7ee2a0; border-color:#1d4a2b; }}
-  .chip.bear {{ background:#3a1e1e; color:#ff9b9b; border-color:#5a1e1e; }}
-  .chip.neutral {{ background:#1a212b; color:#c4ccd6; }}
+  .chip.bull {{ background:color-mix(in srgb, var(--buy) 14%, transparent); color:var(--buy);
+    border-color:color-mix(in srgb, var(--buy) 32%, transparent); }}
+  .chip.bear {{ background:color-mix(in srgb, var(--sell) 14%, transparent); color:var(--sell);
+    border-color:color-mix(in srgb, var(--sell) 32%, transparent); }}
+  .chip.neutral {{ background:var(--inset); color:var(--txt2); border-color:var(--line); }}
   .chip.mini {{ font-size:10.5px; padding:1px 7px; }}
   .tabs {{ display:flex; gap:4px; flex-wrap:wrap; border-bottom:1px solid var(--line);
-    margin:18px 0 22px; position:sticky; top:0; background:var(--bg); z-index:10; padding-top:6px; }}
+    margin:18px 0 22px; position:sticky; top:0; z-index:10; padding-top:6px;
+    background:color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter:saturate(1.3) blur(10px); }}
   .tabs button {{ background:none; border:none; color:var(--muted); font-size:15px;
     font-weight:600; padding:10px 16px; cursor:pointer; border-bottom:2px solid transparent; }}
-  .tabs button.on {{ color:var(--txt); border-bottom-color:var(--hold); }}
+  .tabs button.on {{ color:var(--txt); border-bottom-color:var(--accent); }}
+  .tabs button:hover {{ color:var(--txt); }}
+  .ctlbtn:hover, .ctlgrp button:hover {{ color:var(--txt); background:var(--hover); }}
   .page {{ display:none; }} .page.on {{ display:block; }}
   .secthead {{ font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase;
     letter-spacing:.05em; margin:22px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--line); }}
@@ -463,7 +489,7 @@ def render_html(snap: dict) -> str:
   .ovchart {{ flex:1; min-width:0; }}
   .ovboard {{ width:150px; max-height:300px; overflow-y:auto; border-left:1px solid var(--line); padding-left:10px; }}
   .ovrow {{ display:flex; align-items:center; gap:6px; font-size:12px; padding:3px 2px; cursor:pointer; color:var(--muted); border-radius:4px; }}
-  .ovrow:hover {{ color:var(--txt); background:#0f1722; }}
+  .ovrow:hover {{ color:var(--txt); background:var(--inset); }}
   .ovrow.on {{ color:var(--txt); font-weight:700; }}
   .ovdot {{ width:8px; height:8px; border-radius:50%; flex:0 0 8px; }}
   .ovsym {{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
@@ -475,7 +501,7 @@ def render_html(snap: dict) -> str:
   .regime .rnote {{ color:var(--muted); font-size:12px; width:100%; }}
   .secrow {{ display:flex; align-items:center; gap:10px; margin:6px 0; font-size:13px; }}
   .secname {{ width:130px; color:var(--txt); }}
-  .secbar {{ flex:1; height:8px; background:#0f1722; border-radius:5px; overflow:hidden; }}
+  .secbar {{ flex:1; height:8px; background:var(--inset); border-radius:5px; overflow:hidden; }}
   .secfill {{ height:100%; background:linear-gradient(90deg,#388bfd,#2ea043); }}
   .secpct {{ width:90px; text-align:right; color:var(--muted); }}
   .track {{ background:var(--card); border:1px solid var(--line); border-radius:12px;
@@ -504,9 +530,9 @@ def render_html(snap: dict) -> str:
   .method summary:before {{ content:'▸ '; color:var(--hold); }}
   .method[open] summary:before {{ content:'▾ '; }}
   .method h4 {{ margin:16px 0 6px; font-size:14px; color:var(--txt); }}
-  .method p, .method li {{ font-size:14px; color:#c4ccd6; line-height:1.6; }}
+  .method p, .method li {{ font-size:14px; color:var(--txt2); line-height:1.6; }}
   .method ol, .method ul {{ padding-left:20px; margin:6px 0; }}
-  .method .pill {{ display:inline-block; background:#0f1722; border:1px solid var(--line);
+  .method .pill {{ display:inline-block; background:var(--inset); border:1px solid var(--line);
     border-radius:6px; padding:1px 7px; font-size:13px; color:var(--txt); }}
   /* ---- theme toggle ---- */
   .themebtn {{ position:absolute; top:18px; right:20px; background:var(--card); color:var(--muted);
@@ -697,6 +723,11 @@ def render_html(snap: dict) -> str:
         <li><b>Risk : reward</b> — the target must pay enough for the risk taken.</li>
         <li><b>Historical edge</b> — we <i>backtest this exact strategy on that stock's own history</i>
         and factor in how often it has actually worked there.</li>
+        <li><b>Strategy confluence</b> — we also run several <i>independent</i> strategies on the same
+        stock (trend crossover, golden cross, Donchian breakout, MACD momentum, RSI-2 dip-buy,
+        Bollinger squeeze breakout, EMA momentum stack). When more of them agree the setup is long,
+        conviction rises. The detail panel shows which are firing and how each has historically
+        performed on that stock.</li>
       </ul>
       <p>The detail panel also flags <b>chart patterns</b> (golden cross, breakouts, pullbacks, MACD
       crosses, oversold bounces…) and reads the <b>market backdrop</b> — overall breadth (how many
@@ -748,6 +779,8 @@ def render_html(snap: dict) -> str:
     <div class="plangrid" id="mResearch"></div>
     <div class="sech">How this strategy has done on this stock <span style="text-transform:none;color:var(--muted);">(backtest)</span></div>
     <div class="plangrid" id="mEdge"></div>
+    <div class="sech">Strategies in play <span style="text-transform:none;color:var(--muted);">— independent methods + their track record here</span></div>
+    <div id="mStrategies"></div>
     <div class="sech">The trade plan <span id="mPlanNote" style="text-transform:none;color:var(--muted);"></span></div>
     <div class="plangrid" id="mPlan"></div>
     <div class="sech">Price chart</div>
@@ -795,7 +828,7 @@ function makeCard(s) {{
     ${{s.stop!=null ? `<div class="kv"><span>Stop / Target</span><span>$${{s.stop}} / $${{s.target}}</span></div>`:''}}
     ${{s.suggested_shares ? `<div class="kv"><span>Suggested size</span><span>${{s.suggested_shares}} sh</span></div>`:''}}
     ${{s.conviction ? `<div class="kv"><span>Conviction</span><span><span class="convbadge conv-${{s.conviction.label}}" style="font-size:11px;">${{s.conviction.label}} ${{s.conviction.score_pct}}%</span></span></div>`:''}}
-    ${{(() => {{ const ed=(s.fundamentals||{{}}).earnings_days; const ch=(s.patterns||[]).slice(0,3).map(p=>`<span class="chip mini ${{p.kind}}">${{p.label}}</span>`); if(ed!=null && ed<=7) ch.unshift(`<span class="chip mini bear">⚠ Earnings ${{ed}}d</span>`); return ch.length?`<div class="chips" style="margin-top:8px;">${{ch.join('')}}</div>`:''; }})()}}
+    ${{(() => {{ const ed=(s.fundamentals||{{}}).earnings_days; const ch=(s.patterns||[]).slice(0,3).map(p=>`<span class="chip mini ${{p.kind}}">${{p.label}}</span>`); if(ed!=null && ed<=7) ch.unshift(`<span class="chip mini bear">⚠ Earnings ${{ed}}d</span>`); const _cn=(s.strategies&&s.strategies.now)?s.strategies.now:null; if(_cn && _cn.count>=2) ch.unshift(`<span class="chip mini bull" title="independent strategies agreeing">▲ ${{_cn.count}}/${{_cn.total}} strategies</span>`); return ch.length?`<div class="chips" style="margin-top:8px;">${{ch.join('')}}</div>`:''; }})()}}
     <div class="more">${{nNews ? nNews+' news &middot; ':''}}click for full plan + reasoning →</div>`;
   el.addEventListener('click', () => openModal(s));
   return el;
@@ -1092,6 +1125,30 @@ function openModal(s) {{
       + `<div class="stat"><div class="l">Worst drawdown</div><div class="v sell">${{money(e.max_drawdown)}}</div></div>`;
   }} else {{
     eel.innerHTML = '<div style="color:var(--muted);font-size:13px;">Not enough past trades on this stock to measure an edge yet.</div>';
+  }}
+  // strategies in play: which independent methods are long now + their edge here
+  const sel = document.getElementById('mStrategies'), sd = s.strategies || {{}};
+  if (sel) {{
+    const now = sd.now || {{}}, res = now.results || {{}}, edges = ((sd.edges || {{}}).by) || {{}};
+    let chips = '';
+    Object.keys(res).forEach(k => {{
+      const r = res[k]; const cls = r.long ? (r.fresh ? 'bull' : 'neutral') : '';
+      chips += `<span class="chip mini ${{cls}}" title="${{r.kind}}">${{r.long ? '●' : '○'}} ${{r.label}}</span>`;
+    }});
+    let rows = '';
+    Object.keys(edges).forEach(k => {{
+      const e = edges[k]; const wr = e.win_rate == null ? '–' : e.win_rate + '%';
+      const ret = (e.total_return >= 0 ? '+' : '') + e.total_return + '%';
+      rows += `<tr><td>${{e.label}}</td><td style="color:var(--muted);">${{e.kind}}</td>`
+        + `<td style="text-align:right;">${{wr}}</td><td style="text-align:right;color:var(--muted);">${{e.n_trades}}</td>`
+        + `<td style="text-align:right;" class="${{e.total_return >= 0 ? 'win' : 'loss'}}">${{ret}}</td></tr>`;
+    }});
+    const head = `<div style="margin-bottom:6px;font-size:13px;"><b>${{now.count || 0}}</b> of ${{now.total || 0}} strategies are long here right now (● long · ○ flat):</div>`
+      + `<div class="chips" style="margin-bottom:12px;">${{chips}}</div>`;
+    const table = rows
+      ? `<table class="trackrec"><thead><tr><th>Strategy</th><th>Type</th><th style="text-align:right;">Win</th><th style="text-align:right;">Trades</th><th style="text-align:right;">Return</th></tr></thead><tbody>${{rows}}</tbody></table>`
+      : '<div style="color:var(--muted);font-size:13px;">Per-strategy backtests are computed for the shown signals.</div>';
+    sel.innerHTML = head + table;
   }}
   const aiHead = document.getElementById('mAIHead'), aiBox = document.getElementById('mAI');
   if (s.ai_read) {{

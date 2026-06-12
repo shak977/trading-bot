@@ -12,6 +12,7 @@ import pandas as pd
 
 import analytics
 import market
+import strategies
 from config import Config
 from data import get_bars, synthetic_bars
 from indicators import atr
@@ -136,12 +137,23 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
     rv_rounded = None if np.isnan(relvol) else round(relvol, 2)
     patterns, factors = analytics.detect(df, sig, cfg, rv_rounded)
     edge = analytics.backtest_edge(df, cfg)
+    # Strategy confluence (cheap — no backtests): how many independent methods
+    # are long here right now. Stuffed into `factors` so _conviction can score it.
+    confl = strategies.evaluate(df, cfg)
+    factors["confluence"] = confl["count"]
+    factors["confluence_total"] = confl["total"]
+    factors["strategies_long"] = confl["long"]
     summary, reasons = _reasoning(sig, cfg, action, price, rv_rounded)
+    if confl["count"] >= 2:
+        reasons.append(
+            f"Strategy confluence — {confl['count']} of {confl['total']} independent strategies "
+            f"are long here: {', '.join(confl['long'][:5])}.")
     plan, context = _trade_plan(df, sig, cfg, price, equity)
     conviction = _conviction(action, float(last["rsi"]), rv_rounded, plan, context, cfg,
                              factors, patterns, edge)
     desk_read = _desk_read(action, plan, context, conviction, patterns, edge)
     return {
+        "_df": df,  # kept transiently so scan() can backtest per-strategy edges for shown rows
         "symbol": symbol,
         "action": action,
         "price": round(price, 2),
@@ -162,6 +174,7 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
         "patterns": patterns,
         "factors": factors,
         "edge": edge,
+        "strategies": {"now": confl, "edges": None},  # edges filled for shown rows in scan()
         "chart": _chart_data(tail),
     }
 
@@ -408,6 +421,18 @@ def _conviction(action, rsi, relvol, plan, context, cfg: Config,
     else:
         add("Worked here before?", "fail", f"Weak — only {wr}% of {nt} past trades on this stock worked out.")
 
+    cf = factors.get("confluence")
+    cft = factors.get("confluence_total")
+    if cf is not None and cft:
+        longs = factors.get("strategies_long") or []
+        names = (": " + ", ".join(longs[:4])) if longs else ""
+        if cf >= 3:
+            add("Strategies agree?", "pass", f"Strong — {cf} of {cft} independent strategies are long here{names}.")
+        elif cf == 2:
+            add("Strategies agree?", "warn", f"Some support — 2 of {cft} strategies are long{names}.")
+        else:
+            add("Strategies agree?", "warn", f"Thin — only {cf} of {cft} strategies are long; limited cross-confirmation.")
+
     # --- research-driven checks (only added when the data is available) ---
     if sentiment:
         lbl = sentiment.get("label")
@@ -563,4 +588,22 @@ def scan(cfg: Config, live: bool) -> list[dict]:
             f"0 usable. If on a free Alpaca plan, confirm market-data access (IEX feed)."
         )
     rows.sort(key=_rank_key)
+    # Per-strategy backtests are the expensive part, so only run them for the
+    # rows that will actually be shown; drop the stashed frame from the rest.
+    for row in rows[:cfg.show_top]:
+        df = row.pop("_df", None)
+        if df is None:
+            continue
+        try:
+            edges = analytics.strategy_edges(df, cfg)
+            row["strategies"]["edges"] = edges
+            best = edges.get("best")
+            if best:
+                row.setdefault("reasons", []).append(
+                    f"Best historical edge here: {best['label']} — {best['win_rate']}% win over "
+                    f"{best['n_trades']} past trades (hypothetical, no fees).")
+        except Exception:  # noqa: BLE001
+            pass
+    for row in rows[cfg.show_top:]:
+        row.pop("_df", None)
     return rows

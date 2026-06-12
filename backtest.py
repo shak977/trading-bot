@@ -37,15 +37,28 @@ class BacktestResult:
 
 
 def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestResult:
+    """Backtest the house strategy (SMA crossover + RSI filter)."""
     sig = generate_signals(df, cfg)
+    return backtest_positions(sig, sig["signal"], cfg)
+
+
+def backtest_positions(df: pd.DataFrame, positions: pd.Series, cfg: Config) -> BacktestResult:
+    """Backtest an arbitrary 0/1 position series with the same risk handling.
+
+    ``df`` must carry high/low/close columns aligned to ``positions``. This lets
+    every strategy in ``strategies.py`` be graded identically.
+    """
+    pos = positions.reindex(df.index).fillna(0.0)
     cash = cfg.starting_cash
     shares = 0
     entry = stop = target = 0.0
     equity_hist, trades = [], []
 
-    for ts, row in sig.iterrows():
+    for ts, row in df.iterrows():
         price = row["close"]
-        signal = row["signal"]
+        signal = pos.loc[ts]
+        if isinstance(signal, pd.Series):  # guard against duplicate index labels
+            signal = signal.iloc[-1]
 
         # --- manage open position ---
         if shares > 0:
@@ -75,7 +88,7 @@ def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestResult:
 
         equity_hist.append(cash + shares * price)
 
-    equity = pd.Series(equity_hist, index=sig.index, name="equity")
+    equity = pd.Series(equity_hist, index=df.index, name="equity")
     return BacktestResult(equity, pd.DataFrame(trades), _metrics(equity, trades, cfg))
 
 

@@ -106,10 +106,38 @@ def test_rescore():
     _ok("desk read mentions analysts", "analyst" in row["desk_read"].lower())
 
 
+def test_strategies():
+    print("strategies + confluence:")
+    import strategies
+    import analytics
+    df = synthetic_bars("TEST", n=CONFIG.lookback_days)
+    for k in strategies.STRATEGIES:
+        p = strategies.positions(df, CONFIG, k)
+        _ok(f"{k} is 0/1 series", len(p) == len(df) and set(p.dropna().unique()).issubset({0.0, 1.0}))
+    ev = strategies.evaluate(df, CONFIG)
+    _ok("confluence count within range", 0 <= ev["count"] <= ev["total"] == len(strategies.STRATEGIES))
+    se = analytics.strategy_edges(df, CONFIG)
+    _ok("edges cover every strategy", set(se["by"].keys()) == set(strategies.STRATEGIES.keys()))
+    _ok("each edge has win/trade fields", all(("win_rate" in v and "n_trades" in v) for v in se["by"].values()))
+
+
+def test_confluence_in_scan():
+    print("scan integration:")
+    import scanner
+    row = scanner._analyse("AAPL", synthetic_bars("AAPL", n=CONFIG.lookback_days), CONFIG, CONFIG.starting_cash)
+    _ok("row carries strategies.now", "strategies" in row and "now" in row["strategies"])
+    _ok("factors carry confluence", row["factors"].get("confluence") is not None)
+    labels = [c["label"] for c in row["conviction"]["checks"]]
+    _ok("conviction includes strategies check", "Strategies agree?" in labels)
+    row.pop("_df", None)  # transient frame _analyse stashes for scan()
+
+
 def main():
     test_indicators()
     test_strategy_backtest()
     test_analytics()
+    test_strategies()
+    test_confluence_in_scan()
     test_research()
     test_rescore()
     test_llm_prompt()
