@@ -31,7 +31,7 @@ def synthetic_bars(symbol: str = "TEST", n: int = 400, seed: int = 42) -> pd.Dat
 def get_bars(symbol: str, cfg: Config) -> pd.DataFrame:
     """Fetch daily/intraday bars from Alpaca. Requires valid keys."""
     cfg.validate_for_live()
-    from alpaca.data.enums import DataFeed
+    from alpaca.data.enums import Adjustment, DataFeed
     from alpaca.data.historical import StockHistoricalDataClient
     from alpaca.data.requests import StockBarsRequest
     from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
@@ -55,6 +55,7 @@ def get_bars(symbol: str, cfg: Config) -> pd.DataFrame:
         start=start.to_pydatetime(),
         end=end.to_pydatetime(),
         feed=DataFeed.IEX,
+        adjustment=Adjustment.SPLIT,  # split-adjust so reverse splits (e.g. SPCE) don't fabricate huge moves
     )
     bars = client.get_stock_bars(req).df
     if bars.empty:

@@ -32,7 +32,7 @@ export default {
       const days = Math.min(parseInt(url.searchParams.get("days") || "2", 10) || 2, 10);
       const start = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
       const api = `https://data.alpaca.markets/v2/stocks/${encodeURIComponent(barsSym)}/bars`
-        + `?timeframe=${encodeURIComponent(tf)}&feed=iex&limit=1000&start=${encodeURIComponent(start)}`;
+        + `?timeframe=${encodeURIComponent(tf)}&feed=iex&adjustment=split&limit=1000&start=${encodeURIComponent(start)}`;
       try {
         const up = await fetch(api, { headers });
         if (!up.ok) return json({ error: "upstream " + up.status }, 502, cors);
