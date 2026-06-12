@@ -31,7 +31,10 @@ _SRC_TOP = ("reuters", "bloomberg", "cnbc", "wall street journal", "wsj", "finan
             "associated press", "barron", "the new york times", "ft.com", "dow jones")
 _SRC_MID = ("marketwatch", "yahoo finance", "benzinga", "forbes", "business insider",
             "seeking alpha", "the motley fool", "investor's business daily", "thestreet",
-            "zacks", "investopedia", "cnn", "fortune")
+            "zacks", "investopedia", "cnn", "fortune",
+            # decent analytical aggregators — partial credit (0.7)
+            "investing.com", "tipranks", "simply wall", "simplywall", "trefis",
+            "stockstory", "marketbeat", "morningstar", "kiplinger", "24/7 wall")
 
 
 def _source_weight(source: str) -> float:
@@ -318,16 +321,15 @@ def gather_symbol_news(symbols: list[str], cfg: Config, per_symbol: int = 6,
     Benzinga feed Alpaca returns, so the tone score that feeds conviction sees more signal.
     Fetched in parallel (threaded) with short timeouts; any source failing is skipped."""
     import concurrent.futures as _cf
-    import urllib.parse as _up
     syms = [s for s in dict.fromkeys(symbols) if s][:max_symbols]
     if not syms:
         return []
 
     def _fetch(sym: str) -> list[dict]:
         items: list[dict] = []
-        gq = _up.quote(f"{sym} stock")
+        # Yahoo Finance RSS is reachable from servers; Google News RSS is blocked from
+        # datacenter IPs (returns empty), so we don't waste a request on it.
         feeds = [
-            (f"https://news.google.com/rss/search?q={gq}&hl=en-US&gl=US&ceid=US:en", "Google News"),
             (f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={sym}&region=US&lang=en-US", "Yahoo Finance"),
         ]
         for url, dflt in feeds:
