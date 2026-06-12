@@ -165,41 +165,57 @@ def ipo_calendar(cfg: Config, days_ahead: int = 90) -> list[dict]:
         return []
 
 
-def ipo_buzz_news(cfg: Config, limit: int = 14) -> list[dict]:
-    """General market headlines mentioning notable pre-IPO names or IPO keywords.
+# Pre-IPO / IPO search queries for the keyless Google News RSS feed.
+_IPO_QUERIES = [
+    ("SpaceX", "SpaceX IPO"), ("Starlink", "Starlink IPO"), ("Stripe", "Stripe IPO"),
+    ("Databricks", "Databricks IPO"), ("OpenAI", "OpenAI IPO"), ("Anthropic", "Anthropic IPO"),
+    ("Anduril", "Anduril IPO"), ("IPO", "upcoming tech IPO this week"),
+]
 
-    This is how a private company like SpaceX (no ticker yet) still surfaces — the
-    symbol-keyed feed can't see it, but the general news feed can.
+
+def _parse_rss(xml_bytes: bytes, tag: str) -> list[dict]:
+    """Parse a Google News RSS payload into [{headline,url,source,created_at}]."""
+    import xml.etree.ElementTree as ET
+    out = []
+    root = ET.fromstring(xml_bytes)
+    for item in root.iter("item"):
+        title = (item.findtext("title") or "").strip()
+        link = (item.findtext("link") or "").strip()
+        pub = (item.findtext("pubDate") or "").strip()
+        src_el = item.find("source")
+        source = (src_el.text.strip() if src_el is not None and src_el.text else "Google News")
+        if title:
+            out.append({"headline": title, "url": link, "source": source,
+                        "created_at": pub[:16], "match": tag})
+    return out
+
+
+def ipo_buzz_news(cfg: Config, limit: int = 16) -> list[dict]:
+    """Headlines about notable pre-IPO names (SpaceX, Stripe, …) via Google News RSS.
+
+    Keyless and reliable for keyword search — this is how a private company with no
+    ticker still surfaces, since the symbol-keyed market feed can't see it.
     """
-    key = cfg.finnhub_api_key
-    if not key:
-        return []
-    try:
-        import datetime as _dt
-        items = _fh_get("/news", key, {"category": "general"}) or []
-        out, seen = [], set()
-        for n in items:
-            text = ((n.get("headline", "") or "") + " " + (n.get("summary", "") or "")).lower()
-            hit = next((k for k in _IPO_KW if k in text), None)
-            if not hit:
+    import urllib.parse
+    out, seen = [], set()
+    for tag, q in _IPO_QUERIES:
+        url = ("https://news.google.com/rss/search?q="
+               + urllib.parse.quote(q) + "&hl=en-US&gl=US&ceid=US:en")
+        try:
+            r = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+            if r.status_code != 200:
                 continue
-            h = n.get("headline", "")
-            if not h or h in seen:
-                continue
-            seen.add(h)
-            ts = n.get("datetime")
-            try:
-                when = _dt.datetime.utcfromtimestamp(int(ts)).strftime("%Y-%m-%d %H:%M") if ts else ""
-            except Exception:  # noqa: BLE001
-                when = ""
-            out.append({"headline": h, "source": n.get("source", ""), "url": n.get("url", ""),
-                        "summary": (n.get("summary", "") or "")[:240], "created_at": when,
-                        "match": hit.title()})
-            if len(out) >= limit:
-                break
-        return out
-    except Exception:  # noqa: BLE001
-        return []
+            for it in _parse_rss(r.content, tag):
+                h = it["headline"]
+                if h in seen:
+                    continue
+                seen.add(h)
+                out.append(it)
+        except Exception:  # noqa: BLE001
+            continue
+        if len(out) >= limit * 2:
+            break
+    return out[:limit]
 
 
 # ---------------------------------------------------------------- FRED macro

@@ -167,15 +167,16 @@ def build_snapshot() -> dict:
     # IPO watch: upcoming-IPO calendar + general news mentioning pre-IPO names
     # (e.g. SpaceX). Private names have no ticker, so this is the only way they surface.
     ipos, ipo_news = [], []
-    if live and CONFIG.finnhub_api_key:
+    if live:
         try:
-            ipos = research.ipo_calendar(CONFIG)
-        except Exception:  # noqa: BLE001
-            ipos = []
-        try:
-            ipo_news = research.ipo_buzz_news(CONFIG)
+            ipo_news = research.ipo_buzz_news(CONFIG)   # keyless (Google News RSS)
         except Exception:  # noqa: BLE001
             ipo_news = []
+        if CONFIG.finnhub_api_key:
+            try:
+                ipos = research.ipo_calendar(CONFIG)
+            except Exception:  # noqa: BLE001
+                ipos = []
 
     # Optional AI analyst note per signal (silent no-op if no key).
     if CONFIG.llm_enabled:
@@ -291,9 +292,8 @@ def _ipo_html(ipos: list[dict], ipo_news: list[dict]) -> str:
                '<th style="text-align:right;">Deal size</th><th>Status</th></tr></thead>'
                f'<tbody>{rows}</tbody></table>')
     else:
-        cal = ('<p style="color:var(--muted);font-size:13px;">No confirmed IPOs on the calendar for the next ~90 days '
-               '(or add a Finnhub key to enable it). Rumoured deals like SpaceX show up in the buzz feed below '
-               'until they formally file.</p>')
+        cal = ('<p style="color:var(--muted);font-size:13px;">No companies have formally filed to list in the next '
+               '~90 days. Rumoured deals like SpaceX appear in the buzz feed below until they file an S-1.</p>')
     if ipo_news:
         items = ""
         for n in ipo_news:
