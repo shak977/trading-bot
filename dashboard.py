@@ -834,10 +834,16 @@ def render_html(snap: dict) -> str:
     padding:16px; cursor:pointer; box-shadow:var(--shadow); }}
   .card:hover {{ border-color:color-mix(in srgb, var(--accent) 45%, var(--line));
     transform:translateY(-2px); box-shadow:var(--shadow-lg); }}
-  .card-why {{ font-size:12px; color:var(--txt); margin-top:9px; line-height:1.5; }}
-  .card-why .why-l {{ color:var(--muted); text-transform:uppercase; font-size:10px;
-    letter-spacing:.04em; font-weight:700; margin-right:5px; }}
-  .card-why b {{ color:var(--accent); font-weight:700; }}
+  .card-why {{ margin-top:11px; padding:9px 11px; background:var(--inset);
+    border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:8px; }}
+  .why-h {{ font-size:10.5px; text-transform:uppercase; letter-spacing:.04em;
+    font-weight:800; color:var(--muted); margin-bottom:7px; }}
+  .why-chips {{ display:flex; flex-wrap:wrap; gap:5px; }}
+  .why-chip {{ font-size:11.5px; padding:3px 9px; border-radius:999px; line-height:1.35;
+    border:1px solid var(--line); background:var(--card); color:var(--txt); white-space:nowrap; }}
+  .why-chip.trig {{ background:var(--accent); color:#fff; border-color:var(--accent); font-weight:700; }}
+  .why-chip.more {{ color:var(--muted); }}
+  .why-txt {{ font-size:12.5px; color:var(--txt); line-height:1.45; }}
   .more {{ color:var(--muted); font-size:12px; margin-top:10px;
     border-top:1px solid var(--line); padding-top:8px; }}
   .sym {{ font-size:18px; font-weight:700; }}
@@ -1385,22 +1391,26 @@ function makeCard(s) {{
   if (!_isShort && _r2 && _r2.long) ch.unshift(`<span class="chip mini bull" title="oversold dip inside an uptrend (RSI-2 mean-reversion)">↘ Dip-buy (RSI-2)</span>`);
   const _r2s = _cs && _cs.results && _cs.results.rsi2_short;
   if (_isShort && _r2s && _r2s.short) ch.unshift(`<span class="chip mini bear" title="overbought rip inside a downtrend (RSI-2 mirror)">↗ Rip-sell (RSI-2)</span>`);
-  // "Based on" — name the strategies behind the decision (the trigger ones bolded)
+  // "Why this signal" — a clear panel naming the strategies behind the decision.
+  // Trigger strategies (the catalyst) are filled pills; supporting ones are outlined.
   const _co = _isShort ? _cs : _cn;
-  let whyHtml = '';
+  const _actWord = (s.action==='SHORT'||s.action==='HOLD SHORT'||s.action==='WATCH SHORT') ? 'short'
+                 : (s.action==='BUY'||s.action==='HOLD LONG'||s.action==='WATCH LONG') ? 'buy' : 'signal';
+  let whyBody = '';
   if (_co) {{
     const agree = (_isShort ? (_co.short||[]) : (_co.long||[]));
     const fresh = _co.fresh || [];
     if (agree.length) {{
-      const shown = agree.slice(0,4).map(n => fresh.includes(n)
-        ? `<b title="the fresh trigger">${{n}}</b>` : n);
-      const extra = agree.length>4 ? ` +${{agree.length-4}} more` : '';
-      whyHtml = `<div class="card-why" title="independent strategies agreeing ${{_isShort?'short':'long'}} on this name right now">`
-        + `<span class="why-l">Based on</span> ${{shown.join(', ')}}${{extra}}</div>`;
+      const pills = agree.slice(0,6).map(n =>
+        `<span class="why-chip${{fresh.includes(n)?' trig':''}}"${{fresh.includes(n)?' title="the fresh trigger"':''}}>${{n}}</span>`);
+      const extra = agree.length>6 ? `<span class="why-chip more">+${{agree.length-6}}</span>` : '';
+      whyBody = `<div class="why-chips">${{pills.join('')}}${{extra}}</div>`;
     }}
   }}
-  if (!whyHtml && (s.action==='EXIT')) whyHtml = `<div class="card-why"><span class="why-l">Based on</span> trend break — its uptrend just rolled over</div>`;
-  if (!whyHtml && (s.action==='AVOID')) whyHtml = `<div class="card-why"><span class="why-l">Based on</span> below trend with weak/bearish setup — stay away</div>`;
+  if (!whyBody && s.action==='EXIT') whyBody = `<div class="why-txt">Trend break — its uptrend just rolled over.</div>`;
+  if (!whyBody && s.action==='AVOID') whyBody = `<div class="why-txt">Below trend with a weak/bearish setup — stay away.</div>`;
+  const whyHtml = whyBody
+    ? `<div class="card-why"><div class="why-h">📋 Why this ${{_actWord}} — strategies firing</div>${{whyBody}}</div>` : '';
   const nNews = (s.news||[]).length;
   el.innerHTML = `
     <div class="card-top">${{logo}}
