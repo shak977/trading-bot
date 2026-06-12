@@ -510,6 +510,7 @@ def render_html(snap: dict) -> str:
     <div class="ovbox">
       <div class="ovhead">📈 Live overview — % change vs S&amp;P 500 <span id="ovStatus"></span>
         <span class="ctlgrp" id="ovRangeBtns" style="margin-left:8px;"></span>
+        <button class="ctlbtn" id="ovColorBtn" style="margin-left:6px;">Colour all</button>
         <span style="font-weight:400;color:var(--muted);font-size:12px;"> · click a name to highlight</span></div>
       <div class="ovwrap">
         <div class="ovchart"><canvas id="overviewChart" height="150"></canvas></div>
@@ -788,7 +789,7 @@ let ovChart = null;
 const OV_WIN = 60;      // ~3 months of daily bars
 const OV_PALETTE = ['#388bfd','#2ea043','#f0883e','#f85149','#a371f7','#e8c878',
                     '#56d4dd','#db61a2','#6cc644','#bd8b00','#ff7b72','#79c0ff'];
-const OV = {{ items: [], pinned: new Set(), range: 'D', intra: {{}} }};  // range: D=daily, 1W, 1D
+const OV = {{ items: [], pinned: new Set(), range: 'D', intra: {{}}, colorAll: false }};  // range: D=daily, 1W, 1D
 function _rebase(t, close) {{
   const n = close.length, st = Math.max(0, n - OV_WIN);
   const T = t.slice(st), C = close.slice(st);
@@ -816,8 +817,9 @@ function _ovChart(plot, unit, intraday) {{
   const cv = document.getElementById('overviewChart'); if (!cv) return;
   const datasets = plot.map(it => ({{
     label: it.label, data: it.pts, _sym: it.sym, _active: it.active,
-    borderColor: it.bench ? '#e6edf3' : (it.active ? it.color : 'rgba(139,151,166,0.16)'),
-    borderWidth: it.bench ? 2.4 : (it.active ? 2 : 1), pointRadius: 0, fill: false,
+    borderColor: it.bench ? '#e6edf3'
+                 : (it.active ? it.color : (OV.colorAll ? it.color : 'rgba(139,151,166,0.16)')),
+    borderWidth: it.bench ? 2.4 : (it.active ? 2 : (OV.colorAll ? 1.3 : 1)), pointRadius: 0, fill: false,
     order: it.active ? 1 : 5 }}));
   const allY = []; plot.forEach(it => it.pts.forEach(p => allY.push(p.y)));
   allY.sort((a, b) => a - b);
@@ -909,6 +911,9 @@ function _setupOvRange() {{
     b.onclick = () => {{ OV.range = v; bar.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x.dataset.r===v)); buildOverview(); }};
     bar.appendChild(b);
   }});
+  const cb = document.getElementById('ovColorBtn');
+  if (cb) {{ cb.classList.toggle('on', OV.colorAll);
+    cb.onclick = () => {{ OV.colorAll = !OV.colorAll; cb.classList.toggle('on', OV.colorAll); buildOverview(); }}; }}
 }}
 function _buildBoard() {{
   const board = document.getElementById('ovBoard'); if (!board || !OV.items.length) return;
@@ -918,7 +923,7 @@ function _buildBoard() {{
   board.innerHTML = rows.map(r => {{
     const on = r.bench || OV.pinned.has(r.sym);
     return `<div class="ovrow ${{on?'on':''}}" data-sym="${{r.sym}}">`
-      + `<span class="ovdot" style="background:${{on ? r.color : 'rgba(139,151,166,0.4)'}};"></span>`
+      + `<span class="ovdot" style="background:${{(on||OV.colorAll) ? r.color : 'rgba(139,151,166,0.4)'}};"></span>`
       + `<span class="ovsym">${{r.label}}</span>`
       + `<span class="ovval" style="color:${{r.val>=0?'#2ea043':'#f85149'}};">${{r.val>=0?'+':''}}${{r.val.toFixed(1)}}%</span></div>`;
   }}).join('');
@@ -1095,8 +1100,9 @@ function _updateReadout(idx) {{
     + `<span class="rdate">${{ds}}</span>`;
 }}
 function _cleanOpts(unit, y2) {{
+  const df = {{hour:'HH:mm', day:'MMM d', week:'MMM d', month:'MMM yyyy'}};
   const scales = {{
-    x:{{type:'time', time:{{unit}}, ticks:{{color:'#8b97a6', maxTicksLimit:6}}, grid:{{display:false}}}},
+    x:{{type:'time', time:{{unit, displayFormats:df}}, ticks:{{color:'#8b97a6', maxTicksLimit:6}}, grid:{{display:false}}}},
     y:{{position:'right', ticks:{{color:'#8b97a6'}}, grid:{{color:'rgba(42,52,65,0.55)'}}}}
   }};
   if (y2) scales.y2 = {{position:'left', ticks:{{color:'#a371f7', callback:v=>v+'%'}}, grid:{{display:false}}}};
@@ -1108,8 +1114,7 @@ function _cleanOpts(unit, y2) {{
       legend:{{labels:{{color:'#8b97a6', usePointStyle:true, boxWidth:8,
         filter:(it)=> it.text && it.text[0] !== '_'}}}},
       tooltip:{{enabled:false}},
-      zoom:{{ zoom:{{wheel:{{enabled:true}}, pinch:{{enabled:true}}, mode:'x'}},
-              pan:{{enabled:true, mode:'x'}}, limits:{{x:{{minRange:5*86400000}}}} }}
+      zoom:{{ zoom:{{wheel:{{enabled:true}}, pinch:{{enabled:true}}, mode:'x'}}, pan:{{enabled:true, mode:'x'}} }}
     }},
     scales
   }};
@@ -1270,18 +1275,22 @@ function _drawIntra(s, bars) {{
     color:{{up:'#2ea043',down:'#f85149',unchanged:'#8b97a6'}}}});
   else ds.push({{type:'line', label:'Price', borderColor:pcol, borderWidth:2, pointRadius:0,
     fill:true, backgroundColor:_areaFill(pcol), data:T.map((t,i)=>({{x:t,y:close[i]}}))}});
-  const tA=T[0], tB=T[T.length-1];
-  const hline=(v,col,lab)=>({{type:'line',label:lab,borderColor:col,borderDash:[5,4],borderWidth:1,
-    pointRadius:0,fill:false,data:[{{x:tA,y:v}},{{x:tB,y:v}}]}});
-  if (p.entry!=null) ds.push(hline(p.entry,'rgba(139,151,166,0.7)','Buy near'));
-  if (p.target!=null) ds.push(hline(p.target,'rgba(46,160,67,0.7)','Take-profit'));
-  if (p.stop!=null) ds.push(hline(p.stop,'rgba(248,81,73,0.7)','Stop-loss'));
-  CUR = {{ prices:close, times:T, base: close.find(v=>v!=null), intraday:true }};
-  mChart = new Chart(document.getElementById('mChart'),
-    {{ data:{{datasets:ds}}, options:_cleanOpts(CSTATE.range==='1D'?'hour':'day', false) }});
+  // NOTE: no stop/target lines here — they sit ±5–15% away and would flatten an
+  // intraday move into a sliver. Intraday is about the day's shape, so we fit
+  // the y-axis tightly to the actual price range instead.
+  const ys = (useCandle ? bars.flatMap(b=>[b.h,b.l]) : close).filter(v=>v!=null);
+  const lo = Math.min(...ys), hi = Math.max(...ys), pad = Math.max((hi-lo)*0.08, hi*0.001);
+  CUR = {{ prices:close, times:T, base: close[0], intraday:true }};
+  const opts = _cleanOpts(CSTATE.range==='1D'?'hour':'day', false);
+  opts.scales.y.min = lo - pad; opts.scales.y.max = hi + pad;
+  mChart = new Chart(document.getElementById('mChart'), {{ data:{{datasets:ds}}, options:opts }});
   _updateReadout();
-  key.innerHTML = (CSTATE.range==='1D' ? "Today's" : "This week's") + ' price path, live ('
-    + (CSTATE.range==='1D' ? '15-min' : '1-hour') + ' bars). Hover to scrub. Dashed = entry / target / stop.';
+  // honest, accurate label from the data itself (handles weekends / closed days)
+  const fmt = ms => new Date(ms).toLocaleDateString([], {{month:'short', day:'numeric'}});
+  const span = (CSTATE.range==='1D') ? ('Session of ' + fmt(T[T.length-1]))
+                                     : (fmt(T[0]) + ' – ' + fmt(T[T.length-1]));
+  key.innerHTML = `${{span}} · ${{CSTATE.range==='1D'?'15-min':'1-hour'}} bars, live. Hover to scrub. `
+    + `(Stop/target levels are on the daily ranges.)`;
 }}
 
 // build chart controls once
