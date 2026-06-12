@@ -196,9 +196,23 @@ def build_snapshot() -> dict:
 
     # Attach each ticker's own headlines to its row (for the click-through detail),
     # and fold a plain-English news line into the reasoning so it's news-aware.
+    def _interleave_by_source(items):
+        """Round-robin across sources so the top headlines show a MIX (not 10 Benzinga first)."""
+        from collections import OrderedDict, deque
+        groups = OrderedDict()
+        for it in items:
+            groups.setdefault(it.get("source", ""), deque()).append(it)
+        out = []
+        while any(groups.values()):
+            for q in groups.values():
+                if q:
+                    out.append(q.popleft())
+        return out
     for r in shown:
-        # keep more headlines per ticker now that several feeds contribute — richer tone signal
-        r["news"] = [n for n in news if r["symbol"] in (n.get("symbols") or [])][: max(CONFIG.news_per_symbol, 10)]
+        # keep more headlines per ticker now that several feeds contribute — richer tone signal,
+        # interleaved by source so the modal shows variety, not one outlet stacked on top.
+        _matched = [n for n in news if r["symbol"] in (n.get("symbols") or [])]
+        r["news"] = _interleave_by_source(_matched)[: max(CONFIG.news_per_symbol, 12)]
         if r["news"]:
             top = r["news"][0]["headline"]
             n = len(r["news"])
@@ -342,6 +356,8 @@ def build_snapshot() -> dict:
         "scanned": len(rows),
         "diagnostics": list(scanner.LAST_ERRORS),
         "audit_summary": None,  # filled by main() after the audit — kept early so it survives a truncated fetch
+        "news_sources": dict(__import__("collections").Counter(
+            (n.get("source") or "?") for n in news).most_common(14)),
         "benchmark": benchmark,
         "track": track,
         "regime": regime,

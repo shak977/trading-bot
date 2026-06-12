@@ -113,6 +113,35 @@ def _fh_get(path: str, key: str, params: dict, timeout: int = 12):
     return r.json()
 
 
+def finnhub_news(symbol: str, cfg: Config, days: int = 10, limit: int = 6) -> list[dict]:
+    """Recent company news from Finnhub (keyed, reliable from servers). Returns the same
+    shape as the other feeds. Source names are real outlets (CNBC, MarketWatch, …)."""
+    key = cfg.finnhub_api_key
+    if not key:
+        return []
+    import datetime as _dt
+    to = _dt.date.today()
+    frm = to - _dt.timedelta(days=days)
+    try:
+        data = _fh_get("/company-news", key, {"symbol": symbol,
+                                              "from": frm.isoformat(), "to": to.isoformat()})
+    except Exception:  # noqa: BLE001
+        return []
+    out = []
+    for n in (data or []):
+        h = (n.get("headline") or "").strip()
+        if not h:
+            continue
+        ts = n.get("datetime")
+        created = (_dt.datetime.utcfromtimestamp(ts).strftime("%Y-%m-%dT%H:%M:%SZ")
+                   if ts else "")
+        out.append({"headline": h, "source": (n.get("source") or "Finnhub"),
+                    "created_at": created, "url": n.get("url", ""), "symbols": [symbol]})
+        if len(out) >= limit:
+            break
+    return out
+
+
 def finnhub_snapshot(symbol: str, cfg: Config) -> dict | None:
     """Analyst consensus, price target vs price, key fundamentals, next earnings.
     Returns a partial dict (whatever the free tier allows); None if no key."""
@@ -308,6 +337,11 @@ def gather_symbol_news(symbols: list[str], cfg: Config, per_symbol: int = 6,
                     items += _parse_rss(r.content, sym, dflt)[:per_symbol]
             except Exception:  # noqa: BLE001
                 continue
+        # Finnhub company-news (keyed, reliable from servers) — real outlet names.
+        try:
+            items += finnhub_news(sym, cfg, days=10, limit=per_symbol)
+        except Exception:  # noqa: BLE001
+            pass
         seen, out = set(), []
         for it in items:
             h = (it.get("headline") or "").strip()
