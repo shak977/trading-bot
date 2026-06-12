@@ -318,6 +318,7 @@ def build_snapshot() -> dict:
         "mode": mode,
         "scanned": len(rows),
         "diagnostics": list(scanner.LAST_ERRORS),
+        "audit_summary": None,  # filled by main() after the audit — kept early so it survives a truncated fetch
         "benchmark": benchmark,
         "track": track,
         "regime": regime,
@@ -1855,6 +1856,22 @@ def main() -> None:
         snap["data_health"] = {"ok": not errs, "checks": checks,
                                "errors": errs[:20], "warnings": warns[:20],
                                "n_err": len(errs), "n_warn": len(warns)}
+        # Categorise the errors so we can see at a glance WHAT is failing (and surface it
+        # early in the JSON via audit_summary so a truncated fetch still shows it).
+        def _cat(msg):
+            m = msg.lower()
+            if "one-day jump" in m or "split" in m: return "split/jump >50%"
+            if "ohlc" in m: return "OHLC violation"
+            if "timestamp" in m: return "timestamps"
+            if "bollinger" in m: return "bollinger order"
+            if "3mo return" in m or "return" in m: return "window return"
+            if "macro" in m: return "macro range"
+            return "field/range"
+        by_type = {}
+        for m in errs:
+            k = _cat(m); by_type[k] = by_type.get(k, 0) + 1
+        snap["audit_summary"] = {"n_err": len(errs), "n_warn": len(warns),
+                                 "by_type": by_type, "errors": errs[:25]}
         if errs or warns:
             print(f"DATA AUDIT: {len(errs)} error(s), {len(warns)} warning(s) over {checks} checks:")
             for fl in (errs + warns)[:25]:
