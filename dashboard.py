@@ -1014,6 +1014,9 @@ function makeCard(s) {{
   if (ed!=null && ed<=7) ch.unshift(`<span class="chip mini bear">⚠ Earnings ${{ed}}d</span>`);
   const _cn = (s.strategies&&s.strategies.now) ? s.strategies.now : null;
   if (_cn && _cn.count>=2) ch.unshift(`<span class="chip mini bull" title="independent strategies agreeing">▲ ${{_cn.count}}/${{_cn.total}} strategies</span>`);
+  // RSI-2 dip-buy lens (our stress-tested mean-reversion signal — a watch, not an edge claim)
+  const _r2 = _cn && _cn.results && _cn.results.rsi2_meanrev;
+  if (_r2 && _r2.long) ch.unshift(`<span class="chip mini bull" title="oversold dip inside an uptrend (RSI-2 mean-reversion)">↘ Dip-buy (RSI-2)</span>`);
   const nNews = (s.news||[]).length;
   el.innerHTML = `
     <div class="card-top">${{logo}}
