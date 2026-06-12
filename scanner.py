@@ -96,6 +96,58 @@ def sector_of(symbol: str) -> str:
     return SECTOR_MAP.get(symbol, "Other / Movers")
 
 
+# Company names for the core universe + common ETFs, so every row (signals AND the
+# momentum leaderboard) can show a name without an extra API call. Falls back to the
+# live asset name, then to the bare ticker.
+NAME_MAP = {
+    "AAPL": "Apple Inc.", "MSFT": "Microsoft Corp.", "NVDA": "NVIDIA Corp.",
+    "AMZN": "Amazon.com Inc.", "GOOGL": "Alphabet Inc.", "META": "Meta Platforms Inc.",
+    "TSLA": "Tesla Inc.", "AVGO": "Broadcom Inc.", "AMD": "Advanced Micro Devices",
+    "NFLX": "Netflix Inc.", "ADBE": "Adobe Inc.", "CRM": "Salesforce Inc.",
+    "ORCL": "Oracle Corp.", "CSCO": "Cisco Systems Inc.", "QCOM": "Qualcomm Inc.",
+    "TXN": "Texas Instruments", "INTC": "Intel Corp.", "IBM": "IBM Corp.",
+    "MU": "Micron Technology", "PLTR": "Palantir Technologies", "SNOW": "Snowflake Inc.",
+    "JPM": "JPMorgan Chase & Co.", "BAC": "Bank of America", "WFC": "Wells Fargo & Co.",
+    "GS": "Goldman Sachs Group", "MS": "Morgan Stanley", "C": "Citigroup Inc.",
+    "V": "Visa Inc.", "MA": "Mastercard Inc.", "AXP": "American Express",
+    "BLK": "BlackRock Inc.", "SCHW": "Charles Schwab", "PYPL": "PayPal Holdings",
+    "COIN": "Coinbase Global", "UNH": "UnitedHealth Group", "JNJ": "Johnson & Johnson",
+    "LLY": "Eli Lilly & Co.", "ABBV": "AbbVie Inc.", "MRK": "Merck & Co.",
+    "PFE": "Pfizer Inc.", "TMO": "Thermo Fisher Scientific", "ABT": "Abbott Laboratories",
+    "DHR": "Danaher Corp.", "HD": "Home Depot Inc.", "LOW": "Lowe's Companies",
+    "MCD": "McDonald's Corp.", "SBUX": "Starbucks Corp.", "NKE": "Nike Inc.",
+    "TGT": "Target Corp.", "COST": "Costco Wholesale", "WMT": "Walmart Inc.",
+    "DIS": "Walt Disney Co.", "PG": "Procter & Gamble", "KO": "Coca-Cola Co.",
+    "PEP": "PepsiCo Inc.", "XOM": "Exxon Mobil Corp.", "CVX": "Chevron Corp.",
+    "CAT": "Caterpillar Inc.", "DE": "Deere & Co.", "BA": "Boeing Co.",
+    "GE": "GE Aerospace", "HON": "Honeywell International", "UPS": "United Parcel Service",
+    "LIN": "Linde plc", "CMCSA": "Comcast Corp.", "T": "AT&T Inc.", "VZ": "Verizon Communications",
+    "UBER": "Uber Technologies", "ABNB": "Airbnb Inc.", "SHOP": "Shopify Inc.",
+    "NOW": "ServiceNow Inc.", "INTU": "Intuit Inc.", "AMAT": "Applied Materials",
+    "LRCX": "Lam Research", "PANW": "Palo Alto Networks", "CRWD": "CrowdStrike Holdings",
+    "ANET": "Arista Networks", "MRVL": "Marvell Technology", "TMUS": "T-Mobile US",
+    "BKNG": "Booking Holdings", "CMG": "Chipotle Mexican Grill", "MAR": "Marriott International",
+    "GM": "General Motors", "LULU": "Lululemon Athletica", "MDLZ": "Mondelez International",
+    "CL": "Colgate-Palmolive", "MO": "Altria Group", "PM": "Philip Morris International",
+    "SPGI": "S&P Global Inc.", "CB": "Chubb Ltd.", "PGR": "Progressive Corp.",
+    "USB": "U.S. Bancorp", "KKR": "KKR & Co.", "AMGN": "Amgen Inc.",
+    "BMY": "Bristol-Myers Squibb", "GILD": "Gilead Sciences", "ISRG": "Intuitive Surgical",
+    "VRTX": "Vertex Pharmaceuticals", "MDT": "Medtronic plc", "COP": "ConocoPhillips",
+    "SLB": "Schlumberger NV", "RTX": "RTX Corp.", "LMT": "Lockheed Martin",
+    "UNP": "Union Pacific", "ETN": "Eaton Corp.", "SHW": "Sherwin-Williams",
+    "FCX": "Freeport-McMoRan", "NEE": "NextEra Energy", "DUK": "Duke Energy",
+    "SO": "Southern Co.", "PLD": "Prologis Inc.", "AMT": "American Tower",
+    "SPY": "SPDR S&P 500 ETF", "QQQ": "Invesco QQQ Trust", "DIA": "SPDR Dow Jones ETF",
+    "IWM": "iShares Russell 2000 ETF", "VTI": "Vanguard Total Stock Market ETF",
+    "TLT": "iShares 20+ Yr Treasury ETF", "IEF": "iShares 7-10 Yr Treasury ETF",
+    "GLD": "SPDR Gold Shares", "DBC": "Invesco DB Commodity ETF",
+}
+
+
+def name_of(symbol: str, fallback: str = "") -> str:
+    return NAME_MAP.get(symbol) or fallback or ""
+
+
 def relative_volume(df: pd.DataFrame, window: int) -> float:
     """Latest volume divided by its trailing average. >1.5 ~ unusual activity."""
     if "volume" not in df or len(df) < window + 1:

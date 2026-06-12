@@ -86,6 +86,8 @@ def build_snapshot() -> dict:
 
     # split chart data out of each row for compactness
     charts = {r["symbol"]: r.pop("chart") for r in rows}
+    # lookup of the full analysis row by symbol (used to make momentum rows clickable)
+    rows_by_sym = {r["symbol"]: r for r in rows}
 
     # Dual-momentum leaderboard over the whole scanned universe (best-validated strategy).
     momentum_rows = _momentum_rank(charts)
@@ -251,6 +253,13 @@ def build_snapshot() -> dict:
         # Re-score conviction + desk read now that research is in hand.
         scanner.rescore(r, CONFIG, sentiment=r.get("sentiment"), fundamentals=r.get("fundamentals"))
 
+    # Ray Dalio All Weather allocation + backtest vs SPY (keyless Yahoo history).
+    try:
+        import allweather as _aw
+        all_weather = _aw.build(live)
+    except Exception:  # noqa: BLE001
+        all_weather = None
+
     # Macro backdrop (FRED) — once per run.
     macro = None
     if live and CONFIG.fred_api_key:
@@ -315,8 +324,11 @@ def build_snapshot() -> dict:
         "sectors": sectors,
         "macro": macro,
         "price_drops": price_drops,
-        "momentum": [dict(m, name={r["symbol"]: r.get("name", "") for r in shown}.get(m["symbol"], ""))
+        "momentum": [dict(m, name=scanner.name_of(
+                        m["symbol"], {r["symbol"]: r.get("name", "") for r in shown}.get(m["symbol"], "")))
                      for m in momentum_rows],
+        "mom_detail": _mom_detail(momentum_rows, rows_by_sym, shown),
+        "allweather": all_weather,
         "ipos": ipos,
         "ipo_news": ipo_news,
         "params": {
@@ -368,6 +380,79 @@ def _kpi_html(reg: dict | None, snap: dict) -> str:
     tiles += tile("Fresh shorts", str(n_short), "sell" if n_short else "", "new short setups")
     tiles += tile("Track record", wr_txt, "", f'{tk.get("resolved", 0)} calls resolved')
     return f'<div class="kpis">{tiles}</div>'
+
+
+def _allweather_html(aw: dict | None) -> str:
+    intro = ('<p style="color:var(--muted);font-size:13px;margin:0 0 14px;max-width:760px;">'
+             "Ray Dalio's <b>All Weather</b> portfolio is a static, <b>risk-balanced</b> allocation built to "
+             "hold up across all four economic environments — rising and falling growth, rising and falling "
+             "inflation — instead of betting on which is next. It's a <b>buy-and-hold</b> mix you rebalance "
+             "about once a year, <i>not</i> a trading signal. The trade-off: lower returns than all-stocks in "
+             "a bull run, but much shallower drawdowns and steadier compounding.</p>")
+    if not aw:
+        return intro + '<p style="color:var(--muted);font-size:13px;">All Weather data unavailable.</p>'
+
+    # allocation table
+    body = ""
+    colors = ["#2ea043", "#58a6ff", "#7aa2f7", "#d29922", "#c08457"]
+    bar = ""
+    for i, t in enumerate(aw.get("targets", [])):
+        px = f'${t["price"]:,.2f}' if t.get("price") is not None else "—"
+        body += (f'<tr><td><b>{t["symbol"]}</b> <span style="color:var(--muted);font-weight:400;">{t["name"]}</span></td>'
+                 f'<td style="color:var(--muted);">{t["role"]}</td>'
+                 f'<td style="color:var(--muted);">{t["env"]}</td>'
+                 f'<td style="text-align:right;font-variant-numeric:tabular-nums;">{px}</td>'
+                 f'<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700;">{t["weight"]}%</td></tr>')
+        bar += (f'<div title="{t["symbol"]} {t["weight"]}%" style="width:{t["weight"]}%;'
+                f'background:{colors[i % len(colors)]};">{t["weight"] if t["weight"] >= 7 else ""}</div>')
+    table = ('<table class="trackrec"><thead><tr><th>Asset</th><th>Role</th>'
+             '<th>Best environment</th><th style="text-align:right;">Price</th>'
+             '<th style="text-align:right;">Target weight</th></tr></thead>'
+             f'<tbody>{body}</tbody></table>')
+    bar_html = (f'<div style="display:flex;height:26px;border-radius:6px;overflow:hidden;'
+                f'margin:4px 0 18px;font-size:10px;color:#fff;font-weight:700;text-align:center;'
+                f'line-height:26px;">{bar}</div>')
+
+    # backtest vs SPY
+    bt_html = ""
+    bt = aw.get("backtest")
+    if bt:
+        a, s = bt["allweather"], bt["spy"]
+        def _row(label, m, hot=False):
+            w = 'font-weight:700;' if hot else ''
+            ddc = 'color:var(--buy);' if m["maxdd"] > s["maxdd"] else ''
+            return (f'<tr style="{w}"><td>{label}</td>'
+                    f'<td style="text-align:right;font-variant-numeric:tabular-nums;">{m["ret"]:.0f}%</td>'
+                    f'<td style="text-align:right;font-variant-numeric:tabular-nums;">{m["cagr"]:.1f}%</td>'
+                    f'<td style="text-align:right;font-variant-numeric:tabular-nums;">{m["sharpe"]:.2f}</td>'
+                    f'<td style="text-align:right;font-variant-numeric:tabular-nums;{ddc}">{m["maxdd"]:.1f}%</td></tr>')
+        bt_html = (f'<h3 style="margin:18px 0 6px;">Backtest vs S&amp;P 500 — {bt["years"]} years '
+                   f'({bt["start"]} → {bt["end"]}, monthly rebalance)</h3>'
+                   '<table class="trackrec"><thead><tr><th>Portfolio</th>'
+                   '<th style="text-align:right;">Total return</th><th style="text-align:right;">CAGR</th>'
+                   '<th style="text-align:right;" title="risk-adjusted return — higher is better">Sharpe</th>'
+                   '<th style="text-align:right;" title="worst peak-to-trough drop — closer to zero is better">Max drawdown</th>'
+                   '</tr></thead><tbody>'
+                   + _row("All Weather", a, hot=True) + _row("S&amp;P 500 (buy &amp; hold)", s)
+                   + '</tbody></table>'
+                   '<p style="color:var(--muted);font-size:12px;margin:8px 0 0;">The point isn\'t to beat the '
+                   "S&amp;P on raw return — it usually won't in a bull market. It's the <b>shallower max drawdown</b> "
+                   "and steadier ride (often a comparable or better Sharpe). If you can't stomach a deep stock-market "
+                   "fall, that smoother path is the whole appeal.</p>")
+    else:
+        bt_html = ('<p style="color:var(--muted);font-size:12px;margin-top:10px;">'
+                   f'Backtest unavailable ({aw.get("data_src", "no data")}). Allocation shown above.</p>')
+
+    why = ('<div class="deskread" style="margin-top:16px;border-left-color:#58a6ff;">'
+           '<b>Why these five?</b> Each sleeve is the asset that tends to do best in one environment, so '
+           'something is usually working: stocks for rising growth, long Treasuries for falling growth/'
+           'deflation, intermediate Treasuries as ballast, gold and commodities for rising inflation. They '
+           'are weighted so no single one dominates the portfolio\'s <i>risk</i> — which is why bonds get a '
+           'big nominal slice (they swing less than stocks).</div>')
+    caveat = ('<p style="color:var(--muted);font-size:12px;margin-top:12px;">Educational only, not advice. '
+              'Backtest ignores fees, taxes and fund expense ratios; past performance isn\'t a forecast. '
+              'The 2022 simultaneous stock+bond drawdown was a notably hard stretch for this mix.</p>')
+    return intro + bar_html + table + bt_html + why + caveat
 
 
 def _ipo_html(ipos: list[dict], ipo_news: list[dict]) -> str:
@@ -491,6 +576,31 @@ def _momentum_rank(charts: dict, top: int = 15, per_sector: int = 3) -> list[dic
     return out
 
 
+def _mom_detail(momentum_rows: list[dict], rows_by_sym: dict, shown: list[dict]) -> dict:
+    """Full analysis row per momentum leader, keyed by symbol, so the leaderboard rows can
+    open the same rich detail modal (chart, info, reasoning, conviction) as the signal cards.
+    Prefers the already-enriched `shown` row (has research) and prepends a momentum-context line."""
+    shown_by_sym = {r["symbol"]: r for r in shown}
+    out = {}
+    for m in momentum_rows:
+        sym = m["symbol"]
+        row = shown_by_sym.get(sym) or rows_by_sym.get(sym)
+        if not row:
+            continue
+        d = dict(row)
+        d["name"] = scanner.name_of(sym, d.get("name", ""))
+        r1m = m.get("r1m")
+        r1m_txt = f"{'+' if (r1m or 0) >= 0 else ''}{r1m}%" if r1m is not None else "—"
+        mom_note = (f"📈 Momentum leader — 12-1 momentum +{m['score']}% (its return over the last ~12 "
+                    f"months, skipping the most recent). It's +{m.get('ext', 0)}% above its 200-day "
+                    f"average and did {r1m_txt} over the past month. Suggested risk-parity weight "
+                    f"{m.get('weight', '—')}% in a monthly-rebalanced leaders basket — a positional "
+                    f"hold, not a day-trade.")
+        d["reasons"] = [mom_note] + list(d.get("reasons") or [])
+        out[sym] = d
+    return out
+
+
 def _momentum_html(rows: list[dict]) -> str:
     intro = ('<p style="color:var(--muted);font-size:13px;margin:0 0 12px;max-width:680px;">'
              'Ranked by <b>12-1 momentum</b> (return over the last ~12 months, skipping the most '
@@ -510,7 +620,8 @@ def _momentum_html(rows: list[dict]) -> str:
             r1m_cell = (f'<td style="text-align:right;font-variant-numeric:tabular-nums;" '
                         f'class="{"win" if r1m >= 0 else "loss"}">{"+" if r1m >= 0 else ""}{r1m}%</td>')
         new = ' <span class="chip mini bull" style="font-size:9px;padding:0 5px;">NEW</span>' if m.get("is_new") else ""
-        body += (f'<tr><td>{i}</td><td><b>{m["symbol"]}</b>{nm}{new}</td>'
+        body += (f'<tr class="momrow" data-sym="{m["symbol"]}" style="cursor:pointer;">'
+                 f'<td>{i}</td><td><b>{m["symbol"]}</b>{nm}{new}</td>'
                  f'<td style="color:var(--muted);">{m.get("sector","")}</td>'
                  f'<td style="text-align:right;font-variant-numeric:tabular-nums;">${m["price"]:,.2f}</td>'
                  f'<td style="text-align:right;font-variant-numeric:tabular-nums;" class="win">+{m["score"]}%</td>'
@@ -640,6 +751,7 @@ def render_html(snap: dict) -> str:
                   f'{len(_pd)} dropped (bad feed price)</span>') if _pd else ""
     kpi_html = _kpi_html(snap.get("regime"), snap)
     momentum_html = _momentum_html(snap.get("momentum") or [])
+    allweather_html = _allweather_html(snap.get("allweather"))
     ipo_html = _ipo_html(snap.get("ipos") or [], snap.get("ipo_news") or [])
     sectors_html = _sectors_html(snap.get("sectors"))
     macro_html = _macro_html(snap.get("macro"))
@@ -1015,6 +1127,7 @@ def render_html(snap: dict) -> str:
     <button data-page="signals" class="on">Signals</button>
     <button data-page="markets">Markets</button>
     <button data-page="momentum">Momentum</button>
+    <button data-page="allweather">All Weather</button>
     <button data-page="ipos">IPO watch</button>
     <button data-page="track">Track record</button>
     <button data-page="method">How it works</button>
@@ -1052,6 +1165,11 @@ def render_html(snap: dict) -> str:
   <section class="page" id="page-momentum">
     <h2 style="margin-top:0;">Momentum leaders <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— dual-momentum ranking (our best backtested strategy)</span></h2>
 {momentum_html}
+  </section>
+
+  <section class="page" id="page-allweather">
+    <h2 style="margin-top:0;">All Weather <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— Ray Dalio's risk-balanced all-seasons portfolio</span></h2>
+{allweather_html}
   </section>
 
   <section class="page" id="page-ipos">
@@ -1346,6 +1464,18 @@ function renderCards(view) {{
     bar.appendChild(b);
   }});
   renderCards(cur);
+}})();
+
+// --- momentum leaderboard rows open the same rich detail modal as the cards ---
+(function bindMomentumRows() {{
+  const det = DATA.mom_detail || {{}};
+  document.querySelectorAll('tr.momrow').forEach(tr => {{
+    tr.style.cursor = det[tr.dataset.sym] ? 'pointer' : 'default';
+    tr.addEventListener('click', () => {{
+      const s = det[tr.dataset.sym];
+      if (s) openModal(s);
+    }});
+  }});
 }})();
 
 // ---- live prices (via Cloudflare Worker proxy) ----
