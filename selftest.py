@@ -132,12 +132,37 @@ def test_confluence_in_scan():
     row.pop("_df", None)  # transient frame _analyse stashes for scan()
 
 
+def test_tracker_no_lookahead():
+    print("tracker (no look-ahead):")
+    import tempfile, json
+    import pandas as pd
+    import tracker
+    idx = pd.to_datetime(["2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12"])
+    df = pd.DataFrame({"open": [100, 101, 102, 103, 104], "high": [101, 102, 116, 105, 106],
+                       "low": [99, 100, 101, 102, 103], "close": [100, 101, 110, 104, 105]}, index=idx)
+    tracker.synthetic_bars = lambda *a, **k: df
+    tracker.get_bars = lambda *a, **k: df
+    tf = tempfile.mktemp(suffix=".json"); tracker.PATH = tf
+    json.dump([{"id": "X:2026-06-09", "symbol": "X", "name": "X", "advised_date": "2026-06-09",
+                "entry": 100, "stop": 95, "target": 115, "rr": 3, "conviction": "High", "status": "open"}],
+              open(tf, "w"))
+    tracker.run([], CONFIG, live=False, today="2026-06-12")
+    t = json.load(open(tf))[0]
+    _ok("past trade resolves on a completed later day", t["status"] == "win" and t["exit_date"] == "2026-06-10" and t["days_held"] == 1)
+    json.dump([{"id": "Y:2026-06-12", "symbol": "Y", "name": "Y", "advised_date": "2026-06-12",
+                "entry": 100, "stop": 95, "target": 115, "rr": 3, "conviction": "High", "status": "open"}],
+              open(tf, "w"))
+    tracker.run([], CONFIG, live=False, today="2026-06-12")
+    _ok("same-day trade stays open (no look-ahead)", json.load(open(tf))[0]["status"] == "open")
+
+
 def main():
     test_indicators()
     test_strategy_backtest()
     test_analytics()
     test_strategies()
     test_confluence_in_scan()
+    test_tracker_no_lookahead()
     test_research()
     test_rescore()
     test_llm_prompt()

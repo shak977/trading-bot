@@ -89,6 +89,27 @@ def build_snapshot() -> dict:
 
     # Dual-momentum leaderboard over the whole scanned universe (best-validated strategy).
     momentum_rows = _momentum_rank(charts)
+    # New-vs-holdover: mark which leaders just entered the list vs the previous run.
+    try:
+        import json as _json
+        import datetime as _dt
+        _mpath = "momentum_history.json"
+        try:
+            with open(_mpath) as _f:
+                _prev = set((_json.load(_f) or {}).get("symbols", []))
+        except Exception:  # noqa: BLE001
+            _prev = set()
+        for _m in momentum_rows:
+            _m["is_new"] = bool(_prev) and _m["symbol"] not in _prev
+        if live and momentum_rows:
+            try:
+                with open(_mpath, "w") as _f:
+                    _json.dump({"as_of": _dt.date.today().isoformat(),
+                                "symbols": [_m["symbol"] for _m in momentum_rows]}, _f, indent=2)
+            except Exception:  # noqa: BLE001
+                pass
+    except Exception:  # noqa: BLE001
+        pass
 
     # Market regime + sector strength from the FULL scanned set (the "tape").
     regime = _market_regime(rows)
@@ -179,6 +200,22 @@ def build_snapshot() -> dict:
                 drop = {r["symbol"] for r in bad}
                 shown = [r for r in shown if r["symbol"] not in drop]
                 shown_syms = [r["symbol"] for r in shown]
+            # rebase kept signals' price + plan levels onto the consolidated quote so the
+            # displayed price and the entry/stop/target are internally consistent.
+            for r in shown:
+                q = r.get("quote_price")
+                if not q or not r.get("price"):
+                    continue
+                ratio = q / r["price"]
+                if abs(ratio - 1) > 0.003:
+                    for k in ("stop", "target"):
+                        if r.get(k) is not None:
+                            r[k] = round(r[k] * ratio, 2)
+                    p = r.get("plan") or {}
+                    for k in ("entry", "stop", "target"):
+                        if p.get(k) is not None:
+                            p[k] = round(p[k] * ratio, 2)
+                r["price"] = q
         except Exception:  # noqa: BLE001
             pass
     for r in shown:
@@ -354,10 +391,11 @@ def _ipo_html(ipos: list[dict], ipo_news: list[dict]) -> str:
             f'{news}')
 
 
-def _momentum_rank(charts: dict, top: int = 15) -> list[dict]:
-    """Dual-momentum leaderboard from the embedded daily closes: 12-1 momentum,
-    kept only if positive AND above the 200-day average (the trend filter)."""
-    out = []
+def _momentum_rank(charts: dict, top: int = 15, per_sector: int = 3) -> list[dict]:
+    """Dual-momentum leaderboard: 12-1 momentum, kept only if positive AND above the
+    200-day average. Then capped to ``per_sector`` names per sector (diversification)
+    and assigned inverse-volatility suggested weights (risk-parity, like factor funds)."""
+    cand = []
     for sym, ch in charts.items():
         cl = [c for c in (ch.get("close") or []) if c is not None]
         n = len(cl)
@@ -371,14 +409,31 @@ def _momentum_rank(charts: dict, top: int = 15) -> list[dict]:
             continue
         score = recent / base - 1
         sma200 = sum(cl[-200:]) / 200 if n >= 200 else sum(cl) / n
-        if score > 0 and cl[-1] > sma200:
-            ext = (cl[-1] / sma200 - 1) * 100 if sma200 else 0.0           # how far above its 200d trend
-            r1m = (cl[-1] / cl[-22] - 1) * 100 if n >= 22 and cl[-22] else None  # last ~1 month (is it cooling?)
-            out.append({"symbol": sym, "score": round(score * 100, 1),
-                        "price": round(cl[-1], 2), "sector": scanner.sector_of(sym),
-                        "ext": round(ext, 1), "r1m": round(r1m, 1) if r1m is not None else None})
-    out.sort(key=lambda x: -x["score"])
-    return out[:top]
+        if not (score > 0 and cl[-1] > sma200):
+            continue
+        rets = [cl[i] / cl[i - 1] - 1 for i in range(max(1, n - 21), n) if cl[i - 1]]
+        vol = (sum((x - sum(rets) / len(rets)) ** 2 for x in rets) / len(rets)) ** 0.5 if len(rets) > 1 else 0.0
+        ext = (cl[-1] / sma200 - 1) * 100 if sma200 else 0.0
+        r1m = (cl[-1] / cl[-22] - 1) * 100 if n >= 22 and cl[-22] else None
+        cand.append({"symbol": sym, "score": round(score * 100, 1),
+                     "price": round(cl[-1], 2), "sector": scanner.sector_of(sym),
+                     "ext": round(ext, 1), "r1m": round(r1m, 1) if r1m is not None else None,
+                     "_vol": vol})
+    cand.sort(key=lambda x: -x["score"])
+    out, cnt = [], {}
+    for c in cand:
+        if cnt.get(c["sector"], 0) >= per_sector:
+            continue
+        out.append(c)
+        cnt[c["sector"]] = cnt.get(c["sector"], 0) + 1
+        if len(out) >= top:
+            break
+    invs = [(1.0 / c["_vol"] if c["_vol"] > 1e-9 else 0.0) for c in out]
+    tot = sum(invs) or 1.0
+    for c, iv in zip(out, invs):
+        c["weight"] = round(iv / tot * 100, 1)
+        c.pop("_vol", None)
+    return out
 
 
 def _momentum_html(rows: list[dict]) -> str:
@@ -399,22 +454,26 @@ def _momentum_html(rows: list[dict]) -> str:
         else:
             r1m_cell = (f'<td style="text-align:right;font-variant-numeric:tabular-nums;" '
                         f'class="{"win" if r1m >= 0 else "loss"}">{"+" if r1m >= 0 else ""}{r1m}%</td>')
-        body += (f'<tr><td>{i}</td><td><b>{m["symbol"]}</b>{nm}</td>'
+        new = ' <span class="chip mini bull" style="font-size:9px;padding:0 5px;">NEW</span>' if m.get("is_new") else ""
+        body += (f'<tr><td>{i}</td><td><b>{m["symbol"]}</b>{nm}{new}</td>'
                  f'<td style="color:var(--muted);">{m.get("sector","")}</td>'
                  f'<td style="text-align:right;font-variant-numeric:tabular-nums;">${m["price"]:,.2f}</td>'
                  f'<td style="text-align:right;font-variant-numeric:tabular-nums;" class="win">+{m["score"]}%</td>'
                  f'<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--muted);">+{m.get("ext",0)}%</td>'
-                 f'{r1m_cell}</tr>')
+                 f'{r1m_cell}'
+                 f'<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600;">{m.get("weight","—")}%</td></tr>')
     table = ('<table class="trackrec"><thead><tr><th>#</th><th>Stock</th><th>Sector</th>'
              '<th style="text-align:right;">Price</th>'
              '<th style="text-align:right;" title="return over ~12 months, skipping the last month">12-1 momentum</th>'
              '<th style="text-align:right;" title="how far above its 200-day average — bigger = more extended">vs 200d</th>'
              '<th style="text-align:right;" title="last ~1 month return — negative means the leader is cooling off">1-mo</th>'
+             '<th style="text-align:right;" title="suggested risk-parity weight: more to steadier names, less to volatile ones">Wt</th>'
              f'</tr></thead><tbody>{body}</tbody></table>'
              '<p style="color:var(--muted);font-size:12px;margin:8px 0 0;">'
-             'Columns: <b>12-1 momentum</b> = the ranking signal · <b>vs 200d</b> = how extended above trend '
-             '(very high = chasing risk) · <b>1-mo</b> = recent month (negative = a leader losing steam). '
-             'Re-rank monthly and rotate out names that drop off the list.</p>')
+             'Columns: <b>12-1 momentum</b> = ranking signal · <b>vs 200d</b> = how extended (high = chasing risk) · '
+             '<b>1-mo</b> = recent month (negative = losing steam) · <b>Wt</b> = suggested inverse-volatility weight. '
+             'Capped at 3 names per sector. Re-rank monthly; rotate out names that drop off. '
+             '<span class="chip mini bull" style="font-size:9px;padding:0 5px;">NEW</span> = entered the list this run.</p>')
     caveats = ('<div class="deskread" style="margin-top:16px;border-left-color:#e8c878;">'
                '<b>Read before using.</b> This is a monthly-rebalanced approach (hold the leaders, '
                're-rank ~monthly) — not a day-trade list. In backtest it earned a higher Sharpe than '
@@ -860,6 +919,23 @@ def render_html(snap: dict) -> str:
   .mk-view {{ display:none; }} .mk-view.on {{ display:block; }}
   @media (max-width:680px) {{ .mk {{ grid-template-columns:1fr; }}
     .mk-side {{ flex-direction:row; flex-wrap:wrap; position:static; }} }}
+  /* favorites star */
+  .favbtn {{ background:none; border:none; color:var(--flat); cursor:pointer; font-size:17px;
+    line-height:1; padding:0 2px; flex:0 0 auto; }}
+  .favbtn:hover, .favbtn.on {{ color:#e8a93a; }}
+  /* ---- mobile / small screens ---- */
+  @media (max-width:600px) {{
+    .wrap {{ padding:16px 12px 48px; }}
+    h1 {{ font-size:21px; }}
+    .appbar {{ flex-wrap:wrap; gap:8px; }}
+    .tabs {{ overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; }}
+    .tabs button {{ white-space:nowrap; padding:10px 12px; font-size:14px; }}
+    .kpis {{ grid-template-columns:repeat(2, minmax(0,1fr)); }}
+    .trackrec {{ font-size:12px; }}
+    .trackrec th, .trackrec td {{ padding:5px 6px; }}
+    .modal {{ padding:16px; margin:12px auto; }}
+    .tv-wrap {{ height:340px; }}
+  }}
 </style></head>
 <body><div class="wrap">
   <header class="appbar">
@@ -1067,6 +1143,13 @@ window.__APP = {{ DATA: DATA, LIVE_URL: LIVE_URL }};
 // read a CSS theme variable (so the overview chart flips with light/dark)
 function _cv(n, f) {{ try {{ const v = getComputedStyle(document.documentElement).getPropertyValue(n).trim(); return v || f; }} catch (e) {{ return f; }} }}
 function _shortDate(s) {{ try {{ return new Date(s + 'T00:00:00').toLocaleDateString([], {{month:'short', day:'numeric'}}); }} catch (e) {{ return s; }} }}
+let _curView = 'sector';
+let FAVS = new Set();
+try {{ FAVS = new Set(JSON.parse(localStorage.getItem('tb-favs') || '[]')); }} catch (e) {{}}
+function _toggleFav(sym) {{
+  if (FAVS.has(sym)) FAVS.delete(sym); else FAVS.add(sym);
+  try {{ localStorage.setItem('tb-favs', JSON.stringify([...FAVS])); }} catch (e) {{}}
+}}
 const diag = document.getElementById('diag');
 if ((DATA.diagnostics||[]).length) {{
   diag.innerHTML = '<div style="background:#3a1e1e;border:1px solid #5a1e1e;color:#ff9b9b;'
@@ -1114,13 +1197,20 @@ function makeCard(s) {{
   el.innerHTML = `
     <div class="card-top">${{logo}}
       <div class="card-id"><div class="s">${{s.symbol}}</div><div class="n">${{s.name||s.exchange||''}}</div></div>
-      <span class="act a-${{cls}}">${{s.action}}</span></div>
+      <span class="act a-${{cls}}">${{s.action}}</span>
+      <button class="favbtn ${{FAVS.has(s.symbol)?'on':''}}" title="Save to favorites">${{FAVS.has(s.symbol)?'★':'☆'}}</button></div>
     <div class="card-px-row"><span class="card-px" data-px="${{s.symbol}}">$${{_px.toLocaleString()}}</span>${{dchg}}</div>
     ${{conv.label ? `<div class="conv-wrap"><div class="conv-row"><span>Conviction · ${{conv.label}}</span><span>${{cpct}}%</span></div>`
       + `<div class="conv-meter"><div class="conv-fill" style="width:${{cpct}}%;background:${{ccol}};"></div></div></div>` : ''}}
     <div class="card-stats">${{st.join('')}}</div>
     ${{ch.length ? `<div class="chips" style="margin-top:10px;">${{ch.join('')}}</div>` : ''}}
     <div class="more">${{nNews ? nNews+' news &middot; ':''}}click for full plan + reasoning →</div>`;
+  const _fb = el.querySelector('.favbtn');
+  if (_fb) _fb.addEventListener('click', (e) => {{
+    e.stopPropagation(); _toggleFav(s.symbol);
+    _fb.textContent = FAVS.has(s.symbol) ? '★' : '☆'; _fb.classList.toggle('on', FAVS.has(s.symbol));
+    if (_curView === 'favs') renderCards('favs');
+  }});
   el.addEventListener('click', () => openModal(s));
   return el;
 }}
@@ -1128,9 +1218,16 @@ function makeCard(s) {{
 const _ACT_ORDER = {{'BUY':0, 'SELL':1, 'HOLD LONG':2, 'FLAT':3}};
 const _conv = s => (s.conviction ? s.conviction.score_pct : -1);
 function renderCards(view) {{
+  _curView = view;
   cards.innerHTML = '';
   let list = DATA.signals.slice();
-  if (view === 'sector') {{
+  if (view === 'favs') {{
+    list = list.filter(s => FAVS.has(s.symbol));
+    const grid = document.createElement('div'); grid.className = 'grid';
+    if (!list.length) grid.innerHTML = '<div style="color:var(--muted);">No favorites yet — tap the ☆ on any card to save it here.</div>';
+    list.forEach(s => grid.appendChild(makeCard(s)));
+    cards.appendChild(grid);
+  }} else if (view === 'sector') {{
     const by = {{}}, order = [];
     list.forEach(s => {{ const sec = s.sector || 'Other / Movers';
       if (!by[sec]) {{ by[sec] = []; order.push(sec); }} by[sec].push(s); }});
@@ -1161,7 +1258,7 @@ function renderCards(view) {{
 (function setupViews() {{
   const bar = document.getElementById('viewBtns');
   const views = [['sector','By sector'],['order','Buys first'],['conviction','Highest conviction'],
-                 ['movers','Biggest movers'],['buys','Buys only'],['actionable','Actionable']];
+                 ['movers','Biggest movers'],['buys','Buys only'],['actionable','Actionable'],['favs','★ Favorites']];
   let cur = 'sector';
   try {{ cur = localStorage.getItem('view') || 'sector'; }} catch(e) {{}}
   views.forEach(([v,lab]) => {{
@@ -1334,6 +1431,7 @@ function openModal(s) {{
   if (modalTC) modalTC.setSymbol(s.symbol, s.plan || {{}});
   if (window._mkShow) window._mkShow('overview');   // every open starts on Overview
   overlay.classList.add('open');
+  try {{ history.replaceState(null, '', '#' + s.symbol); }} catch (e) {{}}   // shareable deep link
 }}
 
 // ---- Capital IQ-style chart engine: featured panel + watchlist + theme ----
@@ -1404,7 +1502,17 @@ function _refitCharts() {{
 }}
 _initCharts();
 
-function closeModal() {{ overlay.classList.remove('open'); }}
+function closeModal() {{ overlay.classList.remove('open'); try {{ history.replaceState(null, '', location.pathname + location.search); }} catch (e) {{}} }}
+(function deepLink() {{
+  function openFromHash() {{
+    const h = (location.hash || '').replace('#', '').trim().toUpperCase();
+    if (!h) return;
+    const s = (DATA.signals || []).find(x => x.symbol === h);
+    if (s) openModal(s);
+  }}
+  window.addEventListener('hashchange', openFromHash);
+  openFromHash();   // open a shared #SYMBOL link on load
+}})();
 document.getElementById('modalClose').addEventListener('click', closeModal);
 overlay.addEventListener('click', e => {{ if (e.target === overlay) closeModal(); }});
 document.addEventListener('keydown', e => {{ if (e.key === 'Escape') closeModal(); }});

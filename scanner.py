@@ -33,6 +33,14 @@ CORE_WATCHLIST = [
     "HD", "LOW", "MCD", "SBUX", "NKE", "TGT", "COST", "WMT", "DIS", "PG", "KO", "PEP",
     "XOM", "CVX", "CAT", "DE", "BA", "GE", "HON", "UPS", "LIN",
     "CMCSA", "T", "VZ", "UBER", "ABNB", "SHOP", "COIN", "SNOW",
+    # --- broader large/mid-cap set (reduces survivorship bias, improves breadth) ---
+    "NOW", "INTU", "AMAT", "LRCX", "PANW", "CRWD", "ANET", "MRVL", "TMUS",
+    "BKNG", "CMG", "MAR", "GM", "LULU",
+    "MDLZ", "CL", "MO", "PM",
+    "SPGI", "CB", "PGR", "USB", "KKR",
+    "AMGN", "BMY", "GILD", "ISRG", "VRTX", "MDT",
+    "COP", "SLB", "RTX", "LMT", "UNP", "ETN",
+    "SHW", "FCX", "NEE", "DUK", "SO", "PLD", "AMT",
     "SPY", "QQQ", "DIA", "IWM",
 ]
 
@@ -65,6 +73,20 @@ SECTOR_MAP = {
     "XOM": "Energy", "CVX": "Energy",
     "CAT": "Industrials", "DE": "Industrials", "BA": "Industrials", "GE": "Industrials",
     "HON": "Industrials", "UPS": "Industrials", "LIN": "Materials",
+    # --- broader set ---
+    "NOW": "Technology", "INTU": "Technology", "AMAT": "Technology", "LRCX": "Technology",
+    "PANW": "Technology", "CRWD": "Technology", "ANET": "Technology", "MRVL": "Technology",
+    "TMUS": "Communication",
+    "BKNG": "Consumer", "CMG": "Consumer", "MAR": "Consumer", "GM": "Consumer", "LULU": "Consumer",
+    "MDLZ": "Staples", "CL": "Staples", "MO": "Staples", "PM": "Staples",
+    "SPGI": "Financials", "CB": "Financials", "PGR": "Financials", "USB": "Financials", "KKR": "Financials",
+    "AMGN": "Healthcare", "BMY": "Healthcare", "GILD": "Healthcare", "ISRG": "Healthcare",
+    "VRTX": "Healthcare", "MDT": "Healthcare",
+    "COP": "Energy", "SLB": "Energy",
+    "RTX": "Industrials", "LMT": "Industrials", "UNP": "Industrials", "ETN": "Industrials",
+    "SHW": "Materials", "FCX": "Materials",
+    "NEE": "Utilities", "DUK": "Utilities", "SO": "Utilities",
+    "PLD": "Real Estate", "AMT": "Real Estate",
     # Index ETFs
     "SPY": "Index ETFs", "QQQ": "Index ETFs", "DIA": "Index ETFs", "IWM": "Index ETFs",
 }

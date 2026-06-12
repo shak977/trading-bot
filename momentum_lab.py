@@ -20,7 +20,7 @@ import pandas as pd
 import momentum as mom
 from config import CONFIG
 from data import get_bars, synthetic_bars
-from scanner import CORE_WATCHLIST
+from scanner import CORE_WATCHLIST, sector_of
 
 TOP_K = 10
 LOOKBACK, SKIP = 252, 21
@@ -99,13 +99,29 @@ def main():
         asof = months[i]
         upto = {s: bars[s][bars[s].index <= asof] for s in syms
                 if len(bars[s][bars[s].index <= asof]) > LOOKBACK}
-        picks = [s for s, _ in mom.rank(upto, LOOKBACK, SKIP)[:TOP_K]]
-        r = []
+        ranked = mom.rank(upto, LOOKBACK, SKIP)
+        # sector cap: at most 3 names per sector (diversification)
+        picks, cnt = [], {}
+        for s, _ in ranked:
+            sec = sector_of(s)
+            if cnt.get(sec, 0) >= 3:
+                continue
+            picks.append(s)
+            cnt[sec] = cnt.get(sec, 0) + 1
+            if len(picks) >= TOP_K:
+                break
+        # inverse-volatility weights (risk parity) over the picks
+        ws, contrib = {}, 0.0
+        for s in picks:
+            c = upto[s]["close"]
+            v = float(c.pct_change().dropna().tail(21).std())
+            ws[s] = (1.0 / v) if v > 1e-9 else 0.0
+        tw = sum(ws.values()) or 1.0
+        mret = -2 * slip  # rough rebalance cost
         for s in picks:
             p0, p1 = monthly[s].iloc[i], monthly[s].iloc[i + 1]
             if p0 and p1 and not np.isnan(p0) and not np.isnan(p1):
-                r.append(p1 / p0 - 1)
-        mret = (float(np.mean(r)) if r else 0.0) - 2 * slip  # rough rebalance cost
+                mret += (ws[s] / tw) * (p1 / p0 - 1)
         port.append(port[-1] * (1 + mret))
         sp0, sp1 = monthly.get("SPY", pd.Series()).iloc[i] if "SPY" in monthly else np.nan, \
             monthly.get("SPY", pd.Series()).iloc[i + 1] if "SPY" in monthly else np.nan
