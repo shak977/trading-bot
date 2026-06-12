@@ -339,9 +339,17 @@ def render_html(snap: dict) -> str:
 <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.1/dist/chartjs-chart-financial.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+<script src="chart_engine.js"></script>
 <style>
-  :root {{ --bg:#0f1419; --card:#1a212b; --line:#2a3441; --txt:#e6edf3;
-    --muted:#8b97a6; --buy:#2ea043; --sell:#f85149; --hold:#388bfd; --flat:#6e7681; }}
+  /* Light "Capital IQ Pro" palette is the default; dark is a toggle. */
+  :root {{ --bg:#f4f6f8; --card:#ffffff; --line:#dfe3e8; --txt:#1a212b;
+    --muted:#5b6776; --buy:#178a3a; --sell:#d1242f; --hold:#0b5cad; --flat:#8a96a3;
+    --accent:#003087; --grid:rgba(120,130,145,0.18); --cross:rgba(60,70,85,0.45);
+    --shadow:0 1px 3px rgba(16,24,40,0.08); }}
+  html[data-theme="dark"] {{ --bg:#0f1419; --card:#1a212b; --line:#2a3441; --txt:#e6edf3;
+    --muted:#8b97a6; --buy:#2ea043; --sell:#f85149; --hold:#388bfd; --flat:#6e7681;
+    --accent:#79c0ff; --grid:rgba(42,52,65,0.55); --cross:rgba(139,151,166,0.45);
+    --shadow:none; }}
   * {{ box-sizing:border-box; }}
   body {{ margin:0; font:15px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;
     background:var(--bg); color:var(--txt); }}
@@ -496,8 +504,57 @@ def render_html(snap: dict) -> str:
   .method ol, .method ul {{ padding-left:20px; margin:6px 0; }}
   .method .pill {{ display:inline-block; background:#0f1722; border:1px solid var(--line);
     border-radius:6px; padding:1px 7px; font-size:13px; color:var(--txt); }}
+  /* ---- theme toggle ---- */
+  .themebtn {{ position:absolute; top:18px; right:20px; background:var(--card); color:var(--muted);
+    border:1px solid var(--line); border-radius:8px; padding:6px 12px; font-size:13px; cursor:pointer;
+    box-shadow:var(--shadow); }}
+  .themebtn:hover {{ color:var(--txt); }}
+  /* ---- featured chart panel + watchlist ---- */
+  .featured {{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px;
+    margin:6px 0 18px; box-shadow:var(--shadow); }}
+  .feat-grid {{ display:grid; grid-template-columns:1fr 220px; gap:16px; }}
+  @media (max-width:840px) {{ .feat-grid {{ grid-template-columns:1fr; }} .feat-watch {{ max-height:200px; }} }}
+  .feat-wtitle {{ font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted);
+    font-weight:700; margin-bottom:6px; }}
+  .feat-watch {{ overflow-y:auto; max-height:520px; border-left:1px solid var(--line); padding-left:12px; }}
+  .wl {{ display:flex; align-items:center; justify-content:space-between; gap:6px; padding:6px 8px;
+    border-radius:7px; cursor:pointer; font-size:13px; }}
+  .wl:hover {{ background:var(--line); }}
+  .wl.on {{ background:color-mix(in srgb, var(--accent) 16%, transparent); }}
+  .wl .wl-sym {{ font-weight:700; }}
+  .wl .wl-px {{ font-variant-numeric:tabular-nums; color:var(--muted); font-size:12px; }}
+  .wl .wl-chg {{ font-variant-numeric:tabular-nums; font-size:12px; min-width:52px; text-align:right; }}
+  /* ---- TradeChart component ---- */
+  .tc {{ width:100%; }}
+  .tc-bar {{ display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; margin-bottom:8px; }}
+  .tc-seg {{ display:inline-flex; align-items:center; gap:2px; background:var(--bg); border:1px solid var(--line);
+    border-radius:8px; padding:2px; }}
+  .tc-seglab {{ font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted);
+    padding:0 6px; font-weight:700; }}
+  .tc-seg button {{ background:none; border:none; color:var(--muted); font-size:12px; padding:4px 9px;
+    border-radius:6px; cursor:pointer; font-variant-numeric:tabular-nums; }}
+  .tc-seg button:hover {{ color:var(--txt); }}
+  .tc-seg button.on {{ background:var(--accent); color:#fff; }}
+  .tc-cmp {{ background:var(--bg); border:1px solid var(--line); border-radius:7px; color:var(--txt);
+    padding:5px 9px; font-size:12px; }}
+  .tc-clr {{ background:var(--bg); border:1px solid var(--line); color:var(--muted); border-radius:7px;
+    padding:5px 10px; font-size:12px; cursor:pointer; }}
+  .tc-readout {{ display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 12px; min-height:24px; margin-bottom:4px; }}
+  .tc-readout .tc-sym {{ font-weight:800; font-size:15px; }}
+  .tc-readout .tc-price-lg {{ font-weight:700; font-size:18px; font-variant-numeric:tabular-nums; }}
+  .tc-readout .tc-chg {{ font-weight:600; font-variant-numeric:tabular-nums; }}
+  .tc-readout .tc-ohlc {{ color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; }}
+  .tc-readout .tc-date {{ color:var(--muted); font-size:12px; margin-left:auto; }}
+  .tc-wrap {{ position:relative; height:380px; }}
+  .tc-compact .tc-wrap {{ height:300px; }}
+  .tc-sub {{ position:relative; height:84px; margin-top:6px; }}
+  .tc-sublab {{ font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:2px; }}
+  .tc-key {{ color:var(--muted); font-size:12px; margin-top:8px; line-height:1.6; }}
+  .tc-chip {{ display:inline-block; background:var(--line); border-radius:10px; padding:1px 8px; cursor:pointer;
+    font-size:11px; color:var(--txt); }}
 </style></head>
 <body><div class="wrap">
+  <button id="themeToggle" class="themebtn">🌙 Dark</button>
   <h1>Trading Signals Dashboard</h1>
   <div class="meta">Generated {snap['generated_at']} &middot;
     <span class="badge m-{mode}">{mode}</span> &middot;
@@ -515,6 +572,12 @@ def render_html(snap: dict) -> str:
 
   <section class="page on" id="page-signals">
     <h2 style="margin-top:0;">Signals <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— grouped by sector · click any card for the full reasoning</span></h2>
+    <div class="featured">
+      <div class="feat-grid">
+        <div class="feat-main"><div id="featuredChart"></div></div>
+        <aside class="feat-watch"><div class="feat-wtitle">Watchlist · click to load</div><div id="featWatch"></div></aside>
+      </div>
+    </div>
     <div class="ovbox">
       <div class="ovhead">📈 Live overview — % change vs S&amp;P 500 <span id="ovStatus"></span>
         <span class="ctlgrp" id="ovRangeBtns" style="margin-left:8px;"></span>
@@ -631,27 +694,7 @@ def render_html(snap: dict) -> str:
     <div class="sech">The trade plan <span id="mPlanNote" style="text-transform:none;color:var(--muted);"></span></div>
     <div class="plangrid" id="mPlan"></div>
     <div class="sech">Price chart</div>
-    <div class="readout" id="mReadout"></div>
-    <div class="chartctl">
-      <span class="ctlgrp" id="rangeBtns"></span>
-      <span class="ctlgrp" id="typeBtns"></span>
-      <span class="ctlgrp" id="indBtns"></span>
-      <label class="ctltog"><input type="checkbox" id="benchToggle"> vs S&amp;P 500</label>
-      <span class="ctlgrp">
-        <button id="zoomOut" title="Zoom out">&minus;</button>
-        <button id="zoomIn" title="Zoom in">+</button>
-      </span>
-      <button class="ctlbtn" id="zoomReset">Reset</button>
-    </div>
-    <div class="chartbox"><canvas id="mChart" height="150"></canvas></div>
-    <div class="chartbox" id="volBox" style="display:none; margin-top:4px;">
-      <canvas id="mVol" height="40"></canvas>
-    </div>
-    <div class="chartbox" id="macdBox" style="display:none; margin-top:8px;">
-      <div style="color:var(--muted);font-size:11px;margin-bottom:4px;">MACD — momentum (above 0 = bullish)</div>
-      <canvas id="mMacd" height="70"></canvas>
-    </div>
-    <div class="chartkey" id="mChartKey"></div>
+    <div id="modalChart"></div>
     <div class="sech">The details, explained</div>
     <ul class="reasons" id="mReasons"></ul>
     <div class="sech">Latest news on this stock</div>
@@ -664,6 +707,10 @@ def render_html(snap: dict) -> str:
 const DATA = {data_json};
 const LIVE_URL = "{CONFIG.live_quotes_url}";
 let LIVE = {{}};  // latest live prices (declared early so renderCards can read it safely)
+let featTC = null, modalTC = null;   // Capital IQ-style chart engine instances
+window.__APP = {{ DATA: DATA, LIVE_URL: LIVE_URL }};
+// read a CSS theme variable (so the overview chart flips with light/dark)
+function _cv(n, f) {{ try {{ const v = getComputedStyle(document.documentElement).getPropertyValue(n).trim(); return v || f; }} catch (e) {{ return f; }} }}
 const diag = document.getElementById('diag');
 if ((DATA.diagnostics||[]).length) {{
   diag.innerHTML = '<div style="background:#3a1e1e;border:1px solid #5a1e1e;color:#ff9b9b;'
@@ -752,21 +799,6 @@ function renderCards(view) {{
 // ---- live prices (via Cloudflare Worker proxy) ----
 const LIVE_SYMS = [...new Set(DATA.signals.map(s => s.symbol).concat('SPY'))];
 function _fmtPx(v) {{ return '$' + Number(v).toLocaleString(undefined, {{minimumFractionDigits:2, maximumFractionDigits:2}}); }}
-function _pushLiveToChart() {{
-  // Update the most recent point of the open modal chart with the live price,
-  // preserving the user's current zoom/pan (update('none')).
-  if (!mChart || !MODAL) return;
-  const lp = LIVE[MODAL.symbol];
-  if (lp == null) return;
-  const price = mChart.data.datasets.find(d => d.label === 'Price' || d.label === MODAL.symbol);
-  if (!price || !price.data || !price.data.length) return;
-  const last = price.data[price.data.length - 1];
-  if (last && typeof last === 'object') {{
-    if ('c' in last) {{ last.c = lp; if (lp > last.h) last.h = lp; if (lp < last.l) last.l = lp; }}
-    else last.y = lp;
-    mChart.update('none');
-  }}
-}}
 async function refreshLive() {{
   if (!LIVE_URL) return;
   const st = document.getElementById('liveStatus');
@@ -779,10 +811,8 @@ async function refreshLive() {{
       const p = LIVE[el.dataset.px];
       if (p != null) el.textContent = _fmtPx(p);
     }});
-    _pushLiveToChart();
-    if (overlay && overlay.classList.contains('open') && CUR.bars && CUR.bars.length) {{
-      _updateReadout();
-    }}
+    if (featTC) featTC.onLive(LIVE);
+    if (modalTC) modalTC.onLive(LIVE);
     _updateOverviewLive();
     const tm = new Date(d.at || Date.now()).toLocaleTimeString();
     st.innerHTML = '&middot; <span style="color:#2ea043;">● Live</span> <span style="color:#8b97a6;">'+tm+'</span>';
@@ -827,8 +857,8 @@ function _ovChart(plot, unit, intraday) {{
   const cv = document.getElementById('overviewChart'); if (!cv) return;
   const datasets = plot.map(it => ({{
     label: it.label, data: it.pts, _sym: it.sym, _active: it.active,
-    borderColor: it.bench ? '#e6edf3'
-                 : (it.active ? it.color : (OV.colorAll ? it.color : 'rgba(139,151,166,0.16)')),
+    borderColor: it.bench ? _cv('--txt','#e6edf3')
+                 : (it.active ? it.color : (OV.colorAll ? it.color : 'rgba(139,151,166,0.22)')),
     borderWidth: it.bench ? 2.4 : (it.active ? 2 : (OV.colorAll ? 1.3 : 1)), pointRadius: 0, fill: false,
     order: it.active ? 1 : 5 }}));
   // correct min/max: fit the axis so no line is ever clipped. When the user has
@@ -856,9 +886,9 @@ function _ovChart(plot, unit, intraday) {{
         zoom:{{zoom:{{wheel:{{enabled:true}}, pinch:{{enabled:true}}, mode:'x'}}, pan:{{enabled:true, mode:'x'}}}}
       }},
       scales:{{
-        x:{{type:'time', time:{{unit}}, ticks:{{color:'#8b97a6',maxTicksLimit:7}}, grid:{{display:false}}}},
-        y:{{position:'right', min:ymin, max:ymax, ticks:{{color:'#8b97a6', maxTicksLimit:8, callback:v=>(v>0?'+':'')+Math.round(v)+'%'}},
-           grid:{{ color:(c)=> c.tick.value===0 ? 'rgba(139,151,166,0.6)' : 'rgba(42,52,65,0.5)',
+        x:{{type:'time', time:{{unit}}, ticks:{{color:_cv('--muted','#8b97a6'),maxTicksLimit:7}}, grid:{{display:false}}}},
+        y:{{position:'right', min:ymin, max:ymax, ticks:{{color:_cv('--muted','#8b97a6'), maxTicksLimit:8, callback:v=>(v>0?'+':'')+Math.round(v)+'%'}},
+           grid:{{ color:(c)=> c.tick.value===0 ? _cv('--muted','rgba(139,151,166,0.6)') : _cv('--grid','rgba(42,52,65,0.5)'),
                    lineWidth:(c)=> c.tick.value===0 ? 1.5 : 1 }}}}
       }}
     }},
@@ -872,7 +902,7 @@ function buildOverview() {{
   const items = [];
   if (DATA.benchmark) {{
     const r = _rebase(DATA.benchmark.t, DATA.benchmark.close);
-    if (r.pts.length) items.push({{sym:'SPY', label:'S&P 500', pts:r.pts, base:r.base, color:'#e6edf3', bench:true}});
+    if (r.pts.length) items.push({{sym:'SPY', label:'S&P 500', pts:r.pts, base:r.base, color:_cv('--txt','#e6edf3'), bench:true}});
   }}
   DATA.signals.forEach((s, i) => {{
     const c = DATA.charts[s.symbol]; if (!c) return;
@@ -895,7 +925,7 @@ function _ovIntra() {{
   const active = ['SPY', ...OV.pinned];
   const tf = OV.range === '1D' ? '15Min' : '1Hour';
   const days = OV.range === '1D' ? 3 : 8;
-  const colorOf = sym => sym === 'SPY' ? '#e6edf3' : ((OV.items.find(it => it.sym === sym) || {{}}).color || '#388bfd');
+  const colorOf = sym => sym === 'SPY' ? _cv('--txt','#e6edf3') : ((OV.items.find(it => it.sym === sym) || {{}}).color || '#388bfd');
   Promise.all(active.map(sym => {{
     const ck = sym + ':' + OV.range;
     if (OV.intra[ck]) return Promise.resolve({{sym, bars: OV.intra[ck]}});
@@ -962,7 +992,6 @@ function _updateOverviewLive() {{
 
 // ---- detail modal ----
 const overlay = document.getElementById('overlay');
-let mChart;
 function openModal(s) {{
   const cls = (s.action||'').replace(' ','');
   document.getElementById('mTitle').innerHTML =
@@ -1056,305 +1085,63 @@ function openModal(s) {{
         return `<li>${{t}}<div class="src">${{n.source||''}} ${{n.created_at||''}}</div></li>`;
       }}).join('')
     : '<li class="src">No recent news tagged for this symbol.</li>';
-  // chart is stateful (range / type / benchmark) — render via renderModalChart
-  MODAL = s;
-  renderModalChart();
+  // load this symbol into the modal's Capital IQ-style chart engine
+  if (modalTC) modalTC.setSymbol(s.symbol, s.plan || {{}});
   overlay.classList.add('open');
 }}
 
-// ---- stateful modal chart (live OHLCV from Yahoo via the Worker) ----
-let MODAL = null;
-const CSTATE = {{ range:'6M', type:'candle', bench:false, avgs:true, boll:false, macd:false, vol:true }};
-const CHCACHE = {{}};   // "SYM:RANGE" -> bars[]
-let macdChart = null, volChart = null;
-let CUR = {{ bars:[], base:null, intraday:false }};  // for the hover readout
-let _finOK = false;
-try {{ _finOK = !!(window.Chart && Chart.registry.getController('candlestick')); }} catch(e) {{ _finOK = false; }}
-
-// each range tab -> the Yahoo range/interval to fetch + the x-axis time unit
-const RANGE_MAP = {{
-  '1D': {{range:'1d',  interval:'2m',  intraday:true,  unit:'hour'}},
-  '5D': {{range:'5d',  interval:'15m', intraday:true,  unit:'day'}},
-  '1M': {{range:'1mo', interval:'1d',  intraday:false, unit:'week'}},
-  '3M': {{range:'3mo', interval:'1d',  intraday:false, unit:'week'}},
-  '6M': {{range:'6mo', interval:'1d',  intraday:false, unit:'month'}},
-  'YTD':{{range:'ytd', interval:'1d',  intraday:false, unit:'month'}},
-  '1Y': {{range:'1y',  interval:'1d',  intraday:false, unit:'month'}},
-  'Max':{{range:'max', interval:'1wk', intraday:false, unit:'year'}}
-}};
-
-// client-side indicators computed on whatever series Yahoo returns
-function _sma(a, p) {{ const o=a.map(()=>null); let s=0,k=0; for(let i=0;i<a.length;i++){{ if(a[i]==null){{o[i]=null;continue;}} s+=a[i];k++; if(i>=p&&a[i-p]!=null){{s-=a[i-p];k--;}} if(k>=p) o[i]=s/p; }} return o; }}
-function _ema(a, p) {{ const o=a.map(()=>null); const m=2/(p+1); let e=null; for(let i=0;i<a.length;i++){{ const v=a[i]; if(v==null){{o[i]=e;continue;}} e=(e==null)?v:v*m+e*(1-m); o[i]=e; }} return o; }}
-function _boll(a, p) {{ const mid=_sma(a,p), up=[], lo=[]; for(let i=0;i<a.length;i++){{ if(mid[i]==null){{up[i]=null;lo[i]=null;continue;}} let s=0; for(let j=i-p+1;j<=i;j++) s+=Math.pow(a[j]-mid[i],2); const sd=Math.sqrt(s/p); up[i]=mid[i]+2*sd; lo[i]=mid[i]-2*sd; }} return {{up,lo,mid}}; }}
-function _macd(a) {{ const e12=_ema(a,12), e26=_ema(a,26); const line=a.map((_,i)=>(e12[i]!=null&&e26[i]!=null)?e12[i]-e26[i]:null); const sig=_ema(line.map(v=>v==null?0:v),9); const hist=line.map((v,i)=>v!=null?v-sig[i]:null); return {{line,sig,hist}}; }}
-function _volFmt(v) {{ return v>=1e9?(v/1e9).toFixed(2)+'B':v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':String(v); }}
-
-// crosshair: vertical line + dot at the hovered point (Robinhood/Google style)
-const _crosshair = {{
-  id:'crosshair',
-  afterDatasetsDraw(chart) {{
-    const act = chart.getActiveElements ? chart.getActiveElements() : (chart._active||[]);
-    if (!act || !act.length) return;
-    const x = act[0].element.x, y = act[0].element.y;
-    const {{top, bottom}} = chart.chartArea, c = chart.ctx;
-    c.save();
-    c.beginPath(); c.moveTo(x, top); c.lineTo(x, bottom);
-    c.lineWidth = 1; c.strokeStyle = 'rgba(139,151,166,0.45)'; c.stroke();
-    c.beginPath(); c.arc(x, y, 4, 0, Math.PI*2); c.fillStyle = '#e6edf3'; c.fill();
-    c.restore();
-  }}
-}};
-try {{ Chart.register(_crosshair); }} catch(e) {{}}
-
-function _priceColor(arr) {{
-  const a = arr.find(v => v != null);
-  let b = null; for (let i = arr.length-1; i >= 0; i--) {{ if (arr[i] != null) {{ b = arr[i]; break; }} }}
-  return (b != null && a != null && b < a) ? '#f85149' : '#2ea043';
-}}
-function _areaFill(color) {{
-  return (ctx) => {{
-    const ch = ctx.chart, area = ch.chartArea; if (!area) return color + '00';
-    const g = ch.ctx.createLinearGradient(0, area.top, 0, area.bottom);
-    g.addColorStop(0, color + '44'); g.addColorStop(1, color + '00'); return g;
-  }};
-}}
-function _updateReadout(idx) {{
-  const r = document.getElementById('mReadout'); if (!r || !CUR.bars.length) return;
-  if (idx == null || !CUR.bars[idx]) idx = CUR.bars.length - 1;
-  const b = CUR.bars[idx]; if (!b || b.c == null) return;
-  const live = LIVE[MODAL && MODAL.symbol];
-  const cl = (idx === CUR.bars.length - 1 && live != null) ? live : b.c;
-  const chg = CUR.base ? (cl/CUR.base - 1)*100 : 0;
-  const up = chg >= 0, col = up ? '#2ea043' : '#f85149';
-  const d = new Date(b.t);
-  const ds = CUR.intraday
-    ? d.toLocaleString([], {{month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}})
-    : d.toLocaleDateString([], {{year:'numeric', month:'short', day:'numeric'}});
-  const f = v => v == null ? '—' : '$' + Number(v).toLocaleString(undefined,{{minimumFractionDigits:2,maximumFractionDigits:2}});
-  const ohlc = (b.o != null)
-    ? `<span class="rohlc" style="color:var(--muted);font-size:12px;">O ${{f(b.o)}} · H ${{f(b.h)}} · L ${{f(b.l)}} · C ${{f(cl)}}${{b.v?' · Vol '+_volFmt(b.v):''}}</span>`
-    : '';
-  r.innerHTML = `<span class="rprice">${{f(cl)}}</span>`
-    + `<span class="rchg" style="color:${{col}};">${{up?'+':''}}${{chg.toFixed(2)}}% over range</span>`
-    + ohlc + `<span class="rdate">${{ds}}</span>`;
-}}
-function _cleanOpts(unit, y2) {{
-  const df = {{hour:'HH:mm', day:'MMM d', week:'MMM d', month:'MMM yyyy'}};
-  const scales = {{
-    x:{{type:'time', time:{{unit, displayFormats:df}}, ticks:{{color:'#8b97a6', maxTicksLimit:6}}, grid:{{display:false}}}},
-    y:{{position:'right', ticks:{{color:'#8b97a6'}}, grid:{{color:'rgba(42,52,65,0.55)'}}}}
-  }};
-  if (y2) scales.y2 = {{position:'left', ticks:{{color:'#a371f7', callback:v=>v+'%'}}, grid:{{display:false}}}};
-  return {{
-    responsive:true, parsing:false, interaction:{{mode:'index', intersect:false}},
-    onHover:(e, act) => {{ _updateReadout(act && act.length ? act[0].index : null); }},
-    elements:{{line:{{tension:0.15}}}},
-    plugins:{{
-      legend:{{labels:{{color:'#8b97a6', usePointStyle:true, boxWidth:8,
-        filter:(it)=> it.text && it.text[0] !== '_'}}}},
-      tooltip:{{enabled:false}},
-      zoom:{{ zoom:{{wheel:{{enabled:true}}, pinch:{{enabled:true}}, mode:'x'}}, pan:{{enabled:true, mode:'x'}} }}
-    }},
-    scales
-  }};
-}}
-
-// embedded-data fallback window (used only if the Yahoo proxy is unavailable)
-function _embWindow(c, range) {{
-  const n = c.t.length;
-  let st = 0;
-  if (range==='1M') st = Math.max(0, n-21);
-  else if (range==='3M') st = Math.max(0, n-63);
-  else if (range==='6M') st = Math.max(0, n-126);
-  else if (range==='YTD') {{
-    const y = new Date().getUTCFullYear();
-    const i = (c.dates||[]).findIndex(d => parseInt(d.slice(0,4),10) === y);
-    st = i < 0 ? 0 : i;
-  }}
-  return c.t.slice(st).map((t,i)=>({{ t, o:c.open[st+i], h:c.high[st+i], l:c.low[st+i], c:c.close[st+i], v:null }}));
-}}
-
-function renderModalChart() {{
-  const s = MODAL; if (!s) return;
-  const m = RANGE_MAP[CSTATE.range] || RANGE_MAP['6M'];
-  const ck = s.symbol + ':' + CSTATE.range;
-  const key = document.getElementById('mChartKey');
-  if (CHCACHE[ck]) {{ _drawChart(s, CHCACHE[ck], m); return; }}
-  key.innerHTML = 'Loading ' + s.symbol + ' …';
-  const embFallback = () => {{
-    const c = DATA.charts[s.symbol];
-    if (!c) {{ key.innerHTML = 'Chart unavailable right now.'; return; }}
-    const bars = _embWindow(c, CSTATE.range);
-    CHCACHE[ck] = bars; _drawChart(s, bars, m);
-  }};
-  if (!LIVE_URL) {{ embFallback(); return; }}
-  fetch(LIVE_URL + '?chart=' + encodeURIComponent(s.symbol) + '&range=' + m.range + '&interval=' + m.interval)
-    .then(r => r.json())
-    .then(d => {{
-      const bars = (d.bars || []).filter(b => b.c != null);
-      if (!bars.length) throw new Error('empty');
-      CHCACHE[ck] = bars;
-      // only draw if the user is still on this symbol+range
-      if (MODAL && MODAL.symbol === s.symbol && (RANGE_MAP[CSTATE.range]||{{}}).range === m.range) _drawChart(s, bars, m);
-    }})
-    .catch(embFallback);
-}}
-
-function _drawChart(s, bars, m) {{
-  const p = s.plan || {{}};
-  const key = document.getElementById('mChartKey');
-  if (mChart) {{ mChart.destroy(); mChart = null; }}
-  const T=bars.map(b=>b.t), O=bars.map(b=>b.o), H=bars.map(b=>b.h), L=bars.map(b=>b.l), C=bars.map(b=>b.c), Vv=bars.map(b=>b.v);
-  // overlay today's live price on the most recent bar
-  const lp = LIVE[s.symbol];
-  if (lp != null && C.length) {{
-    C[C.length-1] = lp;
-    if (H[H.length-1]!=null && lp > H[H.length-1]) H[H.length-1] = lp;
-    if (L[L.length-1]!=null && lp < L[L.length-1]) L[L.length-1] = lp;
-  }}
-  const useCandle = CSTATE.type==='candle' && _finOK && O.some(v=>v!=null);
-  const pcol = _priceColor(C);
-  const ds = [];
-  if (useCandle) {{
-    ds.push({{type:'candlestick', label:s.symbol, order:3,
-      data:bars.map((b,i)=>({{x:T[i],o:O[i],h:H[i],l:L[i],c:C[i]}})),
-      color:{{up:'#2ea043',down:'#f85149',unchanged:'#8b97a6'}},
-      borderColor:{{up:'#2ea043',down:'#f85149',unchanged:'#8b97a6'}}}});
-  }} else {{
-    ds.push({{type:'line', label:'Price', order:3, borderColor:pcol, borderWidth:2,
-      pointRadius:0, fill:true, backgroundColor:_areaFill(pcol), data:T.map((t,i)=>({{x:t,y:C[i]}}))}});
-  }}
-  // moving averages + Bollinger (computed client-side; skip on fast intraday)
-  if (!m.intraday && CSTATE.avgs) {{
-    const f=_sma(C,20), sl=_sma(C,50);
-    ds.push({{type:'line', label:'20-period avg', order:4, borderColor:'rgba(56,139,253,0.7)', borderWidth:1.2, pointRadius:0, fill:false, data:T.map((t,i)=>({{x:t,y:f[i]}}))}});
-    ds.push({{type:'line', label:'50-period avg', order:4, borderColor:'rgba(240,136,62,0.7)', borderWidth:1.2, pointRadius:0, fill:false, data:T.map((t,i)=>({{x:t,y:sl[i]}}))}});
-  }}
-  if (!m.intraday && CSTATE.boll) {{
-    const bb=_boll(C,20);
-    ds.push({{type:'line', label:'Normal range (Bollinger)', order:5, borderColor:'rgba(163,113,247,0.5)', borderWidth:1, borderDash:[3,3], pointRadius:0, fill:false, data:T.map((t,i)=>({{x:t,y:bb.up[i]}}))}});
-    ds.push({{type:'line', label:'_bblo', order:5, borderColor:'rgba(163,113,247,0.5)', borderWidth:1, borderDash:[3,3], pointRadius:0, fill:'-1', backgroundColor:'rgba(163,113,247,0.06)', data:T.map((t,i)=>({{x:t,y:bb.lo[i]}}))}});
-  }}
-  // ---- tight y-fit to the visible price range (the "correct min/max") ----
-  const ys = (useCandle ? [].concat(H, L) : C).filter(v=>v!=null);
-  const lo = Math.min(...ys), hi = Math.max(...ys), span = (hi-lo)||hi*0.02, pad = Math.max(span*0.06, hi*0.002);
-  // plan reference lines, but only when in-frame so they never squash the axis
-  const tA=T[0], tB=T[T.length-1];
-  const hline=(v,col,lab)=>({{type:'line',label:lab,borderColor:col,borderDash:[5,4],borderWidth:1,pointRadius:0,order:2,fill:false,data:[{{x:tA,y:v}},{{x:tB,y:v}}]}});
-  const within = v => v!=null && v>=lo-span*0.5 && v<=hi+span*0.5;
-  let planNote = '';
-  if (!m.intraday) {{
-    if (within(p.entry)) ds.push(hline(p.entry,'rgba(139,151,166,0.7)','Buy near'));
-    if (within(p.target)) ds.push(hline(p.target,'rgba(46,160,67,0.7)','Take-profit'));
-    if (within(p.stop)) ds.push(hline(p.stop,'rgba(248,81,73,0.7)','Stop-loss'));
-    planNote = ' · dashed = entry / target / stop';
-  }}
-  // benchmark overlay (% change, left axis)
-  let benchNote = '', y2 = false;
-  if (!m.intraday && CSTATE.bench && DATA.benchmark) {{
-    const b = DATA.benchmark, bmap = {{}};
-    b.t.forEach((t,i)=> bmap[t]=b.close[i]);
-    let base=null; const bpts=[];
-    T.forEach(t=>{{ const v=bmap[t]; if(v!=null){{ if(base==null) base=v; bpts.push({{x:t,y:(v/base-1)*100}}); }} }});
-    if (bpts.length>1) {{
-      ds.push({{type:'line', label:'S&P 500 (%)', data:bpts, borderColor:'#a371f7', borderWidth:1.3, pointRadius:0, fill:false, yAxisID:'y2', order:2}});
-      y2 = true; benchNote = ' · purple = S&P 500 % (left axis)';
-    }}
-  }}
-  CUR = {{ bars, base: C.find(v=>v!=null), intraday: m.intraday }};
-  const opts = _cleanOpts(m.unit, y2);
-  opts.scales.y.min = lo - pad; opts.scales.y.max = hi + pad;
-  mChart = new Chart(document.getElementById('mChart'), {{ data:{{datasets:ds}}, options:opts }});
-  _renderVol(T, O, C, Vv, m);
-  _renderMacd2(C, T, m);
-  _updateReadout();
-  const dfmt = ms => new Date(ms).toLocaleDateString([], {{month:'short', day:'numeric', year: m.intraday?undefined:'numeric'}});
-  const span2 = m.intraday
-    ? (CSTATE.range==='1D' ? 'Session of ' + dfmt(T[T.length-1]) : dfmt(T[0]) + ' – ' + dfmt(T[T.length-1]))
-    : dfmt(T[0]) + ' – ' + dfmt(T[T.length-1]);
-  key.innerHTML = span2 + ' · ' + bars.length + ' bars · live from Yahoo. Hover to scrub.' + planNote + benchNote;
-}}
-
-// volume sub-panel (Capital IQ-style), colored by up/down bar
-function _renderVol(T, O, C, V, m) {{
-  const box = document.getElementById('volBox'), cv = document.getElementById('mVol');
-  if (volChart) {{ volChart.destroy(); volChart = null; }}
-  const has = V.some(v => v != null && v > 0);
-  if (!CSTATE.vol || !has) {{ if (box) box.style.display = 'none'; return; }}
-  if (box) box.style.display = 'block';
-  const data = T.map((t,i)=>({{x:t, y:V[i]||0}}));
-  const cols = T.map((t,i)=> {{ const o = O[i]!=null ? O[i] : (C[i-1]!=null?C[i-1]:C[i]); return C[i]>=o ? 'rgba(46,160,67,0.4)' : 'rgba(248,81,73,0.4)'; }});
-  volChart = new Chart(cv, {{
-    data:{{datasets:[{{type:'bar', data, backgroundColor:cols, borderWidth:0, barPercentage:1, categoryPercentage:1}}]}},
-    options:{{responsive:true, parsing:false, animation:false, interaction:{{mode:'index',intersect:false}},
-      plugins:{{legend:{{display:false}}, tooltip:{{enabled:false}}}},
-      scales:{{
-        x:{{type:'time', time:{{unit:m.unit}}, ticks:{{display:false}}, grid:{{display:false}}}},
-        y:{{position:'right', beginAtZero:true, ticks:{{color:'#8b97a6', maxTicksLimit:3, callback:v=>_volFmt(v)}}, grid:{{display:false}}}}
-      }}
-    }}
-  }});
-}}
-
-// MACD sub-panel (computed client-side from the fetched closes)
-function _renderMacd2(C, T, m) {{
-  const box = document.getElementById('macdBox');
-  if (macdChart) {{ macdChart.destroy(); macdChart = null; }}
-  if (!CSTATE.macd || m.intraday) {{ if (box) box.style.display = 'none'; return; }}
-  if (box) box.style.display = 'block';
-  const mc = _macd(C);
-  const ds = [
-    {{type:'bar', label:'_h', data:T.map((t,i)=>({{x:t,y:mc.hist[i]}})), order:3, borderWidth:0,
-      backgroundColor:T.map((t,i)=> (mc.hist[i]>=0?'rgba(46,160,67,0.6)':'rgba(248,81,73,0.6)'))}},
-    {{type:'line', label:'_m', data:T.map((t,i)=>({{x:t,y:mc.line[i]}})), borderColor:'#388bfd', borderWidth:1.2, pointRadius:0, order:1}},
-    {{type:'line', label:'_s', data:T.map((t,i)=>({{x:t,y:mc.sig[i]}})), borderColor:'#f0883e', borderWidth:1.2, pointRadius:0, order:1}},
-  ];
-  macdChart = new Chart(document.getElementById('mMacd'), {{
-    data:{{datasets:ds}},
-    options:{{responsive:true, parsing:false, interaction:{{mode:'index',intersect:false}},
-      plugins:{{legend:{{display:false}}, tooltip:{{enabled:false}}}},
-      scales:{{x:{{type:'time', time:{{unit:m.unit}}, ticks:{{display:false}}, grid:{{display:false}}}},
-               y:{{position:'right', ticks:{{color:'#8b97a6', maxTicksLimit:3}}, grid:{{color:'rgba(42,52,65,0.5)'}}}}}}}}
-  }});
-}}
-
-// build chart controls once
-(function setupChartControls() {{
-  const rb = document.getElementById('rangeBtns');
-  ['1D','5D','1M','3M','6M','YTD','1Y','Max'].forEach(r => {{
-    const b=document.createElement('button'); b.textContent=r; b.dataset.range=r;
-    if (r===CSTATE.range) b.className='on';
-    b.onclick=()=>{{ CSTATE.range=r; rb.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.range===r)); renderModalChart(); }};
-    rb.appendChild(b);
-  }});
-  const tb = document.getElementById('typeBtns');
-  [['line','Line'],['candle','Candles']].forEach(([v,lab]) => {{
-    const b=document.createElement('button'); b.textContent=lab; b.dataset.type=v;
-    if (v===CSTATE.type) b.className='on';
-    b.onclick=()=>{{
-      if (v==='candle' && !_finOK) {{ alert('Candlestick view is unavailable (chart library not loaded).'); return; }}
-      CSTATE.type=v; tb.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.type===v)); renderModalChart();
+// ---- Capital IQ-style chart engine: featured panel + watchlist + theme ----
+function buildWatchlist() {{
+  const box = document.getElementById('featWatch'); if (!box) return;
+  box.innerHTML = '';
+  (DATA.signals || []).forEach((s, i) => {{
+    const row = document.createElement('div');
+    row.className = 'wl' + (i === 0 ? ' on' : ''); row.dataset.sym = s.symbol;
+    const px = s.price != null ? ('$' + Number(s.price).toFixed(2)) : '';
+    row.innerHTML = `<span class="wl-sym">${{s.symbol}}</span>`
+      + `<span class="wl-px" data-px="${{s.symbol}}">${{px}}</span>`;
+    row.onclick = () => {{
+      box.querySelectorAll('.wl').forEach(x => x.classList.remove('on'));
+      row.classList.add('on');
+      if (featTC) featTC.setSymbol(s.symbol, s.plan || {{}});
     }};
-    tb.appendChild(b);
+    box.appendChild(row);
   }});
-  const bt = document.getElementById('benchToggle');
-  bt.checked = CSTATE.bench;
-  bt.onchange = () => {{ CSTATE.bench = bt.checked; renderModalChart(); }};
-  // indicator toggles
-  const ib = document.getElementById('indBtns');
-  [['avgs','Averages'],['boll','Bollinger'],['macd','MACD'],['vol','Volume']].forEach(([k,lab]) => {{
-    const b=document.createElement('button'); b.textContent=lab; b.dataset.ind=k;
-    if (CSTATE[k]) b.className='on';
-    b.onclick=()=>{{ CSTATE[k]=!CSTATE[k]; b.classList.toggle('on', CSTATE[k]); renderModalChart(); }};
-    ib.appendChild(b);
-  }});
-  // zoom buttons (x-axis)
-  const zi=document.getElementById('zoomIn'), zo=document.getElementById('zoomOut'), zr=document.getElementById('zoomReset');
-  if (zi) zi.onclick=()=>{{ if(mChart&&mChart.zoom) mChart.zoom(1.3); }};
-  if (zo) zo.onclick=()=>{{ if(mChart&&mChart.zoom) mChart.zoom(0.77); }};
-  if (zr) zr.onclick=()=>{{ if(mChart&&mChart.resetZoom) mChart.resetZoom(); }};
+}}
+function _initCharts() {{
+  if (!window.TradeChart) {{ console.warn('chart engine not loaded'); return; }}
+  const fEl = document.getElementById('featuredChart');
+  const mEl = document.getElementById('modalChart');
+  if (fEl) featTC = new TradeChart(fEl, {{ app: window.__APP, range: '6M', type: 'candle' }});
+  if (mEl) modalTC = new TradeChart(mEl, {{ app: window.__APP, range: '6M', type: 'candle', compact: true }});
+  buildWatchlist();
+  const first = DATA.signals && DATA.signals[0];
+  if (featTC && first) featTC.setSymbol(first.symbol, first.plan || {{}});
+}}
+// ---- light / dark theme ----
+(function themeSetup() {{
+  const KEY = 'tb-theme';
+  const btn = document.getElementById('themeToggle');
+  function apply(t) {{
+    document.documentElement.dataset.theme = t;
+    if (btn) btn.textContent = (t === 'dark') ? '☀ Light' : '🌙 Dark';
+    if (featTC) featTC.applyTheme();
+    if (modalTC) modalTC.applyTheme();
+    if (typeof buildOverview === 'function') {{ try {{ buildOverview(); }} catch (e) {{}} }}
+  }}
+  let cur = 'light';
+  try {{ cur = localStorage.getItem(KEY) || 'light'; }} catch (e) {{}}
+  document.documentElement.dataset.theme = cur;
+  if (btn) {{
+    btn.textContent = (cur === 'dark') ? '☀ Light' : '🌙 Dark';
+    btn.onclick = () => {{
+      const next = (document.documentElement.dataset.theme === 'dark') ? 'light' : 'dark';
+      try {{ localStorage.setItem(KEY, next); }} catch (e) {{}}
+      apply(next);
+    }};
+  }}
 }})();
+_initCharts();
 
 function closeModal() {{ overlay.classList.remove('open'); }}
 document.getElementById('modalClose').addEventListener('click', closeModal);
