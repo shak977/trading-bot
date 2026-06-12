@@ -26,21 +26,49 @@ TOP_K = 10
 LOOKBACK, SKIP = 252, 21
 
 
+def _yahoo_closes(sym: str, rng: str = "10y"):
+    """~10 years of daily closes from Yahoo (keyless) — long enough to span the
+    2020 crash and 2022 bear, so momentum gets tested through a real downturn."""
+    import requests
+    url = (f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}"
+           f"?range={rng}&interval=1d")
+    r = requests.get(url, timeout=12, headers={"User-Agent": "Mozilla/5.0"})
+    if r.status_code != 200:
+        return None
+    res = ((r.json().get("chart", {}) or {}).get("result") or [None])[0]
+    if not res:
+        return None
+    ts = res.get("timestamp") or []
+    q = (res.get("indicators", {}).get("quote") or [{}])[0]
+    cl = q.get("close") or []
+    rows = [(ts[i], cl[i]) for i in range(min(len(ts), len(cl))) if cl[i] is not None]
+    if len(rows) < 300:
+        return None
+    idx = pd.to_datetime([r[0] for r in rows], unit="s")
+    return pd.DataFrame({"close": [r[1] for r in rows]}, index=idx)
+
+
 def _load():
-    live = bool(CONFIG.api_key and CONFIG.secret_key)
-    cfg = copy.copy(CONFIG)
-    cfg.lookback_days = 1100  # ~4.3y so there are enough monthly rebalances to mean something
-    bars = {}
+    """Prefer ~10y of keyless Yahoo history (spans 2020 + 2022 downturns); fall
+    back to synthetic when offline."""
+    bars, src = {}, "Yahoo ~10y"
     for s in dict.fromkeys(list(CORE_WATCHLIST) + ["SPY"]):
+        df = None
         try:
-            df = get_bars(s, cfg) if live else synthetic_bars(s, n=cfg.lookback_days)
-            if df is not None and len(df) > LOOKBACK + 40:
-                df = df.copy()
-                df.index = pd.to_datetime(df.index)
-                bars[s] = df
+            df = _yahoo_closes(s)
         except Exception:  # noqa: BLE001
-            continue
-    return bars, live
+            df = None
+        if df is None:
+            try:
+                d = synthetic_bars(s, n=1100)
+                df = d[["close"]].copy()
+                df.index = pd.to_datetime(df.index)
+                src = "SYNTHETIC"
+            except Exception:  # noqa: BLE001
+                df = None
+        if df is not None and len(df) > LOOKBACK + 40:
+            bars[s] = df
+    return bars, src
 
 
 def _metrics(eq: list) -> dict:
@@ -57,7 +85,7 @@ def _metrics(eq: list) -> dict:
 
 
 def main():
-    bars, live = _load()
+    bars, src = _load()
     syms = [s for s in bars if s != "SPY"]
     if not syms:
         print("No data."); return
@@ -86,7 +114,7 @@ def main():
 
     pm, sm = _metrics(port), _metrics(spy)
     print(f"\nDual-momentum portfolio (top {TOP_K}, monthly) vs SPY — {len(syms)} names, "
-          f"{len(port)} months, {'LIVE Alpaca' if live else 'SYNTHETIC'} data\n")
+          f"{len(port)} months, {src} data\n")
     print(f"{'':16}{'totRet%':>9}{'CAGR%':>8}{'Sharpe':>8}{'MaxDD%':>8}")
     print(f"{'Dual-momentum':16}{pm['ret']:>9.1f}{pm['cagr']:>8.1f}{pm['sharpe']:>8.2f}{pm['maxdd']:>8.1f}")
     print(f"{'SPY buy & hold':16}{sm['ret']:>9.1f}{sm['cagr']:>8.1f}{sm['sharpe']:>8.2f}{sm['maxdd']:>8.1f}")
