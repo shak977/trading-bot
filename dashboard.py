@@ -230,6 +230,31 @@ def _regime_html(reg: dict | None) -> str:
             f'<span class="rnote">{reg["note"]}</span></div>')
 
 
+def _kpi_html(reg: dict | None, snap: dict) -> str:
+    """A summary strip of KPI tiles up top — the 'what matters now' inverted pyramid."""
+    sigs = snap.get("signals", [])
+    n_buy = sum(1 for s in sigs if s.get("action") == "BUY")
+    tone = {"Risk-on": "buy", "Neutral": "warn", "Risk-off": "sell"}.get((reg or {}).get("label"), "")
+    tk = snap.get("track") or {}
+    wr = tk.get("win_rate")
+    wr_txt = f'{wr}%' if isinstance(wr, (int, float)) else "—"
+
+    def tile(label, value, cls="", sub=""):
+        v = f'<div class="kpi-v {cls}">{value}</div>'
+        s = f'<div class="kpi-sub">{sub}</div>' if sub else ""
+        return f'<div class="kpi"><div class="kpi-l">{label}</div>{v}{s}</div>'
+
+    tiles = ""
+    if reg:
+        tiles += tile("Market regime", reg.get("label", "—"), tone, reg.get("note", "")[:46])
+        tiles += tile("Breadth", f'{reg.get("breadth", "—")}%', "", f'of {reg.get("total","?")} above trend')
+        tiles += tile("Avg momentum", f'{reg.get("avg_rsi", "—")}', "", "RSI, 0–100")
+    tiles += tile("Fresh buys", str(n_buy), "buy" if n_buy else "", "new signals today")
+    tiles += tile("Signals shown", str(len(sigs)), "", "ranked candidates")
+    tiles += tile("Track record", wr_txt, "", f'{tk.get("resolved", 0)} calls resolved')
+    return f'<div class="kpis">{tiles}</div>'
+
+
 def _sectors_html(secs: list[dict]) -> str:
     if not secs:
         return ""
@@ -319,6 +344,7 @@ def render_html(snap: dict) -> str:
     }[mode]
     track_html = _track_html(snap.get("track"))
     regime_html = _regime_html(snap.get("regime"))
+    kpi_html = _kpi_html(snap.get("regime"), snap)
     sectors_html = _sectors_html(snap.get("sectors"))
     macro_html = _macro_html(snap.get("macro"))
     dh = snap.get("data_health")
@@ -535,7 +561,7 @@ def render_html(snap: dict) -> str:
   .method .pill {{ display:inline-block; background:var(--inset); border:1px solid var(--line);
     border-radius:6px; padding:1px 7px; font-size:13px; color:var(--txt); }}
   /* ---- theme toggle ---- */
-  .themebtn {{ position:absolute; top:18px; right:20px; background:var(--card); color:var(--muted);
+  .themebtn {{ background:var(--card); color:var(--muted);
     border:1px solid var(--line); border-radius:8px; padding:6px 12px; font-size:13px; cursor:pointer;
     box-shadow:var(--shadow); }}
   .themebtn:hover {{ color:var(--txt); }}
@@ -605,26 +631,66 @@ def render_html(snap: dict) -> str:
     width:100% !important; height:auto !important; inset:auto; margin-bottom:14px; }}
   .grid-stack.no-grid > .grid-stack-item > .grid-stack-item-content {{ position:static !important; inset:auto; }}
   .grid-stack.no-grid .wgt-head {{ cursor:default; }}
+  /* ---- app shell ---- */
+  .appbar {{ display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:14px 0; border-bottom:1px solid var(--line); margin-bottom:16px;
+    position:sticky; top:0; z-index:20;
+    background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:saturate(1.3) blur(10px); }}
+  .brand {{ display:flex; align-items:center; gap:10px; font-weight:800; font-size:18px; letter-spacing:-.01em; }}
+  .brand-mark {{ display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px;
+    border-radius:9px; background:var(--accent); color:#fff; font-size:15px; }}
+  .appbar-right {{ display:flex; align-items:center; gap:10px; }}
+  .livepill {{ font-size:12px; color:var(--muted); }}
+  .subhead {{ color:var(--muted); font-size:13px; margin:0 0 14px; }}
+  /* ---- KPI summary strip ---- */
+  .kpis {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(148px,1fr)); gap:12px; margin:0 0 20px; }}
+  .kpi {{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; box-shadow:var(--shadow); }}
+  .kpi-l {{ font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:700; }}
+  .kpi-v {{ font-size:24px; font-weight:800; margin-top:4px; letter-spacing:-.015em; font-variant-numeric:tabular-nums; }}
+  .kpi-v.buy {{ color:var(--buy); }} .kpi-v.sell {{ color:var(--sell); }} .kpi-v.warn {{ color:#b8860b; }}
+  .kpi-sub {{ font-size:11px; color:var(--muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+  /* ---- redesigned signal card ---- */
+  .card-top {{ display:flex; align-items:center; gap:10px; margin-bottom:6px; }}
+  .card-mono {{ width:36px; height:36px; border-radius:9px; flex:0 0 auto; display:flex; align-items:center;
+    justify-content:center; color:#fff; font-weight:800; font-size:12px; position:relative; overflow:hidden; }}
+  .card-id {{ min-width:0; flex:1 1 auto; }}
+  .card-id .s {{ font-size:16px; font-weight:800; line-height:1.15; }}
+  .card-id .n {{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+  .card-px-row {{ display:flex; align-items:baseline; gap:10px; margin:6px 0 4px; }}
+  .card-px {{ font-size:24px; font-weight:800; letter-spacing:-.015em; font-variant-numeric:tabular-nums; }}
+  .card-day {{ font-size:13px; font-weight:600; font-variant-numeric:tabular-nums; }}
+  .conv-wrap {{ margin:12px 0 10px; }}
+  .conv-row {{ display:flex; justify-content:space-between; font-size:11px; color:var(--muted);
+    margin-bottom:5px; text-transform:uppercase; letter-spacing:.04em; font-weight:700; }}
+  .conv-meter {{ height:6px; background:var(--inset); border-radius:4px; overflow:hidden; }}
+  .conv-fill {{ height:100%; border-radius:4px; transition:width .3s ease; }}
+  .card-stats {{ display:grid; grid-template-columns:1fr 1fr; gap:5px 16px; font-size:12.5px; margin-top:6px; }}
+  .card-stat {{ display:flex; justify-content:space-between; color:var(--muted); }}
+  .card-stat b {{ color:var(--txt); font-weight:600; font-variant-numeric:tabular-nums; }}
 </style></head>
 <body><div class="wrap">
-  <button id="themeToggle" class="themebtn">🌙 Dark</button>
-  <h1>Trading Signals Dashboard</h1>
-  <div class="meta">Generated {snap['generated_at']} &middot;
-    <span class="badge m-{mode}">{mode}</span> &middot;
-    scanned {snap['scanned']} symbols{health_html} <span id="liveStatus"></span></div>
-  <div class="note">{mode_note}</div>
-{regime_html}
+  <header class="appbar">
+    <div class="brand"><span class="brand-mark">◈</span><span>Signal Desk</span></div>
+    <div class="appbar-right">
+      <span class="badge m-{mode}">{mode}</span>
+      <span class="livepill" id="liveStatus"></span>
+      <button id="themeToggle" class="themebtn">🌙 Dark</button>
+    </div>
+  </header>
+  <div class="subhead">Generated {snap['generated_at']} &middot; scanned {snap['scanned']} symbols{health_html}</div>
+  {kpi_html}
+  <div class="note" style="margin-top:0;">{mode_note}</div>
   <div id="diag"></div>
 
   <nav class="tabs" id="tabs">
     <button data-page="signals" class="on">Signals</button>
+    <button data-page="markets">Markets</button>
     <button data-page="track">Track record</button>
     <button data-page="method">How it works</button>
     <button data-page="news">Market news</button>
   </nav>
 
-  <section class="page on" id="page-signals">
-    <h2 style="margin-top:0;">Signals <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— grouped by sector · click any card for the full reasoning</span></h2>
+  <section class="page" id="page-markets">
     <div class="dash-tools">
       <button class="ctlbtn" id="layoutReset" title="Reset widget layout">⟲ Reset layout</button>
       <span style="color:var(--muted);font-size:12px;">Drag a ⠿ header to move · drag a panel edge to resize · layout is saved</span>
@@ -673,7 +739,10 @@ def render_html(snap: dict) -> str:
         </div>
       </div>
     </div>
-    <div class="viewctl"><span style="color:var(--muted);font-size:13px;">View:</span>
+  </section>
+
+  <section class="page on" id="page-signals">
+    <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Sort &amp; filter:</span>
       <span class="ctlgrp" id="viewBtns"></span></div>
     <div id="cards"></div>
   </section>
@@ -812,23 +881,37 @@ const cards = document.getElementById('cards');
 function makeCard(s) {{
   const el = document.createElement('div'); el.className='card';
   const cls = (s.action||'').replace(' ','');
-  const hot = (s.rel_volume!=null && s.rel_volume>=1.5) ? ' hot' : '';
+  const conv = s.conviction || {{}};
+  const cpct = conv.score_pct || 0;
+  const ccol = conv.label==='High' ? 'var(--buy)' : (conv.label==='Low' ? 'var(--sell)' : '#c08a1e');
+  const dc = s.context && s.context.day_change_pct;
+  const dchg = (dc!=null) ? `<span class="card-day" style="color:${{dc>=0?'var(--buy)':'var(--sell)'}};">${{dc>=0?'+':''}}${{dc.toFixed(2)}}% today</span>` : '';
+  const initials = (s.symbol.replace(/[^A-Za-z]/g,'').slice(0,2) || s.symbol.slice(0,2)).toUpperCase();
+  const logo = `<span class="card-mono" style="background:hsl(${{_symHue(s.symbol)}},42%,42%);">${{initials}}`
+    + `<img src="https://financialmodelingprep.com/image-stock/${{s.symbol}}.png" alt="" loading="lazy" onerror="this.remove()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;">`
+    + `</span>`;
+  const st = [];
+  st.push(`<div class="card-stat"><span>RSI</span><b>${{s.rsi}}</b></div>`);
+  if (s.rel_volume!=null) st.push(`<div class="card-stat"><span>Rel vol</span><b>${{s.rel_volume}}×</b></div>`);
+  if (s.stop!=null) st.push(`<div class="card-stat"><span>Stop</span><b>$${{s.stop}}</b></div>`);
+  if (s.target!=null) st.push(`<div class="card-stat"><span>Target</span><b>$${{s.target}}</b></div>`);
+  if ((s.plan||{{}}).rr!=null) st.push(`<div class="card-stat"><span>Reward:risk</span><b>${{s.plan.rr}}</b></div>`);
+  st.push(`<div class="card-stat"><span>As of</span><b>${{s.as_of}}</b></div>`);
+  const ed = (s.fundamentals||{{}}).earnings_days;
+  const ch = (s.patterns||[]).slice(0,2).map(p=>`<span class="chip mini ${{p.kind}}">${{p.label}}</span>`);
+  if (ed!=null && ed<=7) ch.unshift(`<span class="chip mini bear">⚠ Earnings ${{ed}}d</span>`);
+  const _cn = (s.strategies&&s.strategies.now) ? s.strategies.now : null;
+  if (_cn && _cn.count>=2) ch.unshift(`<span class="chip mini bull" title="independent strategies agreeing">▲ ${{_cn.count}}/${{_cn.total}} strategies</span>`);
   const nNews = (s.news||[]).length;
   el.innerHTML = `
-    <div><img class="logo" src="https://assets.parqet.com/logos/symbol/${{s.symbol}}?format=png" alt="" onerror="this.style.display='none'">
-      <span class="sym">${{s.symbol}}</span>
+    <div class="card-top">${{logo}}
+      <div class="card-id"><div class="s">${{s.symbol}}</div><div class="n">${{s.name||s.exchange||''}}</div></div>
       <span class="act a-${{cls}}">${{s.action}}</span></div>
-    ${{s.name ? `<div class="cname">${{s.name}}${{s.exchange?` · ${{s.exchange}}`:''}}</div>`:''}}
-    <div class="px" data-px="${{s.symbol}}">$${{s.price.toLocaleString()}}</div>`;
-  el.innerHTML += `
-    <div class="kv"><span>As of</span><span>${{s.as_of}}</span></div>
-    <div class="kv"><span>RSI</span><span>${{s.rsi}}</span></div>
-    <div class="kv"><span>Fast / Slow MA</span><span>${{s.fast_ma}} / ${{s.slow_ma}}</span></div>
-    ${{s.rel_volume!=null ? `<div class="kv${{hot}}"><span>Rel vol (flow proxy)</span><span>${{s.rel_volume}}x</span></div>`:''}}
-    ${{s.stop!=null ? `<div class="kv"><span>Stop / Target</span><span>$${{s.stop}} / $${{s.target}}</span></div>`:''}}
-    ${{s.suggested_shares ? `<div class="kv"><span>Suggested size</span><span>${{s.suggested_shares}} sh</span></div>`:''}}
-    ${{s.conviction ? `<div class="kv"><span>Conviction</span><span><span class="convbadge conv-${{s.conviction.label}}" style="font-size:11px;">${{s.conviction.label}} ${{s.conviction.score_pct}}%</span></span></div>`:''}}
-    ${{(() => {{ const ed=(s.fundamentals||{{}}).earnings_days; const ch=(s.patterns||[]).slice(0,3).map(p=>`<span class="chip mini ${{p.kind}}">${{p.label}}</span>`); if(ed!=null && ed<=7) ch.unshift(`<span class="chip mini bear">⚠ Earnings ${{ed}}d</span>`); const _cn=(s.strategies&&s.strategies.now)?s.strategies.now:null; if(_cn && _cn.count>=2) ch.unshift(`<span class="chip mini bull" title="independent strategies agreeing">▲ ${{_cn.count}}/${{_cn.total}} strategies</span>`); return ch.length?`<div class="chips" style="margin-top:8px;">${{ch.join('')}}</div>`:''; }})()}}
+    <div class="card-px-row"><span class="card-px" data-px="${{s.symbol}}">$${{s.price.toLocaleString()}}</span>${{dchg}}</div>
+    ${{conv.label ? `<div class="conv-wrap"><div class="conv-row"><span>Conviction · ${{conv.label}}</span><span>${{cpct}}%</span></div>`
+      + `<div class="conv-meter"><div class="conv-fill" style="width:${{cpct}}%;background:${{ccol}};"></div></div></div>` : ''}}
+    <div class="card-stats">${{st.join('')}}</div>
+    ${{ch.length ? `<div class="chips" style="margin-top:10px;">${{ch.join('')}}</div>` : ''}}
     <div class="more">${{nNews ? nNews+' news &middot; ':''}}click for full plan + reasoning →</div>`;
   el.addEventListener('click', () => openModal(s));
   return el;
@@ -1306,6 +1389,12 @@ document.addEventListener('keydown', e => {{ if (e.key === 'Escape') closeModal(
     document.querySelectorAll('.page').forEach(s => s.classList.toggle('on', s.id === 'page-' + page));
     try {{ localStorage.setItem('tab', page); }} catch (e) {{}}
     window.scrollTo(0, 0);
+    // the Markets grid + charts are laid out while hidden; size them on first reveal
+    if (page === 'markets') setTimeout(() => {{
+      try {{ window.dispatchEvent(new Event('resize')); }} catch (e) {{}}
+      try {{ if (_grid) _grid.compact(); }} catch (e) {{}}
+      _refitCharts();
+    }}, 60);
   }}
   tabs.forEach(b => b.addEventListener('click', () => show(b.dataset.page)));
   let saved = 'signals';
