@@ -260,17 +260,22 @@
       const sym = this.symbol; if (!sym) return;
       const m = RANGE_MAP[this.state.range] || RANGE_MAP['6M'];
       this.el.key.textContent = 'Loading ' + sym + ' …';
-      const jobs = [this._fetch(sym, m)].concat(this.compare.map(s => this._fetch(s, m).then(b => ({ sym: s, bars: b }))));
+      const needSpy = this.state.bench && !m.intraday && this.compare.length === 0 && sym !== 'SPY';
+      const jobs = [this._fetch(sym, m)]
+        .concat(this.compare.map(s => this._fetch(s, m).then(b => ({ sym: s, bars: b }))))
+        .concat(needSpy ? [this._fetch('SPY', m).then(b => ({ sym: 'SPY', bars: b, _bench: true }))] : []);
       Promise.all(jobs).then(res => {
         const bars = res[0];
         if (!bars || !bars.length) { this.el.key.textContent = 'No data for ' + sym + '.'; return; }
-        const cmp = res.slice(1).filter(x => x.bars && x.bars.length);
-        if (this.symbol === sym && (RANGE_MAP[this.state.range] || {}).range === m.range) this._draw(bars, cmp, m);
+        const rest = res.slice(1);
+        const cmp = rest.filter(x => x.bars && x.bars.length && !x._bench);
+        const spy = rest.find(x => x._bench && x.bars && x.bars.length);
+        if (this.symbol === sym && (RANGE_MAP[this.state.range] || {}).range === m.range) this._draw(bars, cmp, m, spy);
       });
     }
 
     // ---------- drawing the panels ----------
-    _draw(bars, cmp, m) {
+    _draw(bars, cmp, m, spy) {
       const t = theme(); const p = this.plan || {};
       this._destroy();
       const T = bars.map(b => b.t), O = bars.map(b => b.o), H = bars.map(b => b.h), L = bars.map(b => b.l), C = bars.map(b => b.c), V = bars.map(b => b.v);
@@ -322,11 +327,13 @@
           if (within(p.stop)) ds.push(this._hline(p.stop, t.sell, 'Stop', T));
         }
         if (!this.state.log) { opts.scales.y.min = lo - pad; opts.scales.y.max = hi + pad; }
-        if (this.state.bench && this.app.DATA && this.app.DATA.benchmark && !m.intraday) {
-          const b = this.app.DATA.benchmark, bmap = {}; b.t.forEach((x, i) => bmap[x] = b.close[i]);
-          let base = null; const bpts = [];
-          T.forEach(x => { const v = bmap[x]; if (v != null) { if (base == null) base = v; bpts.push({ x, y: (v / base - 1) * 100 }); } });
-          if (bpts.length > 1) { ds.push({ type: 'line', label: 'S&P 500 (%)', data: bpts, borderColor: t.accent, borderWidth: 1.3, pointRadius: 0, fill: false, yAxisID: 'y2', order: 2 }); y2 = true; opts.scales.y2 = this._pctAxis(t); benchNote = ' · purple = S&P %'; }
+        if (this.state.bench && spy && spy.bars.length && !m.intraday) {
+          const sc = spy.bars.map(b => b.c), base = sc.find(v => v != null);
+          if (base) {
+            const bpts = spy.bars.map(b => ({ x: b.t, y: (b.c / base - 1) * 100 }));
+            ds.push({ type: 'line', label: 'S&P 500 (%)', data: bpts, borderColor: t.accent, borderWidth: 1.4, pointRadius: 0, fill: false, yAxisID: 'y2', order: 2 });
+            y2 = true; opts.scales.y2 = this._pctAxis(t); benchNote = ' · navy = S&P 500 % (left axis)';
+          }
         }
       }
       this.cur = { bars, base: C.find(v => v != null), intraday: m.intraday };
@@ -478,6 +485,7 @@
     // ---------- live + theme ----------
     onLive(prices) { this._live = prices || {}; this._updateReadout(); if (this.charts.price) { const ds = this.charts.price.data.datasets.find(d => d.label === 'Price' || d.label === this.symbol); if (ds && ds.data && ds.data.length) { const last = ds.data[ds.data.length - 1], lp = this._live[this.symbol]; if (last && lp != null) { if ('c' in last) { last.c = lp; if (lp > last.h) last.h = lp; if (lp < last.l) last.l = lp; } else last.y = lp; this.charts.price.update('none'); this._redrawOverlay(); } } } }
     applyTheme() { if (this.symbol) this.render(); }
+    resize() { Object.keys(this.charts).forEach(k => { try { this.charts[k].resize(); } catch (e) {} }); this._redrawOverlay(); }
     _destroy() { Object.keys(this.charts).forEach(k => { try { this.charts[k].destroy(); } catch (e) {} delete this.charts[k]; }); }
   }
 

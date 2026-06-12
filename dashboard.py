@@ -339,6 +339,8 @@ def render_html(snap: dict) -> str:
 <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.1/dist/chartjs-chart-financial.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack.min.css">
+<script src="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack-all.js"></script>
 <script src="chart_engine.js"></script>
 <style>
   /* Light "Capital IQ Pro" palette is the default; dark is a toggle. */
@@ -512,18 +514,23 @@ def render_html(snap: dict) -> str:
   /* ---- featured chart panel + watchlist ---- */
   .featured {{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px;
     margin:6px 0 18px; box-shadow:var(--shadow); }}
-  .feat-grid {{ display:grid; grid-template-columns:1fr 220px; gap:16px; }}
-  @media (max-width:840px) {{ .feat-grid {{ grid-template-columns:1fr; }} .feat-watch {{ max-height:200px; }} }}
+  .feat-grid {{ display:grid; grid-template-columns:1fr 256px; gap:16px; }}
+  @media (max-width:840px) {{ .feat-grid {{ grid-template-columns:1fr; }} .feat-watch {{ max-height:220px; }} }}
   .feat-wtitle {{ font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted);
     font-weight:700; margin-bottom:6px; }}
-  .feat-watch {{ overflow-y:auto; max-height:520px; border-left:1px solid var(--line); padding-left:12px; }}
-  .wl {{ display:flex; align-items:center; justify-content:space-between; gap:6px; padding:6px 8px;
-    border-radius:7px; cursor:pointer; font-size:13px; }}
+  .feat-watch {{ overflow-y:auto; max-height:560px; border-left:1px solid var(--line); padding-left:12px; }}
+  .wl {{ display:flex; align-items:center; gap:9px; padding:6px 8px; border-radius:7px; cursor:pointer; }}
   .wl:hover {{ background:var(--line); }}
   .wl.on {{ background:color-mix(in srgb, var(--accent) 16%, transparent); }}
-  .wl .wl-sym {{ font-weight:700; }}
-  .wl .wl-px {{ font-variant-numeric:tabular-nums; color:var(--muted); font-size:12px; }}
-  .wl .wl-chg {{ font-variant-numeric:tabular-nums; font-size:12px; min-width:52px; text-align:right; }}
+  .wl-logo {{ position:relative; flex:0 0 auto; width:28px; height:28px; border-radius:6px; color:#fff;
+    font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; overflow:hidden; }}
+  .wl-logo img {{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#fff; }}
+  .wl-main {{ display:flex; flex-direction:column; min-width:0; flex:1 1 auto; }}
+  .wl-sym {{ font-weight:700; font-size:13px; line-height:1.2; }}
+  .wl-name {{ color:var(--muted); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+  .wl-r {{ display:flex; flex-direction:column; align-items:flex-end; flex:0 0 auto; }}
+  .wl-px {{ font-variant-numeric:tabular-nums; font-size:12px; }}
+  .wl-chg {{ font-variant-numeric:tabular-nums; font-size:11px; }}
   /* ---- TradeChart component ---- */
   .tc {{ width:100%; }}
   .tc-bar {{ display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; margin-bottom:8px; }}
@@ -552,6 +559,24 @@ def render_html(snap: dict) -> str:
   .tc-key {{ color:var(--muted); font-size:12px; margin-top:8px; line-height:1.6; }}
   .tc-chip {{ display:inline-block; background:var(--line); border-radius:10px; padding:1px 8px; cursor:pointer;
     font-size:11px; color:var(--txt); }}
+  /* ---- widget dashboard (Gridstack) ---- */
+  .dash-tools {{ display:flex; align-items:center; gap:10px; margin:4px 0 8px; }}
+  .grid-stack {{ background:transparent; }}
+  .grid-stack-item-content.wgt {{ background:var(--card); border:1px solid var(--line); border-radius:12px;
+    box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden; inset:0; }}
+  .wgt-head {{ display:flex; align-items:center; gap:8px; cursor:move; padding:8px 12px; font-size:12px;
+    font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em;
+    border-bottom:1px solid var(--line); background:var(--bg); user-select:none; }}
+  .wgt-head .grip {{ color:var(--flat); cursor:grab; font-size:14px; }}
+  .wgt-body {{ flex:1 1 auto; overflow:auto; padding:12px 14px; }}
+  /* neutralise inner card chrome so we don't double-frame inside a widget */
+  .wgt .ovbox, .wgt .featured {{ background:none; border:none; box-shadow:none; padding:0; margin:0; }}
+  .grid-stack-item-content {{ overflow:visible; }}
+  /* fallback if the Gridstack library can't load: plain stacked panels */
+  .grid-stack.no-grid > .grid-stack-item {{ position:static !important; transform:none !important;
+    width:100% !important; height:auto !important; inset:auto; margin-bottom:14px; }}
+  .grid-stack.no-grid > .grid-stack-item > .grid-stack-item-content {{ position:static !important; inset:auto; }}
+  .grid-stack.no-grid .wgt-head {{ cursor:default; }}
 </style></head>
 <body><div class="wrap">
   <button id="themeToggle" class="themebtn">🌙 Dark</button>
@@ -572,24 +597,54 @@ def render_html(snap: dict) -> str:
 
   <section class="page on" id="page-signals">
     <h2 style="margin-top:0;">Signals <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— grouped by sector · click any card for the full reasoning</span></h2>
-    <div class="featured">
-      <div class="feat-grid">
-        <div class="feat-main"><div id="featuredChart"></div></div>
-        <aside class="feat-watch"><div class="feat-wtitle">Watchlist · click to load</div><div id="featWatch"></div></aside>
+    <div class="dash-tools">
+      <button class="ctlbtn" id="layoutReset" title="Reset widget layout">⟲ Reset layout</button>
+      <span style="color:var(--muted);font-size:12px;">Drag a ⠿ header to move · drag a panel edge to resize · layout is saved</span>
+    </div>
+    <div class="grid-stack" id="dashGrid">
+      <div class="grid-stack-item" gs-x="0" gs-y="0" gs-w="12" gs-h="11" gs-id="featured">
+        <div class="grid-stack-item-content wgt">
+          <div class="wgt-head"><span class="grip">⠿</span> Featured chart</div>
+          <div class="wgt-body">
+            <div class="featured">
+              <div class="feat-grid">
+                <div class="feat-main"><div id="featuredChart"></div></div>
+                <aside class="feat-watch"><div class="feat-wtitle">Watchlist · click to load</div><div id="featWatch"></div></aside>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="grid-stack-item" gs-x="0" gs-y="11" gs-w="12" gs-h="9" gs-id="overview">
+        <div class="grid-stack-item-content wgt">
+          <div class="wgt-head"><span class="grip">⠿</span> Live overview — % vs S&amp;P 500</div>
+          <div class="wgt-body">
+            <div class="ovbox">
+              <div class="ovhead">📈 Live overview — % change vs S&amp;P 500 <span id="ovStatus"></span>
+                <span class="ctlgrp" id="ovRangeBtns" style="margin-left:8px;"></span>
+                <button class="ctlbtn" id="ovColorBtn" style="margin-left:6px;">Colour all</button>
+                <span style="font-weight:400;color:var(--muted);font-size:12px;"> · click a name to highlight</span></div>
+              <div class="ovwrap">
+                <div class="ovchart"><canvas id="overviewChart" height="150"></canvas></div>
+                <div class="ovboard" id="ovBoard"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="grid-stack-item" gs-x="0" gs-y="20" gs-w="6" gs-h="8" gs-id="sectors">
+        <div class="grid-stack-item-content wgt">
+          <div class="wgt-head"><span class="grip">⠿</span> Sector strength</div>
+          <div class="wgt-body">{sectors_html}</div>
+        </div>
+      </div>
+      <div class="grid-stack-item" gs-x="6" gs-y="20" gs-w="6" gs-h="8" gs-id="macro">
+        <div class="grid-stack-item-content wgt">
+          <div class="wgt-head"><span class="grip">⠿</span> Macro backdrop</div>
+          <div class="wgt-body">{macro_html}</div>
+        </div>
       </div>
     </div>
-    <div class="ovbox">
-      <div class="ovhead">📈 Live overview — % change vs S&amp;P 500 <span id="ovStatus"></span>
-        <span class="ctlgrp" id="ovRangeBtns" style="margin-left:8px;"></span>
-        <button class="ctlbtn" id="ovColorBtn" style="margin-left:6px;">Colour all</button>
-        <span style="font-weight:400;color:var(--muted);font-size:12px;"> · click a name to highlight</span></div>
-      <div class="ovwrap">
-        <div class="ovchart"><canvas id="overviewChart" height="150"></canvas></div>
-        <div class="ovboard" id="ovBoard"></div>
-      </div>
-    </div>
-{sectors_html}
-{macro_html}
     <div class="viewctl"><span style="color:var(--muted);font-size:13px;">View:</span>
       <span class="ctlgrp" id="viewBtns"></span></div>
     <div id="cards"></div>
@@ -1091,6 +1146,14 @@ function openModal(s) {{
 }}
 
 // ---- Capital IQ-style chart engine: featured panel + watchlist + theme ----
+function _symHue(s) {{ let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return h; }}
+function _logoHTML(sym) {{
+  const initials = (sym.replace(/[^A-Za-z]/g, '').slice(0, 2) || sym.slice(0, 2)).toUpperCase();
+  const bg = `hsl(${{_symHue(sym)}},42%,42%)`;
+  return `<span class="wl-logo" style="background:${{bg}};">${{initials}}`
+    + `<img src="https://financialmodelingprep.com/image-stock/${{sym}}.png" alt="" loading="lazy" onerror="this.remove()">`
+    + `</span>`;
+}}
 function buildWatchlist() {{
   const box = document.getElementById('featWatch'); if (!box) return;
   box.innerHTML = '';
@@ -1098,8 +1161,12 @@ function buildWatchlist() {{
     const row = document.createElement('div');
     row.className = 'wl' + (i === 0 ? ' on' : ''); row.dataset.sym = s.symbol;
     const px = s.price != null ? ('$' + Number(s.price).toFixed(2)) : '';
-    row.innerHTML = `<span class="wl-sym">${{s.symbol}}</span>`
-      + `<span class="wl-px" data-px="${{s.symbol}}">${{px}}</span>`;
+    const dc = s.context && s.context.day_change_pct;
+    const chg = (dc != null) ? `<span class="wl-chg" style="color:${{dc >= 0 ? 'var(--buy)' : 'var(--sell)'}};">${{dc >= 0 ? '+' : ''}}${{dc.toFixed(1)}}%</span>` : '';
+    row.innerHTML = _logoHTML(s.symbol)
+      + `<span class="wl-main"><span class="wl-sym">${{s.symbol}}</span>`
+      + `<span class="wl-name">${{s.name || ''}}</span></span>`
+      + `<span class="wl-r"><span class="wl-px" data-px="${{s.symbol}}">${{px}}</span>${{chg}}</span>`;
     row.onclick = () => {{
       box.querySelectorAll('.wl').forEach(x => x.classList.remove('on'));
       row.classList.add('on');
@@ -1141,6 +1208,29 @@ function _initCharts() {{
     }};
   }}
 }})();
+// ---- widget dashboard (Gridstack): drag/resize + saved layout ----
+let _grid = null;
+function _refitCharts() {{
+  try {{ if (featTC) featTC.resize(); }} catch (e) {{}}
+  try {{ if (typeof ovChart !== 'undefined' && ovChart) ovChart.resize(); }} catch (e) {{}}
+}}
+function initGrid() {{
+  const elGrid = document.getElementById('dashGrid');
+  if (!elGrid) return;
+  if (!window.GridStack) {{ elGrid.classList.add('no-grid'); return; }}  // CDN failed → plain stacked layout
+  _grid = GridStack.init({{
+    column: 12, cellHeight: 42, margin: 8, float: true,
+    handle: '.wgt-head', resizable: {{ handles: 'e, se, s, sw, w' }},
+    draggable: {{ cancel: 'button, input, canvas, a, .tc-seg, .ovboard, select' }},
+  }}, elGrid);
+  try {{ const saved = JSON.parse(localStorage.getItem('tb-layout') || 'null'); if (saved && saved.length) _grid.load(saved); }} catch (e) {{}}
+  const save = () => {{ try {{ localStorage.setItem('tb-layout', JSON.stringify(_grid.save(false))); }} catch (e) {{}} }};
+  _grid.on('change', () => {{ save(); _refitCharts(); }});
+  _grid.on('resizestop dragstop', () => _refitCharts());
+  const rb = document.getElementById('layoutReset');
+  if (rb) rb.onclick = () => {{ try {{ localStorage.removeItem('tb-layout'); }} catch (e) {{}} location.reload(); }};
+}}
+initGrid();
 _initCharts();
 
 function closeModal() {{ overlay.classList.remove('open'); }}
