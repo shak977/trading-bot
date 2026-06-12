@@ -48,35 +48,47 @@ def main():
         except Exception:  # noqa: BLE001
             continue
 
+    def _table(registry, side):
+        results = []
+        for key, (label, fn, kind, _blurb) in registry.items():
+            is_m, oos_m = [], []
+            for df in bars.values():
+                try:
+                    pos = fn(df, CONFIG)
+                except Exception:  # noqa: BLE001
+                    continue
+                split = int(len(df) * 0.6)
+                try:
+                    is_m.append(backtest_positions(df.iloc[:split], pos.iloc[:split], CONFIG, side=side).metrics)
+                    oos_m.append(backtest_positions(df.iloc[split:], pos.iloc[split:], CONFIG, side=side).metrics)
+                except Exception:  # noqa: BLE001
+                    continue
+            oos, ins = _agg(oos_m), _agg(is_m)
+            results.append((oos["ret"], label, oos, ins))
+        for _ret, label, oos, ins in sorted(results, reverse=True):
+            print(f"{label:22} {oos['ret']:>8} {oos['win']:>8} {oos['trades']:>6} "
+                  f"{oos['prof']:>9} {oos['sharpe']:>8}   {ins['ret']:>7}")
+
+    hdr = (f"{'strategy':22} {'OOSret%':>8} {'OOSwin%':>8} {'OOStr':>6} "
+           f"{'OOSprof%':>9} {'OOSshrp':>8}   {'ISret%':>7}")
     print(f"\nStrategy bake-off — net of {CONFIG.slippage_bps:.0f}bps/side slippage + "
           f"${CONFIG.commission_per_trade:.0f} commission — over {len(bars)} symbols "
           f"({'LIVE Alpaca' if live else 'SYNTHETIC'} data)\n")
-    print(f"{'strategy':20} {'OOSret%':>8} {'OOSwin%':>8} {'OOStr':>6} {'OOSprof%':>9} {'OOSshrp':>8}   {'ISret%':>7}")
-    print("-" * 80)
-    results = []
-    for key, (label, fn, kind, _blurb) in strategies.STRATEGIES.items():
-        is_m, oos_m = [], []
-        for df in bars.values():
-            try:
-                pos = fn(df, CONFIG)
-            except Exception:  # noqa: BLE001
-                continue
-            split = int(len(df) * 0.6)
-            try:
-                is_m.append(backtest_positions(df.iloc[:split], pos.iloc[:split], CONFIG).metrics)
-                oos_m.append(backtest_positions(df.iloc[split:], pos.iloc[split:], CONFIG).metrics)
-            except Exception:  # noqa: BLE001
-                continue
-        oos, ins = _agg(oos_m), _agg(is_m)
-        results.append((oos["ret"], label, oos, ins))
 
-    for _ret, label, oos, ins in sorted(results, reverse=True):
-        print(f"{label:20} {oos['ret']:>8} {oos['win']:>8} {oos['trades']:>6} "
-              f"{oos['prof']:>9} {oos['sharpe']:>8}   {ins['ret']:>7}")
+    print("LONG strategies")
+    print(hdr); print("-" * 82)
+    _table(strategies.STRATEGIES, "long")
+
+    print("\nSHORT strategies (1 = short on; profit when price falls)")
+    print(hdr); print("-" * 82)
+    _table(strategies.SHORT_STRATEGIES, "short")
+
     print("\nOOS = out-of-sample (newer 40%, never used to pick). Trust OOS, not IS.")
     print("Real edge = positive OOS return, OOS roughly tracks IS (not collapsing), and "
           ">50% of stocks profitable. If nothing clears that bar, the honest read is "
           "'use it as a screen, not an edge.'")
+    print("Note: shorting US equities in a structurally rising market is an uphill fight — "
+          "expect the short table to look weaker than the long one even before costs.")
 
 
 if __name__ == "__main__":

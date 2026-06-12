@@ -42,12 +42,17 @@ def run_backtest(df: pd.DataFrame, cfg: Config) -> BacktestResult:
     return backtest_positions(sig, sig["signal"], cfg)
 
 
-def backtest_positions(df: pd.DataFrame, positions: pd.Series, cfg: Config) -> BacktestResult:
+def backtest_positions(df: pd.DataFrame, positions: pd.Series, cfg: Config,
+                       side: str = "long") -> BacktestResult:
     """Backtest an arbitrary 0/1 position series with the same risk handling.
 
     ``df`` must carry high/low/close columns aligned to ``positions``. This lets
-    every strategy in ``strategies.py`` be graded identically.
+    every strategy in ``strategies.py`` be graded identically. ``side='short'``
+    grades the series as short positions (1 = short on): stop above entry, target
+    below, profit when price falls — the mirror of the long path.
     """
+    if side == "short":
+        return _backtest_short(df, positions, cfg)
     pos = positions.reindex(df.index).fillna(0.0)
     cash = cfg.starting_cash
     shares = 0
@@ -101,6 +106,67 @@ def backtest_positions(df: pd.DataFrame, positions: pd.Series, cfg: Config) -> B
                 trades.append({"entry_time": ts, "entry_px": entry, "shares": shares})
 
         equity_hist.append(cash + shares * price)
+
+    equity = pd.Series(equity_hist, index=df.index, name="equity")
+    return BacktestResult(equity, pd.DataFrame(trades), _metrics(equity, trades, cfg))
+
+
+def _backtest_short(df: pd.DataFrame, positions: pd.Series, cfg: Config) -> BacktestResult:
+    """Short mirror of ``backtest_positions``: 1 = short on. Sell to open (into slippage),
+    cover on signal->0, stop (above entry) or target (below). Profit = entry - exit."""
+    pos = positions.reindex(df.index).fillna(0.0)
+    cash = cfg.starting_cash
+    shares = 0
+    entry = stop = target = 0.0
+    equity_hist, trades = [], []
+    from indicators import atr as _atr
+    trail = cfg.trail_atr_mult > 0
+    atr_s = _atr(df, cfg.atr_period) if trail else None
+    slip = getattr(cfg, "slippage_bps", 0.0) / 1e4
+    comm = getattr(cfg, "commission_per_trade", 0.0)
+
+    for ts, row in df.iterrows():
+        price = row["close"]
+        signal = pos.loc[ts]
+        if isinstance(signal, pd.Series):
+            signal = signal.iloc[-1]
+
+        # --- manage open short ---
+        if shares > 0:
+            # ratchet the stop DOWN over a falling price (never up)
+            if trail:
+                a = atr_s.loc[ts]
+                if isinstance(a, pd.Series):
+                    a = a.iloc[-1]
+                if a is not None and not np.isnan(a):
+                    stop = min(stop, float(price) + cfg.trail_atr_mult * float(a))
+            hit_stop = row["high"] >= stop          # price rose into the stop
+            hit_target = row["low"] <= target        # price fell to the cover target
+            exit_signal = signal == 0
+            if hit_stop or hit_target or exit_signal:
+                exit_px = stop if hit_stop else target if hit_target else price
+                fill = exit_px * (1 + slip)           # buy to cover into slippage
+                cash += shares * (entry - fill) - comm
+                trades.append(
+                    {"exit_time": ts, "exit_px": fill, "shares": shares,
+                     "pnl": shares * (entry - fill),
+                     "reason": "stop" if hit_stop else "target" if hit_target else "signal"}
+                )
+                shares = 0
+
+        # --- open new short ---
+        if shares == 0 and signal == 1 and not np.isnan(price):
+            qty = position_size(cash, price, cfg)
+            if qty > 0:
+                shares = qty
+                entry = price * (1 - slip)            # sell to open incl. slippage
+                stop = entry * (1 + cfg.stop_loss_pct)
+                target = entry * (1 - cfg.take_profit_pct)
+                cash -= comm
+                trades.append({"entry_time": ts, "entry_px": entry, "shares": shares})
+
+        unreal = shares * (entry - price) if shares > 0 else 0.0
+        equity_hist.append(cash + unreal)
 
     equity = pd.Series(equity_hist, index=df.index, name="equity")
     return BacktestResult(equity, pd.DataFrame(trades), _metrics(equity, trades, cfg))

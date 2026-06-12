@@ -233,6 +233,21 @@ def test_short_tracker():
     _ok("short wins when price falls to target", t["status"] == "win" and t["return_pct"] > 0)
 
 
+def test_short_backtest():
+    print("short backtest (direction correct):")
+    import pandas as pd
+    from backtest import backtest_positions
+    # a steady decline: a held short should make money; the same series long should lose
+    idx = pd.date_range("2024-01-01", periods=60)
+    close = pd.Series([100 * (0.99 ** i) for i in range(60)], index=idx)
+    df = pd.DataFrame({"open": close, "high": close * 1.005, "low": close * 0.995, "close": close})
+    pos = pd.Series(1.0, index=idx)  # always in the position
+    short_ret = backtest_positions(df, pos, CONFIG, side="short").metrics["total_return"]
+    long_ret = backtest_positions(df, pos, CONFIG, side="long").metrics["total_return"]
+    _ok("short profits on a falling series", short_ret > 0)
+    _ok("long loses on the same falling series", long_ret < 0)
+
+
 def main():
     test_indicators()
     test_strategy_backtest()
@@ -243,6 +258,7 @@ def main():
     test_momentum_dataquality()
     test_short_engine()
     test_short_tracker()
+    test_short_backtest()
     test_research()
     test_rescore()
     test_llm_prompt()
