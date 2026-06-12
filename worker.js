@@ -25,6 +25,49 @@ export default {
       "APCA-API-SECRET-KEY": env.ALPACA_SECRET_KEY,
     };
 
+    // --- Yahoo Finance OHLCV chart: /?chart=AAPL&range=6mo&interval=1d ---
+    // Full-market consolidated data (cleaner than IEX), keyless, all ranges.
+    const chSym = (url.searchParams.get("chart") || "").trim();
+    if (chSym) {
+      const range = (url.searchParams.get("range") || "6mo").trim();
+      const interval = (url.searchParams.get("interval") || "1d").trim();
+      const yurl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(chSym)}`
+        + `?range=${encodeURIComponent(range)}&interval=${encodeURIComponent(interval)}&includePrePost=false`;
+      try {
+        const up = await fetch(yurl, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+              + "(KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+            "Accept": "application/json",
+          },
+        });
+        if (!up.ok) return json({ error: "yahoo " + up.status }, 502, cors);
+        const d = await up.json();
+        const r = d && d.chart && d.chart.result && d.chart.result[0];
+        if (!r) return json({ error: "no data" }, 502, cors);
+        const ts = r.timestamp || [];
+        const q = (r.indicators && r.indicators.quote && r.indicators.quote[0]) || {};
+        const bars = [];
+        for (let i = 0; i < ts.length; i++) {
+          const c = q.close ? q.close[i] : null;
+          if (c == null) continue;
+          bars.push({
+            t: ts[i] * 1000,
+            o: q.open ? q.open[i] : null,
+            h: q.high ? q.high[i] : null,
+            l: q.low ? q.low[i] : null,
+            c,
+            v: q.volume ? (q.volume[i] || 0) : 0,
+          });
+        }
+        const meta = r.meta || {};
+        return json({ symbol: chSym, range, interval, bars,
+          exchange: meta.exchangeName, currency: meta.currency }, 200, cors);
+      } catch (e) {
+        return json({ error: "fetch failed" }, 502, cors);
+      }
+    }
+
     // --- intraday bars: /?bars=AAPL&tf=15Min&days=2 ---
     const barsSym = (url.searchParams.get("bars") || "").trim();
     if (barsSym) {

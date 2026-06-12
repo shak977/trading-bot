@@ -643,7 +643,10 @@ def render_html(snap: dict) -> str:
       </span>
       <button class="ctlbtn" id="zoomReset">Reset</button>
     </div>
-    <div class="chartbox"><canvas id="mChart" height="140"></canvas></div>
+    <div class="chartbox"><canvas id="mChart" height="150"></canvas></div>
+    <div class="chartbox" id="volBox" style="display:none; margin-top:4px;">
+      <canvas id="mVol" height="40"></canvas>
+    </div>
     <div class="chartbox" id="macdBox" style="display:none; margin-top:8px;">
       <div style="color:var(--muted);font-size:11px;margin-bottom:4px;">MACD — momentum (above 0 = bullish)</div>
       <canvas id="mMacd" height="70"></canvas>
@@ -777,8 +780,7 @@ async function refreshLive() {{
       if (p != null) el.textContent = _fmtPx(p);
     }});
     _pushLiveToChart();
-    if (overlay && overlay.classList.contains('open') && CUR.prices.length) {{
-      CUR.prices[CUR.prices.length-1] = LIVE[MODAL && MODAL.symbol] != null ? LIVE[MODAL.symbol] : CUR.prices[CUR.prices.length-1];
+    if (overlay && overlay.classList.contains('open') && CUR.bars && CUR.bars.length) {{
       _updateReadout();
     }}
     _updateOverviewLive();
@@ -829,10 +831,15 @@ function _ovChart(plot, unit, intraday) {{
                  : (it.active ? it.color : (OV.colorAll ? it.color : 'rgba(139,151,166,0.16)')),
     borderWidth: it.bench ? 2.4 : (it.active ? 2 : (OV.colorAll ? 1.3 : 1)), pointRadius: 0, fill: false,
     order: it.active ? 1 : 5 }}));
-  const allY = []; plot.forEach(it => it.pts.forEach(p => allY.push(p.y)));
-  allY.sort((a, b) => a - b);
-  const q = p => allY.length ? allY[Math.min(allY.length-1, Math.max(0, Math.round(p*(allY.length-1))))] : 0;
-  const ymin = Math.floor(Math.min(q(0.04), 0) - 2), ymax = Math.ceil(Math.max(q(0.96), 0) + 3);
+  // correct min/max: fit the axis so no line is ever clipped. When the user has
+  // pinned/highlighted names, scale to those (+ the benchmark); otherwise fit all.
+  const anyPin = OV.pinned && OV.pinned.size > 0;
+  const src = anyPin ? plot.filter(it => it.active) : plot;
+  const allY = [0];
+  src.forEach(it => it.pts.forEach(p => {{ if (p.y != null) allY.push(p.y); }}));
+  const lo = Math.min(...allY), hi = Math.max(...allY);
+  const pad = Math.max((hi - lo) * 0.05, 1);
+  const ymin = Math.floor(lo - pad), ymax = Math.ceil(hi + pad);
   if (ovChart) ovChart.destroy();
   ovChart = new Chart(cv, {{
     type:'line', data:{{datasets}},
@@ -1055,14 +1062,33 @@ function openModal(s) {{
   overlay.classList.add('open');
 }}
 
-// ---- stateful modal chart ----
+// ---- stateful modal chart (live OHLCV from Yahoo via the Worker) ----
 let MODAL = null;
-const CSTATE = {{ range:'6M', type:'line', bench:false, avgs:true, boll:true, macd:false }};
-const INTRA = {{}};  // cache for intraday bars (5D only)
-let macdChart = null;
-let CUR = {{ prices:[], times:[], base:null, intraday:false }};  // for the hover readout
+const CSTATE = {{ range:'6M', type:'candle', bench:false, avgs:true, boll:false, macd:false, vol:true }};
+const CHCACHE = {{}};   // "SYM:RANGE" -> bars[]
+let macdChart = null, volChart = null;
+let CUR = {{ bars:[], base:null, intraday:false }};  // for the hover readout
 let _finOK = false;
 try {{ _finOK = !!(window.Chart && Chart.registry.getController('candlestick')); }} catch(e) {{ _finOK = false; }}
+
+// each range tab -> the Yahoo range/interval to fetch + the x-axis time unit
+const RANGE_MAP = {{
+  '1D': {{range:'1d',  interval:'2m',  intraday:true,  unit:'hour'}},
+  '5D': {{range:'5d',  interval:'15m', intraday:true,  unit:'day'}},
+  '1M': {{range:'1mo', interval:'1d',  intraday:false, unit:'week'}},
+  '3M': {{range:'3mo', interval:'1d',  intraday:false, unit:'week'}},
+  '6M': {{range:'6mo', interval:'1d',  intraday:false, unit:'month'}},
+  'YTD':{{range:'ytd', interval:'1d',  intraday:false, unit:'month'}},
+  '1Y': {{range:'1y',  interval:'1d',  intraday:false, unit:'month'}},
+  'Max':{{range:'max', interval:'1wk', intraday:false, unit:'year'}}
+}};
+
+// client-side indicators computed on whatever series Yahoo returns
+function _sma(a, p) {{ const o=a.map(()=>null); let s=0,k=0; for(let i=0;i<a.length;i++){{ if(a[i]==null){{o[i]=null;continue;}} s+=a[i];k++; if(i>=p&&a[i-p]!=null){{s-=a[i-p];k--;}} if(k>=p) o[i]=s/p; }} return o; }}
+function _ema(a, p) {{ const o=a.map(()=>null); const m=2/(p+1); let e=null; for(let i=0;i<a.length;i++){{ const v=a[i]; if(v==null){{o[i]=e;continue;}} e=(e==null)?v:v*m+e*(1-m); o[i]=e; }} return o; }}
+function _boll(a, p) {{ const mid=_sma(a,p), up=[], lo=[]; for(let i=0;i<a.length;i++){{ if(mid[i]==null){{up[i]=null;lo[i]=null;continue;}} let s=0; for(let j=i-p+1;j<=i;j++) s+=Math.pow(a[j]-mid[i],2); const sd=Math.sqrt(s/p); up[i]=mid[i]+2*sd; lo[i]=mid[i]-2*sd; }} return {{up,lo,mid}}; }}
+function _macd(a) {{ const e12=_ema(a,12), e26=_ema(a,26); const line=a.map((_,i)=>(e12[i]!=null&&e26[i]!=null)?e12[i]-e26[i]:null); const sig=_ema(line.map(v=>v==null?0:v),9); const hist=line.map((v,i)=>v!=null?v-sig[i]:null); return {{line,sig,hist}}; }}
+function _volFmt(v) {{ return v>=1e9?(v/1e9).toFixed(2)+'B':v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':String(v); }}
 
 // crosshair: vertical line + dot at the hovered point (Robinhood/Google style)
 const _crosshair = {{
@@ -1094,18 +1120,24 @@ function _areaFill(color) {{
   }};
 }}
 function _updateReadout(idx) {{
-  const r = document.getElementById('mReadout'); if (!r || !CUR.prices.length) return;
-  if (idx == null || CUR.prices[idx] == null) idx = CUR.prices.length - 1;
-  const p = CUR.prices[idx]; if (p == null) return;
-  const chg = CUR.base ? (p/CUR.base - 1)*100 : 0;
+  const r = document.getElementById('mReadout'); if (!r || !CUR.bars.length) return;
+  if (idx == null || !CUR.bars[idx]) idx = CUR.bars.length - 1;
+  const b = CUR.bars[idx]; if (!b || b.c == null) return;
+  const live = LIVE[MODAL && MODAL.symbol];
+  const cl = (idx === CUR.bars.length - 1 && live != null) ? live : b.c;
+  const chg = CUR.base ? (cl/CUR.base - 1)*100 : 0;
   const up = chg >= 0, col = up ? '#2ea043' : '#f85149';
-  const d = new Date(CUR.times[idx]);
+  const d = new Date(b.t);
   const ds = CUR.intraday
     ? d.toLocaleString([], {{month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}})
     : d.toLocaleDateString([], {{year:'numeric', month:'short', day:'numeric'}});
-  r.innerHTML = `<span class="rprice">$${{p.toLocaleString(undefined,{{minimumFractionDigits:2,maximumFractionDigits:2}})}}</span>`
+  const f = v => v == null ? '—' : '$' + Number(v).toLocaleString(undefined,{{minimumFractionDigits:2,maximumFractionDigits:2}});
+  const ohlc = (b.o != null)
+    ? `<span class="rohlc" style="color:var(--muted);font-size:12px;">O ${{f(b.o)}} · H ${{f(b.h)}} · L ${{f(b.l)}} · C ${{f(cl)}}${{b.v?' · Vol '+_volFmt(b.v):''}}</span>`
+    : '';
+  r.innerHTML = `<span class="rprice">${{f(cl)}}</span>`
     + `<span class="rchg" style="color:${{col}};">${{up?'+':''}}${{chg.toFixed(2)}}% over range</span>`
-    + `<span class="rdate">${{ds}}</span>`;
+    + ohlc + `<span class="rdate">${{ds}}</span>`;
 }}
 function _cleanOpts(unit, y2) {{
   const df = {{hour:'HH:mm', day:'MMM d', week:'MMM d', month:'MMM yyyy'}};
@@ -1128,183 +1160,169 @@ function _cleanOpts(unit, y2) {{
   }};
 }}
 
-function _winStart(c, range) {{
+// embedded-data fallback window (used only if the Yahoo proxy is unavailable)
+function _embWindow(c, range) {{
   const n = c.t.length;
-  if (range==='1M') return Math.max(0, n-21);
-  if (range==='3M') return Math.max(0, n-63);
-  if (range==='6M') return Math.max(0, n-126);
-  if (range==='1Y') return 0;
-  if (range==='YTD') {{
+  let st = 0;
+  if (range==='1M') st = Math.max(0, n-21);
+  else if (range==='3M') st = Math.max(0, n-63);
+  else if (range==='6M') st = Math.max(0, n-126);
+  else if (range==='YTD') {{
     const y = new Date().getUTCFullYear();
-    const i = c.dates.findIndex(d => parseInt(d.slice(0,4),10) === y);
-    return i < 0 ? 0 : i;
+    const i = (c.dates||[]).findIndex(d => parseInt(d.slice(0,4),10) === y);
+    st = i < 0 ? 0 : i;
   }}
-  return 0;
+  return c.t.slice(st).map((t,i)=>({{ t, o:c.open[st+i], h:c.high[st+i], l:c.low[st+i], c:c.close[st+i], v:null }}));
 }}
 
 function renderModalChart() {{
   const s = MODAL; if (!s) return;
-  if (CSTATE.range === '1D' || CSTATE.range === '5D') return _renderIntraday(s);
-  const c = DATA.charts[s.symbol], p = s.plan || {{}};
+  const m = RANGE_MAP[CSTATE.range] || RANGE_MAP['6M'];
+  const ck = s.symbol + ':' + CSTATE.range;
   const key = document.getElementById('mChartKey');
-  if (mChart) mChart.destroy();
-  if (!c) {{ key.innerHTML = ''; _hideMacd(); return; }}
-  const st = _winStart(c, CSTATE.range);
-  const T = c.t.slice(st), close=c.close.slice(st), fast=c.fast.slice(st), slow=c.slow.slice(st);
-  const op=c.open.slice(st), hi=c.high.slice(st), lo=c.low.slice(st);
-  const buys=c.buys.slice(st), sells=c.sells.slice(st);
-  // reflect today's live price on the latest bar, if we have it
-  const _lp = LIVE[s.symbol];
-  if (_lp != null && close.length) {{
-    close[close.length-1] = _lp;
-    if (_lp > hi[hi.length-1]) hi[hi.length-1] = _lp;
-    if (_lp < lo[lo.length-1]) lo[lo.length-1] = _lp;
+  if (CHCACHE[ck]) {{ _drawChart(s, CHCACHE[ck], m); return; }}
+  key.innerHTML = 'Loading ' + s.symbol + ' …';
+  const embFallback = () => {{
+    const c = DATA.charts[s.symbol];
+    if (!c) {{ key.innerHTML = 'Chart unavailable right now.'; return; }}
+    const bars = _embWindow(c, CSTATE.range);
+    CHCACHE[ck] = bars; _drawChart(s, bars, m);
+  }};
+  if (!LIVE_URL) {{ embFallback(); return; }}
+  fetch(LIVE_URL + '?chart=' + encodeURIComponent(s.symbol) + '&range=' + m.range + '&interval=' + m.interval)
+    .then(r => r.json())
+    .then(d => {{
+      const bars = (d.bars || []).filter(b => b.c != null);
+      if (!bars.length) throw new Error('empty');
+      CHCACHE[ck] = bars;
+      // only draw if the user is still on this symbol+range
+      if (MODAL && MODAL.symbol === s.symbol && (RANGE_MAP[CSTATE.range]||{{}}).range === m.range) _drawChart(s, bars, m);
+    }})
+    .catch(embFallback);
+}}
+
+function _drawChart(s, bars, m) {{
+  const p = s.plan || {{}};
+  const key = document.getElementById('mChartKey');
+  if (mChart) {{ mChart.destroy(); mChart = null; }}
+  const T=bars.map(b=>b.t), O=bars.map(b=>b.o), H=bars.map(b=>b.h), L=bars.map(b=>b.l), C=bars.map(b=>b.c), Vv=bars.map(b=>b.v);
+  // overlay today's live price on the most recent bar
+  const lp = LIVE[s.symbol];
+  if (lp != null && C.length) {{
+    C[C.length-1] = lp;
+    if (H[H.length-1]!=null && lp > H[H.length-1]) H[H.length-1] = lp;
+    if (L[L.length-1]!=null && lp < L[L.length-1]) L[L.length-1] = lp;
   }}
-  const useCandle = CSTATE.type==='candle' && _finOK;
-  const pcol = _priceColor(close);
+  const useCandle = CSTATE.type==='candle' && _finOK && O.some(v=>v!=null);
+  const pcol = _priceColor(C);
   const ds = [];
   if (useCandle) {{
     ds.push({{type:'candlestick', label:s.symbol, order:3,
-      data:T.map((t,i)=>({{x:t,o:op[i],h:hi[i],l:lo[i],c:close[i]}})),
-      color:{{up:'#2ea043',down:'#f85149',unchanged:'#8b97a6'}}}});
+      data:bars.map((b,i)=>({{x:T[i],o:O[i],h:H[i],l:L[i],c:C[i]}})),
+      color:{{up:'#2ea043',down:'#f85149',unchanged:'#8b97a6'}},
+      borderColor:{{up:'#2ea043',down:'#f85149',unchanged:'#8b97a6'}}}});
   }} else {{
     ds.push({{type:'line', label:'Price', order:3, borderColor:pcol, borderWidth:2,
-      pointRadius:0, fill:true, backgroundColor:_areaFill(pcol), data:T.map((t,i)=>({{x:t,y:close[i]}}))}});
+      pointRadius:0, fill:true, backgroundColor:_areaFill(pcol), data:T.map((t,i)=>({{x:t,y:C[i]}}))}});
   }}
-  if (CSTATE.avgs) {{
-    ds.push({{type:'line', label:'20-day avg', order:4, borderColor:'rgba(56,139,253,0.65)', borderWidth:1,
-      pointRadius:0, fill:false, data:T.map((t,i)=>({{x:t,y:fast[i]}}))}});
-    ds.push({{type:'line', label:'50-day avg', order:4, borderColor:'rgba(240,136,62,0.65)', borderWidth:1,
-      pointRadius:0, fill:false, data:T.map((t,i)=>({{x:t,y:slow[i]}}))}});
+  // moving averages + Bollinger (computed client-side; skip on fast intraday)
+  if (!m.intraday && CSTATE.avgs) {{
+    const f=_sma(C,20), sl=_sma(C,50);
+    ds.push({{type:'line', label:'20-period avg', order:4, borderColor:'rgba(56,139,253,0.7)', borderWidth:1.2, pointRadius:0, fill:false, data:T.map((t,i)=>({{x:t,y:f[i]}}))}});
+    ds.push({{type:'line', label:'50-period avg', order:4, borderColor:'rgba(240,136,62,0.7)', borderWidth:1.2, pointRadius:0, fill:false, data:T.map((t,i)=>({{x:t,y:sl[i]}}))}});
   }}
-  if (CSTATE.boll && c.bb_up) {{
-    const bu=c.bb_up.slice(st), bl=c.bb_lo.slice(st);
-    ds.push({{type:'line', label:'Normal range (Bollinger)', order:5, borderColor:'rgba(163,113,247,0.5)',
-      borderWidth:1, borderDash:[3,3], pointRadius:0, fill:false, data:T.map((t,i)=>({{x:t,y:bu[i]}}))}});
-    ds.push({{type:'line', label:'_bblo', order:5, borderColor:'rgba(163,113,247,0.5)',
-      borderWidth:1, borderDash:[3,3], pointRadius:0, fill:'-1', backgroundColor:'rgba(163,113,247,0.06)',
-      data:T.map((t,i)=>({{x:t,y:bl[i]}}))}});
+  if (!m.intraday && CSTATE.boll) {{
+    const bb=_boll(C,20);
+    ds.push({{type:'line', label:'Normal range (Bollinger)', order:5, borderColor:'rgba(163,113,247,0.5)', borderWidth:1, borderDash:[3,3], pointRadius:0, fill:false, data:T.map((t,i)=>({{x:t,y:bb.up[i]}}))}});
+    ds.push({{type:'line', label:'_bblo', order:5, borderColor:'rgba(163,113,247,0.5)', borderWidth:1, borderDash:[3,3], pointRadius:0, fill:'-1', backgroundColor:'rgba(163,113,247,0.06)', data:T.map((t,i)=>({{x:t,y:bb.lo[i]}}))}});
   }}
-  const buyPts = T.map((t,i)=> buys[i]!=null ? {{x:t,y:buys[i]}} : null).filter(Boolean);
-  const sellPts = T.map((t,i)=> sells[i]!=null ? {{x:t,y:sells[i]}} : null).filter(Boolean);
-  ds.push({{type:'scatter', label:'Buy signal', data:buyPts, backgroundColor:'#2ea043',
-    pointStyle:'triangle', radius:8, hoverRadius:10, order:1}});
-  ds.push({{type:'scatter', label:'Sell signal', data:sellPts, backgroundColor:'#f85149',
-    pointStyle:'triangle', rotation:180, radius:8, hoverRadius:10, order:1}});
+  // ---- tight y-fit to the visible price range (the "correct min/max") ----
+  const ys = (useCandle ? [].concat(H, L) : C).filter(v=>v!=null);
+  const lo = Math.min(...ys), hi = Math.max(...ys), span = (hi-lo)||hi*0.02, pad = Math.max(span*0.06, hi*0.002);
+  // plan reference lines, but only when in-frame so they never squash the axis
   const tA=T[0], tB=T[T.length-1];
-  const hline=(v,col,lab)=>({{type:'line',label:lab,borderColor:col,borderDash:[5,4],borderWidth:1,
-    pointRadius:0,order:2,fill:false,data:[{{x:tA,y:v}},{{x:tB,y:v}}]}});
-  if (p.entry!=null) ds.push(hline(p.entry,'rgba(139,151,166,0.7)','Buy near'));
-  if (p.target!=null) ds.push(hline(p.target,'rgba(46,160,67,0.7)','Take-profit'));
-  if (p.stop!=null) ds.push(hline(p.stop,'rgba(248,81,73,0.7)','Stop-loss'));
+  const hline=(v,col,lab)=>({{type:'line',label:lab,borderColor:col,borderDash:[5,4],borderWidth:1,pointRadius:0,order:2,fill:false,data:[{{x:tA,y:v}},{{x:tB,y:v}}]}});
+  const within = v => v!=null && v>=lo-span*0.5 && v<=hi+span*0.5;
+  let planNote = '';
+  if (!m.intraday) {{
+    if (within(p.entry)) ds.push(hline(p.entry,'rgba(139,151,166,0.7)','Buy near'));
+    if (within(p.target)) ds.push(hline(p.target,'rgba(46,160,67,0.7)','Take-profit'));
+    if (within(p.stop)) ds.push(hline(p.stop,'rgba(248,81,73,0.7)','Stop-loss'));
+    planNote = ' · dashed = entry / target / stop';
+  }}
+  // benchmark overlay (% change, left axis)
   let benchNote = '', y2 = false;
-  if (CSTATE.bench && DATA.benchmark) {{
+  if (!m.intraday && CSTATE.bench && DATA.benchmark) {{
     const b = DATA.benchmark, bmap = {{}};
     b.t.forEach((t,i)=> bmap[t]=b.close[i]);
     let base=null; const bpts=[];
     T.forEach(t=>{{ const v=bmap[t]; if(v!=null){{ if(base==null) base=v; bpts.push({{x:t,y:(v/base-1)*100}}); }} }});
-    if (bpts.length) {{
-      ds.push({{type:'line', label:'S&P 500 (%)', data:bpts, borderColor:'#a371f7',
-        borderWidth:1.3, pointRadius:0, fill:false, yAxisID:'y2', order:2}});
-      y2 = true; benchNote = ' Purple = S&P 500 (% change, left axis) to compare.';
+    if (bpts.length>1) {{
+      ds.push({{type:'line', label:'S&P 500 (%)', data:bpts, borderColor:'#a371f7', borderWidth:1.3, pointRadius:0, fill:false, yAxisID:'y2', order:2}});
+      y2 = true; benchNote = ' · purple = S&P 500 % (left axis)';
     }}
   }}
-  CUR = {{ prices:close, times:T, base: close.find(v=>v!=null), intraday:false }};
-  mChart = new Chart(document.getElementById('mChart'),
-    {{ data:{{datasets:ds}}, options:_cleanOpts(CSTATE.range==='1M'?'week':'month', y2) }});
+  CUR = {{ bars, base: C.find(v=>v!=null), intraday: m.intraday }};
+  const opts = _cleanOpts(m.unit, y2);
+  opts.scales.y.min = lo - pad; opts.scales.y.max = hi + pad;
+  mChart = new Chart(document.getElementById('mChart'), {{ data:{{datasets:ds}}, options:opts }});
+  _renderVol(T, O, C, Vv, m);
+  _renderMacd2(C, T, m);
   _updateReadout();
-  _renderMacd(s, T, st);
-  const nB=buyPts.length, nS=sellPts.length;
-  key.innerHTML = `Hover to scrub. ▲ ${{nB}} past buys &nbsp; ▼ ${{nS}} past sells &nbsp; dashed = entry / target / stop.` + benchNote;
+  const dfmt = ms => new Date(ms).toLocaleDateString([], {{month:'short', day:'numeric', year: m.intraday?undefined:'numeric'}});
+  const span2 = m.intraday
+    ? (CSTATE.range==='1D' ? 'Session of ' + dfmt(T[T.length-1]) : dfmt(T[0]) + ' – ' + dfmt(T[T.length-1]))
+    : dfmt(T[0]) + ' – ' + dfmt(T[T.length-1]);
+  key.innerHTML = span2 + ' · ' + bars.length + ' bars · live from Yahoo. Hover to scrub.' + planNote + benchNote;
 }}
 
-function _hideMacd() {{
-  if (macdChart) {{ macdChart.destroy(); macdChart = null; }}
-  const b = document.getElementById('macdBox'); if (b) b.style.display = 'none';
+// volume sub-panel (Capital IQ-style), colored by up/down bar
+function _renderVol(T, O, C, V, m) {{
+  const box = document.getElementById('volBox'), cv = document.getElementById('mVol');
+  if (volChart) {{ volChart.destroy(); volChart = null; }}
+  const has = V.some(v => v != null && v > 0);
+  if (!CSTATE.vol || !has) {{ if (box) box.style.display = 'none'; return; }}
+  if (box) box.style.display = 'block';
+  const data = T.map((t,i)=>({{x:t, y:V[i]||0}}));
+  const cols = T.map((t,i)=> {{ const o = O[i]!=null ? O[i] : (C[i-1]!=null?C[i-1]:C[i]); return C[i]>=o ? 'rgba(46,160,67,0.4)' : 'rgba(248,81,73,0.4)'; }});
+  volChart = new Chart(cv, {{
+    data:{{datasets:[{{type:'bar', data, backgroundColor:cols, borderWidth:0, barPercentage:1, categoryPercentage:1}}]}},
+    options:{{responsive:true, parsing:false, animation:false, interaction:{{mode:'index',intersect:false}},
+      plugins:{{legend:{{display:false}}, tooltip:{{enabled:false}}}},
+      scales:{{
+        x:{{type:'time', time:{{unit:m.unit}}, ticks:{{display:false}}, grid:{{display:false}}}},
+        y:{{position:'right', beginAtZero:true, ticks:{{color:'#8b97a6', maxTicksLimit:3, callback:v=>_volFmt(v)}}, grid:{{display:false}}}}
+      }}
+    }}
+  }});
 }}
-function _renderMacd(s, T, st) {{
-  const c = DATA.charts[s.symbol];
-  if (!CSTATE.macd || !c || !c.macd) {{ _hideMacd(); return; }}
-  document.getElementById('macdBox').style.display = 'block';
-  const ml=c.macd.slice(st), msig=c.macd_sig.slice(st), mh=c.macd_hist.slice(st);
+
+// MACD sub-panel (computed client-side from the fetched closes)
+function _renderMacd2(C, T, m) {{
+  const box = document.getElementById('macdBox');
+  if (macdChart) {{ macdChart.destroy(); macdChart = null; }}
+  if (!CSTATE.macd || m.intraday) {{ if (box) box.style.display = 'none'; return; }}
+  if (box) box.style.display = 'block';
+  const mc = _macd(C);
   const ds = [
-    {{type:'bar', label:'_h', data:T.map((t,i)=>({{x:t,y:mh[i]}})), order:3, borderWidth:0,
-      backgroundColor:T.map((t,i)=> (mh[i]>=0?'rgba(46,160,67,0.6)':'rgba(248,81,73,0.6)'))}},
-    {{type:'line', label:'_m', data:T.map((t,i)=>({{x:t,y:ml[i]}})), borderColor:'#388bfd', borderWidth:1.2, pointRadius:0, order:1}},
-    {{type:'line', label:'_s', data:T.map((t,i)=>({{x:t,y:msig[i]}})), borderColor:'#f0883e', borderWidth:1.2, pointRadius:0, order:1}},
+    {{type:'bar', label:'_h', data:T.map((t,i)=>({{x:t,y:mc.hist[i]}})), order:3, borderWidth:0,
+      backgroundColor:T.map((t,i)=> (mc.hist[i]>=0?'rgba(46,160,67,0.6)':'rgba(248,81,73,0.6)'))}},
+    {{type:'line', label:'_m', data:T.map((t,i)=>({{x:t,y:mc.line[i]}})), borderColor:'#388bfd', borderWidth:1.2, pointRadius:0, order:1}},
+    {{type:'line', label:'_s', data:T.map((t,i)=>({{x:t,y:mc.sig[i]}})), borderColor:'#f0883e', borderWidth:1.2, pointRadius:0, order:1}},
   ];
-  if (macdChart) macdChart.destroy();
   macdChart = new Chart(document.getElementById('mMacd'), {{
     data:{{datasets:ds}},
     options:{{responsive:true, parsing:false, interaction:{{mode:'index',intersect:false}},
       plugins:{{legend:{{display:false}}, tooltip:{{enabled:false}}}},
-      scales:{{x:{{type:'time', time:{{unit: CSTATE.range==='1M'?'week':'month'}}, ticks:{{display:false}}, grid:{{display:false}}}},
+      scales:{{x:{{type:'time', time:{{unit:m.unit}}, ticks:{{display:false}}, grid:{{display:false}}}},
                y:{{position:'right', ticks:{{color:'#8b97a6', maxTicksLimit:3}}, grid:{{color:'rgba(42,52,65,0.5)'}}}}}}}}
   }});
-}}
-
-// ---- intraday (1D / 5D) — fetched live from the Worker proxy ----
-function _renderIntraday(s) {{
-  _hideMacd();
-  const key = document.getElementById('mChartKey');
-  if (mChart) {{ mChart.destroy(); mChart = null; }}
-  if (!LIVE_URL) {{ key.innerHTML = 'Intraday view needs the live data proxy (LIVE_QUOTES_URL).'; return; }}
-  const cacheKey = s.symbol + ':' + CSTATE.range;
-  if (CSTATE.range === '5D' && INTRA[cacheKey]) {{ _drawIntra(s, INTRA[cacheKey]); return; }}
-  key.innerHTML = 'Loading intraday…';
-  const tf = CSTATE.range === '1D' ? '15Min' : '1Hour';
-  const days = CSTATE.range === '1D' ? 3 : 8;
-  fetch(LIVE_URL + '?bars=' + encodeURIComponent(s.symbol) + '&tf=' + tf + '&days=' + days)
-    .then(r => r.json())
-    .then(d => {{
-      let bars = d.bars || [];
-      if (CSTATE.range === '1D' && bars.length) {{
-        const lastDay = new Date(bars[bars.length-1].t).toDateString();
-        const today = bars.filter(b => new Date(b.t).toDateString() === lastDay);
-        bars = today.length >= 2 ? today : bars.slice(-26);
-      }}
-      if (CSTATE.range === '5D') INTRA[cacheKey] = bars;
-      if (MODAL && MODAL.symbol === s.symbol) _drawIntra(s, bars);
-    }})
-    .catch(() => {{ key.innerHTML = 'Intraday unavailable right now (market may be closed).'; }});
-}}
-function _drawIntra(s, bars) {{
-  const p = s.plan || {{}};
-  const key = document.getElementById('mChartKey');
-  if (mChart) {{ mChart.destroy(); mChart = null; }}
-  if (!bars || !bars.length) {{ key.innerHTML = 'No intraday data (market may be closed).'; return; }}
-  const T = bars.map(b=>b.t), close = bars.map(b=>b.c);
-  const lp = LIVE[s.symbol]; if (lp != null) close[close.length-1] = lp;
-  const useCandle = CSTATE.type === 'candle' && _finOK;
-  const pcol = _priceColor(close);
-  const ds = [];
-  if (useCandle) ds.push({{type:'candlestick', label:s.symbol,
-    data:bars.map(b=>({{x:b.t,o:b.o,h:b.h,l:b.l,c:b.c}})),
-    color:{{up:'#2ea043',down:'#f85149',unchanged:'#8b97a6'}}}});
-  else ds.push({{type:'line', label:'Price', borderColor:pcol, borderWidth:2, pointRadius:0,
-    fill:true, backgroundColor:_areaFill(pcol), data:T.map((t,i)=>({{x:t,y:close[i]}}))}});
-  // NOTE: no stop/target lines here — they sit ±5–15% away and would flatten an
-  // intraday move into a sliver. Intraday is about the day's shape, so we fit
-  // the y-axis tightly to the actual price range instead.
-  const ys = (useCandle ? bars.flatMap(b=>[b.h,b.l]) : close).filter(v=>v!=null);
-  const lo = Math.min(...ys), hi = Math.max(...ys), pad = Math.max((hi-lo)*0.08, hi*0.001);
-  CUR = {{ prices:close, times:T, base: close[0], intraday:true }};
-  const opts = _cleanOpts(CSTATE.range==='1D'?'hour':'day', false);
-  opts.scales.y.min = lo - pad; opts.scales.y.max = hi + pad;
-  mChart = new Chart(document.getElementById('mChart'), {{ data:{{datasets:ds}}, options:opts }});
-  _updateReadout();
-  // honest, accurate label from the data itself (handles weekends / closed days)
-  const fmt = ms => new Date(ms).toLocaleDateString([], {{month:'short', day:'numeric'}});
-  const span = (CSTATE.range==='1D') ? ('Session of ' + fmt(T[T.length-1]))
-                                     : (fmt(T[0]) + ' – ' + fmt(T[T.length-1]));
-  key.innerHTML = `${{span}} · ${{CSTATE.range==='1D'?'15-min':'1-hour'}} bars, live. Hover to scrub. `
-    + `(Stop/target levels are on the daily ranges.)`;
 }}
 
 // build chart controls once
 (function setupChartControls() {{
   const rb = document.getElementById('rangeBtns');
-  ['1D','5D','1M','3M','6M','YTD','1Y'].forEach(r => {{
+  ['1D','5D','1M','3M','6M','YTD','1Y','Max'].forEach(r => {{
     const b=document.createElement('button'); b.textContent=r; b.dataset.range=r;
     if (r===CSTATE.range) b.className='on';
     b.onclick=()=>{{ CSTATE.range=r; rb.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.range===r)); renderModalChart(); }};
@@ -1325,7 +1343,7 @@ function _drawIntra(s, bars) {{
   bt.onchange = () => {{ CSTATE.bench = bt.checked; renderModalChart(); }};
   // indicator toggles
   const ib = document.getElementById('indBtns');
-  [['avgs','Averages'],['boll','Bollinger'],['macd','MACD']].forEach(([k,lab]) => {{
+  [['avgs','Averages'],['boll','Bollinger'],['macd','MACD'],['vol','Volume']].forEach(([k,lab]) => {{
     const b=document.createElement('button'); b.textContent=lab; b.dataset.ind=k;
     if (CSTATE[k]) b.className='on';
     b.onclick=()=>{{ CSTATE[k]=!CSTATE[k]; b.classList.toggle('on', CSTATE[k]); renderModalChart(); }};
