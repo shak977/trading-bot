@@ -353,9 +353,11 @@ def render_html(snap: dict) -> str:
     --accent:#79c0ff; --grid:rgba(42,52,65,0.55); --cross:rgba(139,151,166,0.45);
     --shadow:none; }}
   * {{ box-sizing:border-box; }}
+  html, body {{ max-width:100%; overflow-x:hidden; }}
   body {{ margin:0; font:15px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;
     background:var(--bg); color:var(--txt); }}
-  .wrap {{ max-width:1100px; margin:0 auto; padding:28px 20px 60px; }}
+  .wrap {{ width:100%; max-width:1480px; margin:0 auto; padding:28px 24px 60px; }}
+  .grid-stack {{ width:100%; }}
   h1 {{ font-size:22px; margin:0 0 4px; }}
   h2 {{ font-size:16px; margin:30px 0 12px; color:var(--muted);
     text-transform:uppercase; letter-spacing:.05em; }}
@@ -602,7 +604,7 @@ def render_html(snap: dict) -> str:
       <span style="color:var(--muted);font-size:12px;">Drag a ⠿ header to move · drag a panel edge to resize · layout is saved</span>
     </div>
     <div class="grid-stack" id="dashGrid">
-      <div class="grid-stack-item" gs-x="0" gs-y="0" gs-w="12" gs-h="11" gs-id="featured">
+      <div class="grid-stack-item" gs-x="0" gs-y="0" gs-w="12" gs-h="11" gs-min-w="5" gs-min-h="8" gs-id="featured">
         <div class="grid-stack-item-content wgt">
           <div class="wgt-head"><span class="grip">⠿</span> Featured chart</div>
           <div class="wgt-body">
@@ -615,7 +617,7 @@ def render_html(snap: dict) -> str:
           </div>
         </div>
       </div>
-      <div class="grid-stack-item" gs-x="0" gs-y="11" gs-w="12" gs-h="9" gs-id="overview">
+      <div class="grid-stack-item" gs-x="0" gs-y="11" gs-w="12" gs-h="9" gs-min-w="4" gs-min-h="6" gs-id="overview">
         <div class="grid-stack-item-content wgt">
           <div class="wgt-head"><span class="grip">⠿</span> Live overview — % vs S&amp;P 500</div>
           <div class="wgt-body">
@@ -632,13 +634,13 @@ def render_html(snap: dict) -> str:
           </div>
         </div>
       </div>
-      <div class="grid-stack-item" gs-x="0" gs-y="20" gs-w="6" gs-h="8" gs-id="sectors">
+      <div class="grid-stack-item" gs-x="0" gs-y="20" gs-w="6" gs-h="8" gs-min-w="3" gs-min-h="4" gs-id="sectors">
         <div class="grid-stack-item-content wgt">
           <div class="wgt-head"><span class="grip">⠿</span> Sector strength</div>
           <div class="wgt-body">{sectors_html}</div>
         </div>
       </div>
-      <div class="grid-stack-item" gs-x="6" gs-y="20" gs-w="6" gs-h="8" gs-id="macro">
+      <div class="grid-stack-item" gs-x="6" gs-y="20" gs-w="6" gs-h="8" gs-min-w="3" gs-min-h="4" gs-id="macro">
         <div class="grid-stack-item-content wgt">
           <div class="wgt-head"><span class="grip">⠿</span> Macro backdrop</div>
           <div class="wgt-body">{macro_html}</div>
@@ -1219,11 +1221,12 @@ function initGrid() {{
   if (!elGrid) return;
   if (!window.GridStack) {{ elGrid.classList.add('no-grid'); return; }}  // CDN failed → plain stacked layout
   _grid = GridStack.init({{
-    column: 12, cellHeight: 42, margin: 8, float: true,
+    column: 12, cellHeight: 46, margin: 8, float: false,
     handle: '.wgt-head', resizable: {{ handles: 'e, se, s, sw, w' }},
     draggable: {{ cancel: 'button, input, canvas, a, .tc-seg, .ovboard, select' }},
   }}, elGrid);
   try {{ const saved = JSON.parse(localStorage.getItem('tb-layout') || 'null'); if (saved && saved.length) _grid.load(saved); }} catch (e) {{}}
+  try {{ _grid.compact(); }} catch (e) {{}}   // pack widgets together (no gaps)
   const save = () => {{ try {{ localStorage.setItem('tb-layout', JSON.stringify(_grid.save(false))); }} catch (e) {{}} }};
   _grid.on('change', () => {{ save(); _refitCharts(); }});
   _grid.on('resizestop dragstop', () => _refitCharts());
