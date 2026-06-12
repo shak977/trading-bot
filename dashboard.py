@@ -383,7 +383,8 @@ def _kpi_html(reg: dict | None, snap: dict) -> str:
 
 
 def _allweather_html(aw: dict | None) -> str:
-    intro = ('<p style="color:var(--muted);font-size:13px;margin:0 0 14px;max-width:760px;">'
+    intro = (_strat_badge("All-seasons allocation · static, ~yearly rebalance") +
+             '<p style="color:var(--muted);font-size:13px;margin:0 0 14px;max-width:760px;">'
              "Ray Dalio's <b>All Weather</b> portfolio is a static, <b>risk-balanced</b> allocation built to "
              "hold up across all four economic environments — rising and falling growth, rising and falling "
              "inflation — instead of betting on which is next. It's a <b>buy-and-hold</b> mix you rebalance "
@@ -576,6 +577,12 @@ def _momentum_rank(charts: dict, top: int = 15, per_sector: int = 3) -> list[dic
     return out
 
 
+def _strat_badge(value: str) -> str:
+    """A small, consistent 'Strategy type: …' pill so every tab self-labels its approach."""
+    return (f'<div class="strat-badge"><span class="k">Strategy type</span>'
+            f'<span class="v">{value}</span></div>')
+
+
 def _mom_detail(momentum_rows: list[dict], rows_by_sym: dict, shown: list[dict]) -> dict:
     """Full analysis row per momentum leader, keyed by symbol, so the leaderboard rows can
     open the same rich detail modal (chart, info, reasoning, conviction) as the signal cards.
@@ -602,7 +609,8 @@ def _mom_detail(momentum_rows: list[dict], rows_by_sym: dict, shown: list[dict])
 
 
 def _momentum_html(rows: list[dict]) -> str:
-    intro = ('<p style="color:var(--muted);font-size:13px;margin:0 0 12px;max-width:680px;">'
+    intro = (_strat_badge("Dual momentum · positional, ~monthly rebalance") +
+             '<p style="color:var(--muted);font-size:13px;margin:0 0 12px;max-width:680px;">'
              'Ranked by <b>12-1 momentum</b> (return over the last ~12 months, skipping the most '
              'recent month), keeping only names in their own uptrend (above the 200-day average). '
              'This is the dual-momentum approach factor funds use — the one strategy that beat the '
@@ -843,6 +851,12 @@ def render_html(snap: dict) -> str:
     color:var(--accent); background:color-mix(in srgb, var(--accent) 14%, transparent);
     border:1px solid color-mix(in srgb, var(--accent) 32%, transparent);
     padding:1px 8px; border-radius:999px; white-space:nowrap; }}
+  .strat-badge {{ display:inline-flex; align-items:center; gap:9px; margin:0 0 14px;
+    padding:6px 13px; border-radius:999px; background:color-mix(in srgb, var(--accent) 12%, transparent);
+    border:1px solid color-mix(in srgb, var(--accent) 30%, transparent); }}
+  .strat-badge .k {{ font-size:10px; text-transform:uppercase; letter-spacing:.05em;
+    font-weight:800; color:var(--muted); }}
+  .strat-badge .v {{ font-size:13px; font-weight:700; color:var(--accent); }}
   .why-chips {{ display:flex; flex-wrap:wrap; gap:5px; }}
   .why-chip {{ font-size:11.5px; padding:3px 9px; border-radius:999px; line-height:1.35;
     border:1px solid var(--line); background:var(--card); color:var(--txt); white-space:nowrap; }}
@@ -1172,6 +1186,7 @@ def render_html(snap: dict) -> str:
   </section>
 
   <section class="page on" id="page-signals">
+    <div class="strat-badge"><span class="k">Strategy type</span><span class="v">Multi-strategy confluence · 7 long + 7 short, trend-gated</span></div>
     <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Sort &amp; filter:</span>
       <span class="ctlgrp" id="viewBtns"></span></div>
     <div id="cards"></div>
