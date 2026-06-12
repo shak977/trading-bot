@@ -439,6 +439,14 @@ def render_html(snap: dict) -> str:
   .ovbox {{ background:var(--card); border:1px solid var(--line); border-radius:12px;
     padding:14px 16px; margin-bottom:22px; }}
   .ovhead {{ font-weight:700; font-size:14px; margin-bottom:8px; }}
+  .ovwrap {{ display:flex; gap:14px; align-items:stretch; }}
+  .ovchart {{ flex:1; min-width:0; }}
+  .ovboard {{ width:150px; max-height:300px; overflow-y:auto; border-left:1px solid var(--line); padding-left:10px; }}
+  .ovrow {{ display:flex; align-items:center; gap:6px; font-size:12px; padding:3px 2px; cursor:pointer; color:var(--muted); border-radius:4px; }}
+  .ovrow:hover {{ color:var(--txt); background:#0f1722; }}
+  .ovrow.on {{ color:var(--txt); font-weight:700; }}
+  .ovdot {{ width:8px; height:8px; border-radius:50%; flex:0 0 8px; }}
+  .ovsym {{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
   .viewctl {{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px; }}
   .regime {{ border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin:14px 0 4px;
     display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 12px; }}
@@ -500,8 +508,12 @@ def render_html(snap: dict) -> str:
   <section class="page on" id="page-signals">
     <h2 style="margin-top:0;">Signals <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— grouped by sector · click any card for the full reasoning</span></h2>
     <div class="ovbox">
-      <div class="ovhead">📈 Live overview — S&amp;P 500 vs your top signals <span style="font-weight:400;color:var(--muted);">(% change)</span> <span id="ovStatus"></span></div>
-      <canvas id="overviewChart" height="92"></canvas>
+      <div class="ovhead">📈 Live overview — % change vs S&amp;P 500 <span id="ovStatus"></span>
+        <span style="font-weight:400;color:var(--muted);font-size:12px;"> · click a name on the right to highlight its line</span></div>
+      <div class="ovwrap">
+        <div class="ovchart"><canvas id="overviewChart" height="150"></canvas></div>
+        <div class="ovboard" id="ovBoard"></div>
+      </div>
     </div>
 {sectors_html}
 {macro_html}
@@ -770,12 +782,12 @@ async function refreshLive() {{
 }}
 if (LIVE_URL) {{ refreshLive(); setInterval(refreshLive, 30000); }}
 
-// ---- live overview chart: S&P 500 vs top signals, normalised to % change ----
+// ---- live overview: dim-by-default % chart + sorted leaderboard (click to highlight) ----
 let ovChart = null;
-const OV_BASE = {{}};   // symbol -> base price for rebasing
 const OV_WIN = 60;      // ~3 months of daily bars
 const OV_PALETTE = ['#388bfd','#2ea043','#f0883e','#f85149','#a371f7','#e8c878',
-                    '#56d4dd','#db61a2','#6cc644','#bd8b00','#8b97a6','#ff7b72'];
+                    '#56d4dd','#db61a2','#6cc644','#bd8b00','#ff7b72','#79c0ff'];
+const OV = {{ items: [], pinned: new Set() }};  // items: {{sym,label,pts,base,color,bench}}
 function _rebase(t, close) {{
   const n = close.length, st = Math.max(0, n - OV_WIN);
   const T = t.slice(st), C = close.slice(st);
@@ -784,51 +796,101 @@ function _rebase(t, close) {{
   if (!base) return {{ pts: [], base: null }};
   return {{ pts: T.map((tt, i) => ({{x: tt, y: (C[i]/base - 1) * 100}})), base }};
 }}
+// draw the series name at the end of each *active* (benchmark/pinned) line
+const _ovEndLabel = {{
+  id: 'ovEndLabel',
+  afterDatasetsDraw(chart) {{
+    const xs = chart.scales.x, ys = chart.scales.y, ctx = chart.ctx;
+    chart.data.datasets.forEach(ds => {{
+      if (!ds._active || !ds.data.length) return;
+      const last = ds.data[ds.data.length - 1];
+      const px = xs.getPixelForValue(last.x), py = ys.getPixelForValue(last.y);
+      if (px == null || py == null) return;
+      ctx.save(); ctx.fillStyle = ds.borderColor; ctx.font = '600 11px -apple-system,sans-serif';
+      ctx.textBaseline = 'middle'; ctx.fillText(' ' + ds.label, px + 2, py); ctx.restore();
+    }});
+  }}
+}};
 function buildOverview() {{
  try {{
   const cv = document.getElementById('overviewChart');
   if (!cv || typeof Chart === 'undefined') return;
-  // pick the index + the most actionable signals (BUY/SELL/HOLD), capped for readability
-  let picks = DATA.signals.filter(s => s.action !== 'FLAT').slice(0, 10).map(s => s.symbol);
-  if (picks.length < 4) picks = DATA.signals.slice(0, 8).map(s => s.symbol);
-  const ds = [];
+  const items = [];
   if (DATA.benchmark) {{
     const r = _rebase(DATA.benchmark.t, DATA.benchmark.close);
-    if (r.pts.length) {{ OV_BASE['SPY'] = r.base;
-      ds.push({{type:'line', label:'S&P 500', data:r.pts, borderColor:'#e6edf3', borderWidth:2.4, pointRadius:0, order:1}}); }}
+    if (r.pts.length) items.push({{sym:'SPY', label:'S&P 500', pts:r.pts, base:r.base, color:'#e6edf3', bench:true}});
   }}
-  picks.forEach((sym, i) => {{
-    const c = DATA.charts[sym]; if (!c) return;
+  DATA.signals.forEach((s, i) => {{
+    const c = DATA.charts[s.symbol]; if (!c) return;
     const r = _rebase(c.t, c.close); if (!r.pts.length) return;
-    OV_BASE[sym] = r.base;
-    ds.push({{type:'line', label:sym, data:r.pts, borderColor:OV_PALETTE[i % OV_PALETTE.length],
-      borderWidth:1.3, pointRadius:0, order:2}});
+    items.push({{sym:s.symbol, label:s.symbol, pts:r.pts, base:r.base, color:OV_PALETTE[i % OV_PALETTE.length]}});
   }});
+  OV.items = items;
+  const datasets = items.map(it => {{
+    const active = it.bench || OV.pinned.has(it.sym);
+    return {{ label: it.label, data: it.pts, _sym: it.sym, _active: active,
+      borderColor: it.bench ? '#e6edf3' : (active ? it.color : 'rgba(139,151,166,0.16)'),
+      borderWidth: it.bench ? 2.4 : (active ? 2 : 1), pointRadius: 0, fill: false,
+      order: active ? 1 : 5 }};
+  }});
+  // percentile-clip the y-axis so a single outlier can't squash everyone
+  const allY = []; items.forEach(it => it.pts.forEach(p => allY.push(p.y)));
+  allY.sort((a, b) => a - b);
+  const q = p => allY.length ? allY[Math.min(allY.length-1, Math.max(0, Math.round(p*(allY.length-1))))] : 0;
+  const ymin = Math.min(q(0.04), 0) - 2, ymax = Math.max(q(0.96), 0) + 3;
   if (ovChart) ovChart.destroy();
   ovChart = new Chart(cv, {{
-    type:'line',
-    data:{{datasets:ds}},
+    type:'line', data:{{datasets}},
     options:{{responsive:true, parsing:false, interaction:{{mode:'index',intersect:false}},
-      elements:{{line:{{tension:0.15}}}},
+      layout:{{padding:{{right:46}}}}, elements:{{line:{{tension:0.15}}}},
       plugins:{{
-        legend:{{labels:{{color:'#8b97a6', usePointStyle:true, boxWidth:8, font:{{size:11}}}}}},
+        legend:{{display:false}},
         tooltip:{{mode:'index', intersect:false, itemSort:(a,b)=>b.parsed.y-a.parsed.y,
-          callbacks:{{label:(it)=>` ${{it.dataset.label}}: ${{it.parsed.y>=0?'+':''}}${{it.parsed.y.toFixed(1)}}%`}}}},
+          callbacks:{{
+            title:(its)=> new Date(its[0].parsed.x).toLocaleDateString([], {{year:'numeric',month:'short',day:'numeric'}}),
+            label:(it)=>` ${{it.dataset.label}}: ${{it.parsed.y>=0?'+':''}}${{it.parsed.y.toFixed(1)}}%`}}}},
         zoom:{{zoom:{{wheel:{{enabled:true}}, pinch:{{enabled:true}}, mode:'x'}}, pan:{{enabled:true, mode:'x'}}}}
       }},
-      scales:{{x:{{type:'time', time:{{unit:'month'}}, ticks:{{color:'#8b97a6',maxTicksLimit:7}}, grid:{{display:false}}}},
-               y:{{position:'right', ticks:{{color:'#8b97a6', callback:v=>(v>0?'+':'')+v+'%'}}, grid:{{color:'rgba(42,52,65,0.55)'}}}}}}}}
+      scales:{{
+        x:{{type:'time', time:{{unit:'month'}}, ticks:{{color:'#8b97a6',maxTicksLimit:7}}, grid:{{display:false}}}},
+        y:{{position:'right', min:ymin, max:ymax, ticks:{{color:'#8b97a6', callback:v=>(v>0?'+':'')+v+'%'}},
+           grid:{{ color:(c)=> c.tick.value===0 ? 'rgba(139,151,166,0.6)' : 'rgba(42,52,65,0.5)',
+                   lineWidth:(c)=> c.tick.value===0 ? 1.5 : 1 }}}}
+      }}
+    }},
+    plugins:[_ovEndLabel]
   }});
+  _buildBoard();
  }} catch (e) {{ console.error('overview chart failed', e); }}
 }}
+function _buildBoard() {{
+  const board = document.getElementById('ovBoard'); if (!board || !OV.items.length) return;
+  const rows = OV.items.map(it => ({{sym:it.sym, label:it.label,
+    val: it.pts[it.pts.length-1].y, color: it.color, bench: it.bench}}));
+  rows.sort((a, b) => b.val - a.val);
+  board.innerHTML = rows.map(r => {{
+    const on = r.bench || OV.pinned.has(r.sym);
+    return `<div class="ovrow ${{on?'on':''}}" data-sym="${{r.sym}}">`
+      + `<span class="ovdot" style="background:${{on ? r.color : 'rgba(139,151,166,0.4)'}};"></span>`
+      + `<span class="ovsym">${{r.label}}</span>`
+      + `<span class="ovval" style="color:${{r.val>=0?'#2ea043':'#f85149'}};">${{r.val>=0?'+':''}}${{r.val.toFixed(1)}}%</span></div>`;
+  }}).join('');
+  board.querySelectorAll('.ovrow').forEach(el => {{
+    el.onclick = () => {{
+      const sym = el.dataset.sym; if (sym === 'SPY') return;  // benchmark always on
+      if (OV.pinned.has(sym)) OV.pinned.delete(sym); else OV.pinned.add(sym);
+      buildOverview();
+    }};
+  }});
+}}
 function _updateOverviewLive() {{
-  if (!ovChart) return;
-  ovChart.data.datasets.forEach(d => {{
-    const sym = d.label === 'S&P 500' ? 'SPY' : d.label;
-    const lp = LIVE[sym], base = OV_BASE[sym];
-    if (lp != null && base && d.data.length) d.data[d.data.length - 1].y = (lp/base - 1) * 100;
+  if (!ovChart || !OV.items.length) return;
+  OV.items.forEach(it => {{
+    const lp = LIVE[it.sym];
+    if (lp != null && it.base) it.pts[it.pts.length-1].y = (lp / it.base - 1) * 100;
   }});
   ovChart.update('none');
+  _buildBoard();
 }}
 
 // ---- detail modal ----
