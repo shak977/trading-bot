@@ -834,6 +834,10 @@ def render_html(snap: dict) -> str:
     padding:16px; cursor:pointer; box-shadow:var(--shadow); }}
   .card:hover {{ border-color:color-mix(in srgb, var(--accent) 45%, var(--line));
     transform:translateY(-2px); box-shadow:var(--shadow-lg); }}
+  .card-why {{ font-size:12px; color:var(--txt); margin-top:9px; line-height:1.5; }}
+  .card-why .why-l {{ color:var(--muted); text-transform:uppercase; font-size:10px;
+    letter-spacing:.04em; font-weight:700; margin-right:5px; }}
+  .card-why b {{ color:var(--accent); font-weight:700; }}
   .more {{ color:var(--muted); font-size:12px; margin-top:10px;
     border-top:1px solid var(--line); padding-top:8px; }}
   .sym {{ font-size:18px; font-weight:700; }}
@@ -1381,6 +1385,22 @@ function makeCard(s) {{
   if (!_isShort && _r2 && _r2.long) ch.unshift(`<span class="chip mini bull" title="oversold dip inside an uptrend (RSI-2 mean-reversion)">↘ Dip-buy (RSI-2)</span>`);
   const _r2s = _cs && _cs.results && _cs.results.rsi2_short;
   if (_isShort && _r2s && _r2s.short) ch.unshift(`<span class="chip mini bear" title="overbought rip inside a downtrend (RSI-2 mirror)">↗ Rip-sell (RSI-2)</span>`);
+  // "Based on" — name the strategies behind the decision (the trigger ones bolded)
+  const _co = _isShort ? _cs : _cn;
+  let whyHtml = '';
+  if (_co) {{
+    const agree = (_isShort ? (_co.short||[]) : (_co.long||[]));
+    const fresh = _co.fresh || [];
+    if (agree.length) {{
+      const shown = agree.slice(0,4).map(n => fresh.includes(n)
+        ? `<b title="the fresh trigger">${{n}}</b>` : n);
+      const extra = agree.length>4 ? ` +${{agree.length-4}} more` : '';
+      whyHtml = `<div class="card-why" title="independent strategies agreeing ${{_isShort?'short':'long'}} on this name right now">`
+        + `<span class="why-l">Based on</span> ${{shown.join(', ')}}${{extra}}</div>`;
+    }}
+  }}
+  if (!whyHtml && (s.action==='EXIT')) whyHtml = `<div class="card-why"><span class="why-l">Based on</span> trend break — its uptrend just rolled over</div>`;
+  if (!whyHtml && (s.action==='AVOID')) whyHtml = `<div class="card-why"><span class="why-l">Based on</span> below trend with weak/bearish setup — stay away</div>`;
   const nNews = (s.news||[]).length;
   el.innerHTML = `
     <div class="card-top">${{logo}}
@@ -1392,7 +1412,8 @@ function makeCard(s) {{
       + `<div class="conv-meter"><div class="conv-fill" style="width:${{cpct}}%;background:${{ccol}};"></div></div></div>` : ''}}
     <div class="card-stats">${{st.join('')}}</div>
     ${{ch.length ? `<div class="chips" style="margin-top:10px;">${{ch.join('')}}</div>` : ''}}
-    <div class="more">${{nNews ? nNews+' news &middot; ':''}}click for full plan + reasoning →</div>`;
+    ${{whyHtml}}
+    <div class="more">${{nNews ? nNews+' news &middot; ':''}}click for full strategy breakdown →</div>`;
   const _fb = el.querySelector('.favbtn');
   if (_fb) _fb.addEventListener('click', (e) => {{
     e.stopPropagation(); _toggleFav(s.symbol);
