@@ -79,12 +79,22 @@ def run(signals: list[dict], cfg: Config, live: bool, today: str) -> dict:
             if getattr(df.index, "tz", None) is not None:
                 df.index = df.index.tz_localize(None)
             cutoff = pd.Timestamp(t["advised_date"])
-            after = df[df.index > cutoff]
+            run_day = pd.Timestamp(today)
+            # Only grade on FULLY-COMPLETED sessions strictly AFTER the advised day:
+            #  - exclude the advised day's own bar (you'd enter at its close, so its
+            #    intraday high/low already happened — counting them is look-ahead bias)
+            #  - exclude today's bar, which may still be forming during an intraday run
+            after = df[(df.index.normalize() > cutoff) & (df.index.normalize() < run_day)]
             for ts, row in after.iterrows():
-                if float(row["low"]) <= t["stop"]:
+                hi, lo = float(row["high"]), float(row["low"])
+                # skip implausible single-bar prints (e.g. >35% intraday range) so a bad
+                # data tick can't fake a stop/target hit
+                if lo > 0 and (hi - lo) / lo > 0.35:
+                    continue
+                if lo <= t["stop"]:
                     t.update(status="loss", exit=t["stop"], exit_date=str(ts.date()))
                     break
-                if float(row["high"]) >= t["target"]:
+                if hi >= t["target"]:
                     t.update(status="win", exit=t["target"], exit_date=str(ts.date()))
                     break
             if t["status"] == "open" and len(after):
