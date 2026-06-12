@@ -853,6 +853,8 @@ def render_html(snap: dict) -> str:
   .lad-row.stp > span:last-child, .lad-row.stp em {{ color:var(--sell); }}
   .lad-rr {{ padding:5px 11px; border-top:0.5px solid var(--line); font-size:11px; color:var(--muted); text-align:right; }}
   .card-warn {{ margin-top:9px; font-size:11.5px; color:var(--sell); font-weight:500; }}
+  .hcell {{ cursor:help; text-decoration:underline dotted var(--muted); text-underline-offset:3px;
+    text-decoration-thickness:1px; }}
   .card-why {{ margin-top:11px; padding:9px 11px; background:var(--inset);
     border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:8px; }}
   .why-h {{ display:flex; align-items:center; justify-content:space-between; gap:8px;
@@ -1374,6 +1376,37 @@ function _toggleFav(sym) {{
   if (FAVS.has(sym)) FAVS.delete(sym); else FAVS.add(sym);
   try {{ localStorage.setItem('tb-favs', JSON.stringify([...FAVS])); }} catch (e) {{}}
 }}
+// Plain-English explanations shown on hover for every strategy + type, across the app.
+const STRAT_INFO = {{
+  'Trend crossover': 'A short-term average price crosses ABOVE a longer-term one — a classic early sign an uptrend is starting.',
+  'Golden cross': 'The 50-day average rises above the 200-day — a slow, big-picture signal the long-term trend has turned up.',
+  'Donchian breakout': 'Price pushes above its highest level of the last 20 days — buyers breaking it out to fresh short-term highs.',
+  'MACD momentum': 'A popular momentum gauge turns positive — the upward speed of the move is building.',
+  'Dip buy (RSI-2)': 'Inside an existing uptrend, price dips hard for a day or two — a chance to buy the pullback before it resumes.',
+  'Squeeze breakout': 'After a quiet, low-volatility stretch, price pops out of its range — pent-up energy releasing into a move up.',
+  'EMA momentum stack': 'Fast averages line up above slow ones (8 > 21 > 50) — a tidy, healthy uptrend with momentum behind it.',
+  'Trend cross-down': 'A short-term average crosses BELOW a longer-term one — a classic early sign a downtrend is starting.',
+  'Death cross': 'The 50-day average falls below the 200-day — a slow, big-picture signal the long-term trend has turned down.',
+  'Donchian breakdown': 'Price breaks below its lowest level of the last 20 days — sellers pushing it to fresh short-term lows.',
+  'MACD momentum (down)': 'The momentum gauge turns negative — the downward speed of the move is building.',
+  'Rip-sell (RSI-2)': 'Inside a downtrend, price spikes up sharply for a day or two — a chance to short the bounce before it rolls back over.',
+  'Squeeze breakdown': 'After a quiet stretch, price drops out of its range to the downside — pent-up energy releasing into a fall.',
+  'EMA momentum stack (down)': 'Fast averages line up below slow ones (8 < 21 < 50) — a clean downtrend with momentum behind it.',
+}};
+const TYPE_INFO = {{
+  'trend': 'Trend-following: aims to ride a sustained move in one direction. Great in trending markets, whipsaws in choppy ones.',
+  'momentum': 'Momentum: bets that recent strength (or weakness) keeps going a while longer.',
+  'breakout': 'Breakout: acts when price escapes its recent range to a new high, expecting the move to continue.',
+  'breakdown': 'Breakdown: acts when price escapes its recent range to a new low, expecting the fall to continue.',
+  'mean-reversion': 'Mean-reversion: bets a short, sharp move snaps back toward the average — buy dips in uptrends, sell spikes in downtrends.',
+}};
+const FAMILY_INFO = {{
+  'Trend-following': TYPE_INFO['trend'], 'Momentum': TYPE_INFO['momentum'],
+  'Breakout': 'Breakout: acts when price escapes its recent range (a new high for longs, new low for shorts), expecting the move to continue.',
+  'Mean-reversion': TYPE_INFO['mean-reversion'], 'Trend filter': TYPE_INFO['trend'],
+}};
+const _esc = t => String(t||'').replace(/"/g, '&quot;');
+
 const diag = document.getElementById('diag');
 if ((DATA.diagnostics||[]).length) {{
   diag.innerHTML = '<div style="background:#3a1e1e;border:1px solid #5a1e1e;color:#ff9b9b;'
@@ -1432,8 +1465,10 @@ function makeCard(s) {{
     const agree = (_isShort ? (_co.short||[]) : (_co.long||[]));
     const fresh = _co.fresh || [];
     if (agree.length) {{
-      const pills = agree.slice(0,6).map(n =>
-        `<span class="why-chip${{fresh.includes(n)?' trig':''}}"${{fresh.includes(n)?' title="the fresh trigger"':''}}>${{n}}</span>`);
+      const pills = agree.slice(0,6).map(n => {{
+        const tip = (STRAT_INFO[n]||'') + (fresh.includes(n) ? '  (this is the fresh trigger)' : '');
+        return `<span class="why-chip${{fresh.includes(n)?' trig':''}}" title="${{_esc(tip)}}">${{n}}</span>`;
+      }});
       const extra = agree.length>6 ? `<span class="why-chip more">+${{agree.length-6}}</span>` : '';
       whyBody = `<div class="why-chips">${{pills.join('')}}${{extra}}</div>`;
       // collect the families of the agreeing strategies (most common first)
@@ -1446,7 +1481,9 @@ function makeCard(s) {{
   }}
   if (!whyBody && s.action==='EXIT') {{ whyBody = `<div class="why-txt">Trend break — its uptrend just rolled over.</div>`; famLabel='Trend-following'; }}
   if (!whyBody && s.action==='AVOID') {{ whyBody = `<div class="why-txt">Below trend with a weak/bearish setup — stay away.</div>`; famLabel='Trend filter'; }}
-  const famTag = famLabel ? `<span class="why-fam" title="this is a live signal-engine card, not an All Weather or Momentum-tab pick">${{famLabel}}</span>` : '';
+  const famTip = (famLabel || '').split(' + ').map(f => FAMILY_INFO[f]).filter(Boolean).join('  •  ')
+                 || 'the strategy approach behind this signal';
+  const famTag = famLabel ? `<span class="why-fam" title="${{_esc(famTip)}}">${{famLabel}}</span>` : '';
   const whyHtml = whyBody
     ? `<div class="card-why"><div class="why-h"><span>📋 Why this ${{_actWord}} — strategies firing</span>${{famTag}}</div>${{whyBody}}</div>` : '';
   const nNews = (s.news||[]).length;
@@ -1634,20 +1671,21 @@ function openModal(s) {{
     let chips = '';
     Object.keys(res).forEach(k => {{
       const r = res[k]; const cls = r.long ? (r.fresh ? 'bull' : 'neutral') : '';
-      chips += `<span class="chip mini ${{cls}}" title="${{r.kind}}">${{r.long ? '●' : '○'}} ${{r.label}}</span>`;
+      chips += `<span class="chip mini ${{cls}}" style="cursor:help;" title="${{_esc(STRAT_INFO[r.label] || r.kind)}}">${{r.long ? '●' : '○'}} ${{r.label}}</span>`;
     }});
     let rows = '';
     Object.keys(edges).forEach(k => {{
       const e = edges[k]; const wr = e.win_rate == null ? '–' : e.win_rate + '%';
       const ret = (e.total_return >= 0 ? '+' : '') + e.total_return + '%';
-      rows += `<tr><td>${{e.label}}</td><td style="color:var(--muted);">${{e.kind}}</td>`
+      rows += `<tr><td class="hcell" title="${{_esc(STRAT_INFO[e.label] || '')}}">${{e.label}}</td>`
+        + `<td class="hcell" style="color:var(--muted);" title="${{_esc(TYPE_INFO[e.kind] || '')}}">${{e.kind}}</td>`
         + `<td style="text-align:right;">${{wr}}</td><td style="text-align:right;color:var(--muted);">${{e.n_trades}}</td>`
         + `<td style="text-align:right;" class="${{e.total_return >= 0 ? 'win' : 'loss'}}">${{ret}}</td></tr>`;
     }});
-    const head = `<div style="margin-bottom:6px;font-size:13px;"><b>${{now.count || 0}}</b> of ${{now.total || 0}} strategies are long here right now (● long · ○ flat):</div>`
+    const head = `<div style="margin-bottom:6px;font-size:13px;"><b>${{now.count || 0}}</b> of ${{now.total || 0}} strategies are long here right now (● long · ○ flat). <span style="color:var(--muted);">Hover any name for what it means.</span></div>`
       + `<div class="chips" style="margin-bottom:12px;">${{chips}}</div>`;
     const table = rows
-      ? `<table class="trackrec"><thead><tr><th>Strategy</th><th>Type</th><th style="text-align:right;">Win</th><th style="text-align:right;">Trades</th><th style="text-align:right;">Return</th></tr></thead><tbody>${{rows}}</tbody></table>`
+      ? `<table class="trackrec"><thead><tr><th class="hcell" title="The method being tested. Hover each row's name for a plain-English description.">Strategy</th><th class="hcell" title="The family the method belongs to — hover for what each type means.">Type</th><th style="text-align:right;" title="How often this method has been profitable on THIS stock historically.">Win</th><th style="text-align:right;" title="How many completed trades that win rate is based on — more = more reliable.">Trades</th><th style="text-align:right;" title="Total hypothetical return of this method on this stock (no fees/slippage).">Return</th></tr></thead><tbody>${{rows}}</tbody></table>`
       : '<div style="color:var(--muted);font-size:13px;">Per-strategy backtests are computed for the shown signals.</div>';
     sel.innerHTML = head + table;
   }}
