@@ -80,10 +80,38 @@ def test_regime():
     _ok("sectors sorted desc", all(secs[i]["pct_up"] >= secs[i+1]["pct_up"] for i in range(len(secs)-1)))
 
 
+def test_research():
+    print("research:")
+    import research
+    sent = research.news_sentiment([{"headline": "Stock surges as profit beats, analysts upgrade"},
+                                    {"headline": "Shares rally to record high"}])
+    _ok("positive sentiment detected", sent and sent["label"] == "Positive")
+    neg = research.news_sentiment([{"headline": "Stock plunges on weak guidance and downgrade"}])
+    _ok("negative sentiment detected", neg and neg["label"] == "Negative")
+    _ok("finnhub none without key", research.finnhub_snapshot("AAPL", CONFIG) is None or CONFIG.finnhub_api_key)
+    _ok("fred none without key", research.fred_macro(CONFIG) is None or CONFIG.fred_api_key)
+
+
+def test_rescore():
+    print("rescore with research:")
+    import scanner
+    from data import synthetic_bars
+    row = scanner._analyse("MSFT", synthetic_bars("MSFT", n=300), CONFIG, CONFIG.starting_cash)
+    before = row["conviction"]["total"]
+    scanner.rescore(row, CONFIG,
+                    sentiment={"label": "Positive", "n": 3, "score": 0.5},
+                    fundamentals={"analysts": {"buy": 8, "hold": 2, "sell": 0, "consensus": "Buy"},
+                                  "target_mean": row["price"] * 1.2, "pe": 25})
+    _ok("conviction gained research checks", row["conviction"]["total"] > before)
+    _ok("desk read mentions analysts", "analyst" in row["desk_read"].lower())
+
+
 def main():
     test_indicators()
     test_strategy_backtest()
     test_analytics()
+    test_research()
+    test_rescore()
     test_llm_prompt()
     test_regime()
     print("\nALL TESTS PASSED")

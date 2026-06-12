@@ -324,12 +324,13 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float):
 
 
 def _conviction(action, rsi, relvol, plan, context, cfg: Config,
-                factors=None, patterns=None, edge=None):
+                factors=None, patterns=None, edge=None,
+                sentiment=None, fundamentals=None, price=None):
     """Auto-scored pre-entry checklist for a long. Each check is pass/warn/fail.
 
-    v2: now also weighs MACD momentum and the strategy's *historical* win rate on
-    this specific stock — so conviction reflects multi-factor confluence, not just
-    the moving-average cross.
+    v3: weighs technicals + MACD momentum + the strategy's historical win rate on
+    this stock + (when available) news tone, analyst consensus and price-target
+    upside — multi-factor confluence, the way a desk would frame it.
     """
     factors = factors or {}
     checks = []
@@ -407,6 +408,35 @@ def _conviction(action, rsi, relvol, plan, context, cfg: Config,
     else:
         add("Worked here before?", "fail", f"Weak — only {wr}% of {nt} past trades on this stock worked out.")
 
+    # --- research-driven checks (only added when the data is available) ---
+    if sentiment:
+        lbl = sentiment.get("label")
+        if lbl == "Positive":
+            add("News on side?", "pass", "Recent headlines lean positive.")
+        elif lbl == "Negative":
+            add("News on side?", "fail", "Recent headlines lean negative — a headwind.")
+        elif lbl == "Mixed":
+            add("News on side?", "warn", "Recent headlines are mixed.")
+    if fundamentals:
+        an = fundamentals.get("analysts")
+        if an:
+            c = an.get("consensus")
+            if c == "Buy":
+                add("Analysts on side?", "pass", f"Wall St leans Buy ({an['buy']} buy / {an['hold']} hold / {an['sell']} sell).")
+            elif c == "Sell":
+                add("Analysts on side?", "fail", f"Wall St leans Sell ({an['sell']} sell / {an['hold']} hold / {an['buy']} buy).")
+            else:
+                add("Analysts on side?", "warn", "Wall St is mostly on Hold — no strong analyst conviction.")
+        tm = fundamentals.get("target_mean")
+        if tm and price:
+            up = (tm / price - 1) * 100
+            if up >= 10:
+                add("Upside to target?", "pass", f"Avg analyst target ${tm:,.0f} is {up:.0f}% above today's price.")
+            elif up >= 0:
+                add("Upside to target?", "warn", f"Avg target ${tm:,.0f} is only {up:.0f}% above today — limited room.")
+            else:
+                add("Upside to target?", "fail", f"Price is already above the avg analyst target (${tm:,.0f}).")
+
     pts = {"pass": 1.0, "warn": 0.5, "fail": 0.0}
     score = sum(pts[c["status"]] for c in checks) / len(checks)
     label = "High" if score >= 0.75 else "Medium" if score >= 0.5 else "Low"
@@ -415,7 +445,19 @@ def _conviction(action, rsi, relvol, plan, context, cfg: Config,
             "total": len(checks), "checks": checks}
 
 
-def _desk_read(action, plan, context, conviction, patterns=None, edge=None) -> str:
+def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None) -> None:
+    """Recompute conviction + desk read for a shown row once research is fetched."""
+    conv = _conviction(row["action"], row["rsi"], row["rel_volume"], row["plan"], row["context"], cfg,
+                       row.get("factors"), row.get("patterns"), row.get("edge"),
+                       sentiment=sentiment, fundamentals=fundamentals, price=row.get("price"))
+    row["conviction"] = conv
+    row["desk_read"] = _desk_read(row["action"], row["plan"], row["context"], conv,
+                                  row.get("patterns"), row.get("edge"),
+                                  sentiment=sentiment, fundamentals=fundamentals, price=row.get("price"))
+
+
+def _desk_read(action, plan, context, conviction, patterns=None, edge=None,
+               sentiment=None, fundamentals=None, price=None) -> str:
     """A short risk-strategist read, composed from the computed levels + patterns."""
     stop, target = plan.get("stop"), plan.get("target")
     rr = plan.get("rr")
@@ -448,6 +490,20 @@ def _desk_read(action, plan, context, conviction, patterns=None, edge=None) -> s
     if edge and edge.get("win_rate") is not None and (edge.get("n_trades") or 0) >= 3:
         bits.append(f"History check: this strategy has won {edge['win_rate']}% of its "
                     f"{edge['n_trades']} past trades on this stock (hypothetical, no fees).")
+    if sentiment and sentiment.get("label") and sentiment["label"] != "Neutral":
+        bits.append(f"News tone reads {sentiment['label'].lower()} across {sentiment['n']} recent headlines.")
+    if fundamentals:
+        seg = []
+        an = fundamentals.get("analysts")
+        if an:
+            seg.append(f"analysts lean {an['consensus'].lower()}")
+        tm = fundamentals.get("target_mean")
+        if tm and price:
+            seg.append(f"avg target ${tm:,.0f} ({(tm/price-1)*100:+.0f}%)")
+        if fundamentals.get("pe"):
+            seg.append(f"P/E {fundamentals['pe']}")
+        if seg:
+            bits.append("Research: " + ", ".join(seg) + ".")
     weak = [c["label"].rstrip('?').lower() for c in conviction["checks"] if c["status"] != "pass"]
     if weak:
         bits.append(f"Overall confidence: {conv}. Weaker spots: {', '.join(weak)}.")

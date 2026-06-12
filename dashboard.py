@@ -140,11 +140,35 @@ def build_snapshot() -> dict:
                 f"not headline-driven."
             )
 
+    # --- Research layer: news tone (free), analyst/fundamentals (Finnhub) ---
+    import research
+    for r in shown:
+        r["sentiment"] = research.news_sentiment(r.get("news"))
+    fundamentals = {}
+    if live and CONFIG.finnhub_api_key:
+        try:
+            fundamentals = research.finnhub_for_symbols(
+                [r["symbol"] for r in shown[: CONFIG.research_top]], CONFIG)
+        except Exception:  # noqa: BLE001
+            fundamentals = {}
+    for r in shown:
+        r["fundamentals"] = fundamentals.get(r["symbol"])
+        # Re-score conviction + desk read now that research is in hand.
+        scanner.rescore(r, CONFIG, sentiment=r.get("sentiment"), fundamentals=r.get("fundamentals"))
+
+    # Macro backdrop (FRED) — once per run.
+    macro = None
+    if live and CONFIG.fred_api_key:
+        try:
+            macro = research.fred_macro(CONFIG)
+        except Exception:  # noqa: BLE001
+            macro = None
+
     # Optional AI analyst note per signal (silent no-op if no key).
     if CONFIG.llm_enabled:
         import llm
         for r in shown:
-            note = llm.analyst_note(r, CONFIG, regime=regime)
+            note = llm.analyst_note(r, CONFIG, regime=regime, macro=macro)
             if note:
                 r["ai_read"] = note
 
@@ -180,6 +204,7 @@ def build_snapshot() -> dict:
         "track": track,
         "regime": regime,
         "sectors": sectors,
+        "macro": macro,
         "params": {
             "fast_ma": CONFIG.fast_ma, "slow_ma": CONFIG.slow_ma,
             "rsi_period": CONFIG.rsi_period, "risk_per_trade": CONFIG.risk_per_trade,
@@ -216,6 +241,29 @@ def _sectors_html(secs: list[dict]) -> str:
     return ('<div class="ovbox"><div class="ovhead">🧭 Sector strength '
             '<span style="font-weight:400;color:var(--muted);font-size:12px;">— share of each sector trending up</span></div>'
             f'{rows}</div>')
+
+
+def _macro_html(m: dict | None) -> str:
+    if not m:
+        return ""
+    def cell(label, val):
+        return (f'<div class="stat"><div class="l">{label}</div>'
+                f'<div class="v" style="font-size:15px;">{val}</div></div>')
+    cells = ""
+    if m.get("y10") is not None:
+        cells += cell("10-yr yield", f'{m["y10"]}%')
+    if m.get("curve") is not None:
+        cells += cell("Yield curve (10y-2y)", f'{m["curve"]:+.2f}')
+    if m.get("cpi_yoy") is not None:
+        cells += cell("Inflation (CPI)", f'{m["cpi_yoy"]}%')
+    if m.get("unemployment") is not None:
+        cells += cell("Unemployment", f'{m["unemployment"]}%')
+    if m.get("fed_funds") is not None:
+        cells += cell("Fed funds rate", f'{m["fed_funds"]}%')
+    return ('<div class="ovbox"><div class="ovhead">🌍 Macro backdrop: '
+            f'{m.get("backdrop","")} <span style="font-weight:400;color:var(--muted);font-size:12px;">'
+            f'— {m.get("note","")}</span></div>'
+            f'<div class="trackstats">{cells}</div></div>')
 
 
 def _track_html(track: dict | None) -> str:
@@ -272,6 +320,7 @@ def render_html(snap: dict) -> str:
     track_html = _track_html(snap.get("track"))
     regime_html = _regime_html(snap.get("regime"))
     sectors_html = _sectors_html(snap.get("sectors"))
+    macro_html = _macro_html(snap.get("macro"))
     return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -455,6 +504,7 @@ def render_html(snap: dict) -> str:
       <canvas id="overviewChart" height="92"></canvas>
     </div>
 {sectors_html}
+{macro_html}
     <div class="viewctl"><span style="color:var(--muted);font-size:13px;">View:</span>
       <span class="ctlgrp" id="viewBtns"></span></div>
     <div id="cards"></div>
@@ -552,6 +602,8 @@ def render_html(snap: dict) -> str:
     <div class="chips" id="mPatterns"></div>
     <div class="sech">Should you take it? <span id="mConvScore"></span></div>
     <ul class="checks" id="mChecks"></ul>
+    <div class="sech">Analysts, fundamentals &amp; news tone</div>
+    <div class="plangrid" id="mResearch"></div>
     <div class="sech">How this strategy has done on this stock <span style="text-transform:none;color:var(--muted);">(backtest)</span></div>
     <div class="plangrid" id="mEdge"></div>
     <div class="sech">The trade plan <span id="mPlanNote" style="text-transform:none;color:var(--muted);"></span></div>
@@ -793,6 +845,24 @@ function openModal(s) {{
   pel.innerHTML = (s.patterns||[]).length
     ? (s.patterns||[]).map(p => `<span class="chip ${{p.kind}}">${{p.label}}</span>`).join('')
     : '<span style="color:var(--muted);font-size:13px;">No standout chart patterns right now.</span>';
+  // research: analysts, fundamentals, news tone
+  const rel = document.getElementById('mResearch');
+  const fu = s.fundamentals || {{}}, an = fu.analysts, sen = s.sentiment;
+  let rcells = '';
+  const statc = (l,v,cls)=>`<div class="stat"><div class="l">${{l}}</div><div class="v ${{cls||''}}" style="font-size:15px;">${{v}}</div></div>`;
+  if (an) {{
+    const cc = an.consensus==='Buy'?'buy':an.consensus==='Sell'?'sell':'';
+    rcells += statc('Analyst consensus', an.consensus, cc) + statc('Buy / Hold / Sell', `${{an.buy}} / ${{an.hold}} / ${{an.sell}}`);
+  }}
+  if (fu.target_mean) {{
+    const up = ((fu.target_mean/s.price-1)*100);
+    rcells += statc('Avg price target', '$'+fu.target_mean.toLocaleString(), up>=0?'buy':'sell')
+            + statc('Upside to target', (up>=0?'+':'')+up.toFixed(0)+'%', up>=0?'buy':'sell');
+  }}
+  if (fu.pe) rcells += statc('P/E ratio', fu.pe);
+  if (sen && sen.label) rcells += statc('News tone', sen.label, sen.label==='Positive'?'buy':sen.label==='Negative'?'sell':'');
+  rel.innerHTML = rcells || '<div style="color:var(--muted);font-size:13px;">No analyst/fundamental data available'
+    + (sen ? '' : ' (add a Finnhub key to enable it)') + '.</div>';
   const eel = document.getElementById('mEdge'), e = s.edge;
   if (e && e.n_trades) {{
     const money = v => (v==null?'–':(v>0?'+':'')+v+'%');

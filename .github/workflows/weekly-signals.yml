@@ -43,6 +43,8 @@ jobs:
           ALPACA_PAPER: "true"
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           LIVE_QUOTES_URL: ${{ secrets.LIVE_QUOTES_URL }}
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: |
           python dashboard.py
           mkdir -p _site
