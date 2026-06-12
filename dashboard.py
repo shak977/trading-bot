@@ -886,8 +886,7 @@ def render_html(snap: dict) -> str:
   <section class="page" id="page-markets">
     <div class="mkt">
       <nav class="mkt-side" id="mktNav">
-        <button data-mview="chart" class="on">Featured chart</button>
-        <button data-mview="overview">Overview vs S&amp;P</button>
+        <button data-mview="chart" class="on">Chart</button>
         <button data-mview="sectors">Sector strength</button>
         <button data-mview="macro">Macro backdrop</button>
       </nav>
@@ -897,18 +896,6 @@ def render_html(snap: dict) -> str:
             <div class="feat-grid">
               <div class="feat-main"><div id="featuredChart"></div></div>
               <aside class="feat-watch"><div class="feat-wtitle">Watchlist · click to load</div><div id="featWatch"></div></aside>
-            </div>
-          </div>
-        </div>
-        <div class="mkt-view" id="mview-overview">
-          <div class="ovbox">
-            <div class="ovhead">Live overview — % change vs S&amp;P 500 <span id="ovStatus"></span>
-              <span class="ctlgrp" id="ovRangeBtns" style="margin-left:8px;"></span>
-              <button class="ctlbtn" id="ovColorBtn" style="margin-left:6px;">Colour all</button>
-              <span style="font-weight:400;color:var(--muted);font-size:12px;"> · click a name to highlight</span></div>
-            <div class="ovwrap">
-              <div class="ovchart"><canvas id="overviewChart" height="150"></canvas></div>
-              <div class="ovboard" id="ovBoard"></div>
             </div>
           </div>
         </div>
