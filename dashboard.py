@@ -836,8 +836,13 @@ def render_html(snap: dict) -> str:
     transform:translateY(-2px); box-shadow:var(--shadow-lg); }}
   .card-why {{ margin-top:11px; padding:9px 11px; background:var(--inset);
     border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:8px; }}
-  .why-h {{ font-size:10.5px; text-transform:uppercase; letter-spacing:.04em;
+  .why-h {{ display:flex; align-items:center; justify-content:space-between; gap:8px;
+    font-size:10.5px; text-transform:uppercase; letter-spacing:.04em;
     font-weight:800; color:var(--muted); margin-bottom:7px; }}
+  .why-fam {{ text-transform:none; letter-spacing:0; font-weight:700; font-size:11px;
+    color:var(--accent); background:color-mix(in srgb, var(--accent) 14%, transparent);
+    border:1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+    padding:1px 8px; border-radius:999px; white-space:nowrap; }}
   .why-chips {{ display:flex; flex-wrap:wrap; gap:5px; }}
   .why-chip {{ font-size:11.5px; padding:3px 9px; border-radius:999px; line-height:1.35;
     border:1px solid var(--line); background:var(--card); color:var(--txt); white-space:nowrap; }}
@@ -1396,7 +1401,10 @@ function makeCard(s) {{
   const _co = _isShort ? _cs : _cn;
   const _actWord = (s.action==='SHORT'||s.action==='HOLD SHORT'||s.action==='WATCH SHORT') ? 'short'
                  : (s.action==='BUY'||s.action==='HOLD LONG'||s.action==='WATCH LONG') ? 'buy' : 'signal';
-  let whyBody = '';
+  // strategy FAMILY (approach) behind this card — derived from the firing strategies' kind.
+  const _FAMILY = {{trend:'Trend-following', momentum:'Momentum', breakout:'Breakout',
+                    breakdown:'Breakout', 'mean-reversion':'Mean-reversion'}};
+  let whyBody = '', famLabel = '';
   if (_co) {{
     const agree = (_isShort ? (_co.short||[]) : (_co.long||[]));
     const fresh = _co.fresh || [];
@@ -1405,12 +1413,19 @@ function makeCard(s) {{
         `<span class="why-chip${{fresh.includes(n)?' trig':''}}"${{fresh.includes(n)?' title="the fresh trigger"':''}}>${{n}}</span>`);
       const extra = agree.length>6 ? `<span class="why-chip more">+${{agree.length-6}}</span>` : '';
       whyBody = `<div class="why-chips">${{pills.join('')}}${{extra}}</div>`;
+      // collect the families of the agreeing strategies (most common first)
+      const counts = {{}};
+      if (_co.results) Object.values(_co.results).forEach(r => {{
+        if (_isShort ? r.short : r.long) {{ const f=_FAMILY[r.kind]||r.kind; counts[f]=(counts[f]||0)+1; }}
+      }});
+      famLabel = Object.keys(counts).sort((a,b)=>counts[b]-counts[a]).slice(0,2).join(' + ') || 'Multi-strategy';
     }}
   }}
-  if (!whyBody && s.action==='EXIT') whyBody = `<div class="why-txt">Trend break — its uptrend just rolled over.</div>`;
-  if (!whyBody && s.action==='AVOID') whyBody = `<div class="why-txt">Below trend with a weak/bearish setup — stay away.</div>`;
+  if (!whyBody && s.action==='EXIT') {{ whyBody = `<div class="why-txt">Trend break — its uptrend just rolled over.</div>`; famLabel='Trend-following'; }}
+  if (!whyBody && s.action==='AVOID') {{ whyBody = `<div class="why-txt">Below trend with a weak/bearish setup — stay away.</div>`; famLabel='Trend filter'; }}
+  const famTag = famLabel ? `<span class="why-fam" title="this is a live signal-engine card, not an All Weather or Momentum-tab pick">${{famLabel}}</span>` : '';
   const whyHtml = whyBody
-    ? `<div class="card-why"><div class="why-h">📋 Why this ${{_actWord}} — strategies firing</div>${{whyBody}}</div>` : '';
+    ? `<div class="card-why"><div class="why-h"><span>📋 Why this ${{_actWord}} — strategies firing</span>${{famTag}}</div>${{whyBody}}</div>` : '';
   const nNews = (s.news||[]).length;
   el.innerHTML = `
     <div class="card-top">${{logo}}
