@@ -28,6 +28,50 @@ def synthetic_bars(symbol: str = "TEST", n: int = 400, seed: int = 42) -> pd.Dat
     )
 
 
+def sanitize_bars(df: pd.DataFrame, spike: float = 0.5) -> tuple[pd.DataFrame, int]:
+    """Repair corrupt bars from the free IEX feed before they reach the indicators.
+
+    Two fixes, both conservative (they only touch clearly-bad bars, never real moves):
+      1. **Spike-and-revert bad prints** — a single bar whose close jumps >`spike` and is
+         (mostly) undone the next day. That's a bad tick, not a real move (real moves don't
+         instantly reverse), so we replace that bar with the average of its neighbours.
+      2. **OHLC violations** — bars where high isn't the max or low isn't the min (e.g.
+         close > high). We clamp high/low to the true extremes of {open, high, low, close}.
+
+    Persistent jumps (a real gap or an already-split-adjusted move) are left alone — only
+    the reverting spikes are treated as data errors. Returns (clean_df, n_repairs)."""
+    if df is None or len(df) < 3:
+        return df, 0
+    df = df.copy()
+    o = df["open"].to_numpy(float).copy()
+    h = df["high"].to_numpy(float).copy()
+    lo_ = df["low"].to_numpy(float).copy()
+    c = df["close"].to_numpy(float).copy()
+    repairs = 0
+    # 1) spike-and-revert single-bar bad prints (on close)
+    for i in range(1, len(c) - 1):
+        p0, p1, p2 = c[i - 1], c[i], c[i + 1]
+        if not (p0 and p1 and p2):
+            continue
+        r1 = p1 / p0 - 1.0
+        if abs(r1) <= spike:
+            continue
+        r2 = p2 / p1 - 1.0
+        if r1 * r2 < 0 and abs(r2) >= spike * 0.6:   # reverses → bad print
+            mid = (p0 + p2) / 2.0
+            o[i] = h[i] = lo_[i] = c[i] = mid
+            repairs += 1
+    # 2) OHLC integrity: high must be the max, low the min of the bar
+    for i in range(len(c)):
+        mx = max(o[i], h[i], lo_[i], c[i])
+        mn = min(o[i], h[i], lo_[i], c[i])
+        if h[i] != mx or lo_[i] != mn:
+            h[i], lo_[i] = mx, mn
+            repairs += 1
+    df["open"], df["high"], df["low"], df["close"] = o, h, lo_, c
+    return df, repairs
+
+
 def get_bars(symbol: str, cfg: Config) -> pd.DataFrame:
     """Fetch daily/intraday bars from Alpaca. Requires valid keys."""
     cfg.validate_for_live()
@@ -63,4 +107,7 @@ def get_bars(symbol: str, cfg: Config) -> pd.DataFrame:
     # Multi-index (symbol, timestamp) -> single symbol frame
     if isinstance(bars.index, pd.MultiIndex):
         bars = bars.xs(symbol, level="symbol")
-    return bars[["open", "high", "low", "close", "volume"]]
+    bars = bars[["open", "high", "low", "close", "volume"]]
+    # Clean IEX bad prints / OHLC glitches before indicators are computed on them.
+    bars, _ = sanitize_bars(bars)
+    return bars

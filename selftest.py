@@ -248,7 +248,30 @@ def test_short_backtest():
     _ok("long loses on the same falling series", long_ret < 0)
 
 
+def test_sanitize_bars():
+    print("data sanitizer (bad-print repair):")
+    import pandas as pd
+    from data import sanitize_bars
+    idx = pd.date_range("2024-01-01", periods=8)
+    close = [100, 101, 102, 260, 103, 104, 105, 106]  # bar 3 is a spike-and-revert bad print
+    df = pd.DataFrame({"open": close, "high": [x * 1.01 for x in close],
+                       "low": [x * 0.99 for x in close], "close": close,
+                       "volume": [1e6] * 8}, index=idx)
+    # also inject an OHLC violation on bar 5 (high below close)
+    df.iloc[5, df.columns.get_loc("high")] = df.iloc[5]["close"] * 0.5
+    clean, reps = sanitize_bars(df)
+    _ok("repairs detected", reps >= 2)
+    _ok("spike bar repaired (~102.5)", 100 < clean.iloc[3]["close"] < 110)
+    _ok("no >50% one-day jumps remain",
+        not any(abs(clean["close"].iloc[i] / clean["close"].iloc[i-1] - 1) > 0.5
+                for i in range(1, len(clean)) if clean["close"].iloc[i-1]))
+    _ok("OHLC integrity restored",
+        bool((clean["high"] >= clean[["open","low","close"]].max(axis=1) - 1e-6).all()
+             and (clean["low"] <= clean[["open","high","close"]].min(axis=1) + 1e-6).all()))
+
+
 def main():
+    test_sanitize_bars()
     test_indicators()
     test_strategy_backtest()
     test_analytics()
