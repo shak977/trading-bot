@@ -53,6 +53,11 @@ class Config:
     rsi_overbought: float = 70.0
     rsi_oversold: float = 30.0
 
+    # --- Refinements (tune / A-B test with backtest_compare.py) ---
+    adx_min: float = 20.0           # require ADX >= this for a NEW long (trend-strength gate; 0 = off)
+    trail_atr_mult: float = 0.0     # >0 enables a trailing ATR stop in the backtest (e.g. 3.0; 0 = fixed stop)
+    regime_block_buys: bool = True  # demote fresh BUYs to HOLD when the market regime is Risk-off
+
     # --- Risk management ---
     starting_cash: float = 100_000.0
     risk_per_trade: float = 0.02     # fraction of equity risked per position

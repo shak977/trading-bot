@@ -94,6 +94,17 @@ def build_snapshot() -> dict:
     shown = rows[: CONFIG.show_top]
     shown_syms = [r["symbol"] for r in shown]
 
+    # Regime filter: in a Risk-off tape, stand down on NEW buys — demote fresh BUYs
+    # to HOLD so the tool isn't initiating longs against a hostile market backdrop.
+    if CONFIG.regime_block_buys and regime and regime.get("label") == "Risk-off":
+        for r in shown:
+            if r.get("action") == "BUY":
+                r["action"] = "HOLD LONG"
+                r["regime_blocked"] = True
+                r.setdefault("reasons", []).insert(
+                    0, "🛑 Market regime is Risk-off — standing down on new buys; this fresh "
+                       "crossover is shown as HOLD, not a fresh entry.")
+
     # Pull news once for everything shown, then bucket per ticker.
     if live:
         try:

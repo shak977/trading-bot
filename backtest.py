@@ -53,6 +53,10 @@ def backtest_positions(df: pd.DataFrame, positions: pd.Series, cfg: Config) -> B
     shares = 0
     entry = stop = target = 0.0
     equity_hist, trades = [], []
+    # optional trailing ATR stop ("let winners run")
+    from indicators import atr as _atr
+    trail = cfg.trail_atr_mult > 0
+    atr_s = _atr(df, cfg.atr_period) if trail else None
 
     for ts, row in df.iterrows():
         price = row["close"]
@@ -62,6 +66,13 @@ def backtest_positions(df: pd.DataFrame, positions: pd.Series, cfg: Config) -> B
 
         # --- manage open position ---
         if shares > 0:
+            # ratchet the stop up under a rising price (never down)
+            if trail:
+                a = atr_s.loc[ts]
+                if isinstance(a, pd.Series):
+                    a = a.iloc[-1]
+                if a is not None and not np.isnan(a):
+                    stop = max(stop, float(price) - cfg.trail_atr_mult * float(a))
             hit_stop = row["low"] <= stop
             hit_target = row["high"] >= target
             exit_signal = signal == 0
