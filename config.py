@@ -72,8 +72,8 @@ class Config:
     live_quotes_url: str = field(default_factory=lambda: os.getenv("LIVE_QUOTES_URL", "").rstrip("/"))
 
     # --- Optional research feeds (free keys). Blank = that section is skipped. ---
-    finnhub_api_key: str = field(default_factory=lambda: os.getenv("FINNHUB_API_KEY", ""))
-    fred_api_key: str = field(default_factory=lambda: os.getenv("FRED_API_KEY", ""))
+    finnhub_api_key: str = field(default_factory=lambda: os.getenv("FINNHUB_API_KEY", "").strip())
+    fred_api_key: str = field(default_factory=lambda: os.getenv("FRED_API_KEY", "").strip())
     research_top: int = 25   # fetch analyst/fundamentals for the top N shown (rate-limit budget)
 
     def validate_for_live(self) -> None:
