@@ -145,7 +145,7 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
         return None
     signal = int(last["signal"])
 
-    # How many bars since the signal last flipped (i.e. how fresh is this state)?
+    # How many bars since the house signal last flipped (state freshness, for the chart).
     svals = list(sig["signal"])
     bars_since_flip = 0
     for i in range(len(svals) - 1, 0, -1):
@@ -153,49 +153,76 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
             bars_since_flip += 1
         else:
             break
-    fresh = bars_since_flip <= cfg.buy_window  # crossover within the last few days
 
-    if signal == 1 and fresh:
-        action = "BUY"          # entered long within the buy window
-    elif signal == 1:
-        action = "HOLD LONG"    # long, but the cross was a while ago
-    elif signal == 0 and fresh and bars_since_flip < len(svals):
-        action = "SELL"         # just dropped out of a long
-    else:
-        action = "FLAT"
+    # --- precision engine: multi-strategy confluence, BOTH directions ---
+    # A BUY/SHORT is no longer a single 20/50 crossover (rare → no signals). Instead we ask
+    # how many independent, well-known methods agree right now, gated by the trend regime and
+    # (downstream) a conviction floor. This surfaces real setups far more often while keeping
+    # only the high-quality ones labelled actionable.
+    bull = strategies.evaluate(df, cfg)
+    bear = strategies.evaluate_short(df, cfg)
+
+    # Trend backbone: above/below the 200-day average.
+    closes = df["close"]
+    sma200 = float(closes.tail(200).mean()) if len(closes) >= 50 else float(closes.mean())
+    uptrend, downtrend = price > sma200, price < sma200
+
+    # "Exit your long" alert: the house long just flipped to flat within the buy window.
+    recent_long_exit = any(
+        svals[i] == 0 and svals[i - 1] == 1
+        for i in range(len(svals) - 1, max(0, len(svals) - 1 - cfg.buy_window), -1))
+
+    action, direction = _classify(bull, bear, uptrend, downtrend, recent_long_exit, cfg)
+
     relvol = relative_volume(df, cfg.rel_volume_window)
-    qty = position_size(equity, price, cfg) if signal == 1 else 0
-    tail = sig.tail(300)  # ~1+ year of daily bars, sliced client-side by range
     rv_rounded = None if np.isnan(relvol) else round(relvol, 2)
+    tail = sig.tail(300)  # ~1+ year of daily bars, sliced client-side by range
     patterns, factors = analytics.detect(df, sig, cfg, rv_rounded)
     edge = analytics.backtest_edge(df, cfg)
-    # Strategy confluence (cheap — no backtests): how many independent methods
-    # are long here right now. Stuffed into `factors` so _conviction can score it.
-    confl = strategies.evaluate(df, cfg)
-    factors["confluence"] = confl["count"]
-    factors["confluence_total"] = confl["total"]
-    factors["strategies_long"] = confl["long"]
-    summary, reasons = _reasoning(sig, cfg, action, price, rv_rounded)
-    if confl["count"] >= 2:
-        reasons.append(
-            f"Strategy confluence — {confl['count']} of {confl['total']} independent strategies "
-            f"are long here: {', '.join(confl['long'][:5])}.")
-    plan, context = _trade_plan(df, sig, cfg, price, equity)
-    conviction = _conviction(action, float(last["rsi"]), rv_rounded, plan, context, cfg,
+    factors["confluence"] = bull["count"]
+    factors["confluence_total"] = bull["total"]
+    factors["strategies_long"] = bull["long"]
+    factors["short_confluence"] = bear["count"]
+    factors["short_total"] = bear["total"]
+    factors["strategies_short"] = bear["short"]
+
+    plan, context = _trade_plan(df, sig, cfg, price, equity, direction)
+    conviction = _conviction(action, direction, float(last["rsi"]), rv_rounded, plan, context, cfg,
                              factors, patterns, edge)
-    desk_read = _desk_read(action, plan, context, conviction, patterns, edge)
+
+    # Quality gate (per the "confluence, quality-gated" choice): a fresh BUY/SHORT must clear
+    # Medium conviction (≥50). Otherwise the setup is real but not strong enough to call —
+    # demote it to the WATCH tier instead of issuing a weak signal.
+    if action == "BUY" and conviction["score_pct"] < 50:
+        action = "WATCH LONG"
+    elif action == "SHORT" and conviction["score_pct"] < 50:
+        action = "WATCH SHORT"
+
+    summary, reasons = _reasoning(sig, cfg, action, direction, price, rv_rounded, bull, bear)
+    if direction == "LONG" and bull["count"] >= 2:
+        reasons.append(
+            f"Strategy confluence — {bull['count']} of {bull['total']} independent strategies "
+            f"are long here: {', '.join(bull['long'][:5])}.")
+    if direction == "SHORT" and bear["count"] >= 2:
+        reasons.append(
+            f"Bearish confluence — {bear['count']} of {bear['total']} independent strategies are "
+            f"short here: {', '.join(bear['short'][:5])}.")
+
+    desk_read = _desk_read(action, direction, plan, context, conviction, patterns, edge)
+    actionable = action in ("BUY", "HOLD LONG", "SHORT", "HOLD SHORT")
     return {
         "_df": df,  # kept transiently so scan() can backtest per-strategy edges for shown rows
         "symbol": symbol,
         "action": action,
+        "direction": direction,
         "price": round(price, 2),
         "rsi": round(float(last["rsi"]), 1),
         "fast_ma": round(float(last["fast"]), 2),
         "slow_ma": round(float(last["slow"]), 2),
         "rel_volume": rv_rounded,
-        "stop": round(stop_loss_price(price, cfg), 2) if signal == 1 else None,
-        "target": round(take_profit_price(price, cfg), 2) if signal == 1 else None,
-        "suggested_shares": qty,
+        "stop": plan.get("stop") if actionable else None,
+        "target": plan.get("target") if actionable else None,
+        "suggested_shares": plan.get("shares") or 0,
         "as_of": str(sig.index[-1].date()),
         "summary": summary,
         "reasons": reasons,
@@ -206,9 +233,33 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
         "patterns": patterns,
         "factors": factors,
         "edge": edge,
-        "strategies": {"now": confl, "edges": None},  # edges filled for shown rows in scan()
+        "strategies": {"now": bull, "short": bear, "edges": None},  # edges filled for shown rows
         "chart": _chart_data(tail),
     }
+
+
+def _classify(bull: dict, bear: dict, uptrend: bool, downtrend: bool,
+              recent_long_exit: bool, cfg: Config) -> tuple[str, str]:
+    """Turn confluence + trend into an action + direction. The conviction floor (applied by
+    the caller) decides whether a fresh BUY/SHORT survives or drops to the WATCH tier.
+
+    Tiers: 3+ agreeing strategies in-trend = actionable (BUY/SHORT, or HOLD if not fresh);
+    exactly 2 = WATCH; a long that just broke = EXIT; weak bearish = AVOID; nothing = FLAT."""
+    bc, bf = bull["count"], len(bull["fresh"])
+    sc, sf = bear["count"], len(bear["fresh"])
+    if uptrend and bc >= 3:
+        return ("BUY", "LONG") if bf > 0 else ("HOLD LONG", "LONG")
+    if downtrend and sc >= 3:
+        return ("SHORT", "SHORT") if sf > 0 else ("HOLD SHORT", "SHORT")
+    if uptrend and bc == 2:
+        return ("WATCH LONG", "LONG")
+    if downtrend and sc == 2:
+        return ("WATCH SHORT", "SHORT")
+    if recent_long_exit:
+        return ("EXIT", "LONG")
+    if downtrend and sc >= 1:
+        return ("AVOID", "SHORT")
+    return ("FLAT", "LONG" if uptrend else "SHORT")
 
 
 def _chart_data(tail) -> dict:
@@ -251,7 +302,7 @@ def _chart_data(tail) -> dict:
     }
 
 
-def _reasoning(sig, cfg: Config, action: str, price: float, relvol):
+def _reasoning(sig, cfg: Config, action: str, direction: str, price: float, relvol, bull=None, bear=None):
     """Build a plain-English justification from the actual indicator state.
 
     Everything here is derived from the same numbers that produced the signal —
@@ -294,54 +345,66 @@ def _reasoning(sig, cfg: Config, action: str, price: float, relvol):
         else:
             reasons.append("Trading activity is about normal today.")
 
-    if action == "BUY":
-        summary = "It just started trending up, so this could be a spot to buy."
-    elif action == "SELL":
-        summary = "It's turning down, so this is where the strategy would sell and step back."
-    elif action == "HOLD LONG":
-        summary = "It's still trending up, so a position you already own would stay open."
-    else:
-        summary = "There's no clear up-trend yet, so this one's just worth watching for now."
-
+    summaries = {
+        "BUY": "Several methods line up to the upside, so this could be a spot to buy.",
+        "HOLD LONG": "It's still trending up, so a long you already own would stay open.",
+        "WATCH LONG": "A bullish setup is building but not confirmed — one to watch, not buy yet.",
+        "SHORT": "Several methods line up to the downside, so this could be a spot to short.",
+        "HOLD SHORT": "It's still trending down, so a short you already have would stay open.",
+        "WATCH SHORT": "A bearish setup is building but not confirmed — one to watch, not short yet.",
+        "EXIT": "It just rolled over out of its up-trend — this is where you'd sell a long.",
+        "AVOID": "It's below trend and weak — better to stay away than to buy here.",
+        "FLAT": "There's no clear trend yet, so this one's just worth watching for now.",
+    }
+    summary = summaries.get(action, summaries["FLAT"])
     return summary, reasons
 
 
-def _trade_plan(df, sig, cfg: Config, price: float, equity: float):
-    """Concrete long-side trade plan + market context, in price/dollar terms.
+def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: str = "LONG"):
+    """Concrete trade plan + market context, in price/dollar terms, for either direction.
 
-    The strategy is long-only, so the plan describes entering/holding a long.
-    For non-BUY signals it still shows the levels you'd use *if* you took the
-    trade, clearly labelled.
+    LONG: stop below entry, target above. SHORT: the mirror — stop above entry (where the
+    bet is wrong), target below (where you'd cover). For non-actionable rows it still shows
+    the levels you'd use *if* you took the trade, clearly labelled in the UI.
     """
     atr_series = atr(df, cfg.atr_period)
     atr_val = float(atr_series.iloc[-1]) if not np.isnan(atr_series.iloc[-1]) else None
-
     entry = price
-    stop_pct = stop_loss_price(entry, cfg)                     # flat % stop
-    stop_atr = (entry - cfg.atr_stop_mult * atr_val) if atr_val else None
-    # use the tighter (higher) of the two as the working stop, but show both
-    working_stop = max(stop_pct, stop_atr) if stop_atr else stop_pct
-    target = take_profit_price(entry, cfg)
+
+    if direction == "SHORT":
+        stop_pct_lvl = entry * (1 + cfg.stop_loss_pct)              # flat % stop, above entry
+        stop_atr = (entry + cfg.atr_stop_mult * atr_val) if atr_val else None
+        # tighter stop = the LOWER one (closer to entry) when shorting
+        working_stop = min(stop_pct_lvl, stop_atr) if stop_atr else stop_pct_lvl
+        target = entry * (1 - cfg.take_profit_pct)                  # cover below
+        per_share_risk = working_stop - entry
+        reward = entry - target
+    else:
+        stop_pct_lvl = stop_loss_price(entry, cfg)                 # flat % stop, below entry
+        stop_atr = (entry - cfg.atr_stop_mult * atr_val) if atr_val else None
+        # tighter stop = the HIGHER one (closer to entry) when long
+        working_stop = max(stop_pct_lvl, stop_atr) if stop_atr else stop_pct_lvl
+        target = take_profit_price(entry, cfg)
+        per_share_risk = entry - working_stop
+        reward = target - entry
 
     shares = position_size(equity, entry, cfg)
-    per_share_risk = entry - working_stop
     dollar_risk = shares * per_share_risk if shares else 0.0
     exposure = shares * entry if shares else 0.0
-    reward = target - entry
     rr = (reward / per_share_risk) if per_share_risk > 0 else None
 
     def r(x):
         return None if x is None else round(float(x), 2)
 
     plan = {
-        "direction": "LONG",
+        "direction": direction,
         "entry": r(entry),
         "stop": r(working_stop),
-        "stop_pct": round((entry - working_stop) / entry * 100, 1),
-        "stop_flat": r(stop_pct),
+        "stop_pct": round(abs(working_stop - entry) / entry * 100, 1),
+        "stop_flat": r(stop_pct_lvl),
         "stop_atr": r(stop_atr),
         "target": r(target),
-        "target_pct": round((target - entry) / entry * 100, 1),
+        "target_pct": round(abs(target - entry) / entry * 100, 1),
         "rr": None if rr is None else round(rr, 2),
         "shares": shares,
         "dollar_risk": r(dollar_risk),
@@ -368,29 +431,45 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float):
     return plan, context
 
 
-def _conviction(action, rsi, relvol, plan, context, cfg: Config,
+def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 factors=None, patterns=None, edge=None,
                 sentiment=None, fundamentals=None, price=None):
-    """Auto-scored pre-entry checklist for a long. Each check is pass/warn/fail.
+    """Auto-scored pre-entry checklist, direction-aware. Each check is pass/warn/fail.
 
-    v3: weighs technicals + MACD momentum + the strategy's historical win rate on
-    this stock + (when available) news tone, analyst consensus and price-target
-    upside — multi-factor confluence, the way a desk would frame it.
+    For a LONG it asks the bullish questions (trending up? room to rise?); for a SHORT it
+    asks the mirror (trending down? room to fall?). Weighs technicals + MACD momentum + the
+    strategy's historical win rate + (when available) news tone, analyst consensus and
+    price-target room — multi-factor confluence, the way a desk would frame it.
     """
     factors = factors or {}
     checks = []
+    short = direction == "SHORT"
 
     def add(label, status, note):
         checks.append({"label": label, "status": status, "note": note})
 
     vs = context.get("vs_slow_ma_pct")
-    bullish = vs is not None and vs > 0
-    add("Is it trending up?",
-        "pass" if bullish else "fail",
-        "Yes — price is above its longer-term trend." if bullish
-        else "No — price is below its trend, so you'd be betting against the current direction.")
+    if short:
+        bearish = vs is not None and vs < 0
+        add("Is it trending down?",
+            "pass" if bearish else "fail",
+            "Yes — price is below its longer-term trend, so the bet runs with the downtrend." if bearish
+            else "No — price is above its trend, so a short would fight the current direction.")
+    else:
+        bullish = vs is not None and vs > 0
+        add("Is it trending up?",
+            "pass" if bullish else "fail",
+            "Yes — price is above its longer-term trend." if bullish
+            else "No — price is below its trend, so you'd be betting against the current direction.")
 
-    if rsi >= cfg.rsi_overbought:
+    if short:
+        if rsi <= cfg.rsi_oversold:
+            add("Room to fall?", "warn", f"Careful — momentum ({rsi:.0f}/100) is already very low; it's been sold hard and may bounce.")
+        elif rsi > 60:
+            add("Room to fall?", "pass", f"Good — momentum ({rsi:.0f}/100) is elevated, so there's room to drop.")
+        else:
+            add("Room to fall?", "pass", f"OK — momentum ({rsi:.0f}/100) isn't washed out yet, so there's room lower.")
+    elif rsi >= cfg.rsi_overbought:
         add("Room to rise?", "warn", f"Careful — momentum ({rsi:.0f}/100) is high; it's run up fast and may pull back.")
     elif rsi < 40:
         add("Room to rise?", "warn", f"Weak — momentum ({rsi:.0f}/100) is soft; buyers aren't in control yet.")
@@ -416,7 +495,12 @@ def _conviction(action, rsi, relvol, plan, context, cfg: Config,
     else:
         add("Worth the risk?", "fail", f"No — the risk outweighs the reward (under $1 back per $1 risked).")
 
-    if vs is not None and vs > 12:
+    if short:
+        if vs is not None and vs < -12:
+            add("Not chasing?", "warn", f"It's already {vs}% below its trend — shorting this late can mean chasing the move down.")
+        else:
+            add("Not chasing?", "pass", "Price isn't stretched far below its trend, so you're not shorting late.")
+    elif vs is not None and vs > 12:
         add("Not chasing?", "warn", f"It's already {vs}% above its trend — buying this late can mean chasing.")
     else:
         add("Not chasing?", "pass", "Price isn't stretched far above its trend, so you're not buying late.")
@@ -427,20 +511,28 @@ def _conviction(action, rsi, relvol, plan, context, cfg: Config,
     else:
         add("Calm enough?", "pass", f"Yes — day-to-day swings (~{atrp}%) are manageable." if atrp else "Day-to-day swings are manageable.")
 
-    if action == "BUY":
-        add("Good timing?", "pass", "Yes — the up-trend just started, so you'd be getting in early.")
-    elif action == "HOLD LONG":
-        add("Good timing?", "warn", "The trend started a while ago — you'd be joining partway in.")
+    if action in ("BUY", "SHORT"):
+        add("Good timing?", "pass",
+            "Yes — the down-trend setup just triggered, so you'd be getting in early." if short
+            else "Yes — the up-trend just started, so you'd be getting in early.")
+    elif action in ("HOLD LONG", "HOLD SHORT"):
+        add("Good timing?", "warn", "The move started a while ago — you'd be joining partway in.")
+    elif action in ("WATCH LONG", "WATCH SHORT"):
+        add("Good timing?", "warn", "Setup is building but not confirmed yet — one to watch, not act on.")
     else:
-        add("Good timing?", "fail", "No buy trigger right now — nothing to act on yet.")
+        add("Good timing?", "fail", "No trigger right now — nothing to act on yet.")
 
     mh = factors.get("macd_hist")
     if mh is None:
         add("Momentum building?", "warn", "Momentum (MACD) reading unavailable.")
-    elif mh > 0:
-        add("Momentum building?", "pass", "Yes — MACD momentum is positive, so buyers have the upper hand.")
+    elif (mh < 0) if short else (mh > 0):
+        add("Momentum building?", "pass",
+            "Yes — MACD momentum is negative, so sellers have the upper hand." if short
+            else "Yes — MACD momentum is positive, so buyers have the upper hand.")
     else:
-        add("Momentum building?", "warn", "Not yet — MACD momentum is negative, so sellers still have control.")
+        add("Momentum building?", "warn",
+            "Not yet — MACD momentum is still positive, so buyers haven't given up." if short
+            else "Not yet — MACD momentum is negative, so sellers still have control.")
 
     wr = (edge or {}).get("win_rate")
     nt = (edge or {}).get("n_trades") or 0
@@ -453,41 +545,64 @@ def _conviction(action, rsi, relvol, plan, context, cfg: Config,
     else:
         add("Worked here before?", "fail", f"Weak — only {wr}% of {nt} past trades on this stock worked out.")
 
-    cf = factors.get("confluence")
-    cft = factors.get("confluence_total")
+    if short:
+        cf = factors.get("short_confluence")
+        cft = factors.get("short_total")
+        names_list = factors.get("strategies_short") or []
+        side = "short"
+    else:
+        cf = factors.get("confluence")
+        cft = factors.get("confluence_total")
+        names_list = factors.get("strategies_long") or []
+        side = "long"
     if cf is not None and cft:
-        longs = factors.get("strategies_long") or []
-        names = (": " + ", ".join(longs[:4])) if longs else ""
+        names = (": " + ", ".join(names_list[:4])) if names_list else ""
         if cf >= 3:
-            add("Strategies agree?", "pass", f"Strong — {cf} of {cft} independent strategies are long here{names}.")
+            add("Strategies agree?", "pass", f"Strong — {cf} of {cft} independent strategies are {side} here{names}.")
         elif cf == 2:
-            add("Strategies agree?", "warn", f"Some support — 2 of {cft} strategies are long{names}.")
+            add("Strategies agree?", "warn", f"Some support — 2 of {cft} strategies are {side}{names}.")
         else:
-            add("Strategies agree?", "warn", f"Thin — only {cf} of {cft} strategies are long; limited cross-confirmation.")
+            add("Strategies agree?", "warn", f"Thin — only {cf} of {cft} strategies are {side}; limited cross-confirmation.")
 
     # --- research-driven checks (only added when the data is available) ---
     if sentiment:
         lbl = sentiment.get("label")
         if lbl == "Positive":
-            add("News on side?", "pass", "Recent headlines lean positive.")
+            add("News on side?", "fail" if short else "pass",
+                "Recent headlines lean positive — a headwind for a short." if short
+                else "Recent headlines lean positive.")
         elif lbl == "Negative":
-            add("News on side?", "fail", "Recent headlines lean negative — a headwind.")
+            add("News on side?", "pass" if short else "fail",
+                "Recent headlines lean negative — supports the short." if short
+                else "Recent headlines lean negative — a headwind.")
         elif lbl == "Mixed":
             add("News on side?", "warn", "Recent headlines are mixed.")
     if fundamentals:
         an = fundamentals.get("analysts")
         if an:
             c = an.get("consensus")
+            # For a short, a Sell consensus is *supportive*; a Buy consensus is the headwind.
             if c == "Buy":
-                add("Analysts on side?", "pass", f"Wall St leans Buy ({an['buy']} buy / {an['hold']} hold / {an['sell']} sell).")
+                add("Analysts on side?", "fail" if short else "pass",
+                    f"Wall St leans Buy ({an['buy']} buy / {an['hold']} hold / {an['sell']} sell)"
+                    + (" — a headwind for a short." if short else "."))
             elif c == "Sell":
-                add("Analysts on side?", "fail", f"Wall St leans Sell ({an['sell']} sell / {an['hold']} hold / {an['buy']} buy).")
+                add("Analysts on side?", "pass" if short else "fail",
+                    f"Wall St leans Sell ({an['sell']} sell / {an['hold']} hold / {an['buy']} buy)"
+                    + ("." if short else " — a headwind."))
             else:
                 add("Analysts on side?", "warn", "Wall St is mostly on Hold — no strong analyst conviction.")
         tm = fundamentals.get("target_mean")
         if tm and price:
             up = (tm / price - 1) * 100
-            if up >= 10:
+            if short:
+                if up <= -10:
+                    add("Room to target?", "pass", f"Avg analyst target ${tm:,.0f} is {abs(up):.0f}% BELOW today — room to fall.")
+                elif up <= 0:
+                    add("Room to target?", "warn", f"Avg target ${tm:,.0f} is only {abs(up):.0f}% below today — limited room down.")
+                else:
+                    add("Room to target?", "fail", f"Avg analyst target ${tm:,.0f} is {up:.0f}% ABOVE today — analysts see upside, against a short.")
+            elif up >= 10:
                 add("Upside to target?", "pass", f"Avg analyst target ${tm:,.0f} is {up:.0f}% above today's price.")
             elif up >= 0:
                 add("Upside to target?", "warn", f"Avg target ${tm:,.0f} is only {up:.0f}% above today — limited room.")
@@ -511,37 +626,48 @@ def _conviction(action, rsi, relvol, plan, context, cfg: Config,
 
 def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None) -> None:
     """Recompute conviction + desk read for a shown row once research is fetched."""
-    conv = _conviction(row["action"], row["rsi"], row["rel_volume"], row["plan"], row["context"], cfg,
+    direction = row.get("direction", "LONG")
+    conv = _conviction(row["action"], direction, row["rsi"], row["rel_volume"], row["plan"], row["context"], cfg,
                        row.get("factors"), row.get("patterns"), row.get("edge"),
                        sentiment=sentiment, fundamentals=fundamentals, price=row.get("price"))
     row["conviction"] = conv
-    row["desk_read"] = _desk_read(row["action"], row["plan"], row["context"], conv,
+    row["desk_read"] = _desk_read(row["action"], direction, row["plan"], row["context"], conv,
                                   row.get("patterns"), row.get("edge"),
                                   sentiment=sentiment, fundamentals=fundamentals, price=row.get("price"))
 
 
-def _desk_read(action, plan, context, conviction, patterns=None, edge=None,
+def _desk_read(action, direction, plan, context, conviction, patterns=None, edge=None,
                sentiment=None, fundamentals=None, price=None) -> str:
     """A short risk-strategist read, composed from the computed levels + patterns."""
     stop, target = plan.get("stop"), plan.get("target")
     rr = plan.get("rr")
     stop_pct, tgt_pct = plan.get("stop_pct"), plan.get("target_pct")
+    short = direction == "SHORT"
     conv = conviction["label"]
     bits = []
-    if action == "BUY":
-        bits.append("In short: it just started trending up — a possible spot to buy.")
-    elif action == "HOLD LONG":
-        bits.append("In short: it's still trending up, so you'd keep a position you already own.")
-    elif action == "SELL":
-        bits.append("In short: it's turning down — this is where you'd sell.")
-    else:
-        bits.append("In short: no clear trend yet — one to watch, not buy.")
+    intros = {
+        "BUY": "In short: several methods line up to the upside — a possible spot to buy.",
+        "HOLD LONG": "In short: it's still trending up, so you'd keep a long you already own.",
+        "WATCH LONG": "In short: a bullish setup is forming but isn't confirmed — watch, don't buy yet.",
+        "SHORT": "In short: several methods line up to the downside — a possible spot to short.",
+        "HOLD SHORT": "In short: it's still trending down, so you'd keep a short you already have.",
+        "WATCH SHORT": "In short: a bearish setup is forming but isn't confirmed — watch, don't short yet.",
+        "EXIT": "In short: it just rolled over — this is where you'd sell a long.",
+        "AVOID": "In short: below trend and weak — better to stay away than buy.",
+        "FLAT": "In short: no clear trend yet — one to watch.",
+    }
+    bits.append(intros.get(action, intros["FLAT"]))
     if stop is not None and target is not None:
-        bits.append(
-            f"The plan in plain terms: buy around ${plan.get('entry'):,.2f}. If it drops to ${stop:,.2f} "
-            f"(−{stop_pct}%), sell to cut the loss. If it climbs to ${target:,.2f} (+{tgt_pct}%), take the win. "
-            f"So you'd be risking a little to aim for about {rr}× as much."
-        )
+        if short:
+            bits.append(
+                f"The plan in plain terms: short around ${plan.get('entry'):,.2f}. If it rises to ${stop:,.2f} "
+                f"(+{stop_pct}%), buy to cover and cut the loss. If it falls to ${target:,.2f} (−{tgt_pct}%), "
+                f"cover for the win. So you'd be risking a little to aim for about {rr}× as much.")
+        else:
+            bits.append(
+                f"The plan in plain terms: buy around ${plan.get('entry'):,.2f}. If it drops to ${stop:,.2f} "
+                f"(−{stop_pct}%), sell to cut the loss. If it climbs to ${target:,.2f} (+{tgt_pct}%), take the win. "
+                f"So you'd be risking a little to aim for about {rr}× as much.")
     bull = [p["label"] for p in (patterns or []) if p["kind"] == "bull"]
     bear = [p["label"] for p in (patterns or []) if p["kind"] == "bear"]
     if bull or bear:
@@ -580,10 +706,14 @@ def _desk_read(action, plan, context, conviction, patterns=None, edge=None,
 
 
 def _rank_key(row: dict) -> tuple:
-    # Actionable first (BUY/SELL), then by unusual volume, then RSI extremity.
-    action_rank = {"BUY": 0, "SELL": 0, "HOLD LONG": 1, "FLAT": 2}.get(row["action"], 3)
+    # Actionable first (BUY/SHORT), then holds, exits, the watch tier, avoid, flat.
+    # Within a tier, higher conviction then unusual volume float to the top.
+    order = {"BUY": 0, "SHORT": 1, "HOLD LONG": 2, "HOLD SHORT": 3, "EXIT": 4,
+             "WATCH LONG": 5, "WATCH SHORT": 6, "AVOID": 7, "FLAT": 8}
+    action_rank = order.get(row["action"], 9)
+    conv = (row.get("conviction") or {}).get("score_pct") or 0
     relvol = row["rel_volume"] or 0
-    return (action_rank, -relvol, -abs(row["rsi"] - 50))
+    return (action_rank, -conv, -relvol)
 
 
 # Populated by scan(); the dashboard surfaces these if nothing was found.

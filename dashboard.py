@@ -129,16 +129,24 @@ def build_snapshot() -> dict:
     shown = rows[: CONFIG.show_top]
     shown_syms = [r["symbol"] for r in shown]
 
-    # Regime filter: in a Risk-off tape, stand down on NEW buys — demote fresh BUYs
-    # to HOLD so the tool isn't initiating longs against a hostile market backdrop.
-    if CONFIG.regime_block_buys and regime and regime.get("label") == "Risk-off":
+    # Regime filter: don't initiate against a hostile tape. In Risk-off, demote fresh BUYs to
+    # the WATCH tier; symmetrically, in Risk-on demote fresh SHORTs — the tool shouldn't fight
+    # a strong market-wide direction with a brand-new entry in the opposite direction.
+    if CONFIG.regime_block_buys and regime:
+        _lbl = regime.get("label")
         for r in shown:
-            if r.get("action") == "BUY":
-                r["action"] = "HOLD LONG"
+            if _lbl == "Risk-off" and r.get("action") == "BUY":
+                r["action"] = "WATCH LONG"
                 r["regime_blocked"] = True
                 r.setdefault("reasons", []).insert(
-                    0, "🛑 Market regime is Risk-off — standing down on new buys; this fresh "
-                       "crossover is shown as HOLD, not a fresh entry.")
+                    0, "🛑 Market regime is Risk-off — standing down on new buys; this setup is "
+                       "shown as Watch, not a fresh entry.")
+            elif _lbl == "Risk-on" and r.get("action") == "SHORT":
+                r["action"] = "WATCH SHORT"
+                r["regime_blocked"] = True
+                r.setdefault("reasons", []).insert(
+                    0, "🛑 Market regime is Risk-on — standing down on new shorts; this setup is "
+                       "shown as Watch, not a fresh entry against a rising market.")
 
     # Pull news once for everything shown, then bucket per ticker.
     if live:
@@ -340,6 +348,7 @@ def _kpi_html(reg: dict | None, snap: dict) -> str:
     """A summary strip of KPI tiles up top — the 'what matters now' inverted pyramid."""
     sigs = snap.get("signals", [])
     n_buy = sum(1 for s in sigs if s.get("action") == "BUY")
+    n_short = sum(1 for s in sigs if s.get("action") == "SHORT")
     tone = {"Risk-on": "buy", "Neutral": "warn", "Risk-off": "sell"}.get((reg or {}).get("label"), "")
     tk = snap.get("track") or {}
     wr = tk.get("win_rate")
@@ -355,8 +364,8 @@ def _kpi_html(reg: dict | None, snap: dict) -> str:
         tiles += tile("Market regime", reg.get("label", "—"), tone, reg.get("note", "")[:46])
         tiles += tile("Breadth", f'{reg.get("breadth", "—")}%', "", f'of {reg.get("total","?")} above trend')
         tiles += tile("Avg momentum", f'{reg.get("avg_rsi", "—")}', "", "RSI, 0–100")
-    tiles += tile("Fresh buys", str(n_buy), "buy" if n_buy else "", "new signals today")
-    tiles += tile("Signals shown", str(len(sigs)), "", "ranked candidates")
+    tiles += tile("Fresh buys", str(n_buy), "buy" if n_buy else "", "new long setups")
+    tiles += tile("Fresh shorts", str(n_short), "sell" if n_short else "", "new short setups")
     tiles += tile("Track record", wr_txt, "", f'{tk.get("resolved", 0)} calls resolved')
     return f'<div class="kpis">{tiles}</div>'
 
@@ -663,12 +672,14 @@ def render_html(snap: dict) -> str:
   /* Light "Capital IQ Pro" palette is the default; dark is a toggle. */
   :root {{ --bg:#f5f7fa; --card:#ffffff; --line:#e4e8ed; --txt:var(--inset);
     --muted:#5b6776; --txt2:#3d4757; --buy:#0f9d58; --sell:#d1242f; --hold:#0b5cad; --flat:#8a96a3;
+    --short:#c2410c; --watch:#475569; --exit:#b45309; --avoid:#6b7280;
     --accent:#0b5cad; --grid:rgba(120,130,145,0.16); --cross:rgba(60,70,85,0.4);
     --inset:#f1f4f8; --hover:#eef2f7; --ring:rgba(11,92,173,.40);
     --shadow:0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.06);
     --shadow-lg:0 6px 20px rgba(16,24,40,0.10); }}
   html[data-theme="dark"] {{ --bg:#0d1117; --card:#161b22; --line:#262d36; --txt:#e6edf3;
     --muted:#8b97a6; --txt2:var(--txt2); --buy:#2ea043; --sell:#f85149; --hold:#58a6ff; --flat:#6e7681;
+    --short:#fb7185; --watch:#94a3b8; --exit:#d29922; --avoid:#6e7681;
     --accent:#58a6ff; --grid:rgba(42,52,65,0.55); --cross:rgba(139,151,166,0.45);
     --inset:var(--inset); --hover:#1c2530; --ring:rgba(88,166,255,.45);
     --shadow:0 1px 2px rgba(0,0,0,0.4); --shadow-lg:0 8px 28px rgba(0,0,0,0.5); }}
@@ -720,6 +731,9 @@ def render_html(snap: dict) -> str:
   .act {{ float:right; padding:2px 10px; border-radius:6px; font-size:12px; font-weight:700; color:#fff; }}
   .a-BUY {{ background:var(--buy); }} .a-SELL {{ background:var(--sell); }}
   .a-HOLDLONG {{ background:var(--hold); }} .a-FLAT {{ background:var(--flat); }}
+  .a-SHORT {{ background:var(--short); }} .a-HOLDSHORT {{ background:var(--short); opacity:.82; }}
+  .a-WATCHLONG {{ background:var(--watch); }} .a-WATCHSHORT {{ background:var(--watch); }}
+  .a-EXIT {{ background:var(--exit); }} .a-AVOID {{ background:var(--avoid); }}
   .px {{ font-size:26px; font-weight:700; margin:8px 0 2px; }}
   .kv {{ display:flex; justify-content:space-between; font-size:13px;
     color:var(--muted); padding:3px 0; }}
@@ -1061,20 +1075,24 @@ def render_html(snap: dict) -> str:
       <p>Stocks where a short-term price trend is overtaking the longer-term trend — the classic early
       sign of a move higher — and where momentum and trading activity back that up.</p>
 
-      <h4>The strategy: moving-average crossover (trend-following)</h4>
-      <p>A "moving average" is just the average price over the last N days, which smooths out the daily
-      noise so the underlying direction is visible. We track two:
-      a fast one (<span class="pill">{snap['params']['fast_ma']}-day</span>) and a slow one
-      (<span class="pill">{snap['params']['slow_ma']}-day</span>).</p>
+      <h4>The strategy: multi-strategy confluence, both directions</h4>
+      <p>Rather than wait for one rare event (a single moving-average crossover), the engine runs a
+      panel of well-known, independent strategies on each stock and asks <b>how many agree right now</b>,
+      then filters by the trend regime and a conviction floor. This surfaces real setups far more
+      often while keeping only the strong ones labelled actionable.</p>
       <ol>
         <li><b>Scan</b> — curated large-caps plus the day's most-active stocks and biggest movers.</li>
-        <li><b>Buy signal</b> — the fast average crosses <b>above</b> the slow one (an uptrend is starting),
-        as long as momentum (RSI) isn't already overheated.</li>
-        <li><b>Sell signal</b> — the fast average crosses back <b>below</b> the slow one, or momentum gets
-        overbought (the move looks exhausted).</li>
-        <li><b>Risk first</b> — every trade gets a <b>stop-loss</b> (a safety exit ~{snap['params']['stop_loss_pct']:.0%}
-        below entry) and a <b>take-profit</b> target (~{snap['params']['take_profit_pct']:.0%} above), with the
-        position sized so a stop-out costs only about {snap['params']['risk_per_trade']:.0%} of the account.</li>
+        <li><b>Buy signal</b> — price is in an <b>uptrend</b> (above its 200-day average) and <b>3+ independent
+        strategies</b> line up long, and the setup clears a Medium-or-better conviction score. Weaker
+        setups appear as <span class="pill">Watch</span> rather than a buy.</li>
+        <li><b>Short signal</b> — the mirror image: price in a <b>downtrend</b> with 3+ strategies lined up
+        short and conviction clearing the bar. Shorts profit if the stock falls — and carry higher risk,
+        so they're gated the same way. There are also <span class="pill">Exit</span> (sell a long that
+        just rolled over) and <span class="pill">Avoid</span> (weak, stay away) alerts.</li>
+        <li><b>Risk first</b> — every setup gets a <b>stop-loss</b> (~{snap['params']['stop_loss_pct']:.0%} the wrong
+        way) and a <b>target</b> (~{snap['params']['take_profit_pct']:.0%} the right way), sized so a stop-out
+        costs only about {snap['params']['risk_per_trade']:.0%} of the account. For a long the stop sits below entry and
+        the target above; for a short it's inverted.</li>
       </ol>
 
       <h4>How each signal is graded (multi-factor confluence)</h4>
@@ -1090,11 +1108,11 @@ def render_html(snap: dict) -> str:
         <li><b>Risk : reward</b> — the target must pay enough for the risk taken.</li>
         <li><b>Historical edge</b> — we <i>backtest this exact strategy on that stock's own history</i>
         and factor in how often it has actually worked there.</li>
-        <li><b>Strategy confluence</b> — we also run several <i>independent</i> strategies on the same
-        stock (trend crossover, golden cross, Donchian breakout, MACD momentum, RSI-2 dip-buy,
-        Bollinger squeeze breakout, EMA momentum stack). When more of them agree the setup is long,
-        conviction rises. The detail panel shows which are firing and how each has historically
-        performed on that stock.</li>
+        <li><b>Strategy confluence</b> — the core of the engine. We run seven <i>independent</i> strategies
+        in each direction: long (trend crossover, golden cross, Donchian breakout, MACD momentum, RSI-2
+        dip-buy, Bollinger squeeze breakout, EMA momentum stack) and their bearish mirrors (death cross,
+        breakdowns, RSI-2 rip-sell, etc.). When 3+ agree <i>and</i> price is in the matching trend,
+        the setup becomes actionable; 2 agreeing is a Watch. The detail panel shows which are firing.</li>
       </ul>
       <p>The detail panel also flags <b>chart patterns</b> (golden cross, breakouts, pullbacks, MACD
       crosses, oversold bounces…) and reads the <b>market backdrop</b> — overall breadth (how many
@@ -1119,9 +1137,10 @@ def render_html(snap: dict) -> str:
   </section>
 
   <div class="disclaimer">
-    Strategy: {snap['params']['fast_ma']}/{snap['params']['slow_ma']} SMA crossover with
-    RSI({snap['params']['rsi_period']}) filter. Risk {snap['params']['risk_per_trade']:.0%}/trade,
-    stop {snap['params']['stop_loss_pct']:.0%}, target {snap['params']['take_profit_pct']:.0%}.
+    Strategy: multi-strategy confluence (7 long + 7 short), trend-gated (200-day) with a
+    conviction floor; {snap['params']['fast_ma']}/{snap['params']['slow_ma']} SMA + RSI({snap['params']['rsi_period']}) is one input.
+    Risk {snap['params']['risk_per_trade']:.0%}/trade, stop {snap['params']['stop_loss_pct']:.0%}, target {snap['params']['take_profit_pct']:.0%}.
+    Shorts profit if price falls and carry higher risk.
     "Rel vol" = today's volume vs its {snap['params']['rel_volume_window']}-day average — a free
     proxy for unusual activity, NOT real institutional/options order flow.<br>
     Educational tool only. Not financial advice. Signals can be wrong; backtests ignore
@@ -1234,11 +1253,16 @@ function makeCard(s) {{
   const ed = (s.fundamentals||{{}}).earnings_days;
   const ch = (s.patterns||[]).slice(0,2).map(p=>`<span class="chip mini ${{p.kind}}">${{p.label}}</span>`);
   if (ed!=null && ed<=7) ch.unshift(`<span class="chip mini bear">⚠ Earnings ${{ed}}d</span>`);
+  const _isShort = (s.direction === 'SHORT');
   const _cn = (s.strategies&&s.strategies.now) ? s.strategies.now : null;
-  if (_cn && _cn.count>=2) ch.unshift(`<span class="chip mini bull" title="independent strategies agreeing">▲ ${{_cn.count}}/${{_cn.total}} strategies</span>`);
-  // RSI-2 dip-buy lens (our stress-tested mean-reversion signal — a watch, not an edge claim)
+  const _cs = (s.strategies&&s.strategies.short) ? s.strategies.short : null;
+  if (_isShort && _cs && _cs.count>=2) ch.unshift(`<span class="chip mini bear" title="independent bearish strategies agreeing">▼ ${{_cs.count}}/${{_cs.total}} short</span>`);
+  else if (!_isShort && _cn && _cn.count>=2) ch.unshift(`<span class="chip mini bull" title="independent strategies agreeing">▲ ${{_cn.count}}/${{_cn.total}} strategies</span>`);
+  // RSI-2 dip-buy lens (long) / rip-sell lens (short) — stress-tested mean-reversion, a watch not an edge claim
   const _r2 = _cn && _cn.results && _cn.results.rsi2_meanrev;
-  if (_r2 && _r2.long) ch.unshift(`<span class="chip mini bull" title="oversold dip inside an uptrend (RSI-2 mean-reversion)">↘ Dip-buy (RSI-2)</span>`);
+  if (!_isShort && _r2 && _r2.long) ch.unshift(`<span class="chip mini bull" title="oversold dip inside an uptrend (RSI-2 mean-reversion)">↘ Dip-buy (RSI-2)</span>`);
+  const _r2s = _cs && _cs.results && _cs.results.rsi2_short;
+  if (_isShort && _r2s && _r2s.short) ch.unshift(`<span class="chip mini bear" title="overbought rip inside a downtrend (RSI-2 mirror)">↗ Rip-sell (RSI-2)</span>`);
   const nNews = (s.news||[]).length;
   el.innerHTML = `
     <div class="card-top">${{logo}}
@@ -1261,7 +1285,8 @@ function makeCard(s) {{
   return el;
 }}
 // --- views: filter / sort the signal cards ---
-const _ACT_ORDER = {{'BUY':0, 'SELL':1, 'HOLD LONG':2, 'FLAT':3}};
+const _ACT_ORDER = {{'BUY':0, 'SHORT':1, 'HOLD LONG':2, 'HOLD SHORT':3, 'EXIT':4,
+                     'WATCH LONG':5, 'WATCH SHORT':6, 'AVOID':7, 'SELL':7, 'FLAT':8}};
 const _conv = s => (s.conviction ? s.conviction.score_pct : -1);
 function renderCards(view) {{
   _curView = view;
@@ -1284,8 +1309,10 @@ function renderCards(view) {{
       by[sec].forEach(s => grid.appendChild(makeCard(s))); cards.appendChild(grid);
     }});
   }} else {{
-    if (view === 'buys') list = list.filter(s => s.action === 'BUY');
-    else if (view === 'actionable') list = list.filter(s => s.action !== 'FLAT');
+    if (view === 'buys') list = list.filter(s => s.action === 'BUY' || s.action === 'HOLD LONG');
+    else if (view === 'shorts') list = list.filter(s => s.action === 'SHORT' || s.action === 'HOLD SHORT');
+    else if (view === 'watch') list = list.filter(s => s.action === 'WATCH LONG' || s.action === 'WATCH SHORT');
+    else if (view === 'actionable') list = list.filter(s => ['BUY','SHORT','HOLD LONG','HOLD SHORT','EXIT'].includes(s.action));
     else if (view === 'conviction') list.sort((a,b) => _conv(b) - _conv(a));
     else if (view === 'movers') list.sort((a,b) => (b.rel_volume||0) - (a.rel_volume||0));
     else if (view === 'order') list.sort((a,b) =>
@@ -1303,8 +1330,9 @@ function renderCards(view) {{
 }}
 (function setupViews() {{
   const bar = document.getElementById('viewBtns');
-  const views = [['sector','By sector'],['order','Buys first'],['conviction','Highest conviction'],
-                 ['movers','Biggest movers'],['buys','Buys only'],['actionable','Actionable'],['favs','★ Favorites']];
+  const views = [['sector','By sector'],['order','Actionable first'],['conviction','Highest conviction'],
+                 ['buys','Longs'],['shorts','Shorts'],['watch','Watch'],['actionable','Actionable'],
+                 ['movers','Biggest movers'],['favs','★ Favorites']];
   let cur = 'sector';
   try {{ cur = localStorage.getItem('view') || 'sector'; }} catch(e) {{}}
   views.forEach(([v,lab]) => {{
@@ -1446,12 +1474,15 @@ function openModal(s) {{
   const pct = v => (v==null ? '–' : (v>0?'+':'')+v+'%');
   const stat = (label, value, sub, cls) =>
     `<div class="stat"><div class="l">${{label}}</div><div class="v ${{cls||''}}">${{value}}</div>${{sub?`<div class="sub">${{sub}}</div>`:''}}</div>`;
+  const _short = (s.direction === 'SHORT');
+  const _active = (s.action==='BUY'||s.action==='HOLD LONG'||s.action==='SHORT'||s.action==='HOLD SHORT');
+  const _dirWord = _short ? 'short' : 'long';
   document.getElementById('mPlanNote').textContent =
-    (s.action==='BUY'||s.action==='HOLD LONG') ? '(long — active)' : '— levels if you took this long';
+    _active ? `(${{_dirWord}} — active)` : `— levels if you took this ${{_dirWord}}`;
   document.getElementById('mPlan').innerHTML =
-    stat('Entry', money(p.entry), 'current price') +
-    stat('Stop-loss', money(p.stop), `−${{p.stop_pct}}%  ·  ATR-based`, 'sell') +
-    stat('Take-profit', money(p.target), `+${{p.target_pct}}%`, 'buy') +
+    stat('Entry', money(p.entry), _short ? 'short here' : 'current price') +
+    stat('Stop-loss', money(p.stop), `${{_short?'+':'−'}}${{p.stop_pct}}%  ·  ATR-based`, 'sell') +
+    stat(_short ? 'Cover target' : 'Take-profit', money(p.target), `${{_short?'−':'+'}}${{p.target_pct}}%`, 'buy') +
     stat('Risk : Reward', p.rr!=null ? ('1 : '+p.rr) : '–', 'reward per $1 risked') +
     stat('Position size', (p.shares||0)+' sh', money(p.exposure)+' exposure') +
     stat('$ at risk', money(p.dollar_risk), `${{p.shares||0}} sh to stop`, 'sell');

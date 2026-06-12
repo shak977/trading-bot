@@ -177,6 +177,62 @@ def test_momentum_dataquality():
     _ok("dashboard helper agrees (bad)", d._has_bad_bar(bad))
 
 
+def test_short_engine():
+    print("short engine (classifier + plan + conviction):")
+    import numpy as np
+    import pandas as pd
+    import strategies, scanner
+    from data import synthetic_bars
+    # build a clean downtrend
+    df = synthetic_bars("DN", n=320)
+    base = pd.Series(np.linspace(300, 140, 320), index=df.index)
+    for c in ["open", "high", "low", "close"]:
+        df[c] = base * (1 + (df[c] / df["close"] - 1).fillna(0))
+    df["high"] = df[["open", "high", "low", "close"]].max(axis=1)
+    df["low"] = df[["open", "high", "low", "close"]].min(axis=1)
+    sh = strategies.evaluate_short(df, CONFIG)
+    _ok("downtrend fires short strategies", sh["count"] >= 1)
+    _ok("evaluate_short shape", set(sh) >= {"short", "fresh", "count", "total"})
+    # classifier: 3+ bear + downtrend = SHORT/HOLD SHORT; 2 = WATCH SHORT
+    bull0 = {"count": 0, "fresh": [], "long": [], "total": 7}
+    a, d = scanner._classify(bull0, {"count": 3, "fresh": ["x"], "short": [], "total": 7}, False, True, False, CONFIG)
+    _ok("3 bear + downtrend -> SHORT", a == "SHORT" and d == "SHORT")
+    a, d = scanner._classify(bull0, {"count": 2, "fresh": [], "short": [], "total": 7}, False, True, False, CONFIG)
+    _ok("2 bear + downtrend -> WATCH SHORT", a == "WATCH SHORT")
+    a, d = scanner._classify({"count": 3, "fresh": ["x"], "long": [], "total": 7},
+                             {"count": 0, "fresh": [], "short": [], "total": 7}, True, False, False, CONFIG)
+    _ok("3 bull + uptrend -> BUY", a == "BUY" and d == "LONG")
+    a, d = scanner._classify(bull0, {"count": 0, "fresh": [], "short": [], "total": 7}, False, True, True, CONFIG)
+    _ok("recent long exit -> EXIT", a == "EXIT")
+    # SHORT plan geometry: stop above entry, target below
+    from strategy import generate_signals
+    sig = generate_signals(df, CONFIG)
+    plan, _ctx = scanner._trade_plan(df, sig, CONFIG, 100.0, CONFIG.starting_cash, "SHORT")
+    _ok("short stop above entry", plan["stop"] > plan["entry"])
+    _ok("short target below entry", plan["target"] < plan["entry"])
+    _ok("short rr positive", (plan["rr"] or 0) > 0)
+
+
+def test_short_tracker():
+    print("tracker (short grading):")
+    import tempfile, json
+    import pandas as pd
+    import tracker
+    idx = pd.to_datetime(["2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12"])
+    # price falls after advice -> a short should WIN at its (below-entry) target
+    df = pd.DataFrame({"open": [100, 99, 92, 90, 89], "high": [101, 100, 95, 91, 90],
+                       "low": [99, 96, 84, 88, 87], "close": [100, 97, 85, 89, 88]}, index=idx)
+    tracker.synthetic_bars = lambda *a, **k: df
+    tracker.get_bars = lambda *a, **k: df
+    tf = tempfile.mktemp(suffix=".json"); tracker.PATH = tf
+    json.dump([{"id": "S:2026-06-09", "symbol": "S", "name": "S", "direction": "SHORT",
+                "advised_date": "2026-06-09", "entry": 100, "stop": 105, "target": 88, "rr": 2.4,
+                "conviction": "High", "status": "open"}], open(tf, "w"))
+    tracker.run([], CONFIG, live=False, today="2026-06-12")
+    t = json.load(open(tf))[0]
+    _ok("short wins when price falls to target", t["status"] == "win" and t["return_pct"] > 0)
+
+
 def main():
     test_indicators()
     test_strategy_backtest()
@@ -185,6 +241,8 @@ def main():
     test_confluence_in_scan()
     test_tracker_no_lookahead()
     test_momentum_dataquality()
+    test_short_engine()
+    test_short_tracker()
     test_research()
     test_rescore()
     test_llm_prompt()

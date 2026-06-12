@@ -108,6 +108,79 @@ def ema_stack(df: pd.DataFrame, cfg: Config) -> pd.Series:
     return _state(entry, exit_)
 
 
+# ---- short-side mirrors: each returns a 0/1 position Series (1 = short active) ----
+# Same state-machine convention as the long side, but the triggers are the bearish
+# mirror image. "1" means "a short is on" so confluence counting stays uniform.
+
+def trend_cross_down(df: pd.DataFrame, cfg: Config) -> pd.Series:
+    """Mirror of the house strategy: fast crosses BELOW slow, RSI not yet oversold."""
+    c = df["close"]
+    f, s = ind.sma(c, cfg.fast_ma), ind.sma(c, cfg.slow_ma)
+    r = ind.rsi(c, cfg.rsi_period)
+    entry = (f < s) & (f.shift(1) >= s.shift(1)) & (r > cfg.rsi_oversold)
+    exit_ = (f > s) & (f.shift(1) <= s.shift(1)) | (r <= cfg.rsi_oversold)
+    return _state(entry, exit_)
+
+
+def death_cross(df: pd.DataFrame, cfg: Config) -> pd.Series:
+    """Classic 50/200 death cross — slow, positional downtrend regime."""
+    c = df["close"]
+    f, s = ind.sma(c, 50), ind.sma(c, 200)
+    entry = (f < s) & (f.shift(1) >= s.shift(1))
+    exit_ = (f > s) & (f.shift(1) <= s.shift(1))
+    return _state(entry, exit_)
+
+
+def donchian_breakdown(df: pd.DataFrame, cfg: Config) -> pd.Series:
+    """Turtle mirror: short a new 20-day low, cover on a 10-day high."""
+    prior_low = df["low"].shift(1).rolling(20, min_periods=20).min()
+    prior_high = df["high"].shift(1).rolling(10, min_periods=10).max()
+    entry = df["close"] < prior_low
+    exit_ = df["close"] > prior_high
+    return _state(entry, exit_)
+
+
+def macd_trend_down(df: pd.DataFrame, cfg: Config) -> pd.Series:
+    """MACD line crossing DOWN through its signal while below zero (negative momentum)."""
+    line, sigl, _ = ind.macd(df["close"])
+    entry = (line < sigl) & (line.shift(1) >= sigl.shift(1)) & (line < 0)
+    exit_ = line > sigl
+    return _state(entry, exit_)
+
+
+def rsi2_short(df: pd.DataFrame, cfg: Config) -> pd.Series:
+    """Connors RSI(2) mirror: short a sharp overbought RIP inside a downtrend, cover on the drop."""
+    c = df["close"]
+    downtrend = c < ind.sma(c, 200)
+    r2 = ind.rsi(c, 2)
+    entry = downtrend & (r2 > 90)
+    exit_ = c < ind.sma(c, 5)
+    return _state(entry, exit_)
+
+
+def bollinger_breakdown(df: pd.DataFrame, cfg: Config) -> pd.Series:
+    """Volatility breakdown: close drops below the lower band after a squeeze."""
+    c = df["close"]
+    mid, up, lo, _ = ind.bollinger(c, 20, 2.0)
+    bandwidth = (up - lo) / mid.replace(0.0, np.nan)
+    floor = bandwidth.rolling(120, min_periods=30).quantile(0.25)
+    squeezed = (bandwidth <= floor)
+    recent_squeeze = squeezed.rolling(10, min_periods=1).max().astype(bool)
+    entry = (c < lo) & (c.shift(1) >= lo.shift(1)) & recent_squeeze.shift(1, fill_value=False)
+    exit_ = c > mid
+    return _state(entry, exit_)
+
+
+def ema_stack_down(df: pd.DataFrame, cfg: Config) -> pd.Series:
+    """Momentum stack mirror: 8 < 21 < 50 EMAs aligned down; cover when 8 regains 21."""
+    c = df["close"]
+    e8, e21, e50 = ind.ema(c, 8), ind.ema(c, 21), ind.ema(c, 50)
+    stacked = (e8 < e21) & (e21 < e50)
+    entry = stacked & (~stacked.shift(1, fill_value=False))
+    exit_ = e8 > e21
+    return _state(entry, exit_)
+
+
 # registry: key -> (label, fn, kind, blurb)
 STRATEGIES: dict[str, tuple] = {
     "trend_cross": ("Trend crossover", trend_cross, "trend",
@@ -124,6 +197,24 @@ STRATEGIES: dict[str, tuple] = {
                   "Breaks above the Bollinger band after a low-volatility squeeze."),
     "ema_stack": ("EMA momentum stack", ema_stack, "momentum",
                   "Fast EMAs stacked above slow ones (8 > 21 > 50)."),
+}
+
+
+SHORT_STRATEGIES: dict[str, tuple] = {
+    "trend_cross_dn": ("Trend cross-down", trend_cross_down, "trend",
+                       "20/50-day moving-average cross to the downside with an RSI filter."),
+    "death_cross": ("Death cross", death_cross, "trend",
+                    "50-day average below the 200-day — a long, positional downtrend."),
+    "donchian_dn": ("Donchian breakdown", donchian_breakdown, "breakdown",
+                    "Shorts a fresh 20-day low; covers on a 10-day high (turtle mirror)."),
+    "macd_trend_dn": ("MACD momentum (down)", macd_trend_down, "momentum",
+                      "MACD crossing down through its signal line while below zero."),
+    "rsi2_short": ("Rip-sell (RSI-2)", rsi2_short, "mean-reversion",
+                   "Shorts a sharp overbought rip inside a downtrend (Connors RSI-2 mirror)."),
+    "bollinger_dn": ("Squeeze breakdown", bollinger_breakdown, "breakdown",
+                     "Breaks below the Bollinger band after a low-volatility squeeze."),
+    "ema_stack_dn": ("EMA momentum stack (down)", ema_stack_down, "momentum",
+                     "Fast EMAs stacked below slow ones (8 < 21 < 50)."),
 }
 
 
@@ -170,3 +261,30 @@ def evaluate(df: pd.DataFrame, cfg: Config) -> dict:
             fresh_labels.append(label)
     return {"results": results, "long": long_labels, "fresh": fresh_labels,
             "count": len(long_labels), "total": len(STRATEGIES)}
+
+
+def evaluate_short(df: pd.DataFrame, cfg: Config) -> dict:
+    """Bearish mirror of ``evaluate``: which short strategies are active right now.
+
+    Returns {results, short, fresh, count, total} where ``short`` are strategies
+    currently positioned short and ``fresh`` turned short within the last
+    ``buy_window`` bars (a new bearish setup)."""
+    results: dict[str, dict] = {}
+    short_labels, fresh_labels = [], []
+    for key, (label, fn, kind, _blurb) in SHORT_STRATEGIES.items():
+        try:
+            pos = fn(df, cfg)
+            is_short = bool(len(pos)) and bool(pos.iloc[-1] == 1.0)
+            since = _bars_since_entry(pos)
+            is_fresh = bool(is_short and since is not None and since <= cfg.buy_window)
+        except Exception:  # noqa: BLE001
+            is_short = is_fresh = False
+            since = None
+        results[key] = {"label": label, "kind": kind, "short": is_short,
+                        "fresh": is_fresh, "bars_held": since}
+        if is_short:
+            short_labels.append(label)
+        if is_fresh:
+            fresh_labels.append(label)
+    return {"results": results, "short": short_labels, "fresh": fresh_labels,
+            "count": len(short_labels), "total": len(SHORT_STRATEGIES)}

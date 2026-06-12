@@ -46,9 +46,9 @@ def run(signals: list[dict], cfg: Config, live: bool, today: str) -> dict:
     log = _load()
     by_id = {t["id"]: t for t in log}
 
-    # 1) Log new BUY calls.
+    # 1) Log new actionable entries — fresh BUYs (long) and fresh SHORTs (short).
     for s in signals:
-        if s.get("action") != "BUY":
+        if s.get("action") not in ("BUY", "SHORT"):
             continue
         p = s.get("plan", {})
         if p.get("stop") is None or p.get("target") is None:
@@ -57,6 +57,7 @@ def run(signals: list[dict], cfg: Config, live: bool, today: str) -> dict:
         if tid not in by_id:
             t = {
                 "id": tid, "symbol": s["symbol"], "name": s.get("name", ""),
+                "direction": s.get("direction", "LONG"),
                 "advised_date": today, "entry": p["entry"], "stop": p["stop"],
                 "target": p["target"], "rr": p.get("rr"),
                 "conviction": (s.get("conviction") or {}).get("label"),
@@ -85,25 +86,38 @@ def run(signals: list[dict], cfg: Config, live: bool, today: str) -> dict:
             #    intraday high/low already happened — counting them is look-ahead bias)
             #  - exclude today's bar, which may still be forming during an intraday run
             after = df[(df.index.normalize() > cutoff) & (df.index.normalize() < run_day)]
+            is_short = t.get("direction") == "SHORT"
             for ts, row in after.iterrows():
                 hi, lo = float(row["high"]), float(row["low"])
                 # skip implausible single-bar prints (e.g. >35% intraday range) so a bad
                 # data tick can't fake a stop/target hit
                 if lo > 0 and (hi - lo) / lo > 0.35:
                     continue
-                if lo <= t["stop"]:
-                    t.update(status="loss", exit=t["stop"], exit_date=str(ts.date()))
-                    break
-                if hi >= t["target"]:
-                    t.update(status="win", exit=t["target"], exit_date=str(ts.date()))
-                    break
+                # Stop is checked first on an ambiguous day (conservative). For a SHORT the
+                # geometry inverts: stop is ABOVE entry (hi hits it), target is BELOW (lo hits it).
+                if is_short:
+                    if hi >= t["stop"]:
+                        t.update(status="loss", exit=t["stop"], exit_date=str(ts.date()))
+                        break
+                    if lo <= t["target"]:
+                        t.update(status="win", exit=t["target"], exit_date=str(ts.date()))
+                        break
+                else:
+                    if lo <= t["stop"]:
+                        t.update(status="loss", exit=t["stop"], exit_date=str(ts.date()))
+                        break
+                    if hi >= t["target"]:
+                        t.update(status="win", exit=t["target"], exit_date=str(ts.date()))
+                        break
             if t["status"] == "open" and len(after):
                 held = (after.index[-1] - cutoff).days
                 if held >= HOLD_LIMIT_DAYS:
                     t.update(status="expired", exit=round(float(after["close"].iloc[-1]), 2),
                              exit_date=str(after.index[-1].date()))
             if t["status"] != "open" and "exit" in t:
-                t["return_pct"] = round((t["exit"] - t["entry"]) / t["entry"] * 100, 2)
+                # Long profits when price rises; short profits when it falls.
+                gain = (t["entry"] - t["exit"]) if is_short else (t["exit"] - t["entry"])
+                t["return_pct"] = round(gain / t["entry"] * 100, 2)
                 t["days_held"] = (pd.Timestamp(t["exit_date"]) - cutoff).days
         except Exception:  # noqa: BLE001 - never let one symbol break the whole tracker
             continue
