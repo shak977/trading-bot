@@ -89,6 +89,17 @@ def build_snapshot() -> dict:
 
     # Dual-momentum leaderboard over the whole scanned universe (best-validated strategy).
     momentum_rows = _momentum_rank(charts)
+    # Drop leaders whose scan price disagrees >15% with the consolidated Yahoo quote —
+    # the same bad-feed-price guard we apply to signals (keeps MU-at-$981 junk off the list).
+    if live and momentum_rows:
+        try:
+            import research as _r
+            mq = _r.yahoo_quotes([m["symbol"] for m in momentum_rows])
+            momentum_rows = [m for m in momentum_rows
+                             if not (mq.get(m["symbol"]) and m.get("price")
+                                     and abs(m["price"] / mq[m["symbol"]]["price"] - 1) > 0.15)]
+        except Exception:  # noqa: BLE001
+            pass
     # New-vs-holdover: mark which leaders just entered the list vs the previous run.
     try:
         import json as _json
