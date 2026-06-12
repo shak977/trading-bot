@@ -365,8 +365,6 @@ def render_html(snap: dict) -> str:
 <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.1/dist/chartjs-chart-financial.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack.min.css">
-<script src="https://cdn.jsdelivr.net/npm/gridstack@10.3.1/dist/gridstack-all.js"></script>
 <script src="chart_engine.js"></script>
 <style>
   /* Light "Capital IQ Pro" palette is the default; dark is a toggle. */
@@ -613,24 +611,6 @@ def render_html(snap: dict) -> str:
   .tc-key {{ color:var(--muted); font-size:12px; margin-top:8px; line-height:1.6; }}
   .tc-chip {{ display:inline-block; background:var(--line); border-radius:10px; padding:1px 8px; cursor:pointer;
     font-size:11px; color:var(--txt); }}
-  /* ---- widget dashboard (Gridstack) ---- */
-  .dash-tools {{ display:flex; align-items:center; gap:10px; margin:4px 0 8px; }}
-  .grid-stack {{ background:transparent; }}
-  .grid-stack-item-content.wgt {{ background:var(--card); border:1px solid var(--line); border-radius:12px;
-    box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden; inset:0; }}
-  .wgt-head {{ display:flex; align-items:center; gap:8px; cursor:move; padding:8px 12px; font-size:12px;
-    font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em;
-    border-bottom:1px solid var(--line); background:var(--bg); user-select:none; }}
-  .wgt-head .grip {{ color:var(--flat); cursor:grab; font-size:14px; }}
-  .wgt-body {{ flex:1 1 auto; overflow:auto; padding:12px 14px; }}
-  /* neutralise inner card chrome so we don't double-frame inside a widget */
-  .wgt .ovbox, .wgt .featured {{ background:none; border:none; box-shadow:none; padding:0; margin:0; }}
-  .grid-stack-item-content {{ overflow:visible; }}
-  /* fallback if the Gridstack library can't load: plain stacked panels */
-  .grid-stack.no-grid > .grid-stack-item {{ position:static !important; transform:none !important;
-    width:100% !important; height:auto !important; inset:auto; margin-bottom:14px; }}
-  .grid-stack.no-grid > .grid-stack-item > .grid-stack-item-content {{ position:static !important; inset:auto; }}
-  .grid-stack.no-grid .wgt-head {{ cursor:default; }}
   /* ---- app shell ---- */
   .appbar {{ display:flex; align-items:center; justify-content:space-between; gap:12px;
     padding:14px 0; border-bottom:1px solid var(--line); margin-bottom:16px;
@@ -667,6 +647,16 @@ def render_html(snap: dict) -> str:
   .card-stats {{ display:grid; grid-template-columns:1fr 1fr; gap:5px 16px; font-size:12.5px; margin-top:6px; }}
   .card-stat {{ display:flex; justify-content:space-between; color:var(--muted); }}
   .card-stat b {{ color:var(--txt); font-weight:600; font-variant-numeric:tabular-nums; }}
+  /* ---- Markets sub-tab layout ---- */
+  .mkt {{ display:grid; grid-template-columns:190px minmax(0,1fr); gap:18px; align-items:start; }}
+  .mkt-side {{ display:flex; flex-direction:column; gap:4px; position:sticky; top:66px; }}
+  .mkt-side button {{ text-align:left; background:none; border:none; color:var(--muted); font-size:14px;
+    font-weight:600; padding:10px 13px; border-radius:9px; cursor:pointer; }}
+  .mkt-side button:hover {{ background:var(--hover); color:var(--txt); }}
+  .mkt-side button.on {{ background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); }}
+  .mkt-view {{ display:none; }} .mkt-view.on {{ display:block; }}
+  @media (max-width:760px) {{ .mkt {{ grid-template-columns:1fr; }}
+    .mkt-side {{ flex-direction:row; flex-wrap:wrap; position:static; }} }}
 </style></head>
 <body><div class="wrap">
   <header class="appbar">
@@ -691,52 +681,36 @@ def render_html(snap: dict) -> str:
   </nav>
 
   <section class="page" id="page-markets">
-    <div class="dash-tools">
-      <button class="ctlbtn" id="layoutReset" title="Reset widget layout">⟲ Reset layout</button>
-      <span style="color:var(--muted);font-size:12px;">Drag a ⠿ header to move · drag a panel edge to resize · layout is saved</span>
-    </div>
-    <div class="grid-stack" id="dashGrid">
-      <div class="grid-stack-item" gs-x="0" gs-y="0" gs-w="12" gs-h="11" gs-min-w="5" gs-min-h="8" gs-id="featured">
-        <div class="grid-stack-item-content wgt">
-          <div class="wgt-head"><span class="grip">⠿</span> Featured chart</div>
-          <div class="wgt-body">
-            <div class="featured">
-              <div class="feat-grid">
-                <div class="feat-main"><div id="featuredChart"></div></div>
-                <aside class="feat-watch"><div class="feat-wtitle">Watchlist · click to load</div><div id="featWatch"></div></aside>
-              </div>
+    <div class="mkt">
+      <nav class="mkt-side" id="mktNav">
+        <button data-mview="chart" class="on">Featured chart</button>
+        <button data-mview="overview">Overview vs S&amp;P</button>
+        <button data-mview="sectors">Sector strength</button>
+        <button data-mview="macro">Macro backdrop</button>
+      </nav>
+      <div class="mkt-main">
+        <div class="mkt-view on" id="mview-chart">
+          <div class="featured">
+            <div class="feat-grid">
+              <div class="feat-main"><div id="featuredChart"></div></div>
+              <aside class="feat-watch"><div class="feat-wtitle">Watchlist · click to load</div><div id="featWatch"></div></aside>
             </div>
           </div>
         </div>
-      </div>
-      <div class="grid-stack-item" gs-x="0" gs-y="11" gs-w="12" gs-h="9" gs-min-w="4" gs-min-h="6" gs-id="overview">
-        <div class="grid-stack-item-content wgt">
-          <div class="wgt-head"><span class="grip">⠿</span> Live overview — % vs S&amp;P 500</div>
-          <div class="wgt-body">
-            <div class="ovbox">
-              <div class="ovhead">📈 Live overview — % change vs S&amp;P 500 <span id="ovStatus"></span>
-                <span class="ctlgrp" id="ovRangeBtns" style="margin-left:8px;"></span>
-                <button class="ctlbtn" id="ovColorBtn" style="margin-left:6px;">Colour all</button>
-                <span style="font-weight:400;color:var(--muted);font-size:12px;"> · click a name to highlight</span></div>
-              <div class="ovwrap">
-                <div class="ovchart"><canvas id="overviewChart" height="150"></canvas></div>
-                <div class="ovboard" id="ovBoard"></div>
-              </div>
+        <div class="mkt-view" id="mview-overview">
+          <div class="ovbox">
+            <div class="ovhead">Live overview — % change vs S&amp;P 500 <span id="ovStatus"></span>
+              <span class="ctlgrp" id="ovRangeBtns" style="margin-left:8px;"></span>
+              <button class="ctlbtn" id="ovColorBtn" style="margin-left:6px;">Colour all</button>
+              <span style="font-weight:400;color:var(--muted);font-size:12px;"> · click a name to highlight</span></div>
+            <div class="ovwrap">
+              <div class="ovchart"><canvas id="overviewChart" height="150"></canvas></div>
+              <div class="ovboard" id="ovBoard"></div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="grid-stack-item" gs-x="0" gs-y="20" gs-w="6" gs-h="8" gs-min-w="3" gs-min-h="4" gs-id="sectors">
-        <div class="grid-stack-item-content wgt">
-          <div class="wgt-head"><span class="grip">⠿</span> Sector strength</div>
-          <div class="wgt-body">{sectors_html}</div>
-        </div>
-      </div>
-      <div class="grid-stack-item" gs-x="6" gs-y="20" gs-w="6" gs-h="8" gs-min-w="3" gs-min-h="4" gs-id="macro">
-        <div class="grid-stack-item-content wgt">
-          <div class="wgt-head"><span class="grip">⠿</span> Macro backdrop</div>
-          <div class="wgt-body">{macro_html}</div>
-        </div>
+        <div class="mkt-view" id="mview-sectors">{sectors_html}</div>
+        <div class="mkt-view" id="mview-macro">{macro_html}</div>
       </div>
     </div>
   </section>
@@ -1350,30 +1324,11 @@ function _initCharts() {{
     }};
   }}
 }})();
-// ---- widget dashboard (Gridstack): drag/resize + saved layout ----
-let _grid = null;
+// resize the featured + overview charts when their panel becomes visible
 function _refitCharts() {{
   try {{ if (featTC) featTC.resize(); }} catch (e) {{}}
   try {{ if (typeof ovChart !== 'undefined' && ovChart) ovChart.resize(); }} catch (e) {{}}
 }}
-function initGrid() {{
-  const elGrid = document.getElementById('dashGrid');
-  if (!elGrid) return;
-  if (!window.GridStack) {{ elGrid.classList.add('no-grid'); return; }}  // CDN failed → plain stacked layout
-  _grid = GridStack.init({{
-    column: 12, cellHeight: 46, margin: 8, float: false,
-    handle: '.wgt-head', resizable: {{ handles: 'e, se, s, sw, w' }},
-    draggable: {{ cancel: 'button, input, canvas, a, .tc-seg, .ovboard, select' }},
-  }}, elGrid);
-  try {{ const saved = JSON.parse(localStorage.getItem('tb-layout') || 'null'); if (saved && saved.length) _grid.load(saved); }} catch (e) {{}}
-  try {{ _grid.compact(); }} catch (e) {{}}   // pack widgets together (no gaps)
-  const save = () => {{ try {{ localStorage.setItem('tb-layout', JSON.stringify(_grid.save(false))); }} catch (e) {{}} }};
-  _grid.on('change', () => {{ save(); _refitCharts(); }});
-  _grid.on('resizestop dragstop', () => _refitCharts());
-  const rb = document.getElementById('layoutReset');
-  if (rb) rb.onclick = () => {{ try {{ localStorage.removeItem('tb-layout'); }} catch (e) {{}} location.reload(); }};
-}}
-initGrid();
 _initCharts();
 
 function closeModal() {{ overlay.classList.remove('open'); }}
@@ -1392,7 +1347,6 @@ document.addEventListener('keydown', e => {{ if (e.key === 'Escape') closeModal(
     // the Markets grid + charts are laid out while hidden; size them on first reveal
     if (page === 'markets') setTimeout(() => {{
       try {{ window.dispatchEvent(new Event('resize')); }} catch (e) {{}}
-      try {{ if (_grid) _grid.compact(); }} catch (e) {{}}
       _refitCharts();
     }}, 60);
   }}
@@ -1400,6 +1354,18 @@ document.addEventListener('keydown', e => {{ if (e.key === 'Escape') closeModal(
   let saved = 'signals';
   try {{ saved = localStorage.getItem('tab') || 'signals'; }} catch (e) {{}}
   show(saved);
+}})();
+
+// ---- Markets sub-views (left rail) ----
+(function setupMarketViews() {{
+  const nav = document.getElementById('mktNav'); if (!nav) return;
+  const btns = nav.querySelectorAll('button');
+  function show(v) {{
+    btns.forEach(b => b.classList.toggle('on', b.dataset.mview === v));
+    document.querySelectorAll('.mkt-view').forEach(p => p.classList.toggle('on', p.id === 'mview-' + v));
+    setTimeout(() => {{ try {{ window.dispatchEvent(new Event('resize')); }} catch (e) {{}} _refitCharts(); }}, 50);
+  }}
+  btns.forEach(b => b.addEventListener('click', () => show(b.dataset.mview)));
 }})();
 
 const news = document.getElementById('news');
