@@ -137,21 +137,25 @@ def audit_data(d):
                 viol = sum(1 for i in range(len(bu)) if bu[i] is not None and bl[i] is not None and bu[i] < bl[i])
                 if viol:
                     F(f"{viol} Bollinger bars upper<lower")
-            # window return (overview-style), flag split-scale artifacts.
-            # Pair closes with timestamps so a flag prints the actual base->last prices.
+            # window return (overview-style). A *smooth* big move is a real rally,
+            # not an error — so only flag a large 3mo move when it's driven by a
+            # single-day discontinuity (the true split/bad-print signature), or when
+            # it's absurd in absolute terms. Pair closes w/ timestamps to print prices.
             pairs = [(t[i] if t else None, cl[i]) for i in range(n) if cl[i] is not None]
             win = pairs[-60:]
             if len(win) > 2 and win[0][1]:
                 base, last = win[0][1], win[-1][1]
                 ret = (last / base - 1) * 100
-                if abs(ret) > 100:   # a single name >100% in ~3mo is almost always a data artifact
+                wv = [v for _, v in win]
+                max_day = max((abs(wv[i] / wv[i - 1] - 1) for i in range(1, len(wv)) if wv[i - 1]), default=0)
+                if abs(ret) > 250 or (abs(ret) > 80 and max_day > 0.45):
                     def _dt(ms):
                         if not ms:
                             return "?"
                         import datetime as _d
                         return _d.datetime.utcfromtimestamp(ms / 1000).strftime("%Y-%m-%d")
                     F(f"~3mo return {ret:+.0f}% (${base:.2f} {_dt(win[0][0])} -> "
-                      f"${last:.2f} {_dt(win[-1][0])}) — verify split/data")
+                      f"${last:.2f} {_dt(win[-1][0])}, max 1-day {max_day*100:.0f}%) — verify split/data")
 
     return state["checks"], flags
 
