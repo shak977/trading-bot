@@ -657,6 +657,17 @@ def render_html(snap: dict) -> str:
   .mkt-view {{ display:none; }} .mkt-view.on {{ display:block; }}
   @media (max-width:760px) {{ .mkt {{ grid-template-columns:1fr; }}
     .mkt-side {{ flex-direction:row; flex-wrap:wrap; position:static; }} }}
+  /* ---- modal sub-tab layout ---- */
+  .modal-wide {{ max-width:880px; }}
+  .mk {{ display:grid; grid-template-columns:158px minmax(0,1fr); gap:18px; margin-top:14px; align-items:start; }}
+  .mk-side {{ display:flex; flex-direction:column; gap:4px; position:sticky; top:0; }}
+  .mk-side button {{ text-align:left; background:none; border:none; color:var(--muted); font-size:13.5px;
+    font-weight:600; padding:9px 11px; border-radius:8px; cursor:pointer; }}
+  .mk-side button:hover {{ background:var(--hover); color:var(--txt); }}
+  .mk-side button.on {{ background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); }}
+  .mk-view {{ display:none; }} .mk-view.on {{ display:block; }}
+  @media (max-width:680px) {{ .mk {{ grid-template-columns:1fr; }}
+    .mk-side {{ flex-direction:row; flex-wrap:wrap; position:static; }} }}
 </style></head>
 <body><div class="wrap">
   <header class="appbar">
@@ -806,34 +817,54 @@ def render_html(snap: dict) -> str:
 </div>
 
 <div class="overlay" id="overlay">
-  <div class="modal">
+  <div class="modal modal-wide">
     <button class="close" id="modalClose">&times;</button>
     <h3 id="mTitle"></h3>
     <div class="summary" id="mSummary"></div>
-    <div class="sech" id="mAIHead" style="display:none;">In plain English (AI) 🤖</div>
-    <div class="deskread" id="mAI" style="display:none;border-left-color:#9b59b6;"></div>
-    <div class="sech">The bottom line</div>
-    <div class="deskread" id="mDesk"></div>
-    <div class="sech">Patterns spotted</div>
-    <div class="chips" id="mPatterns"></div>
-    <div class="sech">Should you take it? <span id="mConvScore"></span></div>
-    <ul class="checks" id="mChecks"></ul>
-    <div class="sech">Analysts, fundamentals &amp; news tone</div>
-    <div class="plangrid" id="mResearch"></div>
-    <div class="sech">How this strategy has done on this stock <span style="text-transform:none;color:var(--muted);">(backtest)</span></div>
-    <div class="plangrid" id="mEdge"></div>
-    <div class="sech">Strategies in play <span style="text-transform:none;color:var(--muted);">— independent methods + their track record here</span></div>
-    <div id="mStrategies"></div>
-    <div class="sech">The trade plan <span id="mPlanNote" style="text-transform:none;color:var(--muted);"></span></div>
-    <div class="plangrid" id="mPlan"></div>
-    <div class="sech">Price chart</div>
-    <div id="modalChart"></div>
-    <div class="sech">The details, explained</div>
-    <ul class="reasons" id="mReasons"></ul>
-    <div class="sech">Latest news on this stock</div>
-    <ul class="news" id="mNews"></ul>
-    <div class="sech">Market context</div>
-    <div class="plangrid" id="mContext"></div>
+    <div class="mk">
+      <nav class="mk-side" id="mkNav">
+        <button data-mkview="overview" class="on">Overview</button>
+        <button data-mkview="chart">Chart</button>
+        <button data-mkview="plan">Trade plan</button>
+        <button data-mkview="strategies">Strategies</button>
+        <button data-mkview="research">Research &amp; news</button>
+      </nav>
+      <div class="mk-main">
+        <div class="mk-view on" id="mkview-overview">
+          <div class="sech" id="mAIHead" style="display:none;">In plain English (AI) 🤖</div>
+          <div class="deskread" id="mAI" style="display:none;border-left-color:#9b59b6;"></div>
+          <div class="sech">The bottom line</div>
+          <div class="deskread" id="mDesk"></div>
+          <div class="sech">Should you take it? <span id="mConvScore"></span></div>
+          <ul class="checks" id="mChecks"></ul>
+          <div class="sech">Patterns spotted</div>
+          <div class="chips" id="mPatterns"></div>
+        </div>
+        <div class="mk-view" id="mkview-chart">
+          <div id="modalChart"></div>
+        </div>
+        <div class="mk-view" id="mkview-plan">
+          <div class="sech" style="margin-top:0;">The trade plan <span id="mPlanNote" style="text-transform:none;color:var(--muted);"></span></div>
+          <div class="plangrid" id="mPlan"></div>
+          <div class="sech">How this strategy has done on this stock <span style="text-transform:none;color:var(--muted);">(backtest)</span></div>
+          <div class="plangrid" id="mEdge"></div>
+          <div class="sech">Market context</div>
+          <div class="plangrid" id="mContext"></div>
+        </div>
+        <div class="mk-view" id="mkview-strategies">
+          <div class="sech" style="margin-top:0;">Strategies in play <span style="text-transform:none;color:var(--muted);">— independent methods + their track record here</span></div>
+          <div id="mStrategies"></div>
+        </div>
+        <div class="mk-view" id="mkview-research">
+          <div class="sech" style="margin-top:0;">Analysts, fundamentals &amp; news tone</div>
+          <div class="plangrid" id="mResearch"></div>
+          <div class="sech">Latest news on this stock</div>
+          <ul class="news" id="mNews"></ul>
+          <div class="sech">The details, explained</div>
+          <ul class="reasons" id="mReasons"></ul>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 <script>
@@ -844,6 +875,7 @@ let featTC = null, modalTC = null;   // Capital IQ-style chart engine instances
 window.__APP = {{ DATA: DATA, LIVE_URL: LIVE_URL }};
 // read a CSS theme variable (so the overview chart flips with light/dark)
 function _cv(n, f) {{ try {{ const v = getComputedStyle(document.documentElement).getPropertyValue(n).trim(); return v || f; }} catch (e) {{ return f; }} }}
+function _shortDate(s) {{ try {{ return new Date(s + 'T00:00:00').toLocaleDateString([], {{month:'short', day:'numeric'}}); }} catch (e) {{ return s; }} }}
 const diag = document.getElementById('diag');
 if ((DATA.diagnostics||[]).length) {{
   diag.innerHTML = '<div style="background:#3a1e1e;border:1px solid #5a1e1e;color:#ff9b9b;'
@@ -859,7 +891,11 @@ function makeCard(s) {{
   const cpct = conv.score_pct || 0;
   const ccol = conv.label==='High' ? 'var(--buy)' : (conv.label==='Low' ? 'var(--sell)' : '#c08a1e');
   const dc = s.context && s.context.day_change_pct;
-  const dchg = (dc!=null) ? `<span class="card-day" style="color:${{dc>=0?'var(--buy)':'var(--sell)'}};">${{dc>=0?'+':''}}${{dc.toFixed(2)}}% today</span>` : '';
+  // The static % is the move on the as-of bar (last close). Once live quotes flow,
+  // refreshLive() recomputes it as the real intraday change vs that close and relabels it "today".
+  const dchg = (dc!=null)
+    ? `<span class="card-day" data-chg="${{s.symbol}}" data-base="${{s.price}}" style="color:${{dc>=0?'var(--buy)':'var(--sell)'}};">${{dc>=0?'+':''}}${{dc.toFixed(2)}}% on ${{_shortDate(s.as_of)}}</span>`
+    : '';
   const initials = (s.symbol.replace(/[^A-Za-z]/g,'').slice(0,2) || s.symbol.slice(0,2)).toUpperCase();
   const logo = `<span class="card-mono" style="background:hsl(${{_symHue(s.symbol)}},42%,42%);">${{initials}}`
     + `<img src="https://financialmodelingprep.com/image-stock/${{s.symbol}}.png" alt="" loading="lazy" onerror="this.remove()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;">`
@@ -957,6 +993,15 @@ async function refreshLive() {{
     document.querySelectorAll('[data-px]').forEach(el => {{
       const p = LIVE[el.dataset.px];
       if (p != null) el.textContent = _fmtPx(p);
+    }});
+    // live, correctly-labelled "today" change: live quote vs the last daily close
+    document.querySelectorAll('[data-chg]').forEach(el => {{
+      const p = LIVE[el.dataset.chg], base = parseFloat(el.dataset.base);
+      if (p != null && base) {{
+        const pct = (p / base - 1) * 100;
+        el.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '% today';
+        el.style.color = pct >= 0 ? 'var(--buy)' : 'var(--sell)';
+      }}
     }});
     if (featTC) featTC.onLive(LIVE);
     if (modalTC) modalTC.onLive(LIVE);
@@ -1258,6 +1303,7 @@ function openModal(s) {{
     : '<li class="src">No recent news tagged for this symbol.</li>';
   // load this symbol into the modal's Capital IQ-style chart engine
   if (modalTC) modalTC.setSymbol(s.symbol, s.plan || {{}});
+  if (window._mkShow) window._mkShow('overview');   // every open starts on Overview
   overlay.classList.add('open');
 }}
 
@@ -1354,6 +1400,18 @@ document.addEventListener('keydown', e => {{ if (e.key === 'Escape') closeModal(
   let saved = 'signals';
   try {{ saved = localStorage.getItem('tab') || 'signals'; }} catch (e) {{}}
   show(saved);
+}})();
+
+// ---- modal sub-views (left rail) ----
+(function setupModalViews() {{
+  const nav = document.getElementById('mkNav'); if (!nav) return;
+  const btns = nav.querySelectorAll('button');
+  window._mkShow = function(v) {{
+    btns.forEach(b => b.classList.toggle('on', b.dataset.mkview === v));
+    document.querySelectorAll('.mk-view').forEach(p => p.classList.toggle('on', p.id === 'mkview-' + v));
+    if (v === 'chart') setTimeout(() => {{ try {{ if (modalTC) modalTC.resize(); }} catch (e) {{}} }}, 50);
+  }};
+  btns.forEach(b => b.addEventListener('click', () => window._mkShow(b.dataset.mkview)));
 }})();
 
 // ---- Markets sub-views (left rail) ----
