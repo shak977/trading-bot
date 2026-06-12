@@ -64,13 +64,20 @@ def audit_data(d):
             if rv > 25:
                 F(f"rel_volume suspiciously high: {rv}x")
 
-        # ---- trade plan ----
+        # ---- trade plan (direction-aware: shorts invert stop/target geometry) ----
         p = s.get("plan") or {}
         e, st, tg, rr = p.get("entry"), p.get("stop"), p.get("target"), p.get("rr")
-        if e and st:
-            chk(st < e and st > 0, f"[{sym}] stop {st} should be 0<stop<entry {e}")
-        if e and tg:
-            chk(tg > e, f"[{sym}] target {tg} should be > entry {e}")
+        is_short = (p.get("direction") or s.get("direction") or "LONG") == "SHORT"
+        if is_short:
+            if e and st:
+                chk(st > e, f"[{sym}] short stop {st} should be > entry {e}")
+            if e and tg:
+                chk(0 < tg < e, f"[{sym}] short target {tg} should be 0<target<entry {e}")
+        else:
+            if e and st:
+                chk(st < e and st > 0, f"[{sym}] stop {st} should be 0<stop<entry {e}")
+            if e and tg:
+                chk(tg > e, f"[{sym}] target {tg} should be > entry {e}")
         if rr is not None:
             chk(0 < rr < 50, f"[{sym}] risk:reward implausible: {rr}")
 

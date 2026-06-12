@@ -270,7 +270,27 @@ def test_sanitize_bars():
              and (clean["low"] <= clean[["open","high","close"]].min(axis=1) + 1e-6).all()))
 
 
+def test_audit_direction_aware():
+    print("audit (direction-aware plans):")
+    import audit
+    short_sig = {"symbol": "X", "price": 100, "direction": "SHORT",
+                 "plan": {"direction": "SHORT", "entry": 100, "stop": 105, "target": 88, "rr": 2.4}}
+    long_sig = {"symbol": "Y", "price": 100, "direction": "LONG",
+                "plan": {"direction": "LONG", "entry": 100, "stop": 95, "target": 115, "rr": 3.0}}
+    _, flags = audit.audit_data({"signals": [short_sig, long_sig], "charts": {}})
+    errs = [f["msg"] for f in flags if f["level"] == "error"]
+    _ok("valid short plan not flagged", not any("X" in m for m in errs))
+    _ok("valid long plan not flagged", not any("Y" in m for m in errs))
+    # a long with short-style inverted levels SHOULD still be caught
+    bad = {"symbol": "Z", "price": 100, "direction": "LONG",
+           "plan": {"direction": "LONG", "entry": 100, "stop": 105, "target": 88}}
+    _, flags2 = audit.audit_data({"signals": [bad], "charts": {}})
+    _ok("genuinely inverted long plan still flagged",
+        any("Z" in f["msg"] for f in flags2 if f["level"] == "error"))
+
+
 def main():
+    test_audit_direction_aware()
     test_sanitize_bars()
     test_indicators()
     test_strategy_backtest()
