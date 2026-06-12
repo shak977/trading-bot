@@ -137,12 +137,21 @@ def audit_data(d):
                 viol = sum(1 for i in range(len(bu)) if bu[i] is not None and bl[i] is not None and bu[i] < bl[i])
                 if viol:
                     F(f"{viol} Bollinger bars upper<lower")
-            # window return (overview-style), flag split-scale artifacts
-            win = [v for v in cl[-60:] if v is not None]
-            if len(win) > 2 and win[0]:
-                ret = (win[-1] / win[0] - 1) * 100
-                if abs(ret) > 200:
-                    F(f"~3mo return {ret:.0f}% — extreme, check for split/data error")
+            # window return (overview-style), flag split-scale artifacts.
+            # Pair closes with timestamps so a flag prints the actual base->last prices.
+            pairs = [(t[i] if t else None, cl[i]) for i in range(n) if cl[i] is not None]
+            win = pairs[-60:]
+            if len(win) > 2 and win[0][1]:
+                base, last = win[0][1], win[-1][1]
+                ret = (last / base - 1) * 100
+                if abs(ret) > 100:   # a single name >100% in ~3mo is almost always a data artifact
+                    def _dt(ms):
+                        if not ms:
+                            return "?"
+                        import datetime as _d
+                        return _d.datetime.utcfromtimestamp(ms / 1000).strftime("%Y-%m-%d")
+                    F(f"~3mo return {ret:+.0f}% (${base:.2f} {_dt(win[0][0])} -> "
+                      f"${last:.2f} {_dt(win[-1][0])}) — verify split/data")
 
     return state["checks"], flags
 

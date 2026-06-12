@@ -832,7 +832,7 @@ function _ovChart(plot, unit, intraday) {{
   const allY = []; plot.forEach(it => it.pts.forEach(p => allY.push(p.y)));
   allY.sort((a, b) => a - b);
   const q = p => allY.length ? allY[Math.min(allY.length-1, Math.max(0, Math.round(p*(allY.length-1))))] : 0;
-  const ymin = Math.min(q(0.04), 0) - 2, ymax = Math.max(q(0.96), 0) + 3;
+  const ymin = Math.floor(Math.min(q(0.04), 0) - 2), ymax = Math.ceil(Math.max(q(0.96), 0) + 3);
   if (ovChart) ovChart.destroy();
   ovChart = new Chart(cv, {{
     type:'line', data:{{datasets}},
@@ -850,7 +850,7 @@ function _ovChart(plot, unit, intraday) {{
       }},
       scales:{{
         x:{{type:'time', time:{{unit}}, ticks:{{color:'#8b97a6',maxTicksLimit:7}}, grid:{{display:false}}}},
-        y:{{position:'right', min:ymin, max:ymax, ticks:{{color:'#8b97a6', callback:v=>(v>0?'+':'')+v+'%'}},
+        y:{{position:'right', min:ymin, max:ymax, ticks:{{color:'#8b97a6', maxTicksLimit:8, callback:v=>(v>0?'+':'')+Math.round(v)+'%'}},
            grid:{{ color:(c)=> c.tick.value===0 ? 'rgba(139,151,166,0.6)' : 'rgba(42,52,65,0.5)',
                    lineWidth:(c)=> c.tick.value===0 ? 1.5 : 1 }}}}
       }}
