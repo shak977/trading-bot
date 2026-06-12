@@ -57,6 +57,8 @@ def backtest_positions(df: pd.DataFrame, positions: pd.Series, cfg: Config) -> B
     from indicators import atr as _atr
     trail = cfg.trail_atr_mult > 0
     atr_s = _atr(df, cfg.atr_period) if trail else None
+    slip = getattr(cfg, "slippage_bps", 0.0) / 1e4     # cost per fill (each side)
+    comm = getattr(cfg, "commission_per_trade", 0.0)
 
     for ts, row in df.iterrows():
         price = row["close"]
@@ -78,10 +80,11 @@ def backtest_positions(df: pd.DataFrame, positions: pd.Series, cfg: Config) -> B
             exit_signal = signal == 0
             if hit_stop or hit_target or exit_signal:
                 exit_px = stop if hit_stop else target if hit_target else price
-                cash += shares * exit_px
+                fill = exit_px * (1 - slip)              # sell into slippage
+                cash += shares * fill - comm
                 trades.append(
-                    {"exit_time": ts, "exit_px": exit_px, "shares": shares,
-                     "pnl": shares * (exit_px - entry),
+                    {"exit_time": ts, "exit_px": fill, "shares": shares,
+                     "pnl": shares * (fill - entry),
                      "reason": "stop" if hit_stop else "target" if hit_target else "signal"}
                 )
                 shares = 0
@@ -91,10 +94,10 @@ def backtest_positions(df: pd.DataFrame, positions: pd.Series, cfg: Config) -> B
             qty = position_size(cash, price, cfg)
             if qty > 0:
                 shares = qty
-                entry = price
-                stop = stop_loss_price(entry, cfg)
-                target = take_profit_price(entry, cfg)
-                cash -= shares * price
+                entry = price * (1 + slip)              # buy fill incl. slippage
+                stop = stop_loss_price(price, cfg)
+                target = take_profit_price(price, cfg)
+                cash -= shares * entry + comm
                 trades.append({"entry_time": ts, "entry_px": entry, "shares": shares})
 
         equity_hist.append(cash + shares * price)

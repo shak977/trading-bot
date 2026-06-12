@@ -58,6 +58,10 @@ class Config:
     trail_atr_mult: float = 0.0     # >0 enables a trailing ATR stop in the backtest (e.g. 3.0; 0 = fixed stop)
     regime_block_buys: bool = True  # demote fresh BUYs to HOLD when the market regime is Risk-off
 
+    # --- Backtest realism (applied to every backtest so edges are net of costs) ---
+    slippage_bps: float = 5.0          # modeled slippage per fill (5 bps = 0.05%); ~0.1% round trip
+    commission_per_trade: float = 0.0  # per-fill commission (Alpaca = $0; set for other brokers)
+
     # --- Risk management ---
     starting_cash: float = 100_000.0
     risk_per_trade: float = 0.02     # fraction of equity risked per position
