@@ -793,7 +793,13 @@ def scan(cfg: Config, live: bool) -> list[dict]:
         if df is None or len(df) == 0:
             empty += 1
             continue
-        row = _analyse(sym, df, cfg, equity)
+        try:
+            row = _analyse(sym, df, cfg, equity)
+        except Exception as exc:  # noqa: BLE001 - one bad symbol must never fail the whole build
+            errs += 1
+            if len(LAST_ERRORS) < 5:
+                LAST_ERRORS.append(f"{sym}: analyse failed: {type(exc).__name__}: {exc}")
+            continue
         if row:
             rows.append(row)
     if not rows:
