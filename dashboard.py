@@ -843,6 +843,16 @@ def render_html(snap: dict) -> str:
     padding:16px; cursor:pointer; box-shadow:var(--shadow); }}
   .card:hover {{ border-color:color-mix(in srgb, var(--accent) 45%, var(--line));
     transform:translateY(-2px); box-shadow:var(--shadow-lg); }}
+  .ladder {{ margin-top:12px; border:0.5px solid var(--line); border-radius:8px; overflow:hidden; }}
+  .lad-row {{ display:flex; justify-content:space-between; align-items:baseline; padding:6px 11px; font-size:13px; }}
+  .lad-row > span:first-child {{ color:var(--muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; }}
+  .lad-row > span:last-child {{ font-variant-numeric:tabular-nums; font-weight:600; }}
+  .lad-row em {{ font-style:normal; font-size:11px; font-weight:500; margin-left:7px; }}
+  .lad-row.ent {{ background:var(--inset); }}
+  .lad-row.tgt > span:last-child, .lad-row.tgt em {{ color:var(--buy); }}
+  .lad-row.stp > span:last-child, .lad-row.stp em {{ color:var(--sell); }}
+  .lad-rr {{ padding:5px 11px; border-top:0.5px solid var(--line); font-size:11px; color:var(--muted); text-align:right; }}
+  .card-warn {{ margin-top:9px; font-size:11.5px; color:var(--sell); font-weight:500; }}
   .card-why {{ margin-top:11px; padding:9px 11px; background:var(--inset);
     border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:8px; }}
   .why-h {{ display:flex; align-items:center; justify-content:space-between; gap:8px;
@@ -1392,26 +1402,23 @@ function makeCard(s) {{
   const logo = `<span class="card-mono" style="background:hsl(${{_symHue(s.symbol)}},42%,42%);">${{initials}}`
     + `<img src="https://financialmodelingprep.com/image-stock/${{s.symbol}}.png" alt="" loading="lazy" onerror="this.remove()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;">`
     + `</span>`;
-  const st = [];
-  st.push(`<div class="card-stat"><span>RSI</span><b>${{s.rsi}}</b></div>`);
-  if (s.rel_volume!=null) st.push(`<div class="card-stat"><span>Rel vol</span><b>${{s.rel_volume}}×</b></div>`);
-  if (s.stop!=null) st.push(`<div class="card-stat"><span>Stop</span><b>$${{s.stop}}</b></div>`);
-  if (s.target!=null) st.push(`<div class="card-stat"><span>Target</span><b>$${{s.target}}</b></div>`);
-  if ((s.plan||{{}}).rr!=null) st.push(`<div class="card-stat"><span>Reward:risk</span><b>${{s.plan.rr}}</b></div>`);
-  st.push(`<div class="card-stat"><span>As of</span><b>${{s.as_of}}</b></div>`);
-  const ed = (s.fundamentals||{{}}).earnings_days;
-  const ch = (s.patterns||[]).slice(0,2).map(p=>`<span class="chip mini ${{p.kind}}">${{p.label}}</span>`);
-  if (ed!=null && ed<=7) ch.unshift(`<span class="chip mini bear">⚠ Earnings ${{ed}}d</span>`);
   const _isShort = (s.direction === 'SHORT');
   const _cn = (s.strategies&&s.strategies.now) ? s.strategies.now : null;
   const _cs = (s.strategies&&s.strategies.short) ? s.strategies.short : null;
-  if (_isShort && _cs && _cs.count>=2) ch.unshift(`<span class="chip mini bear" title="independent bearish strategies agreeing">▼ ${{_cs.count}}/${{_cs.total}} short</span>`);
-  else if (!_isShort && _cn && _cn.count>=2) ch.unshift(`<span class="chip mini bull" title="independent strategies agreeing">▲ ${{_cn.count}}/${{_cn.total}} strategies</span>`);
-  // RSI-2 dip-buy lens (long) / rip-sell lens (short) — stress-tested mean-reversion, a watch not an edge claim
-  const _r2 = _cn && _cn.results && _cn.results.rsi2_meanrev;
-  if (!_isShort && _r2 && _r2.long) ch.unshift(`<span class="chip mini bull" title="oversold dip inside an uptrend (RSI-2 mean-reversion)">↘ Dip-buy (RSI-2)</span>`);
-  const _r2s = _cs && _cs.results && _cs.results.rsi2_short;
-  if (_isShort && _r2s && _r2s.short) ch.unshift(`<span class="chip mini bear" title="overbought rip inside a downtrend (RSI-2 mirror)">↗ Rip-sell (RSI-2)</span>`);
+  const ed = (s.fundamentals||{{}}).earnings_days;
+  const edWarn = (ed!=null && ed<=7)
+    ? `<div class="card-warn">⚠ Earnings in ${{ed}}d — event risk around the report</div>` : '';
+  // direction-aware price ladder: Target / Entry / Stop, ordered so higher price sits higher.
+  const _p = s.plan || {{}};
+  let ladder = '';
+  if (_p.entry!=null && _p.stop!=null && _p.target!=null) {{
+    const _m = v => '$'+Number(v).toLocaleString(undefined,{{minimumFractionDigits:2,maximumFractionDigits:2}});
+    const tgt = `<div class="lad-row tgt"><span>Target</span><span>${{_m(_p.target)}}<em>${{_isShort?'−':'+'}}${{_p.target_pct}}%</em></span></div>`;
+    const ent = `<div class="lad-row ent"><span>Entry</span><span>${{_m(_p.entry)}}</span></div>`;
+    const stp = `<div class="lad-row stp"><span>Stop</span><span>${{_m(_p.stop)}}<em>${{_isShort?'+':'−'}}${{_p.stop_pct}}%</em></span></div>`;
+    const rr = (_p.rr!=null) ? `<div class="lad-rr">Reward : risk &nbsp; 1 : ${{_p.rr}}</div>` : '';
+    ladder = `<div class="ladder">${{_isShort ? (stp+ent+tgt) : (tgt+ent+stp)}}${{rr}}</div>`;
+  }}
   // "Why this signal" — a clear panel naming the strategies behind the decision.
   // Trigger strategies (the catalyst) are filled pills; supporting ones are outlined.
   const _co = _isShort ? _cs : _cn;
@@ -1451,10 +1458,10 @@ function makeCard(s) {{
     <div class="card-px-row"><span class="card-px" data-px="${{s.symbol}}">$${{_px.toLocaleString()}}</span>${{dchg}}</div>
     ${{conv.label ? `<div class="conv-wrap"><div class="conv-row"><span>Conviction · ${{conv.label}}</span><span>${{cpct}}%</span></div>`
       + `<div class="conv-meter"><div class="conv-fill" style="width:${{cpct}}%;background:${{ccol}};"></div></div></div>` : ''}}
-    <div class="card-stats">${{st.join('')}}</div>
-    ${{ch.length ? `<div class="chips" style="margin-top:10px;">${{ch.join('')}}</div>` : ''}}
+    ${{ladder}}
     ${{whyHtml}}
-    <div class="more">${{nNews ? nNews+' news &middot; ':''}}click for full strategy breakdown →</div>`;
+    ${{edWarn}}
+    <div class="more">${{nNews ? nNews+' news &middot; ':''}}click for chart, RSI, patterns + full breakdown →</div>`;
   const _fb = el.querySelector('.favbtn');
   if (_fb) _fb.addEventListener('click', (e) => {{
     e.stopPropagation(); _toggleFav(s.symbol);
