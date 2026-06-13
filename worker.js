@@ -136,12 +136,15 @@ export default {
           });
           if (!up.ok) continue;
           const html = await up.text();
-          let m = html.match(/<link rel="canonical" href="https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})"/);
-          if (!m) m = html.match(/"videoId":"([\w-]{11})"/);
-          // only treat as live if the page actually flags a live broadcast
-          const isLive = /"isLiveContent":true|"isLive":true|"liveBroadcastDetails"/.test(html);
-          if (m && (isLive || yurl.includes("/embed/"))) {
-            return json({ videoId: m[1], live: isLive }, 200, cors);
+          const isLive = /"isLiveContent":true|"isLive":true|"liveBroadcastDetails"|"isLiveNow":true/.test(html);
+          // The canonical <link> only resolves to a watch?v= when /live points at a real
+          // video — trust it even through YouTube's bot-protection page (which still leaks it).
+          const can = html.match(/<link rel="canonical" href="https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})"/);
+          if (can) return json({ videoId: can[1], live: isLive }, 200, cors);
+          // Embed page, or a page explicitly flagged live: take the first videoId we see.
+          if (yurl.includes("/embed/") || isLive) {
+            const vid = html.match(/"videoId":"([\w-]{11})"/);
+            if (vid) return json({ videoId: vid[1], live: isLive }, 200, cors);
           }
         } catch (e) { /* try next */ }
       }
