@@ -174,6 +174,17 @@ def build_snapshot() -> dict:
             _merged.append(_n)
         news = _merged or [{"headline": "(no recent news found)", "source": "",
                             "created_at": "", "url": "", "symbols": []}]
+        # Interleave by source so the Market news tab leads with a MIX, not 50 Benzinga first.
+        from collections import OrderedDict as _OD, deque as _dq
+        _g = _OD()
+        for _n in news:
+            _g.setdefault((_n.get("source") or "").lower(), _dq()).append(_n)
+        _inter = []
+        while any(_g.values()):
+            for _q in _g.values():
+                if _q:
+                    _inter.append(_q.popleft())
+        news = _inter
     else:
         news = _synthetic_news(shown_syms)
 
@@ -907,13 +918,24 @@ def render_html(snap: dict) -> str:
   .mono2 {{ display:inline-flex; align-items:center; justify-content:center; border-radius:5px;
     color:#fff; font-weight:700; overflow:hidden; position:relative; flex:none; }}
   .mono2 img {{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#fff; }}
-  .tmwrap {{ background:#0a0e13; border:1px solid #1b242e; border-radius:10px; overflow:hidden;
+  .tmwrap {{ background:#0a0e13; border:1px solid #1b242e; border-radius:10px; overflow-x:auto;
     font-family:ui-monospace,Menlo,Consolas,monospace; }}
-  .tmrow {{ display:flex; align-items:center; gap:10px; padding:7px 12px; border-bottom:1px solid #1b242e; cursor:pointer; }}
+  .tmhead {{ display:flex; align-items:center; gap:16px; padding:10px 12px; border-bottom:1px solid #1b242e;
+    background:#0c1219; font-size:11px; color:#7c8a99; letter-spacing:.5px; white-space:nowrap; }}
+  .tmtitle {{ color:#d7e0ea; font-weight:700; letter-spacing:1px; }}
+  .tmstat b {{ color:#d7e0ea; }}
+  .tmrow {{ display:flex; align-items:center; gap:10px; padding:7px 12px; border-bottom:1px solid #1b242e; cursor:pointer; white-space:nowrap; }}
   .tmrow:last-child {{ border-bottom:0; }} .tmrow:hover {{ background:#0f1620; }}
-  .tmsym {{ color:#d7e0ea; font-weight:600; width:60px; }}
-  .tmact {{ width:86px; font-size:12px; }} .tmpx {{ color:#d7e0ea; width:88px; text-align:right; font-variant-numeric:tabular-nums; }}
-  .tmconv {{ color:#7c8a99; width:46px; text-align:right; }} .tmfam {{ color:#7c8a99; margin-left:auto; font-size:12px; }}
+  .tmcol {{ color:#5b6675; font-size:10px; letter-spacing:.06em; cursor:default; }}
+  .tmcol:hover {{ background:transparent; }}
+  .tmlogo {{ width:16px; flex:none; }}
+  .tmsym {{ color:#d7e0ea; font-weight:600; width:58px; }}
+  .tmact {{ width:88px; font-size:12px; }}
+  .tmpx {{ color:#d7e0ea; width:74px; text-align:right; font-variant-numeric:tabular-nums; }}
+  .tmchg {{ width:56px; text-align:right; font-size:12px; font-variant-numeric:tabular-nums; }}
+  .tmconv {{ color:#9aa7b4; width:42px; text-align:right; }}
+  .tmlv {{ color:#9aa7b4; width:170px; text-align:right; font-size:12px; font-variant-numeric:tabular-nums; }}
+  .tmfam {{ color:#7c8a99; margin-left:auto; padding-left:14px; font-size:12px; }}
   .lanes {{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; align-items:start; }}
   .lanehd {{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; }}
   .lcard {{ background:var(--card); border:1px solid var(--line); border-left:3px solid var(--muted);
@@ -923,14 +945,15 @@ def render_html(snap: dict) -> str:
   .lconv {{ margin-left:auto; color:var(--muted); font-size:12px; }} .lsub {{ color:var(--muted); font-size:11px; margin-top:3px; }}
   .gauges {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); gap:16px; }}
   .gauge {{ text-align:center; cursor:pointer; }}
-  .gring {{ width:64px; height:64px; border-radius:50%; margin:0 auto; display:flex; align-items:center; justify-content:center; }}
-  .ghole {{ width:48px; height:48px; border-radius:50%; background:var(--card); display:flex; align-items:center; justify-content:center; font-weight:700; }}
+  .gsvg {{ width:64px; height:64px; display:block; margin:0 auto; }}
+  .gnum {{ fill:var(--txt); font-size:17px; font-weight:700; font-family:inherit; }}
   .glab {{ display:flex; align-items:center; justify-content:center; gap:5px; margin-top:7px; font-weight:600; font-size:13px; }}
   .gact {{ font-size:11px; }}
   .feedwrap {{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:2px 14px; }}
   .feeditem {{ display:flex; align-items:center; gap:11px; padding:11px 0; border-bottom:1px solid var(--line); cursor:pointer; }}
-  .feeditem:last-child {{ border-bottom:0; }} .feedtxt {{ font-size:13px; }}
+  .feeditem:last-child {{ border-bottom:0; }} .feedtxt {{ font-size:13px; flex:1; min-width:0; }}
   .feedsub {{ color:var(--muted); font-size:11px; margin-top:2px; }}
+  .feedspark {{ flex:none; opacity:.9; }}
   .bento {{ display:grid; grid-template-columns:1.3fr 1fr 1fr; gap:10px; }}
   .bento-regime {{ background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px;
     grid-row:span 2; display:flex; flex-direction:column; justify-content:center; }}
@@ -955,6 +978,7 @@ def render_html(snap: dict) -> str:
   .tkrow {{ display:flex; align-items:center; gap:10px; padding:9px 13px; border-bottom:1px solid var(--line); cursor:pointer; }}
   .tkrow:last-child {{ border-bottom:0; }} .tkrow:hover {{ background:var(--hover); }}
   .tksym {{ font-weight:600; width:58px; }} .tkpx {{ width:88px; font-variant-numeric:tabular-nums; }}
+  .tkspark {{ flex:none; opacity:.9; }}
   .tkfam {{ color:var(--muted); font-size:12px; width:120px; }} .tklv {{ margin-left:auto; color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; }}
   .splitwrap {{ display:grid; grid-template-columns:172px 1fr; gap:12px; align-items:start; }}
   .splitlist {{ display:flex; flex-direction:column; gap:3px; max-height:540px; overflow:auto; }}
@@ -1531,13 +1555,16 @@ function _placeTip(e) {{
   _tipEl.style.top = Math.max(8, y) + 'px';
 }}
 document.addEventListener('mouseover', e => {{
-  const t = e.target.closest && e.target.closest('[data-tip]');
-  const txt = t && t.getAttribute('data-tip');
-  if (txt) {{ _tipEl.textContent = txt; _tipEl.style.display = 'block'; _placeTip(e); }}
+  const t = e.target.closest && e.target.closest('[data-tip],[data-tiphtml]');
+  if (!t) return;
+  const h = t.getAttribute('data-tiphtml');
+  if (h) {{ _tipEl.innerHTML = h; _tipEl.classList.add('rich'); _tipEl.style.display = 'block'; _placeTip(e); return; }}
+  const txt = t.getAttribute('data-tip');
+  if (txt) {{ _tipEl.textContent = txt; _tipEl.classList.remove('rich'); _tipEl.style.display = 'block'; _placeTip(e); }}
 }});
 document.addEventListener('mousemove', e => {{ if (_tipEl.style.display === 'block') _placeTip(e); }});
 document.addEventListener('mouseout', e => {{
-  if (e.target.closest && e.target.closest('[data-tip]')) _tipEl.style.display = 'none';
+  if (e.target.closest && e.target.closest('[data-tip],[data-tiphtml]')) _tipEl.style.display = 'none';
 }});
 
 const diag = document.getElementById('diag');
@@ -1706,17 +1733,47 @@ function _bindAll(container, list) {{
 const _wrap = (cls, html) => {{ const d=document.createElement('div'); d.className=cls; d.innerHTML=html||_empty(); return d; }};
 
 function L_terminal(list) {{
-  const rows = list.map(s=>`<div class="tmrow" data-open="${{s.symbol}}">${{_logo2(s.symbol,18)}}`
-    + `<span class="tmsym">${{s.symbol}}</span>`
-    + `<span class="tmact" style="color:${{_dirCol(s)}};">${{s.action}}</span>`
-    + `<span class="tmpx" data-px="${{s.symbol}}">$${{_pxOf(s).toLocaleString()}}</span>`
-    + `<span class="tmconv">${{_conv(s)>=0?_conv(s)+'%':'—'}}</span>`
-    + `<span class="tmfam">${{_famOf(s)}}</span></div>`).join('');
-  return _bindAll(_wrap('tmwrap', rows), list);
+  const r = DATA.regime || {{}};
+  const buys = list.filter(s=>['BUY','HOLD LONG'].includes(s.action)).length;
+  const shorts = list.filter(s=>['SHORT','HOLD SHORT'].includes(s.action)).length;
+  const head = `<div class="tmhead"><span class="tmtitle">▰ SIGNAL DESK</span>`
+    + `<span class="tmstat">REGIME <b>${{(r.label||'—').toUpperCase()}}</b></span>`
+    + `<span class="tmstat">BREADTH <b>${{r.breadth!=null?r.breadth+'%':'—'}}</b></span>`
+    + `<span class="tmstat">BUYS <b style="color:#3fb950;">${{buys}}</b></span>`
+    + `<span class="tmstat">SHORTS <b style="color:#f0623f;">${{shorts}}</b></span></div>`;
+  const colhd = `<div class="tmrow tmcol"><span class="tmlogo"></span><span class="tmsym">SYMBOL</span>`
+    + `<span class="tmact">SIGNAL</span><span class="tmpx">LAST</span><span class="tmchg">CHG</span>`
+    + `<span class="tmconv">CONV</span><span class="tmlv">TARGET / ENTRY / STOP</span><span class="tmfam">SETUP</span></div>`;
+  const rows = list.map(s=>{{
+    const p = s.plan||{{}};
+    const dc = (s.quote_price!=null && s.prev_close) ? (s.quote_price/s.prev_close-1)*100 : (s.context&&s.context.day_change_pct);
+    const dcs = (dc!=null) ? `<span style="color:${{dc>=0?'#3fb950':'#f0623f'}};">${{dc>=0?'+':''}}${{dc.toFixed(1)}}%</span>` : '—';
+    const lv = (p.entry!=null) ? `<span style="color:#3fb950;">${{p.target}}</span> / ${{p.entry}} / <span style="color:#f0623f;">${{p.stop}}</span>` : '—';
+    return `<div class="tmrow" data-open="${{s.symbol}}"><span class="tmlogo">${{_logo2(s.symbol,16)}}</span>`
+      + `<span class="tmsym">${{s.symbol}}</span>`
+      + `<span class="tmact" style="color:${{_dirCol(s)}};">${{s.action}}</span>`
+      + `<span class="tmpx" data-px="${{s.symbol}}">${{_pxOf(s).toLocaleString()}}</span>`
+      + `<span class="tmchg">${{dcs}}</span>`
+      + `<span class="tmconv">${{_conv(s)>=0?_conv(s):'—'}}</span>`
+      + `<span class="tmlv">${{lv}}</span>`
+      + `<span class="tmfam">${{_famOf(s)}}</span></div>`;
+  }}).join('');
+  return _bindAll(_wrap('tmwrap', head+colhd+rows), list);
+}}
+function _laneTip(s) {{
+  const p = s.plan||{{}}, conv=_conv(s);
+  const reason = (s.reasons||[]).find(r=>!/^📰|^📈/.test(r)) || (s.reasons||[])[0] || '';
+  const lvl = (p.entry!=null) ? `Entry ${{p.entry}} · Stop ${{p.stop}} · Target ${{p.target}}${{p.rr!=null?' · R:R 1:'+p.rr:''}}` : '';
+  return `<div style='font-weight:600;'>${{s.symbol}} · <span style='color:${{_dirCol(s)}};'>${{s.action}}</span></div>`
+    + `<div style='color:var(--muted);font-size:11px;margin-bottom:5px;'>${{s.name||''}}</div>`
+    + `<div>$${{_pxOf(s).toLocaleString()}} · Conviction ${{conv>=0?conv+'%':'—'}}</div>`
+    + (_famOf(s)?`<div style='color:var(--muted);margin:3px 0;'>${{_famOf(s)}}</div>`:'')
+    + (lvl?`<div>${{lvl}}</div>`:'')
+    + (reason?`<div style='margin-top:5px;color:var(--muted);'>${{String(reason).slice(0,150)}}</div>`:'');
 }}
 function L_lanes(list) {{
   const lane = (title, col, items) => `<div class="lane"><div class="lanehd" style="color:${{col}};">${{title}} · ${{items.length}}</div>`
-    + (items.map(s=>`<div class="lcard" data-open="${{s.symbol}}" style="border-left-color:${{col}};">`
+    + (items.map(s=>`<div class="lcard hint" data-open="${{s.symbol}}" data-tiphtml="${{_esc(_laneTip(s))}}" style="border-left-color:${{col}};">`
       + `<div class="lcard-t">${{_logo2(s.symbol,18)}}<span class="lsym">${{s.symbol}}</span><span class="lconv">${{_conv(s)>=0?_conv(s)+'%':'—'}}</span></div>`
       + `${{_spark2(s.symbol, col, 150, 26)}}`
       + `<div class="lsub">${{_pxOf(s).toLocaleString ? '$'+_pxOf(s).toLocaleString() : ''}} · ${{_famOf(s)}}</div></div>`).join('') || '<div class="lsub" style="padding:6px;">—</div>') + '</div>';
@@ -1726,10 +1783,14 @@ function L_lanes(list) {{
   return _bindAll(_wrap('lanes', lane('↑ Long','var(--buy)',buys)+lane('↓ Short','var(--sell)',shorts)+lane('◷ Watch','var(--muted)',watch)), list);
 }}
 function L_gauges(list) {{
+  const R=26, C=2*Math.PI*R;
   const cells = list.map(s=>{{
-    const pc=_conv(s), col=_dirCol(s);
-    return `<div class="gauge" data-open="${{s.symbol}}"><div class="gring" style="background:conic-gradient(${{col}} ${{pc}}%, var(--inset) 0);">`
-      + `<div class="ghole">${{pc||'—'}}</div></div>`
+    const raw=_conv(s); const pc=Math.max(0,Math.min(100, raw>=0?raw:0)); const col=_dirCol(s);
+    const dash=(C*pc/100).toFixed(1);
+    return `<div class="gauge" data-open="${{s.symbol}}"><svg viewBox="0 0 64 64" class="gsvg">`
+      + `<circle cx="32" cy="32" r="${{R}}" fill="none" stroke="var(--inset)" stroke-width="6"/>`
+      + `<circle cx="32" cy="32" r="${{R}}" fill="none" stroke="${{col}}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${{dash}} ${{(C-dash).toFixed(1)}}" transform="rotate(-90 32 32)"/>`
+      + `<text x="32" y="38" text-anchor="middle" class="gnum">${{raw>=0?pc:'—'}}</text></svg>`
       + `<div class="glab">${{_logo2(s.symbol,16)}}<span>${{s.symbol}}</span></div>`
       + `<div class="gact" style="color:${{col}};">${{s.action}}</div></div>`;
   }}).join('');
@@ -1742,77 +1803,21 @@ function L_feed(list) {{
     const verb = s.action.indexOf('WATCH')>=0?'is building a':(s.action.indexOf('HOLD')>=0?'is holding a':'triggered a');
     return `<div class="feeditem" data-open="${{s.symbol}}">${{_logo2(s.symbol,26)}}`
       + `<div class="feedtxt"><div><b>${{s.symbol}}</b> ${{verb}} <span style="color:${{_dirCol(s)}};font-weight:600;">${{s.action}}</span> — ${{trig}}</div>`
-      + `<div class="feedsub">${{_conv(s)>=0?_conv(s)+'% conviction · ':''}}$${{_pxOf(s).toLocaleString()}} · as of ${{s.as_of||''}}</div></div></div>`;
+      + `<div class="feedsub">${{_conv(s)>=0?_conv(s)+'% conviction · ':''}}$${{_pxOf(s).toLocaleString()}} · as of ${{s.as_of||''}}</div></div>`
+      + `<span class="feedspark">${{_spark2(s.symbol,_dirCol(s),96,30)}}</span></div>`;
   }}).join('');
   return _bindAll(_wrap('feedwrap', rows), list);
-}}
-function L_bento(list) {{
-  const r = DATA.regime || {{}};
-  const top = list.slice().sort((a,b)=>_conv(b)-_conv(a))[0];
-  let html = `<div class="bento">`;
-  html += `<div class="bento-regime"><div class="blab">Market regime</div><div class="bval">${{r.label||'—'}}</div>`
-    + `<div class="bsub">${{r.breadth!=null?r.breadth+'% breadth':''}} ${{r.buys!=null?'· '+r.buys+' buys':''}}</div></div>`;
-  if (top) html += `<div class="bento-feat" data-open="${{top.symbol}}">${{_logo2(top.symbol,30)}}`
-    + `<div style="flex:1;"><div><b>${{top.symbol}}</b> <span style="color:${{_dirCol(top)}};font-size:11px;">${{top.action}} ${{_conv(top)}}%</span></div>`
-    + `<div class="bsub">$${{_pxOf(top).toLocaleString()}} · ${{_famOf(top)}}</div></div>${{_spark2(top.symbol,_dirCol(top),90,30)}}</div>`;
-  list.filter(s=>top&&s.symbol!==top.symbol).slice(0,8).forEach(s=>{{
-    html += `<div class="bento-tile" data-open="${{s.symbol}}">${{_logo2(s.symbol,18)}}<div><div class="btk">${{s.symbol}}</div>`
-      + `<div class="bsub" style="color:${{_dirCol(s)}};">${{s.action}} ${{_conv(s)>=0?_conv(s):''}}</div></div></div>`;
-  }});
-  html += `</div>`;
-  return _bindAll(_wrap('', html), list);
-}}
-function L_magazine(list) {{
-  const sorted = list.slice().sort((a,b)=>_conv(b)-_conv(a));
-  const hero = sorted[0];
-  if (!hero) return _wrap('', _empty());
-  let side = sorted.slice(1,9).map((s,i)=>`<div class="magrow" data-open="${{s.symbol}}"><span class="magrk">${{i+2}}</span>${{_logo2(s.symbol,18)}}`
-    + `<span class="magsym">${{s.symbol}}</span><span class="magc" style="color:${{_dirCol(s)}};">${{_conv(s)>=0?_conv(s)+'%':s.action}}</span></div>`).join('');
-  const html = `<div class="mag"><div class="mag-hero" data-open="${{hero.symbol}}">`
-    + `<div class="mag-hero-t">${{_logo2(hero.symbol,30)}}<div><div><b>${{hero.symbol}}</b></div><div class="bsub">${{hero.name||''}} · top pick ${{_conv(hero)}}%</div></div>`
-    + `<span class="act ${{'a-'+(hero.action||'').replace(/ /g,'')}}" style="margin-left:auto;">${{hero.action}}</span></div>`
-    + `${{_spark2(hero.symbol,_dirCol(hero),300,60)}}`
-    + `<div class="bsub">$${{_pxOf(hero).toLocaleString()}} · ${{_levelsInline(hero)}} · ${{_famOf(hero)}}</div></div>`
-    + `<div class="mag-side">${{side}}</div></div>`;
-  return _bindAll(_wrap('', html), list);
 }}
 function L_ticker(list) {{
   const tape = list.map(s=>`<span class="tkitem"><b>${{s.symbol}}</b> <span data-px="${{s.symbol}}" style="color:${{_dirCol(s)}};">$${{_pxOf(s).toLocaleString()}}</span></span>`).join('');
   const rows = list.map(s=>`<div class="tkrow" data-open="${{s.symbol}}">${{_logo2(s.symbol,22)}}`
     + `<span class="tksym">${{s.symbol}}</span><span style="color:${{_dirCol(s)}};font-weight:600;width:80px;">${{s.action}}</span>`
     + `<span class="tkpx" data-px="${{s.symbol}}">$${{_pxOf(s).toLocaleString()}}</span>`
+    + `<span class="tkspark">${{_spark2(s.symbol,_dirCol(s),72,22)}}</span>`
     + `<span class="tkfam">${{_famOf(s)}}</span><span class="tklv">${{_levelsInline(s)}}</span></div>`).join('');
   return _bindAll(_wrap('', `<div class="tktape"><div class="tktape-in">${{tape}}${{tape}}</div></div><div class="tkbody">${{rows}}</div>`), list);
 }}
-let _splitSel = null;
-function _splitDetailHTML(s) {{
-  if (!s) return '<div style="color:var(--muted);padding:14px;">Select a name on the left.</div>';
-  return `<div class="sd-top">${{_logo2(s.symbol,28)}}<div><div><b>${{s.symbol}}</b></div><div class="bsub">${{s.name||''}}</div></div>`
-    + `<span class="act ${{'a-'+(s.action||'').replace(/ /g,'')}}" style="margin-left:auto;">${{s.action}}</span></div>`
-    + `${{_spark2(s.symbol,_dirCol(s),320,54)}}`
-    + `<div class="bsub" style="margin-top:6px;">$${{_pxOf(s).toLocaleString()}} · Conviction ${{_conv(s)>=0?_conv(s)+'%':'—'}} · ${{_famOf(s)}}</div>`
-    + `<div class="bsub" style="margin-top:4px;">Entry ${{(s.plan||{{}}).entry}} · Stop <span style="color:var(--sell);">${{(s.plan||{{}}).stop}}</span> · Target <span style="color:var(--buy);">${{(s.plan||{{}}).target}}</span></div>`
-    + `<button class="sd-full" data-open="${{s.symbol}}">Full breakdown →</button>`;
-}}
-function L_split(list) {{
-  if (!_splitSel || !list.find(s=>s.symbol===_splitSel)) _splitSel = list[0] && list[0].symbol;
-  const sel = list.find(s=>s.symbol===_splitSel);
-  const items = list.map(s=>`<div class="splititem${{s.symbol===_splitSel?' on':''}}" data-sel="${{s.symbol}}">${{_logo2(s.symbol,18)}}`
-    + `<span class="splitsym">${{s.symbol}}</span><span class="splitact" style="color:${{_dirCol(s)}};">${{s.action.replace(' ','\\u00a0')}}</span></div>`).join('');
-  const node = _wrap('splitwrap', `<div class="splitlist">${{items||_empty()}}</div><div class="splitdetail" id="splitDetail">${{_splitDetailHTML(sel)}}</div>`);
-  const bySym={{}}; list.forEach(s=>bySym[s.symbol]=s);
-  node.querySelectorAll('[data-sel]').forEach(el=>el.addEventListener('click',()=>{{
-    _splitSel = el.getAttribute('data-sel');
-    node.querySelectorAll('.splititem').forEach(x=>x.classList.toggle('on', x.getAttribute('data-sel')===_splitSel));
-    const d=node.querySelector('#splitDetail'); d.innerHTML=_splitDetailHTML(bySym[_splitSel]);
-    d.querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>openModal(bySym[b.getAttribute('data-open')])));
-    _reapplyLive();
-  }}));
-  node.querySelectorAll('.splitdetail [data-open]').forEach(b=>b.addEventListener('click',()=>openModal(bySym[b.getAttribute('data-open')])));
-  return node;
-}}
-const LAYOUT_RENDER = {{terminal:L_terminal, lanes:L_lanes, gauges:L_gauges, feed:L_feed,
-                       bento:L_bento, magazine:L_magazine, ticker:L_ticker, split:L_split}};
+const LAYOUT_RENDER = {{terminal:L_terminal, lanes:L_lanes, gauges:L_gauges, feed:L_feed, ticker:L_ticker}};
 // ===================================================================================
 
 function renderCards(view) {{
@@ -1880,8 +1885,8 @@ function renderCards(view) {{
   }});
   // --- layout switcher (visual form: cards / terminal / lanes / …) ---
   const lbar = document.getElementById('layoutBtns');
-  const layouts = [['cards','Cards'],['lanes','Lanes'],['terminal','Terminal'],['split','Split'],
-                   ['gauges','Gauges'],['feed','Feed'],['bento','Bento'],['magazine','Magazine'],['ticker','Ticker']];
+  const layouts = [['cards','Cards'],['lanes','Lanes'],['terminal','Terminal'],
+                   ['gauges','Gauges'],['feed','Feed'],['ticker','Ticker']];
   layouts.forEach(([v,lab]) => {{
     const b = document.createElement('button'); b.textContent = lab; b.dataset.layout = v;
     if (v === _layout) b.className = 'on';
