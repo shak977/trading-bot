@@ -42,20 +42,25 @@ def strategy_edges(df: pd.DataFrame, cfg: Config) -> dict:
     from backtest import backtest_positions
 
     by: dict[str, dict] = {}
-    for key, (label, fn, kind, _blurb) in strat.STRATEGIES.items():
-        try:
-            pos = fn(df, cfg)
-            m = backtest_positions(df, pos, cfg).metrics
-            by[key] = {
-                "label": label, "kind": kind,
-                "win_rate": round(m["win_rate"] * 100, 1) if m["n_trades"] else None,
-                "n_trades": int(m["n_trades"]),
-                "total_return": round(m["total_return"] * 100, 1),
-                "sharpe": round(m["sharpe"], 2),
-            }
-        except Exception:  # noqa: BLE001
-            by[key] = {"label": label, "kind": kind, "win_rate": None,
-                       "n_trades": 0, "total_return": 0.0, "sharpe": 0.0}
+
+    def _run(registry, side):
+        for key, (label, fn, kind, _blurb) in registry.items():
+            try:
+                pos = fn(df, cfg)
+                m = backtest_positions(df, pos, cfg, side=side).metrics
+                by[key] = {
+                    "label": label, "kind": kind, "side": side,
+                    "win_rate": round(m["win_rate"] * 100, 1) if m["n_trades"] else None,
+                    "n_trades": int(m["n_trades"]),
+                    "total_return": round(m["total_return"] * 100, 1),
+                    "sharpe": round(m["sharpe"], 2),
+                }
+            except Exception:  # noqa: BLE001
+                by[key] = {"label": label, "kind": kind, "side": side, "win_rate": None,
+                           "n_trades": 0, "total_return": 0.0, "sharpe": 0.0}
+
+    _run(strat.STRATEGIES, "long")
+    _run(strat.SHORT_STRATEGIES, "short")
     cand = [v for v in by.values() if v["n_trades"] >= 3 and v["win_rate"] is not None]
     best = max(cand, key=lambda v: (v["win_rate"], v["total_return"]), default=None)
     return {"by": by, "best": best}

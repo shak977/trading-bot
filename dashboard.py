@@ -224,6 +224,15 @@ def build_snapshot() -> dict:
         # interleaved by source so the modal shows variety, not one outlet stacked on top.
         _matched = [n for n in news if r["symbol"] in (n.get("symbols") or [])]
         r["news"] = _interleave_by_source(_matched)[: max(CONFIG.news_per_symbol, 12)]
+        # Catalyst: flag when fresh (<~2 day) news coincides with the signal.
+        try:
+            import research as _rr
+            _fresh = [n for n in r["news"] if _rr._recency_weight(n.get("created_at", "")) >= 0.9]
+            if _fresh:
+                r["catalyst"] = {"headline": _fresh[0]["headline"],
+                                 "source": _fresh[0].get("source", ""), "n": len(_fresh)}
+        except Exception:  # noqa: BLE001
+            pass
         if r["news"]:
             top = r["news"][0]["headline"]
             n = len(r["news"])
@@ -380,6 +389,7 @@ def build_snapshot() -> dict:
                      for m in momentum_rows],
         "mom_detail": _mom_detail(momentum_rows, rows_by_sym, shown),
         "allweather": all_weather,
+        "portfolio": _portfolio(shown),
         "ipos": ipos,
         "ipo_news": ipo_news,
         "params": {
@@ -628,6 +638,87 @@ def _momentum_rank(charts: dict, top: int = 15, per_sector: int = 3) -> list[dic
     return out
 
 
+def _portfolio(rows: list[dict]) -> dict:
+    """Aggregate the actionable signals into a hypothetical book — what you'd be holding
+    if you took every BUY/SHORT/HOLD at the model's position size (risk-based, on
+    starting_cash). Net/gross exposure, sector mix, total $ at risk, per-position list."""
+    longs = [r for r in rows if r.get("action") in ("BUY", "HOLD LONG")]
+    shorts = [r for r in rows if r.get("action") in ("SHORT", "HOLD SHORT")]
+    def expo(r): return (r.get("plan") or {}).get("exposure") or 0.0
+    def risk(r): return (r.get("plan") or {}).get("dollar_risk") or 0.0
+    long_e = sum(expo(r) for r in longs)
+    short_e = sum(expo(r) for r in shorts)
+    sec: dict = {}
+    for r in longs:
+        sec[r.get("sector", "Other")] = sec.get(r.get("sector", "Other"), 0.0) + expo(r)
+    for r in shorts:
+        sec[r.get("sector", "Other")] = sec.get(r.get("sector", "Other"), 0.0) - expo(r)
+    positions = [{
+        "symbol": r["symbol"], "name": r.get("name", ""), "action": r["action"],
+        "direction": r.get("direction"), "sector": r.get("sector", ""),
+        "shares": (r.get("plan") or {}).get("shares"),
+        "exposure": round(expo(r)), "risk": round(risk(r)),
+        "conviction": (r.get("conviction") or {}).get("score_pct"),
+    } for r in longs + shorts]
+    positions.sort(key=lambda p: -(p["conviction"] or 0))
+    return {
+        "n_long": len(longs), "n_short": len(shorts),
+        "long_exposure": round(long_e), "short_exposure": round(short_e),
+        "gross": round(long_e + short_e), "net": round(long_e - short_e),
+        "at_risk": round(sum(risk(r) for r in longs + shorts)),
+        "starting_cash": CONFIG.starting_cash,
+        "sectors": sorted(sec.items(), key=lambda kv: -abs(kv[1]))[:10],
+        "positions": positions,
+    }
+
+
+def _portfolio_html(p: dict | None) -> str:
+    badge = _strat_badge("Hypothetical book · every actionable signal at model size")
+    if not p or not p.get("positions"):
+        return badge + ('<p style="color:var(--muted);font-size:13px;">No actionable positions right '
+                        'now — nothing to assemble into a book.</p>')
+    cash = p.get("starting_cash") or 100000
+    pct = lambda v: f'{v/cash*100:.0f}%'
+    money = lambda v: f'${v:,.0f}'
+    def tile(label, value, sub="", cls=""):
+        sub_html = f'<div class="sub">{sub}</div>' if sub else ""
+        return f'<div class="stat"><div class="l">{label}</div><div class="v {cls}">{value}</div>{sub_html}</div>'
+    netcls = "buy" if p["net"] >= 0 else "sell"
+    tiles = (tile("Positions", f'{p["n_long"]}L / {p["n_short"]}S', "long / short") +
+             tile("Gross exposure", money(p["gross"]), pct(p["gross"]) + " of book") +
+             tile("Net exposure", ("+" if p["net"] >= 0 else "") + money(p["net"]), pct(p["net"]) + " net " + ("long" if p["net"] >= 0 else "short"), netcls) +
+             tile("$ at risk", money(p["at_risk"]), pct(p["at_risk"]) + " if all stop out", "sell"))
+    # sector mix bar (green long / red short, width by |exposure| share of gross)
+    gross = p["gross"] or 1
+    secbar = ""
+    for name, val in p["sectors"]:
+        w = abs(val) / gross * 100
+        col = "var(--buy)" if val >= 0 else "var(--sell)"
+        secbar += (f'<div class="secrow"><span class="secname">{name}</span>'
+                   f'<div class="secbarwrap"><div class="secbarfill" style="width:{w:.0f}%;background:{col};"></div></div>'
+                   f'<span class="secval" style="color:{col};">{("+" if val>=0 else "−")}{money(abs(val))}</span></div>')
+    rows = ""
+    for q in p["positions"]:
+        acol = "var(--sell)" if q["direction"] == "SHORT" else "var(--buy)"
+        rows += (f'<tr><td><b>{q["symbol"]}</b> <span style="color:var(--muted);font-weight:400;">{q["name"][:22]}</span></td>'
+                 f'<td style="color:{acol};">{q["action"]}</td><td style="color:var(--muted);">{q["sector"]}</td>'
+                 f'<td style="text-align:right;">{q["shares"] or "—"}</td>'
+                 f'<td style="text-align:right;">{money(q["exposure"])}</td>'
+                 f'<td style="text-align:right;">{money(q["risk"])}</td>'
+                 f'<td style="text-align:right;">{q["conviction"] if q["conviction"] is not None else "—"}</td></tr>')
+    table = ('<table class="trackrec"><thead><tr><th>Position</th><th>Side</th><th>Sector</th>'
+             '<th style="text-align:right;">Shares</th><th style="text-align:right;">Exposure</th>'
+             '<th style="text-align:right;">$ risk</th><th style="text-align:right;">Conv</th></tr></thead>'
+             f'<tbody>{rows}</tbody></table>')
+    note = ('<p style="color:var(--muted);font-size:12px;margin-top:10px;">Hypothetical: assumes you take '
+            'every actionable signal at the model\'s risk-based size on a '
+            f'{money(cash)} book. Not advice; sizing is illustrative. Net exposure = long − short.</p>')
+    return (badge + f'<div class="trackstats">{tiles}</div>'
+            + '<div class="sech">Sector tilt <span style="text-transform:none;color:var(--muted);font-weight:400;">— net exposure by sector (green long · red short)</span></div>'
+            + f'<div class="secmix">{secbar}</div>'
+            + '<div class="sech">Positions</div>' + table + note)
+
+
 def _strat_badge(value: str) -> str:
     """A small, consistent 'Strategy type: …' pill so every tab self-labels its approach."""
     return (f'<div class="strat-badge"><span class="k">Strategy type</span>'
@@ -751,17 +842,35 @@ def _track_html(track: dict | None) -> str:
     def stat(label, value, cls=""):
         return (f'<div class="stat"><div class="l">{label}</div>'
                 f'<div class="v {cls}">{value}</div></div>')
+    def _pct(v):
+        return "—" if v is None else f"{'+' if v > 0 else ''}{v}%"
     wr = "—" if track["win_rate"] is None else f"{track['win_rate']}%"
-    ar = "—" if track["avg_return"] is None else f"{'+' if track['avg_return'] > 0 else ''}{track['avg_return']}%"
     stats = (
         stat("Calls advised", track["advised"]) +
         stat("Resolved", track["resolved"]) +
         stat("Still open", track["open"]) +
-        stat("Hit target", track["wins"], "win") +
-        stat("Hit stop", track["losses"], "loss") +
         stat("Win rate", wr) +
-        stat("Avg return", ar)
+        stat("Expectancy", _pct(track.get("expectancy")), "buy" if (track.get("expectancy") or 0) > 0 else ("sell" if (track.get("expectancy") or 0) < 0 else "")) +
+        stat("Avg win", _pct(track.get("avg_win")), "win") +
+        stat("Avg loss", _pct(track.get("avg_loss")), "loss")
     )
+    # per-direction / per-conviction breakdown (the live-performance read, as data accrues)
+    def _brk(title, d, keys):
+        cells = ""
+        for k in keys:
+            g = (d or {}).get(k) or {}
+            wrk = "—" if g.get("win_rate") is None else f"{g['win_rate']}%"
+            cells += (f'<tr><td>{k}</td><td style="text-align:right;">{g.get("n",0)}</td>'
+                      f'<td style="text-align:right;">{wrk}</td>'
+                      f'<td style="text-align:right;">{_pct(g.get("avg_return"))}</td></tr>')
+        return (f'<div class="sech" style="margin-top:14px;">{title}</div>'
+                '<table class="trackrec"><thead><tr><th>'+title.split()[-1]+'</th>'
+                '<th style="text-align:right;">Resolved</th><th style="text-align:right;">Win rate</th>'
+                '<th style="text-align:right;">Avg return</th></tr></thead><tbody>'+cells+'</tbody></table>')
+    breakdown = ""
+    if track.get("resolved"):
+        breakdown = (_brk("By direction", track.get("by_direction"), ["LONG", "SHORT"]) +
+                     _brk("By conviction", track.get("by_conviction"), ["High", "Medium", "Low"]))
     rows = ""
     icon = {"win": '<span class="win">✅ hit target</span>',
             "loss": '<span class="loss">❌ hit stop</span>',
@@ -792,6 +901,7 @@ def _track_html(track: dict | None) -> str:
     slippage — so treat it as a rough guide, not a brokerage statement.</p>
     <div class="trackstats">{stats}</div>
     {table}
+    {breakdown}
   </div>"""
 
 
@@ -811,6 +921,7 @@ def render_html(snap: dict) -> str:
     kpi_html = _kpi_html(snap.get("regime"), snap)
     momentum_html = _momentum_html(snap.get("momentum") or [])
     allweather_html = _allweather_html(snap.get("allweather"))
+    portfolio_html = _portfolio_html(snap.get("portfolio"))
     ipo_html = _ipo_html(snap.get("ipos") or [], snap.get("ipo_news") or [])
     sectors_html = _sectors_html(snap.get("sectors"))
     macro_html = _macro_html(snap.get("macro"))
@@ -915,6 +1026,18 @@ def render_html(snap: dict) -> str:
     padding:9px 16px; font-size:13px; font-weight:600; box-shadow:var(--shadow-lg); }}
   #newbuild:hover {{ filter:brightness(1.08); }}
   /* ---- alternate layouts ---- */
+  .cat-chip {{ margin-top:10px; display:inline-block; font-size:11.5px; font-weight:600;
+    color:#b8860b; background:color-mix(in srgb, #e0a82e 16%, transparent);
+    border:1px solid color-mix(in srgb, #e0a82e 36%, transparent); padding:3px 9px; border-radius:999px; }}
+  .ai-tag {{ color:var(--accent); font-weight:700; }}
+  .secmix {{ display:flex; flex-direction:column; gap:5px; margin:4px 0 8px; }}
+  .secrow {{ display:flex; align-items:center; gap:10px; font-size:12px; }}
+  .secname {{ width:120px; color:var(--muted); }}
+  .secbarwrap {{ flex:1; height:8px; background:var(--inset); border-radius:4px; overflow:hidden; }}
+  .secbarfill {{ height:100%; }}
+  .secval {{ width:80px; text-align:right; font-variant-numeric:tabular-nums; }}
+  .card-spark {{ margin:8px 0 2px; }}
+  .card-spark svg {{ width:100% !important; height:42px; display:block; opacity:.9; }}
   .mono2 {{ display:inline-flex; align-items:center; justify-content:center; border-radius:5px;
     color:#fff; font-weight:700; overflow:hidden; position:relative; flex:none; }}
   .mono2 img {{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#fff; }}
@@ -1300,6 +1423,7 @@ def render_html(snap: dict) -> str:
     <button data-page="signals" class="on">Signals</button>
     <button data-page="markets">Markets</button>
     <button data-page="momentum">Momentum</button>
+    <button data-page="portfolio">Portfolio</button>
     <button data-page="allweather">All Weather</button>
     <button data-page="ipos">IPO watch</button>
     <button data-page="track">Track record</button>
@@ -1341,6 +1465,11 @@ def render_html(snap: dict) -> str:
   <section class="page" id="page-momentum">
     <h2 style="margin-top:0;">Momentum leaders <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— dual-momentum ranking (our best backtested strategy)</span></h2>
 {momentum_html}
+  </section>
+
+  <section class="page" id="page-portfolio">
+    <h2 style="margin-top:0;">Portfolio <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— hypothetical book from today's actionable signals</span></h2>
+{portfolio_html}
   </section>
 
   <section class="page" id="page-allweather">
@@ -1577,7 +1706,7 @@ function makeCard(s) {{
   const cls = (s.action||'').replace(' ','');
   const conv = s.conviction || {{}};
   const cpct = conv.score_pct || 0;
-  const ccol = conv.label==='High' ? 'var(--buy)' : (conv.label==='Low' ? 'var(--sell)' : '#c08a1e');
+  const ccol = _rag(cpct);   // RAG: green ≥70, amber ≥50, red below
   // Prefer Yahoo's consolidated price + previous close so the card matches Google.
   const _px = (s.quote_price != null) ? s.quote_price : s.price;
   const _base = (s.prev_close != null) ? s.prev_close : s.price;
@@ -1650,12 +1779,14 @@ function makeCard(s) {{
       <span class="act a-${{cls}}">${{s.action}}</span>
       <button class="favbtn ${{FAVS.has(s.symbol)?'on':''}}" title="Save to favorites">${{FAVS.has(s.symbol)?'★':'☆'}}</button></div>
     <div class="card-px-row"><span class="card-px" data-px="${{s.symbol}}">$${{_px.toLocaleString()}}</span>${{dchg}}</div>
-    ${{conv.label ? `<div class="conv-wrap"><div class="conv-row"><span>Conviction · ${{conv.label}}</span><span>${{cpct}}%</span></div>`
+    <div class="card-spark">${{_spark2(s.symbol, _dirCol(s), 300, 42)}}</div>
+    ${{conv.label ? `<div class="conv-wrap"><div class="conv-row"><span>Conviction · ${{conv.label}}</span><span style="color:${{ccol}};font-weight:700;">${{cpct}}%</span></div>`
       + `<div class="conv-meter"><div class="conv-fill" style="width:${{cpct}}%;background:${{ccol}};"></div></div></div>` : ''}}
     ${{ladder}}
     ${{whyHtml}}
+    ${{s.catalyst ? `<div class="cat-chip hint" data-tip="${{_esc(s.catalyst.headline)}}">⚡ Catalyst — fresh news${{s.catalyst.source?' · '+s.catalyst.source:''}}</div>` : ''}}
     ${{edWarn}}
-    <div class="more">${{nNews ? nNews+' news &middot; ':''}}click for chart, RSI, patterns + full breakdown →</div>`;
+    <div class="more">${{s.ai_read ? '<span class="ai-tag">🧠 AI note</span> &middot; ' : ''}}${{nNews ? nNews+' news &middot; ':''}}click for chart, RSI, patterns + full breakdown →</div>`;
   const _fb = el.querySelector('.favbtn');
   if (_fb) _fb.addEventListener('click', (e) => {{
     e.stopPropagation(); _toggleFav(s.symbol);
@@ -1671,9 +1802,11 @@ const _ACT_ORDER = {{'BUY':0, 'SHORT':1, 'HOLD LONG':2, 'HOLD SHORT':3, 'EXIT':4
 const _conv = s => (s.conviction ? s.conviction.score_pct : -1);
 
 // ===== Alternate layouts (view switcher) ===========================================
-let _layout = 'cards';
-try {{ _layout = localStorage.getItem('layout') || 'cards'; }} catch(e) {{}}
+let _layout = 'terminal';
+try {{ _layout = localStorage.getItem('layout') || 'terminal'; }} catch(e) {{}}
 function _pxOf(s) {{ return (s.quote_price != null) ? s.quote_price : s.price; }}
+function _rag(pct) {{ pct = pct||0; return pct>=70 ? 'var(--buy)' : (pct>=50 ? '#c08a1e' : 'var(--sell)'); }}
+function _ragT(pct) {{ pct = pct||0; return pct>=70 ? '#33d17a' : (pct>=50 ? '#e8a33d' : '#ff5c4d'); }}
 function _dirCol(s) {{
   if (s.direction === 'SHORT') return 'var(--sell)';
   if (s.action === 'BUY' || s.action === 'HOLD LONG' || s.action === 'WATCH LONG') return 'var(--buy)';
@@ -1754,7 +1887,7 @@ function L_terminal(list) {{
     return `<div class="bbtile" data-open="${{s.symbol}}"><div class="bbtop">${{_logo2(s.symbol,24)}}`
       + `<span class="bbsym">${{s.symbol}}</span><span class="bbact" style="color:${{_bbAct(s)}};">${{s.action}}</span></div>`
       + `<div class="bbpx"><span data-px="${{s.symbol}}">${{_pxOf(s).toLocaleString()}}</span> ${{dcs}}</div>`
-      + `<div class="bbmeta">CONV <b style="color:#e8a33d;">${{_conv(s)>=0?_conv(s):'—'}}</b> · ${{_famOf(s)||'—'}}</div>`
+      + `<div class="bbmeta">CONV <b style="color:${{_conv(s)>=0?_ragT(_conv(s)):'#8a8a6a'}};">${{_conv(s)>=0?_conv(s):'—'}}</b> · ${{_famOf(s)||'—'}}</div>`
       + `<div class="bblv">${{lv}}</div></div>`;
   }}).join('');
   return _bindAll(_wrap('bbwrap', head + `<div class="bbgrid">${{tiles}}</div>`), list);
@@ -1773,7 +1906,7 @@ function _laneTip(s) {{
 function L_lanes(list) {{
   const lane = (title, col, items) => `<div class="lane"><div class="lanehd" style="color:${{col}};">${{title}} · ${{items.length}}</div>`
     + (items.map(s=>`<div class="lcard hint" data-open="${{s.symbol}}" data-tiphtml="${{_esc(_laneTip(s))}}" style="border-left-color:${{col}};">`
-      + `<div class="lcard-t">${{_logo2(s.symbol,18)}}<span class="lsym">${{s.symbol}}</span><span class="lconv">${{_conv(s)>=0?_conv(s)+'%':'—'}}</span></div>`
+      + `<div class="lcard-t">${{_logo2(s.symbol,18)}}<span class="lsym">${{s.symbol}}</span><span class="lconv" style="color:${{_conv(s)>=0?_rag(_conv(s)):'var(--muted)'}};font-weight:700;">${{_conv(s)>=0?_conv(s)+'%':'—'}}</span></div>`
       + `${{_spark2(s.symbol, col, 150, 26)}}`
       + `<div class="lsub">${{_pxOf(s).toLocaleString ? '$'+_pxOf(s).toLocaleString() : ''}} · ${{_famOf(s)}}</div></div>`).join('') || '<div class="lsub" style="padding:6px;">—</div>') + '</div>';
   const buys = list.filter(s=>['BUY','HOLD LONG'].includes(s.action));
@@ -1784,14 +1917,14 @@ function L_lanes(list) {{
 function L_gauges(list) {{
   const R=26, C=2*Math.PI*R;
   const cells = list.map(s=>{{
-    const raw=_conv(s); const pc=Math.max(0,Math.min(100, raw>=0?raw:0)); const col=_dirCol(s);
+    const raw=_conv(s); const pc=Math.max(0,Math.min(100, raw>=0?raw:0)); const col=_rag(pc);
     const dash=(C*pc/100).toFixed(1);
     return `<div class="gauge" data-open="${{s.symbol}}"><svg viewBox="0 0 64 64" class="gsvg">`
       + `<circle cx="32" cy="32" r="${{R}}" fill="none" stroke="var(--inset)" stroke-width="6"/>`
       + `<circle cx="32" cy="32" r="${{R}}" fill="none" stroke="${{col}}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${{dash}} ${{(C-dash).toFixed(1)}}" transform="rotate(-90 32 32)"/>`
       + `<text x="32" y="38" text-anchor="middle" class="gnum">${{raw>=0?pc:'—'}}</text></svg>`
       + `<div class="glab">${{_logo2(s.symbol,16)}}<span>${{s.symbol}}</span></div>`
-      + `<div class="gact" style="color:${{col}};">${{s.action}}</div></div>`;
+      + `<div class="gact" style="color:${{_dirCol(s)}};">${{s.action}}</div></div>`;
   }}).join('');
   return _bindAll(_wrap('gauges', cells), list);
 }}
@@ -2032,7 +2165,8 @@ function openModal(s) {{
     Object.keys(edges).forEach(k => {{
       const e = edges[k]; const wr = e.win_rate == null ? '–' : e.win_rate + '%';
       const ret = (e.total_return >= 0 ? '+' : '') + e.total_return + '%';
-      rows += `<tr><td class="hcell" data-tip="${{_esc(STRAT_INFO[e.label] || '')}}">${{e.label}}</td>`
+      const dir = e.side==='short' ? '<span style="color:var(--sell);" title="short strategy">▼</span> ' : '<span style="color:var(--buy);" title="long strategy">▲</span> ';
+      rows += `<tr><td class="hcell" data-tip="${{_esc(STRAT_INFO[e.label] || '')}}">${{dir}}${{e.label}}</td>`
         + `<td class="hcell" style="color:var(--muted);" data-tip="${{_esc(TYPE_INFO[e.kind] || '')}}">${{e.kind}}</td>`
         + `<td style="text-align:right;">${{wr}}</td><td style="text-align:right;color:var(--muted);">${{e.n_trades}}</td>`
         + `<td style="text-align:right;" class="${{e.total_return >= 0 ? 'win' : 'loss'}}">${{ret}}</td></tr>`;

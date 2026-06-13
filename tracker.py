@@ -133,6 +133,18 @@ def _stats(log: list[dict]) -> dict:
     rets = [t["return_pct"] for t in resolved if "return_pct" in t]
     open_n = sum(1 for t in log if t["status"] == "open")
     recent = sorted(resolved, key=lambda t: t.get("exit_date", ""), reverse=True)[:15]
+    win_rets = [t["return_pct"] for t in wins if "return_pct" in t]
+    loss_rets = [t["return_pct"] for t in losses if "return_pct" in t]
+
+    def _grp(items):
+        rv = [t["return_pct"] for t in items if "return_pct" in t]
+        w = sum(1 for t in items if t["status"] == "win")
+        n = sum(1 for t in items if t["status"] in ("win", "loss", "expired"))
+        return {"n": n, "win_rate": round(w / n * 100, 1) if n else None,
+                "avg_return": round(sum(rv) / len(rv), 2) if rv else None}
+
+    by_dir = {d: _grp([t for t in resolved if (t.get("direction") or "LONG") == d]) for d in ("LONG", "SHORT")}
+    by_conv = {c: _grp([t for t in resolved if t.get("conviction") == c]) for c in ("High", "Medium", "Low")}
     return {
         "advised": len(log),
         "resolved": len(resolved),
@@ -141,5 +153,11 @@ def _stats(log: list[dict]) -> dict:
         "losses": len(losses),
         "win_rate": round(len(wins) / len(resolved) * 100, 1) if resolved else None,
         "avg_return": round(sum(rets) / len(rets), 2) if rets else None,
+        "avg_win": round(sum(win_rets) / len(win_rets), 2) if win_rets else None,
+        "avg_loss": round(sum(loss_rets) / len(loss_rets), 2) if loss_rets else None,
+        # expectancy = average return per resolved call (the honest "edge per trade")
+        "expectancy": round(sum(rets) / len(rets), 2) if rets else None,
+        "by_direction": by_dir,
+        "by_conviction": by_conv,
         "recent": recent,
     }

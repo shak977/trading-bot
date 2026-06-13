@@ -117,7 +117,9 @@ def test_strategies():
     ev = strategies.evaluate(df, CONFIG)
     _ok("confluence count within range", 0 <= ev["count"] <= ev["total"] == len(strategies.STRATEGIES))
     se = analytics.strategy_edges(df, CONFIG)
-    _ok("edges cover every strategy", set(se["by"].keys()) == set(strategies.STRATEGIES.keys()))
+    _expect = set(strategies.STRATEGIES.keys()) | set(strategies.SHORT_STRATEGIES.keys())
+    _ok("edges cover every long + short strategy", set(se["by"].keys()) == _expect)
+    _ok("edges tagged with side", all(v.get("side") in ("long", "short") for v in se["by"].values()))
     _ok("each edge has win/trade fields", all(("win_rate" in v and "n_trades" in v) for v in se["by"].values()))
 
 
