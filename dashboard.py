@@ -1107,6 +1107,17 @@ def render_html(snap: dict) -> str:
   .tvwrap {{ position:relative; width:100%; max-width:1100px; padding-bottom:min(56.25%, 620px); height:0;
     border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#000; }}
   .tvwrap iframe {{ position:absolute; inset:0; width:100%; height:100%; border:0; }}
+  /* compact Bloomberg live widget on the Signals page */
+  .tvwidget {{ background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:10px 14px; margin:0 0 16px; max-width:460px; box-shadow:var(--shadow); }}
+  .tvwidget summary {{ cursor:pointer; font-weight:700; font-size:13px; display:flex; align-items:center;
+    gap:8px; list-style:none; }}
+  .tvwidget summary::-webkit-details-marker {{ display:none; }}
+  .tvwidget .tvw-open {{ margin-left:auto; font-size:11.5px; font-weight:600; color:var(--accent); text-decoration:none; }}
+  .tvwidget .tvw-open:hover {{ text-decoration:underline; }}
+  .tvw-frame {{ position:relative; width:100%; padding-bottom:56.25%; height:0; margin-top:10px;
+    border-radius:8px; overflow:hidden; background:#000; }}
+  .tvw-frame iframe {{ position:absolute; inset:0; width:100%; height:100%; border:0; }}
   .lanes {{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; align-items:start; }}
   .lanehd {{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; }}
   .lcard {{ background:var(--card); border:1px solid var(--line); border-left:3px solid var(--muted);
@@ -1507,6 +1518,10 @@ def render_html(snap: dict) -> str:
 
   <section class="page on" id="page-signals">
     <div class="strat-badge"><span class="k">Strategy type</span><span class="v">Multi-strategy confluence · 7 long + 7 short, trend-gated</span></div>
+    <details class="tvwidget" open>
+      <summary>📺 Bloomberg live<a class="tvw-open" href="https://www.youtube.com/@markets/live" target="_blank" rel="noopener">open on YouTube ↗</a></summary>
+      <div class="tvw-frame"><iframe src="https://www.youtube.com/embed/iEpJwprxDdk?autoplay=1&amp;mute=1" title="Bloomberg live" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+    </details>
     <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Layout:</span>
       <span class="ctlgrp" id="layoutBtns"></span></div>
     <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Sort &amp; filter:</span>
