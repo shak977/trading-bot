@@ -1071,6 +1071,8 @@ def render_html(snap: dict) -> str:
   .bbpx {{ color:#fff; font-size:18px; font-weight:700; margin:6px 0 2px; font-variant-numeric:tabular-nums; }}
   .bbmeta {{ color:#8a8a6a; font-size:10.5px; }}
   .bblv {{ color:#8a8a6a; font-size:10.5px; margin-top:3px; font-variant-numeric:tabular-nums; }}
+  .bbtv {{ color:#8a8a6a; font-size:10px; margin-top:2px; letter-spacing:.02em; }}
+  .gtv {{ color:var(--muted); font-size:10px; margin-top:2px; }}
   .lanes {{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; align-items:start; }}
   .lanehd {{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; }}
   .lcard {{ background:var(--card); border:1px solid var(--line); border-left:3px solid var(--muted);
@@ -1823,6 +1825,7 @@ try {{ _layout = localStorage.getItem('layout') || 'terminal'; }} catch(e) {{}}
 function _pxOf(s) {{ return (s.quote_price != null) ? s.quote_price : s.price; }}
 function _rag(pct) {{ pct = pct||0; return pct>=70 ? 'var(--buy)' : (pct>=50 ? '#c08a1e' : 'var(--sell)'); }}
 function _ragT(pct) {{ pct = pct||0; return pct>=70 ? '#33d17a' : (pct>=50 ? '#e8a33d' : '#ff5c4d'); }}
+function _tvBit(s) {{ return (s.tv && s.tv.d) ? (' · TV ' + s.tv.d) : ''; }}  // short tail for compact rows
 function _dirCol(s) {{
   if (s.direction === 'SHORT') return 'var(--sell)';
   if (s.action === 'BUY' || s.action === 'HOLD LONG' || s.action === 'WATCH LONG') return 'var(--buy)';
@@ -1904,7 +1907,9 @@ function L_terminal(list) {{
       + `<span class="bbsym">${{s.symbol}}</span><span class="bbact" style="color:${{_bbAct(s)}};">${{s.action}}</span></div>`
       + `<div class="bbpx"><span data-px="${{s.symbol}}">${{_pxOf(s).toLocaleString()}}</span> ${{dcs}}</div>`
       + `<div class="bbmeta">CONV <b style="color:${{_conv(s)>=0?_ragT(_conv(s)):'#8a8a6a'}};">${{_conv(s)>=0?_conv(s):'—'}}</b> · ${{_famOf(s)||'—'}}</div>`
-      + `<div class="bblv">${{lv}}</div></div>`;
+      + `<div class="bblv">${{lv}}</div>`
+      + (s.tv && s.tv.d ? `<div class="bbtv">TV <span style="color:#cbb88a;">${{s.tv.d}}</span> · 1W ${{s.tv.w||'—'}}</div>` : '')
+      + `</div>`;
   }}).join('');
   return _bindAll(_wrap('bbwrap', head + `<div class="bbgrid">${{tiles}}</div>`), list);
 }}
@@ -1924,7 +1929,7 @@ function L_lanes(list) {{
     + (items.map(s=>`<div class="lcard hint" data-open="${{s.symbol}}" data-tiphtml="${{_esc(_laneTip(s))}}" style="border-left-color:${{col}};">`
       + `<div class="lcard-t">${{_logo2(s.symbol,18)}}<span class="lsym">${{s.symbol}}</span><span class="lconv" style="color:${{_conv(s)>=0?_rag(_conv(s)):'var(--muted)'}};font-weight:700;">${{_conv(s)>=0?_conv(s)+'%':'—'}}</span></div>`
       + `${{_spark2(s.symbol, col, 150, 26)}}`
-      + `<div class="lsub">${{_pxOf(s).toLocaleString ? '$'+_pxOf(s).toLocaleString() : ''}} · ${{_famOf(s)}}</div></div>`).join('') || '<div class="lsub" style="padding:6px;">—</div>') + '</div>';
+      + `<div class="lsub">${{_pxOf(s).toLocaleString ? '$'+_pxOf(s).toLocaleString() : ''}} · ${{_famOf(s)}}${{_tvBit(s)}}</div></div>`).join('') || '<div class="lsub" style="padding:6px;">—</div>') + '</div>';
   const buys = list.filter(s=>['BUY','HOLD LONG'].includes(s.action));
   const shorts = list.filter(s=>['SHORT','HOLD SHORT'].includes(s.action));
   const watch = list.filter(s=>['WATCH LONG','WATCH SHORT','EXIT','AVOID','FLAT'].includes(s.action));
@@ -1940,7 +1945,8 @@ function L_gauges(list) {{
       + `<circle cx="32" cy="32" r="${{R}}" fill="none" stroke="${{col}}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${{dash}} ${{(C-dash).toFixed(1)}}" transform="rotate(-90 32 32)"/>`
       + `<text x="32" y="38" text-anchor="middle" class="gnum">${{raw>=0?pc:'—'}}</text></svg>`
       + `<div class="glab">${{_logo2(s.symbol,16)}}<span>${{s.symbol}}</span></div>`
-      + `<div class="gact" style="color:${{_dirCol(s)}};">${{s.action}}</div></div>`;
+      + `<div class="gact" style="color:${{_dirCol(s)}};">${{s.action}}</div>`
+      + (s.tv && s.tv.d ? `<div class="gtv">TV ${{s.tv.d}}</div>` : '') + `</div>`;
   }}).join('');
   return _bindAll(_wrap('gauges', cells), list);
 }}
@@ -1951,7 +1957,7 @@ function L_feed(list) {{
     const verb = s.action.indexOf('WATCH')>=0?'is building a':(s.action.indexOf('HOLD')>=0?'is holding a':'triggered a');
     return `<div class="feeditem" data-open="${{s.symbol}}">${{_logo2(s.symbol,26)}}`
       + `<div class="feedtxt"><div><b>${{s.symbol}}</b> ${{verb}} <span style="color:${{_dirCol(s)}};font-weight:600;">${{s.action}}</span> — ${{trig}}</div>`
-      + `<div class="feedsub">${{_conv(s)>=0?_conv(s)+'% conviction · ':''}}$${{_pxOf(s).toLocaleString()}} · as of ${{s.as_of||''}}</div></div>`
+      + `<div class="feedsub">${{_conv(s)>=0?_conv(s)+'% conviction · ':''}}$${{_pxOf(s).toLocaleString()}}${{_tvBit(s)}} · as of ${{s.as_of||''}}</div></div>`
       + `<span class="feedspark">${{_spark2(s.symbol,_dirCol(s),96,30)}}</span></div>`;
   }}).join('');
   return _bindAll(_wrap('feedwrap', rows), list);
@@ -1962,7 +1968,7 @@ function L_ticker(list) {{
     + `<span class="tksym">${{s.symbol}}</span><span style="color:${{_dirCol(s)}};font-weight:600;width:80px;">${{s.action}}</span>`
     + `<span class="tkpx" data-px="${{s.symbol}}">$${{_pxOf(s).toLocaleString()}}</span>`
     + `<span class="tkspark">${{_spark2(s.symbol,_dirCol(s),72,22)}}</span>`
-    + `<span class="tkfam">${{_famOf(s)}}</span><span class="tklv">${{_levelsInline(s)}}</span></div>`).join('');
+    + `<span class="tkfam">${{_famOf(s)}}${{s.tv&&s.tv.d?' · TV '+s.tv.d:''}}</span><span class="tklv">${{_levelsInline(s)}}</span></div>`).join('');
   return _bindAll(_wrap('', `<div class="tktape"><div class="tktape-in">${{tape}}${{tape}}</div></div><div class="tkbody">${{rows}}</div>`), list);
 }}
 const LAYOUT_RENDER = {{terminal:L_terminal, lanes:L_lanes, gauges:L_gauges, feed:L_feed, ticker:L_ticker}};
