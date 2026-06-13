@@ -1104,6 +1104,9 @@ def render_html(snap: dict) -> str:
   .bblv {{ color:#8a8a6a; font-size:10.5px; margin-top:3px; font-variant-numeric:tabular-nums; }}
   .bbtv {{ color:#8a8a6a; font-size:10px; margin-top:2px; letter-spacing:.02em; }}
   .gtv {{ color:var(--muted); font-size:10px; margin-top:2px; }}
+  .tvwrap {{ position:relative; width:100%; max-width:1100px; padding-bottom:min(56.25%, 620px); height:0;
+    border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#000; }}
+  .tvwrap iframe {{ position:absolute; inset:0; width:100%; height:100%; border:0; }}
   .lanes {{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; align-items:start; }}
   .lanehd {{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; }}
   .lcard {{ background:var(--card); border:1px solid var(--line); border-left:3px solid var(--muted);
@@ -1477,6 +1480,7 @@ def render_html(snap: dict) -> str:
     <button data-page="track">Track record</button>
     <button data-page="method">How it works</button>
     <button data-page="news">Market news</button>
+    <button data-page="livetv">Live TV</button>
   </nav>
 
   <section class="page" id="page-markets">
@@ -1605,6 +1609,12 @@ def render_html(snap: dict) -> str:
   <section class="page" id="page-news">
     <h2 style="margin-top:0;">Market news <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— recent headlines across the scanned stocks</span></h2>
     <ul class="news" id="news"></ul>
+  </section>
+
+  <section class="page" id="page-livetv">
+    <h2 style="margin-top:0;">Live TV <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— Bloomberg Television, 24/7 markets stream</span></h2>
+    <div class="tvwrap"><iframe id="tvFrame" data-src="https://www.youtube.com/embed/live_stream?channel=UCIALMKvObZNtJ6AmdCLP7Lg&autoplay=1&mute=1" title="Bloomberg Television live" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+    <p style="color:var(--muted);font-size:12px;margin-top:10px;">Live 24/7 markets stream from <b>Bloomberg Television</b> (@markets) via YouTube — starts muted; unmute in the player. If it doesn't load (occasional geo/embedding limits), <a href="https://www.youtube.com/@markets/live" target="_blank" rel="noopener">watch on YouTube ↗</a>. Not affiliated with Bloomberg; embedded for convenience.</p>
   </section>
 
   <div class="disclaimer">
@@ -2387,6 +2397,11 @@ document.addEventListener('keydown', e => {{ if (e.key === 'Escape') closeModal(
       try {{ window.dispatchEvent(new Event('resize')); }} catch (e) {{}}
       _refitCharts();
     }}, 60);
+    // lazy-load the Live TV stream only when the tab is first opened (saves bandwidth)
+    if (page === 'livetv') {{
+      const f = document.getElementById('tvFrame');
+      if (f && !f.src && f.dataset.src) f.src = f.dataset.src;
+    }}
   }}
   tabs.forEach(b => b.addEventListener('click', () => show(b.dataset.page)));
   let saved = 'signals';
