@@ -113,6 +113,41 @@ export default {
       }
     }
 
+    // --- resolve a channel's CURRENT live video id: /?ytlive=CHANNEL_ID ---
+    // YouTube's legacy embed/live_stream?channel= auto-resolve is deprecated and often
+    // shows "video unavailable". Instead we fetch the channel's /live page server-side
+    // (with a consent cookie + desktop UA so YouTube serves the real HTML, not a consent
+    // wall) and pull out the live video id. The browser then embeds that exact video.
+    const ytlive = (url.searchParams.get("ytlive") || "").trim();
+    if (ytlive) {
+      const tryUrls = [
+        `https://www.youtube.com/channel/${encodeURIComponent(ytlive)}/live?hl=en&gl=US`,
+        `https://www.youtube.com/embed/live_stream?channel=${encodeURIComponent(ytlive)}`,
+      ];
+      for (const yurl of tryUrls) {
+        try {
+          const up = await fetch(yurl, {
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+                + "(KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+              "Accept-Language": "en-US,en;q=0.9",
+              "Cookie": "CONSENT=YES+cb; PREF=hl=en",
+            },
+          });
+          if (!up.ok) continue;
+          const html = await up.text();
+          let m = html.match(/<link rel="canonical" href="https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})"/);
+          if (!m) m = html.match(/"videoId":"([\w-]{11})"/);
+          // only treat as live if the page actually flags a live broadcast
+          const isLive = /"isLiveContent":true|"isLive":true|"liveBroadcastDetails"/.test(html);
+          if (m && (isLive || yurl.includes("/embed/"))) {
+            return json({ videoId: m[1], live: isLive }, 200, cors);
+          }
+        } catch (e) { /* try next */ }
+      }
+      return json({ error: "no live video" }, 404, cors);
+    }
+
     // --- latest quotes: /?symbols=AAPL,MSFT ---
     const symbols = (url.searchParams.get("symbols") || "").trim();
     if (!symbols) return json({ error: "pass ?symbols=AAPL,MSFT or ?bars=AAPL" }, 400, cors);

@@ -2394,14 +2394,30 @@ const TV_CHANNELS = [
 ];
 let _tvCur = 'bloomberg', _tvLoaded = false;
 try {{ _tvCur = localStorage.getItem('tvch') || 'bloomberg'; }} catch (e) {{}}
-function _tvSet(key) {{
+let _tvReq = 0;
+async function _tvSet(key) {{
   const ch = TV_CHANNELS.find(c => c[0] === key) || TV_CHANNELS[0];
   _tvCur = ch[0];
   const f = document.getElementById('tvFrame');
-  if (f) f.src = `https://www.youtube.com/embed/live_stream?channel=${{ch[2]}}&autoplay=1&mute=1`;
   const lk = document.getElementById('tvLink'); if (lk) lk.href = ch[3];
   document.querySelectorAll('#tvBtns button').forEach(b => b.classList.toggle('on', b.dataset.tv === _tvCur));
   try {{ localStorage.setItem('tvch', _tvCur); }} catch (e) {{}}
+  if (!f) return;
+  const myReq = ++_tvReq;            // guard against out-of-order responses on fast clicks
+  f.src = 'about:blank';
+  // Ask the Worker to resolve this channel's CURRENT live video id, then embed that exact
+  // video (reliable). Fall back to the legacy channel auto-embed if resolution fails.
+  let vid = null;
+  if (LIVE_URL) {{
+    try {{
+      const r = await fetch(LIVE_URL + '?ytlive=' + encodeURIComponent(ch[2]));
+      if (r.ok) {{ const d = await r.json(); vid = d && d.videoId ? d.videoId : null; }}
+    }} catch (e) {{}}
+  }}
+  if (myReq !== _tvReq) return;       // a newer click superseded us
+  f.src = vid
+    ? `https://www.youtube-nocookie.com/embed/${{vid}}?autoplay=1&mute=1`
+    : `https://www.youtube.com/embed/live_stream?channel=${{ch[2]}}&autoplay=1&mute=1`;
 }}
 function _tvInit() {{
   const bar = document.getElementById('tvBtns');
