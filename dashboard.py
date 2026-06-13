@@ -918,24 +918,21 @@ def render_html(snap: dict) -> str:
   .mono2 {{ display:inline-flex; align-items:center; justify-content:center; border-radius:5px;
     color:#fff; font-weight:700; overflow:hidden; position:relative; flex:none; }}
   .mono2 img {{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#fff; }}
-  .tmwrap {{ background:#0a0e13; border:1px solid #1b242e; border-radius:10px; overflow-x:auto;
+  .bbwrap {{ background:#000; border:1px solid #2a2a17; border-radius:8px; overflow:hidden;
     font-family:ui-monospace,Menlo,Consolas,monospace; }}
-  .tmhead {{ display:flex; align-items:center; gap:16px; padding:10px 12px; border-bottom:1px solid #1b242e;
-    background:#0c1219; font-size:11px; color:#7c8a99; letter-spacing:.5px; white-space:nowrap; }}
-  .tmtitle {{ color:#d7e0ea; font-weight:700; letter-spacing:1px; }}
-  .tmstat b {{ color:#d7e0ea; }}
-  .tmrow {{ display:flex; align-items:center; gap:10px; padding:7px 12px; border-bottom:1px solid #1b242e; cursor:pointer; white-space:nowrap; }}
-  .tmrow:last-child {{ border-bottom:0; }} .tmrow:hover {{ background:#0f1620; }}
-  .tmcol {{ color:#5b6675; font-size:10px; letter-spacing:.06em; cursor:default; }}
-  .tmcol:hover {{ background:transparent; }}
-  .tmlogo {{ width:16px; flex:none; }}
-  .tmsym {{ color:#d7e0ea; font-weight:600; width:58px; }}
-  .tmact {{ width:88px; font-size:12px; }}
-  .tmpx {{ color:#d7e0ea; width:74px; text-align:right; font-variant-numeric:tabular-nums; }}
-  .tmchg {{ width:56px; text-align:right; font-size:12px; font-variant-numeric:tabular-nums; }}
-  .tmconv {{ color:#9aa7b4; width:42px; text-align:right; }}
-  .tmlv {{ color:#9aa7b4; width:170px; text-align:right; font-size:12px; font-variant-numeric:tabular-nums; }}
-  .tmfam {{ color:#7c8a99; margin-left:auto; padding-left:14px; font-size:12px; }}
+  .bbhead {{ display:flex; align-items:center; gap:18px; padding:8px 12px; background:#13130a;
+    border-bottom:1px solid #2a2a17; font-size:11px; color:#8a8a6a; letter-spacing:1px;
+    white-space:nowrap; overflow-x:auto; }}
+  .bbtitle {{ color:#e8a33d; font-weight:700; }} .bbst b {{ color:#e8a33d; }}
+  .bbclock {{ margin-left:auto; color:#5a5a45; }}
+  .bbgrid {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:1px; background:#2a2a17; }}
+  .bbtile {{ background:#000; padding:9px 11px; cursor:pointer; }}
+  .bbtile:hover {{ background:#0c0c06; }}
+  .bbtop {{ display:flex; align-items:center; gap:7px; }}
+  .bbsym {{ color:#fff; font-weight:700; }} .bbact {{ margin-left:auto; font-size:11px; font-weight:700; }}
+  .bbpx {{ color:#fff; font-size:18px; font-weight:700; margin:6px 0 2px; font-variant-numeric:tabular-nums; }}
+  .bbmeta {{ color:#8a8a6a; font-size:10.5px; }}
+  .bblv {{ color:#8a8a6a; font-size:10.5px; margin-top:3px; font-variant-numeric:tabular-nums; }}
   .lanes {{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; align-items:start; }}
   .lanehd {{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; }}
   .lcard {{ background:var(--card); border:1px solid var(--line); border-left:3px solid var(--muted);
@@ -1732,33 +1729,35 @@ function _bindAll(container, list) {{
 }}
 const _wrap = (cls, html) => {{ const d=document.createElement('div'); d.className=cls; d.innerHTML=html||_empty(); return d; }};
 
+function _bbAct(s) {{
+  if (s.direction==='SHORT') return '#ff5c4d';
+  if (['BUY','HOLD LONG','WATCH LONG'].includes(s.action)) return '#33d17a';
+  return '#9a9a78';
+}}
 function L_terminal(list) {{
   const r = DATA.regime || {{}};
   const buys = list.filter(s=>['BUY','HOLD LONG'].includes(s.action)).length;
   const shorts = list.filter(s=>['SHORT','HOLD SHORT'].includes(s.action)).length;
-  const head = `<div class="tmhead"><span class="tmtitle">▰ SIGNAL DESK</span>`
-    + `<span class="tmstat">REGIME <b>${{(r.label||'—').toUpperCase()}}</b></span>`
-    + `<span class="tmstat">BREADTH <b>${{r.breadth!=null?r.breadth+'%':'—'}}</b></span>`
-    + `<span class="tmstat">BUYS <b style="color:#3fb950;">${{buys}}</b></span>`
-    + `<span class="tmstat">SHORTS <b style="color:#f0623f;">${{shorts}}</b></span></div>`;
-  const colhd = `<div class="tmrow tmcol"><span class="tmlogo"></span><span class="tmsym">SYMBOL</span>`
-    + `<span class="tmact">SIGNAL</span><span class="tmpx">LAST</span><span class="tmchg">CHG</span>`
-    + `<span class="tmconv">CONV</span><span class="tmlv">TARGET / ENTRY / STOP</span><span class="tmfam">SETUP</span></div>`;
-  const rows = list.map(s=>{{
+  const head = `<div class="bbhead"><span class="bbtitle">SIGNAL DESK ▮</span>`
+    + `<span class="bbst">REGIME <b>${{(r.label||'—').toUpperCase()}}</b></span>`
+    + `<span class="bbst">BREADTH <b style="color:#fff;">${{r.breadth!=null?r.breadth+'%':'—'}}</b></span>`
+    + `<span class="bbst">BUYS <b style="color:#33d17a;">${{buys}}</b></span>`
+    + `<span class="bbst">SHORTS <b style="color:#ff5c4d;">${{shorts}}</b></span>`
+    + `<span class="bbclock" id="bbclock"></span></div>`;
+  const tiles = list.map(s=>{{
     const p = s.plan||{{}};
     const dc = (s.quote_price!=null && s.prev_close) ? (s.quote_price/s.prev_close-1)*100 : (s.context&&s.context.day_change_pct);
-    const dcs = (dc!=null) ? `<span style="color:${{dc>=0?'#3fb950':'#f0623f'}};">${{dc>=0?'+':''}}${{dc.toFixed(1)}}%</span>` : '—';
-    const lv = (p.entry!=null) ? `<span style="color:#3fb950;">${{p.target}}</span> / ${{p.entry}} / <span style="color:#f0623f;">${{p.stop}}</span>` : '—';
-    return `<div class="tmrow" data-open="${{s.symbol}}"><span class="tmlogo">${{_logo2(s.symbol,16)}}</span>`
-      + `<span class="tmsym">${{s.symbol}}</span>`
-      + `<span class="tmact" style="color:${{_dirCol(s)}};">${{s.action}}</span>`
-      + `<span class="tmpx" data-px="${{s.symbol}}">${{_pxOf(s).toLocaleString()}}</span>`
-      + `<span class="tmchg">${{dcs}}</span>`
-      + `<span class="tmconv">${{_conv(s)>=0?_conv(s):'—'}}</span>`
-      + `<span class="tmlv">${{lv}}</span>`
-      + `<span class="tmfam">${{_famOf(s)}}</span></div>`;
+    const dcs = (dc!=null) ? `<span style="color:${{dc<0?'#ff5c4d':'#33d17a'}};">${{dc>=0?'+':''}}${{dc.toFixed(1)}}%</span>` : '';
+    const lv = (p.entry!=null)
+      ? `<span style="color:#33d17a;">T${{Math.round(p.target)}}</span> <span style="color:#cfcfcf;">E${{Math.round(p.entry)}}</span> <span style="color:#ff5c4d;">S${{Math.round(p.stop)}}</span>`
+      : '—';
+    return `<div class="bbtile" data-open="${{s.symbol}}"><div class="bbtop">${{_logo2(s.symbol,24)}}`
+      + `<span class="bbsym">${{s.symbol}}</span><span class="bbact" style="color:${{_bbAct(s)}};">${{s.action}}</span></div>`
+      + `<div class="bbpx"><span data-px="${{s.symbol}}">${{_pxOf(s).toLocaleString()}}</span> ${{dcs}}</div>`
+      + `<div class="bbmeta">CONV <b style="color:#e8a33d;">${{_conv(s)>=0?_conv(s):'—'}}</b> · ${{_famOf(s)||'—'}}</div>`
+      + `<div class="bblv">${{lv}}</div></div>`;
   }}).join('');
-  return _bindAll(_wrap('tmwrap', head+colhd+rows), list);
+  return _bindAll(_wrap('bbwrap', head + `<div class="bbgrid">${{tiles}}</div>`), list);
 }}
 function _laneTip(s) {{
   const p = s.plan||{{}}, conv=_conv(s);
@@ -1946,6 +1945,11 @@ async function refreshLive() {{
   }}
 }}
 if (LIVE_URL) {{ refreshLive(); setInterval(refreshLive, 30000); }}
+// live ET clock for the terminal header (only present when Terminal layout is active)
+setInterval(() => {{
+  const c = document.getElementById('bbclock');
+  if (c) try {{ c.textContent = new Date().toLocaleTimeString('en-US', {{hour12:false, timeZone:'America/New_York'}}) + ' ET'; }} catch(e) {{}}
+}}, 1000);
 
 // Notice when a newer build has been published (the Action rebuilds every ~30 min in market
 // hours) and offer a one-click refresh — never reloads from under the user.
