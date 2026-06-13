@@ -1,4 +1,4 @@
-// Cloudflare Worker — live-quote proxy for the trading dashboard.
+// Cloudflare Worker - live-quote proxy for the trading dashboard.
 //
 // It holds your Alpaca keys as Worker SECRETS (never sent to the browser) and
 // returns the latest trade price for the requested symbols, with CORS enabled
