@@ -2393,6 +2393,7 @@ document.addEventListener('keydown', e => {{ if (e.key === 'Escape') closeModal(
 // its 24/7 feed to paid YouTube TV and CNBC's live is cable-gated, so those are best-effort.
 const TV_CHANNELS = [
   ['yahoo', 'Yahoo Finance', 'UCEAZeUIeJs0IjQiqTCdVSIg', 'https://www.youtube.com/@YahooFinance/live', 'KQp-e_XQnDE'],
+  ['schwab', 'Schwab Network', 'UCqoSrYgusd8ZddtMoWhjHYA', 'https://www.youtube.com/@SchwabNetwork/live', 'vKOd3v8VTYo'],
   ['bloomberg', 'Bloomberg', 'UCIALMKvObZNtJ6AmdCLP7Lg', 'https://www.youtube.com/@markets/live', ''],
   ['cnbc', 'CNBC', 'UCvJJ_dzjViJCoLf5uKUTwoA', 'https://www.youtube.com/@CNBC/live', ''],
 ];
