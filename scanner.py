@@ -485,7 +485,7 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: st
 
 def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 factors=None, patterns=None, edge=None,
-                sentiment=None, fundamentals=None, price=None, tv=None):
+                sentiment=None, fundamentals=None, price=None, tv=None, regime=None):
     """Auto-scored pre-entry checklist, direction-aware. Each check is pass/warn/fail.
 
     For a LONG it asks the bullish questions (trending up? room to rise?); for a SHORT it
@@ -513,6 +513,26 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             "pass" if bullish else "fail",
             "Yes — price is above its longer-term trend." if bullish
             else "No — price is below its trend, so you'd be betting against the current direction.")
+
+    # Regime alignment — is this trade running with the broad market or against it?
+    reg_lbl = (regime or {}).get("label")
+    if reg_lbl and action in ("BUY", "SHORT", "HOLD LONG", "HOLD SHORT"):
+        br = (regime or {}).get("breadth")
+        brtxt = f"{br}% of stocks above trend" if br is not None else "mixed breadth"
+        if short:
+            if reg_lbl == "Risk-off":
+                add("With the market?", "pass", f"Yes — the tape is Risk-off ({brtxt}); a short runs with the broad market.")
+            elif reg_lbl == "Risk-on":
+                add("With the market?", "fail", f"No — the tape is Risk-on ({brtxt}); a short fights a rising market.")
+            else:
+                add("With the market?", "warn", f"Mixed — neutral tape ({brtxt}); no market tailwind for a short.")
+        else:
+            if reg_lbl == "Risk-on":
+                add("With the market?", "pass", f"Yes — the tape is Risk-on ({brtxt}); a long runs with the broad market.")
+            elif reg_lbl == "Risk-off":
+                add("With the market?", "fail", f"No — the tape is Risk-off ({brtxt}); a long fights a falling market.")
+            else:
+                add("With the market?", "warn", f"Mixed — neutral tape ({brtxt}); no market tailwind for a long.")
 
     if short:
         if rsi <= cfg.rsi_oversold:
@@ -706,12 +726,13 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             "earnings_days": ed, "earnings_gated": gated}
 
 
-def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None) -> None:
+def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, regime=None) -> None:
     """Recompute conviction + desk read for a shown row once research is fetched."""
     direction = row.get("direction", "LONG")
     conv = _conviction(row["action"], direction, row["rsi"], row["rel_volume"], row["plan"], row["context"], cfg,
                        row.get("factors"), row.get("patterns"), row.get("edge"),
-                       sentiment=sentiment, fundamentals=fundamentals, price=row.get("price"), tv=tv)
+                       sentiment=sentiment, fundamentals=fundamentals, price=row.get("price"), tv=tv,
+                       regime=regime)
     row["conviction"] = conv
     row["desk_read"] = _desk_read(row["action"], direction, row["plan"], row["context"], conv,
                                   row.get("patterns"), row.get("edge"),

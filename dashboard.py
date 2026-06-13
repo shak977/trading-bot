@@ -64,6 +64,29 @@ def _market_regime(rows: list[dict]) -> dict | None:
             "buys": buys, "total": len(rows), "note": note}
 
 
+def _concentration(shown: list[dict]) -> dict | None:
+    """Flag when fresh entries pile into one sector — they're often the same macro bet in
+    disguise, so '5 buys' can really be one position's worth of risk. Returns the dominant
+    sector and its share when a single sector holds >=50% of fresh BUY (or SHORT) signals."""
+    from collections import Counter
+    out = None
+    for action, word in (("BUY", "buys"), ("SHORT", "shorts")):
+        fresh = [s for s in shown if s.get("action") == action]
+        if len(fresh) < 3:
+            continue
+        by = Counter(s.get("sector") or "Other" for s in fresh)
+        sector, n = by.most_common(1)[0]
+        frac = n / len(fresh)
+        if frac >= 0.5:
+            cand = {"action": action, "word": word, "sector": sector, "n": n,
+                    "total": len(fresh), "pct": round(frac * 100),
+                    "symbols": [s["symbol"] for s in fresh if (s.get("sector") or "Other") == sector]}
+            # keep the most concentrated of the two sides
+            if out is None or cand["pct"] > out["pct"]:
+                out = cand
+    return out
+
+
 def _sector_strength(rows: list[dict]) -> list[dict]:
     """Rank sectors by how many of their stocks are above their trend line."""
     from collections import defaultdict
@@ -314,7 +337,7 @@ def build_snapshot() -> dict:
     for r in shown:
         r["fundamentals"] = fundamentals.get(r["symbol"])
         # Re-score conviction + desk read now that research is in hand.
-        scanner.rescore(r, CONFIG, sentiment=r.get("sentiment"), fundamentals=r.get("fundamentals"), tv=r.get("tv"))
+        scanner.rescore(r, CONFIG, sentiment=r.get("sentiment"), fundamentals=r.get("fundamentals"), tv=r.get("tv"), regime=regime)
 
     # Ray Dalio All Weather allocation + backtest vs SPY (keyless Yahoo history).
     try:
@@ -405,6 +428,7 @@ def build_snapshot() -> dict:
         "track": track,
         "regime": regime,
         "sectors": sectors,
+        "concentration": _concentration(shown),
         "macro": macro,
         "price_drops": price_drops,
         "momentum": [dict(m, name=scanner.name_of(
@@ -1053,6 +1077,9 @@ def render_html(snap: dict) -> str:
   .lad-row.stp > span:last-child, .lad-row.stp em {{ color:var(--sell); }}
   .lad-rr {{ padding:5px 11px; border-top:0.5px solid var(--line); font-size:11px; color:var(--muted); text-align:right; }}
   .card-warn {{ margin-top:9px; font-size:11.5px; color:var(--sell); font-weight:500; }}
+  .conc-warn {{ margin:0 0 16px; padding:10px 14px; font-size:12.5px; line-height:1.5; border-radius:10px;
+    background:color-mix(in srgb, #b8860b 12%, transparent); border:1px solid color-mix(in srgb, #b8860b 38%, transparent);
+    color:var(--txt); cursor:help; }}
   .hcell {{ cursor:help; text-decoration:underline dotted var(--muted); text-underline-offset:3px;
     text-decoration-thickness:1px; }}
   .hint {{ cursor:help; }}
@@ -1526,6 +1553,7 @@ def render_html(snap: dict) -> str:
 
   <section class="page on" id="page-signals">
     <div class="strat-badge"><span class="k">Strategy type</span><span class="v">Multi-strategy confluence · 7 long + 7 short, trend-gated</span></div>
+    <div id="concWarn"></div>
     <details class="tvwidget" open>
       <summary>📺 Bloomberg live<a class="tvw-open" href="https://www.youtube.com/@markets/live" target="_blank" rel="noopener">open on YouTube ↗</a></summary>
       <div class="tvw-frame"><iframe src="https://www.youtube.com/embed/iEpJwprxDdk?autoplay=1&amp;mute=1" title="Bloomberg live" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
@@ -2044,8 +2072,17 @@ function L_ticker(list) {{
 const LAYOUT_RENDER = {{terminal:L_terminal, lanes:L_lanes, gauges:L_gauges, feed:L_feed, ticker:L_ticker}};
 // ===================================================================================
 
+function _renderConcWarn() {{
+  const el = document.getElementById('concWarn'); if (!el) return;
+  const c = DATA.concentration;
+  if (!c) {{ el.innerHTML = ''; return; }}
+  el.innerHTML = `<div class="conc-warn" data-tip="${{c.symbols.join(', ')}}">`
+    + `⚠ Concentration: ${{c.n}} of ${{c.total}} fresh ${{c.word}} are in <b>${{c.sector}}</b> (${{c.pct}}%). `
+    + `These can be the same macro bet in disguise — sizing them as separate trades understates your real risk.</div>`;
+}}
 function renderCards(view) {{
   _curView = view;
+  _renderConcWarn();
   cards.innerHTML = '';
   if (_layout && _layout !== 'cards' && LAYOUT_RENDER[_layout]) {{
     const l = _applyView(DATA.signals.slice(), view);
