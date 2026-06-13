@@ -680,7 +680,12 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 add("Upside to target?", "fail", f"Price is already above the avg analyst target (${tm:,.0f}).")
         ed = fundamentals.get("earnings_days")
         if ed is not None:
-            if ed <= 7:
+            fresh = action in ("BUY", "SHORT")
+            if ed <= 2 and fresh:
+                add("Earnings clear?", "fail",
+                    f"Earnings in {ed} day{'s' if ed != 1 else ''} — too close to open a fresh position; "
+                    "a binary report can gap straight through your stop.")
+            elif ed <= 7:
                 add("Earnings clear?", "warn",
                     f"Earnings in {ed} day{'s' if ed != 1 else ''} — a binary event that can gap the price either way.")
             else:
@@ -689,9 +694,16 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
     pts = {"pass": 1.0, "warn": 0.5, "fail": 0.0}
     score = sum(pts[c["status"]] for c in checks) / len(checks)
     label = "High" if score >= 0.75 else "Medium" if score >= 0.5 else "Low"
+    # Earnings gate: a fresh entry within ~2 days of a report is a coin-flip event, so never
+    # let it carry High conviction — that keeps it out of the digest/alerts (which key on High).
+    ed = (fundamentals or {}).get("earnings_days")
+    gated = ed is not None and ed <= 2 and action in ("BUY", "SHORT")
+    if gated and label == "High":
+        label = "Medium"
     return {"score_pct": round(score * 100), "label": label,
             "passes": sum(1 for c in checks if c["status"] == "pass"),
-            "total": len(checks), "checks": checks}
+            "total": len(checks), "checks": checks,
+            "earnings_days": ed, "earnings_gated": gated}
 
 
 def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None) -> None:

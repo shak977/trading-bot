@@ -1808,7 +1808,10 @@ function makeCard(s) {{
   const _cn = (s.strategies&&s.strategies.now) ? s.strategies.now : null;
   const _cs = (s.strategies&&s.strategies.short) ? s.strategies.short : null;
   const ed = (s.fundamentals||{{}}).earnings_days;
-  const edWarn = (ed!=null && ed<=7)
+  const edGated = (s.conviction||{{}}).earnings_gated;
+  const edWarn = edGated
+    ? `<div class="card-warn">⛔ Earnings in ${{ed}}d — held back from a fresh entry (a report this close can gap through the stop)</div>`
+    : (ed!=null && ed<=7)
     ? `<div class="card-warn">⚠ Earnings in ${{ed}}d — event risk around the report</div>` : '';
   // direction-aware price ladder: Target / Entry / Stop, ordered so higher price sits higher.
   const _p = s.plan || {{}};
