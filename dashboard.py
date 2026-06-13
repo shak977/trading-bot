@@ -1612,9 +1612,11 @@ def render_html(snap: dict) -> str:
   </section>
 
   <section class="page" id="page-livetv">
-    <h2 style="margin-top:0;">Live TV <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— Bloomberg Television, 24/7 markets stream</span></h2>
-    <div class="tvwrap"><iframe id="tvFrame" data-src="https://www.youtube.com/embed/live_stream?channel=UCIALMKvObZNtJ6AmdCLP7Lg&autoplay=1&mute=1" title="Bloomberg Television live" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
-    <p style="color:var(--muted);font-size:12px;margin-top:10px;">Live 24/7 markets stream from <b>Bloomberg Television</b> (@markets) via YouTube — starts muted; unmute in the player. If it doesn't load (occasional geo/embedding limits), <a href="https://www.youtube.com/@markets/live" target="_blank" rel="noopener">watch on YouTube ↗</a>. Not affiliated with Bloomberg; embedded for convenience.</p>
+    <h2 style="margin-top:0;">Live TV <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— live financial news streams</span></h2>
+    <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Channel:</span>
+      <span class="ctlgrp" id="tvBtns"></span></div>
+    <div class="tvwrap"><iframe id="tvFrame" title="Live financial news" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+    <p style="color:var(--muted);font-size:12px;margin-top:10px;">Live streams via YouTube — start muted; unmute in the player. If a channel doesn't load (occasional geo/embedding limits, or it's not live right now), <a id="tvLink" href="https://www.youtube.com/@markets/live" target="_blank" rel="noopener">watch on YouTube ↗</a>. Not affiliated with these networks; embedded for convenience.</p>
   </section>
 
   <div class="disclaimer">
@@ -2384,6 +2386,34 @@ document.getElementById('modalClose').addEventListener('click', closeModal);
 overlay.addEventListener('click', e => {{ if (e.target === overlay) closeModal(); }});
 document.addEventListener('keydown', e => {{ if (e.key === 'Escape') closeModal(); }});
 
+// ---- Live TV channel switcher ----
+const TV_CHANNELS = [
+  ['bloomberg', 'Bloomberg', 'UCIALMKvObZNtJ6AmdCLP7Lg', 'https://www.youtube.com/@markets/live'],
+  ['yahoo', 'Yahoo Finance', 'UCEAZeUIeJs0IjQiqTCdVSIg', 'https://www.youtube.com/@YahooFinance/live'],
+  ['cnbc', 'CNBC', 'UCvJJ_dzjViJCoLf5uKUTwoA', 'https://www.youtube.com/@CNBC/live'],
+];
+let _tvCur = 'bloomberg', _tvLoaded = false;
+try {{ _tvCur = localStorage.getItem('tvch') || 'bloomberg'; }} catch (e) {{}}
+function _tvSet(key) {{
+  const ch = TV_CHANNELS.find(c => c[0] === key) || TV_CHANNELS[0];
+  _tvCur = ch[0];
+  const f = document.getElementById('tvFrame');
+  if (f) f.src = `https://www.youtube.com/embed/live_stream?channel=${{ch[2]}}&autoplay=1&mute=1`;
+  const lk = document.getElementById('tvLink'); if (lk) lk.href = ch[3];
+  document.querySelectorAll('#tvBtns button').forEach(b => b.classList.toggle('on', b.dataset.tv === _tvCur));
+  try {{ localStorage.setItem('tvch', _tvCur); }} catch (e) {{}}
+}}
+function _tvInit() {{
+  const bar = document.getElementById('tvBtns');
+  if (!bar || bar.childElementCount) return;
+  TV_CHANNELS.forEach(c => {{
+    const b = document.createElement('button'); b.textContent = c[1]; b.dataset.tv = c[0];
+    if (c[0] === _tvCur) b.className = 'on';
+    b.onclick = () => _tvSet(c[0]);
+    bar.appendChild(b);
+  }});
+}}
+
 // ---- tab navigation ----
 (function setupTabs() {{
   const tabs = document.querySelectorAll('#tabs button');
@@ -2397,11 +2427,8 @@ document.addEventListener('keydown', e => {{ if (e.key === 'Escape') closeModal(
       try {{ window.dispatchEvent(new Event('resize')); }} catch (e) {{}}
       _refitCharts();
     }}, 60);
-    // lazy-load the Live TV stream only when the tab is first opened (saves bandwidth)
-    if (page === 'livetv') {{
-      const f = document.getElementById('tvFrame');
-      if (f && !f.src && f.dataset.src) f.src = f.dataset.src;
-    }}
+    // Live TV: build the channel switcher + lazy-load the stream on first open.
+    if (page === 'livetv') {{ _tvInit(); if (!_tvLoaded) {{ _tvLoaded = true; _tvSet(_tvCur); }} }}
   }}
   tabs.forEach(b => b.addEventListener('click', () => show(b.dataset.page)));
   let saved = 'signals';
