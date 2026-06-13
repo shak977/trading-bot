@@ -1104,9 +1104,15 @@ def render_html(snap: dict) -> str:
   .bblv {{ color:#8a8a6a; font-size:10.5px; margin-top:3px; font-variant-numeric:tabular-nums; }}
   .bbtv {{ color:#8a8a6a; font-size:10px; margin-top:2px; letter-spacing:.02em; }}
   .gtv {{ color:var(--muted); font-size:10px; margin-top:2px; }}
-  .tvwrap {{ position:relative; width:100%; max-width:1100px; padding-bottom:min(56.25%, 620px); height:0;
-    border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#000; }}
-  .tvwrap iframe {{ position:absolute; inset:0; width:100%; height:100%; border:0; }}
+  .tvtiles {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; max-width:1000px; }}
+  .tvtile {{ display:flex; flex-direction:column; gap:8px; padding:18px; border:1px solid var(--line);
+    border-radius:14px; background:var(--card); text-decoration:none; color:var(--txt); transition:transform .12s, border-color .12s, box-shadow .12s; }}
+  .tvtile:hover {{ transform:translateY(-3px); border-color:var(--accent); box-shadow:0 8px 24px rgba(0,0,0,.18); }}
+  .tvtile .tvmark {{ width:46px; height:46px; border-radius:11px; display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:18px; color:#fff; letter-spacing:-.5px; }}
+  .tvtile .tvname {{ font-weight:700; font-size:15px; }}
+  .tvtile .tvtag {{ color:var(--muted); font-size:12px; }}
+  .tvtile .tvgo {{ margin-top:auto; color:var(--accent); font-size:12.5px; font-weight:600; }}
   .lanes {{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; align-items:start; }}
   .lanehd {{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; }}
   .lcard {{ background:var(--card); border:1px solid var(--line); border-left:3px solid var(--muted);
@@ -1613,10 +1619,9 @@ def render_html(snap: dict) -> str:
 
   <section class="page" id="page-livetv">
     <h2 style="margin-top:0;">Live TV <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— live financial news streams</span></h2>
-    <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Channel:</span>
-      <span class="ctlgrp" id="tvBtns"></span></div>
-    <div class="tvwrap"><iframe id="tvFrame" title="Live financial news" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
-    <p style="color:var(--muted);font-size:12px;margin-top:10px;">Live streams via YouTube — start muted; unmute in the player. If a channel doesn't load (occasional geo/embedding limits, or it's not live right now), <a id="tvLink" href="https://www.youtube.com/@YahooFinance/live" target="_blank" rel="noopener">watch on YouTube ↗</a>. Not affiliated with these networks; embedded for convenience.</p>
+    <p style="color:var(--muted);font-size:13px;margin:0 0 16px;">Click a network to open its live stream on YouTube in a new tab. Streams are free and run during market hours (some 24/7).</p>
+    <div class="tvtiles" id="tvTiles"></div>
+    <p style="color:var(--muted);font-size:12px;margin-top:18px;">Opens on YouTube — playback handled by YouTube, so it always works. Not affiliated with these networks; links provided for convenience.</p>
   </section>
 
   <div class="disclaimer">
@@ -2386,55 +2391,27 @@ document.getElementById('modalClose').addEventListener('click', closeModal);
 overlay.addEventListener('click', e => {{ if (e.target === overlay) closeModal(); }});
 document.addEventListener('keydown', e => {{ if (e.key === 'Escape') closeModal(); }});
 
-// ---- Live TV channel switcher ----
-// [key, label, channelId, watch-link, baked-in fallback video id]
-// Yahoo Finance runs a genuine free 24/7 embeddable stream -> default + a hard-coded
-// fallback id so it plays even if the Worker resolver isn't reachable. Bloomberg moved
-// its 24/7 feed to paid YouTube TV and CNBC's live is cable-gated, so those are best-effort.
+// ---- Live TV launch tiles ----
+// [key, label, watch-link, tagline, brand-color] — each opens the network's live stream
+// on YouTube in a new tab. No iframe: embedding broadcaster streams is unreliable
+// (concurrent feeds, rotating ids, embed blocks), so we let YouTube handle playback.
 const TV_CHANNELS = [
-  ['yahoo', 'Yahoo Finance', 'UCEAZeUIeJs0IjQiqTCdVSIg', 'https://www.youtube.com/@YahooFinance/live', 'KQp-e_XQnDE'],
-  ['schwab', 'Schwab Network', 'UCqoSrYgusd8ZddtMoWhjHYA', 'https://www.youtube.com/@SchwabNetwork/live', 'vKOd3v8VTYo'],
-  ['bloomberg', 'Bloomberg', 'UCIALMKvObZNtJ6AmdCLP7Lg', 'https://www.youtube.com/@markets/live', 'iEpJwprxDdk'],
-  ['cnbc', 'CNBC', 'UCvJJ_dzjViJCoLf5uKUTwoA', 'https://www.youtube.com/@CNBC/live', ''],
+  ['yahoo', 'Yahoo Finance', 'https://www.youtube.com/@YahooFinance/live', 'Markets, daily', '#6001d2'],
+  ['schwab', 'Schwab Network', 'https://www.youtube.com/@SchwabNetwork/live', '24/7 markets', '#00a0df'],
+  ['bloomberg', 'Bloomberg', 'https://www.youtube.com/@markets/live', 'Global business', '#000000'],
+  ['cnbc', 'CNBC', 'https://www.youtube.com/@CNBC/live', 'Business news', '#005594'],
 ];
-let _tvCur = 'yahoo', _tvLoaded = false;
-try {{ _tvCur = localStorage.getItem('tvch') || 'yahoo'; }} catch (e) {{}}
-let _tvReq = 0;
-async function _tvSet(key) {{
-  const ch = TV_CHANNELS.find(c => c[0] === key) || TV_CHANNELS[0];
-  _tvCur = ch[0];
-  const f = document.getElementById('tvFrame');
-  const lk = document.getElementById('tvLink'); if (lk) lk.href = ch[3];
-  document.querySelectorAll('#tvBtns button').forEach(b => b.classList.toggle('on', b.dataset.tv === _tvCur));
-  try {{ localStorage.setItem('tvch', _tvCur); }} catch (e) {{}}
-  if (!f) return;
-  const myReq = ++_tvReq;            // guard against out-of-order responses on fast clicks
-  f.src = 'about:blank';
-  // Ask the Worker to resolve this channel's CURRENT live video id, then embed that exact
-  // video (reliable). Fall back to the legacy channel auto-embed if resolution fails.
-  let vid = null;
-  if (LIVE_URL) {{
-    try {{
-      const r = await fetch(LIVE_URL + '?ytlive=' + encodeURIComponent(ch[2]));
-      if (r.ok) {{ const d = await r.json(); vid = d && d.videoId ? d.videoId : null; }}
-    }} catch (e) {{}}
-  }}
-  if (myReq !== _tvReq) return;       // a newer click superseded us
-  // Prefer the freshly-resolved live id; else a baked-in known-good id (Yahoo); else the
-  // legacy channel auto-embed as a last resort.
-  if (!vid && ch[4]) vid = ch[4];
-  f.src = vid
-    ? `https://www.youtube-nocookie.com/embed/${{vid}}?autoplay=1&mute=1`
-    : `https://www.youtube.com/embed/live_stream?channel=${{ch[2]}}&autoplay=1&mute=1`;
-}}
 function _tvInit() {{
-  const bar = document.getElementById('tvBtns');
-  if (!bar || bar.childElementCount) return;
+  const wrap = document.getElementById('tvTiles');
+  if (!wrap || wrap.childElementCount) return;
   TV_CHANNELS.forEach(c => {{
-    const b = document.createElement('button'); b.textContent = c[1]; b.dataset.tv = c[0];
-    if (c[0] === _tvCur) b.className = 'on';
-    b.onclick = () => _tvSet(c[0]);
-    bar.appendChild(b);
+    const a = document.createElement('a');
+    a.className = 'tvtile'; a.href = c[2]; a.target = '_blank'; a.rel = 'noopener';
+    const initials = c[1].split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    a.innerHTML = `<div class="tvmark" style="background:${{c[4]}}">${{initials}}</div>`
+      + `<div class="tvname">${{c[1]}}</div><div class="tvtag">${{c[3]}}</div>`
+      + `<div class="tvgo">Watch live ↗</div>`;
+    wrap.appendChild(a);
   }});
 }}
 
@@ -2451,8 +2428,8 @@ function _tvInit() {{
       try {{ window.dispatchEvent(new Event('resize')); }} catch (e) {{}}
       _refitCharts();
     }}, 60);
-    // Live TV: build the channel switcher + lazy-load the stream on first open.
-    if (page === 'livetv') {{ _tvInit(); if (!_tvLoaded) {{ _tvLoaded = true; _tvSet(_tvCur); }} }}
+    // Live TV: build the launch tiles on first open.
+    if (page === 'livetv') {{ _tvInit(); }}
   }}
   tabs.forEach(b => b.addEventListener('click', () => show(b.dataset.page)));
   let saved = 'signals';
