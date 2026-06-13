@@ -1616,7 +1616,7 @@ def render_html(snap: dict) -> str:
     <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Channel:</span>
       <span class="ctlgrp" id="tvBtns"></span></div>
     <div class="tvwrap"><iframe id="tvFrame" title="Live financial news" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
-    <p style="color:var(--muted);font-size:12px;margin-top:10px;">Live streams via YouTube — start muted; unmute in the player. If a channel doesn't load (occasional geo/embedding limits, or it's not live right now), <a id="tvLink" href="https://www.youtube.com/@markets/live" target="_blank" rel="noopener">watch on YouTube ↗</a>. Not affiliated with these networks; embedded for convenience.</p>
+    <p style="color:var(--muted);font-size:12px;margin-top:10px;">Live streams via YouTube — start muted; unmute in the player. If a channel doesn't load (occasional geo/embedding limits, or it's not live right now), <a id="tvLink" href="https://www.youtube.com/@YahooFinance/live" target="_blank" rel="noopener">watch on YouTube ↗</a>. Not affiliated with these networks; embedded for convenience.</p>
   </section>
 
   <div class="disclaimer">
@@ -2387,13 +2387,17 @@ overlay.addEventListener('click', e => {{ if (e.target === overlay) closeModal()
 document.addEventListener('keydown', e => {{ if (e.key === 'Escape') closeModal(); }});
 
 // ---- Live TV channel switcher ----
+// [key, label, channelId, watch-link, baked-in fallback video id]
+// Yahoo Finance runs a genuine free 24/7 embeddable stream -> default + a hard-coded
+// fallback id so it plays even if the Worker resolver isn't reachable. Bloomberg moved
+// its 24/7 feed to paid YouTube TV and CNBC's live is cable-gated, so those are best-effort.
 const TV_CHANNELS = [
-  ['bloomberg', 'Bloomberg', 'UCIALMKvObZNtJ6AmdCLP7Lg', 'https://www.youtube.com/@markets/live'],
-  ['yahoo', 'Yahoo Finance', 'UCEAZeUIeJs0IjQiqTCdVSIg', 'https://www.youtube.com/@YahooFinance/live'],
-  ['cnbc', 'CNBC', 'UCvJJ_dzjViJCoLf5uKUTwoA', 'https://www.youtube.com/@CNBC/live'],
+  ['yahoo', 'Yahoo Finance', 'UCEAZeUIeJs0IjQiqTCdVSIg', 'https://www.youtube.com/@YahooFinance/live', 'KQp-e_XQnDE'],
+  ['bloomberg', 'Bloomberg', 'UCIALMKvObZNtJ6AmdCLP7Lg', 'https://www.youtube.com/@markets/live', ''],
+  ['cnbc', 'CNBC', 'UCvJJ_dzjViJCoLf5uKUTwoA', 'https://www.youtube.com/@CNBC/live', ''],
 ];
-let _tvCur = 'bloomberg', _tvLoaded = false;
-try {{ _tvCur = localStorage.getItem('tvch') || 'bloomberg'; }} catch (e) {{}}
+let _tvCur = 'yahoo', _tvLoaded = false;
+try {{ _tvCur = localStorage.getItem('tvch') || 'yahoo'; }} catch (e) {{}}
 let _tvReq = 0;
 async function _tvSet(key) {{
   const ch = TV_CHANNELS.find(c => c[0] === key) || TV_CHANNELS[0];
@@ -2415,6 +2419,9 @@ async function _tvSet(key) {{
     }} catch (e) {{}}
   }}
   if (myReq !== _tvReq) return;       // a newer click superseded us
+  // Prefer the freshly-resolved live id; else a baked-in known-good id (Yahoo); else the
+  // legacy channel auto-embed as a last resort.
+  if (!vid && ch[4]) vid = ch[4];
   f.src = vid
     ? `https://www.youtube-nocookie.com/embed/${{vid}}?autoplay=1&mute=1`
     : `https://www.youtube.com/embed/live_stream?channel=${{ch[2]}}&autoplay=1&mute=1`;
