@@ -347,17 +347,27 @@ def build_snapshot() -> dict:
 
     # Optional AI analyst note — only for the strongest, actionable setups (High conviction
     # BUY/SHORT/HOLD), capped, so we spend the API budget where it matters and keep builds fast.
+    llm_status = {"enabled": bool(CONFIG.llm_enabled)}
     if CONFIG.llm_enabled:
         import llm
         _ai_picks = [r for r in shown
                      if (r.get("conviction") or {}).get("label") == "High"
                      and r.get("action") in ("BUY", "SHORT", "HOLD LONG", "HOLD SHORT")]
-        # rank best-first by conviction score, cap the number of paid calls
         _ai_picks.sort(key=lambda r: -((r.get("conviction") or {}).get("score_pct") or 0))
+        llm_status["candidates"] = len(_ai_picks)
+        _gen = 0
         for r in _ai_picks[:8]:
             note = llm.analyst_note(r, CONFIG, regime=regime, macro=macro)
             if note:
                 r["ai_read"] = note
+                _gen += 1
+        llm_status["generated"] = _gen
+        # If nothing was produced but candidates existed, probe once to surface WHY.
+        if _gen == 0 and _ai_picks:
+            try:
+                llm_status["probe"] = llm.diagnose(CONFIG)
+            except Exception as exc:  # noqa: BLE001
+                llm_status["probe"] = {"ok": False, "error": str(exc)[:200]}
 
     # S&P 500 benchmark (SPY) for chart overlay.
     benchmark = None
@@ -390,6 +400,7 @@ def build_snapshot() -> dict:
         "audit_summary": None,  # filled by main() after the audit — kept early so it survives a truncated fetch
         "news_sources": dict(__import__("collections").Counter(
             (n.get("source") or "?") for n in news).most_common(14)),
+        "llm": llm_status,
         "benchmark": benchmark,
         "track": track,
         "regime": regime,

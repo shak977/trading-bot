@@ -87,3 +87,25 @@ def analyst_note(sig: dict, cfg: Config, regime: dict | None = None,
         return text or None
     except Exception:  # noqa: BLE001 - any failure -> silent fallback
         return None
+
+
+def diagnose(cfg: Config, timeout: int = 15) -> dict:
+    """One tiny probe call so we can see WHY the analyst layer is/ isn't producing notes
+    (used to populate a diagnostic field in signals.json). Never raises."""
+    if not cfg.llm_enabled:
+        return {"enabled": False, "reason": "ANTHROPIC_API_KEY not set"}
+    try:
+        r = requests.post(
+            _URL,
+            headers={"x-api-key": cfg.anthropic_api_key,
+                     "anthropic-version": "2023-06-01", "content-type": "application/json"},
+            json={"model": cfg.llm_model, "max_tokens": 8,
+                  "messages": [{"role": "user", "content": "Reply with the word ok."}]},
+            timeout=timeout,
+        )
+        if r.status_code == 200:
+            return {"enabled": True, "ok": True, "model": cfg.llm_model}
+        return {"enabled": True, "ok": False, "model": cfg.llm_model,
+                "status": r.status_code, "body": (r.text or "")[:240]}
+    except Exception as e:  # noqa: BLE001
+        return {"enabled": True, "ok": False, "model": cfg.llm_model, "error": str(e)[:240]}
