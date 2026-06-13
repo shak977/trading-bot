@@ -415,6 +415,14 @@ def build_snapshot() -> dict:
     except Exception:  # noqa: BLE001
         track = None
 
+    # Optional REAL paper-trading record (opt-in via PAPER_TRADE) — submits bracket orders for
+    # fresh High-conviction signals and reads the live paper account. Disabled -> None.
+    try:
+        import paper as _paper
+        paper_acct = _paper.run(shown, CONFIG, today)
+    except Exception:  # noqa: BLE001
+        paper_acct = None
+
     return {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         "mode": mode,
@@ -426,6 +434,7 @@ def build_snapshot() -> dict:
         "llm": llm_status,
         "benchmark": benchmark,
         "track": track,
+        "paper_acct": paper_acct,
         "regime": regime,
         "sectors": sectors,
         "concentration": _concentration(shown),
@@ -882,6 +891,81 @@ def _macro_html(m: dict | None) -> str:
             f'<div class="trackstats">{cells}</div></div>')
 
 
+def _paper_spark(history: dict | None) -> str:
+    """Tiny inline SVG equity curve from the paper account's portfolio history."""
+    pts = (history or {}).get("points") or []
+    vals = [p["v"] for p in pts if p.get("v")]
+    if len(vals) < 2:
+        return ""
+    lo, hi = min(vals), max(vals)
+    rng = (hi - lo) or 1
+    w, h = 320, 60
+    step = w / (len(vals) - 1)
+    coords = " ".join(f"{i*step:.1f},{h - (v-lo)/rng*(h-6) - 3:.1f}" for i, v in enumerate(vals))
+    up = vals[-1] >= vals[0]
+    col = "var(--buy)" if up else "var(--sell)"
+    return (f'<svg viewBox="0 0 {w} {h}" preserveAspectRatio="none" style="width:100%;max-width:340px;height:60px;">'
+            f'<polyline points="{coords}" fill="none" stroke="{col}" stroke-width="2"/></svg>')
+
+
+def _paper_html(p: dict | None) -> str:
+    """Server-rendered REAL paper-account block (opt-in). Honest, fills-based — distinct from
+    the hypothetical tracker."""
+    if not p:
+        return ""
+    intro = ('<h2 style="margin-top:0;">Paper account <span style="text-transform:none;font-weight:400;'
+             'color:var(--muted);font-size:12px;">— a real, fills-based record from an Alpaca paper account</span></h2>')
+    if not p.get("enabled"):
+        return (intro + '<div class="ovbox"><div class="ovhead">Auto paper-trading is off.</div>'
+                f'<p style="color:var(--muted);font-size:13px;margin:8px 0 0;">{p.get("reason","Set PAPER_TRADE=true to enable.")}'
+                ' Once enabled, fresh High-conviction signals are auto-submitted to your <b>paper</b> account '
+                'as bracket orders, and this page shows the real equity, P&amp;L and open positions.</p></div>')
+
+    def tile(label, value, tone="", sub=""):
+        sub_html = f'<div class="kpi-sub">{sub}</div>' if sub else ""
+        return f'<div class="kpi"><div class="kpi-l">{label}</div><div class="kpi-v {tone}">{value}</div>{sub_html}</div>'
+
+    dp = p.get("day_pl", 0) or 0
+    tone = "buy" if dp > 0 else "sell" if dp < 0 else ""
+    tiles = (tile("Equity", f"${p.get('equity',0):,.0f}", "", "paper account")
+             + tile("Day P&amp;L", f"${dp:+,.0f}", tone, f"{p.get('day_pl_pct',0):+.2f}%")
+             + tile("Open positions", str(p.get("n_open", 0)), "", f"of {p.get('tracked_total', 0)} tracked")
+             + tile("Closed", str(p.get("tracked_closed", 0)), "", "round-trips logged"))
+    spark = _paper_spark(p.get("history"))
+    spark_html = f'<div style="margin:6px 0 16px;">{spark}</div>' if spark else ""
+
+    # open positions table (live unrealized P&L)
+    rows = ""
+    for pos in p.get("positions", []):
+        pl = pos.get("unrealized_pl", 0) or 0
+        c = "buy" if pl > 0 else "sell" if pl < 0 else ""
+        rows += (f'<tr><td><b>{pos["symbol"]}</b></td><td>{pos.get("side","") or ""}</td>'
+                 f'<td style="text-align:right;">{pos.get("qty","")}</td>'
+                 f'<td style="text-align:right;">${pos.get("avg_entry",0):,.2f}</td>'
+                 f'<td style="text-align:right;">${pos.get("price",0):,.2f}</td>'
+                 f'<td style="text-align:right;" class="{c}">${pl:+,.0f} ({pos.get("unrealized_plpc",0):+.1f}%)</td></tr>')
+    postable = (f'<table class="trackrec"><thead><tr><th>Symbol</th><th>Side</th><th style="text-align:right;">Qty</th>'
+                f'<th style="text-align:right;">Entry</th><th style="text-align:right;">Last</th>'
+                f'<th style="text-align:right;">Unrealized</th></tr></thead><tbody>{rows}</tbody></table>'
+                if rows else '<p style="color:var(--muted);font-size:13px;">No open paper positions right now.</p>')
+
+    sub = []
+    if p.get("submitted_now"):
+        sub.append("Opened this run: " + ", ".join(f'{r["symbol"]} ({r["action"]}, {r["qty"]}sh)' for r in p["submitted_now"]))
+    if not p.get("market_open"):
+        sub.append("Market is closed — orders fire during market hours.")
+    for n in p.get("notes", []):
+        sub.append(n)
+    subline = ('<p style="color:var(--muted);font-size:12px;margin-top:12px;">' + " · ".join(sub) + "</p>") if sub else ""
+
+    return (intro
+            + '<p style="color:var(--muted);font-size:13px;margin:0 0 14px;">These are <b>real fills</b> on a '
+            'paper account — actual entry prices, slippage and timing — so they reflect how the calls truly play out, '
+            'unlike the hypothetical tracker. Not investment advice; paper money only.</p>'
+            + f'<div class="kpis">{tiles}</div>{spark_html}'
+            + '<h3 style="font-size:15px;margin:6px 0 8px;">Open positions</h3>' + postable + subline)
+
+
 def _track_html(track: dict | None) -> str:
     """Server-rendered track-record block (works without JS)."""
     if not track:
@@ -977,6 +1061,10 @@ def render_html(snap: dict) -> str:
         "SYNTHETIC": "Synthetic data — NOT real prices or news. Add Alpaca keys for the real thing.",
     }[mode]
     track_html = _track_html(snap.get("track"))
+    _paper_acct = snap.get("paper_acct")
+    paper_html = _paper_html(_paper_acct)
+    paper_nav = '<button data-page="paper">Paper account</button>' if _paper_acct else ''
+    paper_section = f'<section class="page" id="page-paper">{paper_html}</section>' if _paper_acct else ''
     regime_html = _regime_html(snap.get("regime"))
     _pd = snap.get("price_drops") or []
     pdrop_html = (f' &middot; <span style="color:var(--muted);" title="{(" | ".join(_pd))[:300].replace(chr(34), chr(39))}">'
@@ -1524,6 +1612,7 @@ def render_html(snap: dict) -> str:
     <button data-page="allweather">All Weather</button>
     <button data-page="ipos">IPO watch</button>
     <button data-page="track">Track record</button>
+    {paper_nav}
     <button data-page="method">How it works</button>
     <button data-page="news">Market news</button>
     <button data-page="livetv">Live TV</button>
@@ -1588,6 +1677,8 @@ def render_html(snap: dict) -> str:
   <section class="page" id="page-track">
 {track_html}
   </section>
+
+  {paper_section}
 
   <section class="page" id="page-method">
     <div class="method">

@@ -48,6 +48,7 @@ jobs:
           LIVE_QUOTES_URL: ${{ secrets.LIVE_QUOTES_URL }}
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          PAPER_TRADE: ${{ vars.PAPER_TRADE }}
         run: |
           python dashboard.py
           mkdir -p _site
@@ -84,7 +85,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add track_record.json momentum_history.json
+          git add track_record.json momentum_history.json paper_orders.json
           git diff --staged --quiet && exit 0
           git commit -m "update track record + momentum history [skip ci]"
           # rebase on any concurrent change, then push (best effort)
