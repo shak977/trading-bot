@@ -55,12 +55,22 @@ def run(signals: list[dict], cfg: Config, live: bool, today: str) -> dict:
             continue
         tid = f"{s['symbol']}:{today}"
         if tid not in by_id:
+            # Record whether TradingView agreed at entry, so we can later measure if the
+            # cross-check actually predicts winners (win rate when it agreed vs not).
+            tv_align = None
+            if s.get("tv"):
+                try:
+                    import tradingview as _tv
+                    tv_align = _tv.alignment(s["tv"], s.get("direction", "LONG"))
+                except Exception:  # noqa: BLE001
+                    tv_align = None
             t = {
                 "id": tid, "symbol": s["symbol"], "name": s.get("name", ""),
                 "direction": s.get("direction", "LONG"),
                 "advised_date": today, "entry": p["entry"], "stop": p["stop"],
                 "target": p["target"], "rr": p.get("rr"),
                 "conviction": (s.get("conviction") or {}).get("label"),
+                "tv_align": tv_align,
                 "status": "open",
             }
             by_id[tid] = t
@@ -145,6 +155,9 @@ def _stats(log: list[dict]) -> dict:
 
     by_dir = {d: _grp([t for t in resolved if (t.get("direction") or "LONG") == d]) for d in ("LONG", "SHORT")}
     by_conv = {c: _grp([t for t in resolved if t.get("conviction") == c]) for c in ("High", "Medium", "Low")}
+    # Does the TradingView cross-check actually help? Win rate when it agreed vs didn't.
+    by_tv = {"agree": _grp([t for t in resolved if t.get("tv_align") == "agree"]),
+             "not_agree": _grp([t for t in resolved if t.get("tv_align") in ("mixed", "oppose")])}
     return {
         "advised": len(log),
         "resolved": len(resolved),
@@ -159,5 +172,6 @@ def _stats(log: list[dict]) -> dict:
         "expectancy": round(sum(rets) / len(rets), 2) if rets else None,
         "by_direction": by_dir,
         "by_conviction": by_conv,
+        "by_tv": by_tv,
         "recent": recent,
     }

@@ -894,6 +894,22 @@ def _track_html(track: dict | None) -> str:
     if track.get("resolved"):
         breakdown = (_brk("By direction", track.get("by_direction"), ["LONG", "SHORT"]) +
                      _brk("By conviction", track.get("by_conviction"), ["High", "Medium", "Low"]))
+        tv = track.get("by_tv") or {}
+        if (tv.get("agree", {}) or {}).get("n") or (tv.get("not_agree", {}) or {}).get("n"):
+            def _tvrow(label, g):
+                g = g or {}
+                wrk = "—" if g.get("win_rate") is None else f"{g['win_rate']}%"
+                return (f'<tr><td>{label}</td><td style="text-align:right;">{g.get("n",0)}</td>'
+                        f'<td style="text-align:right;">{wrk}</td>'
+                        f'<td style="text-align:right;">{_pct(g.get("avg_return"))}</td></tr>')
+            breakdown += ('<div class="sech" style="margin-top:14px;">Does TradingView help? '
+                          '<span style="text-transform:none;color:var(--muted);font-weight:400;">'
+                          '— win rate when the TradingView cross-check agreed vs didn\'t</span></div>'
+                          '<table class="trackrec"><thead><tr><th>TradingView</th>'
+                          '<th style="text-align:right;">Resolved</th><th style="text-align:right;">Win rate</th>'
+                          '<th style="text-align:right;">Avg return</th></tr></thead><tbody>'
+                          + _tvrow("Agreed", tv.get("agree")) + _tvrow("Disagreed / mixed", tv.get("not_agree"))
+                          + '</tbody></table>')
     rows = ""
     icon = {"win": '<span class="win">✅ hit target</span>',
             "loss": '<span class="loss">❌ hit stop</span>',
@@ -901,8 +917,8 @@ def _track_html(track: dict | None) -> str:
     for t in track.get("recent", []):
         ret = t.get("return_pct")
         ret_s = "—" if ret is None else f"{'+' if ret > 0 else ''}{ret}%"
-        rows += (f"<tr><td>{t['symbol']}</td><td>{t['advised_date']}</td>"
-                 f"<td>{icon.get(t['status'], t['status'])}</td>"
+        rows += (f"<tr><td>{t.get('symbol','')}</td><td>{t.get('advised_date','')}</td>"
+                 f"<td>{icon.get(t.get('status'), t.get('status',''))}</td>"
                  f"<td>{ret_s}</td><td>{t.get('days_held','—')}d</td></tr>")
     if rows:
         table = (f'<table class="trackrec"><tr><th>Stock</th><th>Advised</th><th>Outcome</th>'
@@ -1053,6 +1069,10 @@ def render_html(snap: dict) -> str:
     color:#b8860b; background:color-mix(in srgb, #e0a82e 16%, transparent);
     border:1px solid color-mix(in srgb, #e0a82e 36%, transparent); padding:3px 9px; border-radius:999px; }}
   .ai-tag {{ color:var(--accent); font-weight:700; }}
+  .ai-box {{ margin-top:10px; padding:9px 11px; border-radius:8px; font-size:12px; line-height:1.5;
+    color:var(--txt); background:color-mix(in srgb, #9b59b6 12%, transparent);
+    border:1px solid color-mix(in srgb, #9b59b6 32%, transparent); }}
+  .ai-h {{ color:#9b59b6; font-weight:700; margin-right:5px; }}
   .tv-chip {{ margin-top:8px; display:inline-block; font-size:11.5px; font-weight:600;
     color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent);
     border:1px solid color-mix(in srgb, var(--accent) 30%, transparent); padding:3px 9px; border-radius:999px; }}
@@ -1814,8 +1834,9 @@ function makeCard(s) {{
     ${{whyHtml}}
     ${{s.catalyst ? `<div class="cat-chip hint" data-tip="${{_esc(s.catalyst.headline)}}">⚡ Catalyst — fresh news${{s.catalyst.source?' · '+s.catalyst.source:''}}</div>` : ''}}
     ${{s.tv ? `<div class="tv-chip hint" data-tip="TradingView's aggregate technical rating (independent of our engine) — daily ${{s.tv.d||'n/a'}}, weekly ${{s.tv.w||'n/a'}}">TradingView: ${{s.tv.d||'—'}} <span style="opacity:.7;">· 1W ${{s.tv.w||'—'}}</span></div>` : ''}}
+    ${{s.ai_read ? `<div class="ai-box hint" data-tip="${{_esc(s.ai_read.slice(0,600))}}"><span class="ai-h">🤖 AI analyst</span> ${{_esc(s.ai_read.split('. ')[0]).slice(0,130)}}…</div>` : ''}}
     ${{edWarn}}
-    <div class="more">${{s.ai_read ? '<span class="ai-tag">🧠 AI note</span> &middot; ' : ''}}${{nNews ? nNews+' news &middot; ':''}}click for chart, RSI, patterns + full breakdown →</div>`;
+    <div class="more">${{nNews ? nNews+' news &middot; ':''}}click for chart, RSI, patterns + full breakdown →</div>`;
   const _fb = el.querySelector('.favbtn');
   if (_fb) _fb.addEventListener('click', (e) => {{
     e.stopPropagation(); _toggleFav(s.symbol);
