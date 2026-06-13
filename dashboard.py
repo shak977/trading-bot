@@ -292,6 +292,18 @@ def build_snapshot() -> dict:
             pass
     for r in shown:
         r["sentiment"] = research.news_sentiment(r.get("news"))
+    # TradingView multi-timeframe TA rating — independent cross-check (keyless, unofficial).
+    tv_map = {}
+    if live:
+        try:
+            import tradingview as _tv
+            tv_map = _tv.ratings([r["symbol"] for r in shown[: CONFIG.research_top]],
+                                 proxy=CONFIG.live_quotes_url or None)
+        except Exception:  # noqa: BLE001
+            tv_map = {}
+    for r in shown:
+        if tv_map.get(r["symbol"]):
+            r["tv"] = tv_map[r["symbol"]]
     fundamentals = {}
     if live and CONFIG.finnhub_api_key:
         try:
@@ -302,7 +314,7 @@ def build_snapshot() -> dict:
     for r in shown:
         r["fundamentals"] = fundamentals.get(r["symbol"])
         # Re-score conviction + desk read now that research is in hand.
-        scanner.rescore(r, CONFIG, sentiment=r.get("sentiment"), fundamentals=r.get("fundamentals"))
+        scanner.rescore(r, CONFIG, sentiment=r.get("sentiment"), fundamentals=r.get("fundamentals"), tv=r.get("tv"))
 
     # Ray Dalio All Weather allocation + backtest vs SPY (keyless Yahoo history).
     try:
@@ -1030,6 +1042,9 @@ def render_html(snap: dict) -> str:
     color:#b8860b; background:color-mix(in srgb, #e0a82e 16%, transparent);
     border:1px solid color-mix(in srgb, #e0a82e 36%, transparent); padding:3px 9px; border-radius:999px; }}
   .ai-tag {{ color:var(--accent); font-weight:700; }}
+  .tv-chip {{ margin-top:8px; display:inline-block; font-size:11.5px; font-weight:600;
+    color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent);
+    border:1px solid color-mix(in srgb, var(--accent) 30%, transparent); padding:3px 9px; border-radius:999px; }}
   .secmix {{ display:flex; flex-direction:column; gap:5px; margin:4px 0 8px; }}
   .secrow {{ display:flex; align-items:center; gap:10px; font-size:12px; }}
   .secname {{ width:120px; color:var(--muted); }}
@@ -1785,6 +1800,7 @@ function makeCard(s) {{
     ${{ladder}}
     ${{whyHtml}}
     ${{s.catalyst ? `<div class="cat-chip hint" data-tip="${{_esc(s.catalyst.headline)}}">⚡ Catalyst — fresh news${{s.catalyst.source?' · '+s.catalyst.source:''}}</div>` : ''}}
+    ${{s.tv ? `<div class="tv-chip hint" data-tip="TradingView's aggregate technical rating (independent of our engine) — daily ${{s.tv.d||'n/a'}}, weekly ${{s.tv.w||'n/a'}}">TradingView: ${{s.tv.d||'—'}} <span style="opacity:.7;">· 1W ${{s.tv.w||'—'}}</span></div>` : ''}}
     ${{edWarn}}
     <div class="more">${{s.ai_read ? '<span class="ai-tag">🧠 AI note</span> &middot; ' : ''}}${{nNews ? nNews+' news &middot; ':''}}click for chart, RSI, patterns + full breakdown →</div>`;
   const _fb = el.querySelector('.favbtn');

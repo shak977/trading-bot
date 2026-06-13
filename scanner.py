@@ -485,7 +485,7 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: st
 
 def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 factors=None, patterns=None, edge=None,
-                sentiment=None, fundamentals=None, price=None):
+                sentiment=None, fundamentals=None, price=None, tv=None):
     """Auto-scored pre-entry checklist, direction-aware. Each check is pass/warn/fail.
 
     For a LONG it asks the bullish questions (trending up? room to rise?); for a SHORT it
@@ -617,6 +617,24 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             add("Strategies agree?", "warn", f"Thin — only {cf} of {cft} strategies are {side}; limited cross-confirmation.")
 
     # --- research-driven checks (only added when the data is available) ---
+    if tv:
+        try:
+            import tradingview as _tv
+            al = _tv.alignment(tv, direction)
+        except Exception:  # noqa: BLE001
+            al = None
+        d, w = tv.get("d"), tv.get("w")
+        side_word = "short" if short else "long"
+        if al == "agree":
+            add("TradingView agrees?", "pass",
+                f"TradingView rates it {d} daily / {w} weekly — an independent read that lines up with this {side_word}.")
+        elif al == "oppose":
+            add("TradingView agrees?", "fail",
+                f"TradingView rates it {d} daily / {w} weekly — that's against this {side_word}; a real disagreement to weigh.")
+        elif al == "mixed":
+            add("TradingView agrees?", "warn",
+                f"TradingView is mixed/neutral here ({d} daily / {w} weekly) — no strong confirmation either way.")
+
     if sentiment:
         lbl = sentiment.get("label")
         if lbl == "Positive":
@@ -676,12 +694,12 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             "total": len(checks), "checks": checks}
 
 
-def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None) -> None:
+def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None) -> None:
     """Recompute conviction + desk read for a shown row once research is fetched."""
     direction = row.get("direction", "LONG")
     conv = _conviction(row["action"], direction, row["rsi"], row["rel_volume"], row["plan"], row["context"], cfg,
                        row.get("factors"), row.get("patterns"), row.get("edge"),
-                       sentiment=sentiment, fundamentals=fundamentals, price=row.get("price"))
+                       sentiment=sentiment, fundamentals=fundamentals, price=row.get("price"), tv=tv)
     row["conviction"] = conv
     row["desk_read"] = _desk_read(row["action"], direction, row["plan"], row["context"], conv,
                                   row.get("patterns"), row.get("edge"),

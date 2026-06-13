@@ -291,7 +291,22 @@ def test_audit_direction_aware():
         any("Z" in f["msg"] for f in flags2 if f["level"] == "error"))
 
 
+def test_tradingview():
+    print("tradingview cross-check:")
+    import tradingview as tv
+    _ok("bucket strong buy", tv._bucket(0.7) == "Strong Buy")
+    _ok("bucket buy", tv._bucket(0.2) == "Buy")
+    _ok("bucket neutral", tv._bucket(0.0) == "Neutral")
+    _ok("bucket strong sell", tv._bucket(-0.8) == "Strong Sell")
+    _ok("long agrees w/ buy ratings", tv.alignment({"d": "Strong Buy", "w": "Buy"}, "LONG") == "agree")
+    _ok("long opposes sell ratings", tv.alignment({"d": "Sell", "w": "Strong Sell"}, "LONG") == "oppose")
+    _ok("short agrees w/ sell ratings", tv.alignment({"d": "Sell", "w": "Strong Sell"}, "SHORT") == "agree")
+    _ok("mixed when split", tv.alignment({"d": "Buy", "w": "Neutral"}, "LONG") == "mixed")
+    _ok("none when no data", tv.alignment(None, "LONG") is None)
+
+
 def main():
+    test_tradingview()
     test_audit_direction_aware()
     test_sanitize_bars()
     test_indicators()

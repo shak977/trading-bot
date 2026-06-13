@@ -87,6 +87,32 @@ export default {
       }
     }
 
+    // --- TradingView TA ratings: /?tv=AAPL,NVDA,SPY ---
+    // Proxies the (unofficial) TradingView scanner from the Worker's egress, since the
+    // endpoint blocks datacenter IPs (GitHub Actions). Returns the raw scanner payload.
+    const tvSyms = (url.searchParams.get("tv") || "").trim();
+    if (tvSyms) {
+      const exch = ["NASDAQ", "NYSE", "AMEX"];
+      const syms = tvSyms.split(",").map(s => s.trim()).filter(Boolean).slice(0, 60);
+      const tickers = [];
+      for (const s of syms) for (const e of exch) tickers.push(`${e}:${s}`);
+      const body = JSON.stringify({
+        symbols: { tickers, query: { types: [] } },
+        columns: ["Recommend.All", "Recommend.All|1W"],
+      });
+      try {
+        const up = await fetch("https://scanner.tradingview.com/america/scan", {
+          method: "POST",
+          headers: { "User-Agent": "Mozilla/5.0", "Content-Type": "application/json", "Accept": "application/json" },
+          body,
+        });
+        if (!up.ok) return json({ error: "tv " + up.status }, 502, cors);
+        return json(await up.json(), 200, cors);
+      } catch (e) {
+        return json({ error: "fetch failed" }, 502, cors);
+      }
+    }
+
     // --- latest quotes: /?symbols=AAPL,MSFT ---
     const symbols = (url.searchParams.get("symbols") || "").trim();
     if (!symbols) return json({ error: "pass ?symbols=AAPL,MSFT or ?bars=AAPL" }, 400, cors);
