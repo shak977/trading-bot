@@ -1460,10 +1460,18 @@ def render_html(snap: dict) -> str:
     .appbar {{ flex-wrap:wrap; gap:8px; }}
     .tabs {{ overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; }}
     .tabs button {{ white-space:nowrap; padding:10px 12px; font-size:14px; }}
-    .kpis {{ grid-template-columns:repeat(2, minmax(0,1fr)); }}
+    /* tighter KPI tiles so signals aren't pushed a full screen down */
+    .kpis {{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; margin-bottom:16px; }}
+    .kpi {{ padding:9px 11px; }}
+    .kpi-l {{ font-size:10px; }}
+    .kpi-v {{ font-size:19px; margin-top:2px; }}
+    .kpi-sub {{ font-size:10px; }}
     .trackrec {{ font-size:12px; }}
     .trackrec th, .trackrec td {{ padding:5px 6px; }}
-    .modal {{ padding:16px; margin:12px auto; }}
+    /* use more of the screen for the detail popup */
+    .overlay {{ padding:10px; }}
+    .modal {{ padding:16px; margin:8px auto; border-radius:12px; }}
+    .modal h3 {{ font-size:19px; }}
     .tv-wrap {{ height:340px; }}
   }}
 </style></head>
