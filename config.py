@@ -49,6 +49,15 @@ class Config:
     rel_volume_window: int = 20      # days for the relative-volume (flow proxy) average
     news_per_symbol: int = 4         # headlines pulled per flagged symbol
     show_top: int = 40               # cards shown on the dashboard
+    wide_universe: bool = False      # include the expanded liquid pool (S&P-500-ish) in live scans
+
+    # --- Relative strength (vs benchmark) ---
+    benchmark: str = "SPY"                            # name ranked against; fetched once per scan
+    rs_lookbacks: tuple[int, ...] = (21, 63, 126)     # trading-day windows for blended RS
+    rs_weights: tuple[float, ...] = (0.2, 0.3, 0.5)   # weight per lookback (sums to 1.0)
+    rs_conviction_weight: float = 2.0                 # weight of the RS check in the conviction average
+    rs_pass_pct: int = 70                             # RS percentile >= this = pass (long); <= 100-this = pass (short)
+    rs_fail_pct: int = 40                             # RS percentile <= this = fail (long); >= 100-this = fail (short)
 
     # --- Strategy params (MA crossover + RSI filter) ---
     fast_ma: int = 20

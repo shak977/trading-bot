@@ -12,6 +12,7 @@ import pandas as pd
 
 import analytics
 import market
+import rs as rs_mod
 import strategies
 from config import Config
 from data import get_bars, synthetic_bars
@@ -42,6 +43,21 @@ CORE_WATCHLIST = [
     "COP", "SLB", "RTX", "LMT", "UNP", "ETN",
     "SHW", "FCX", "NEE", "DUK", "SO", "PLD", "AMT",
     "SPY", "QQQ", "DIA", "IWM",
+]
+
+# Expanded liquid pool — large/mid-cap names BEYOND the core list, used when
+# cfg.wide_universe is set. Static (checked in) so offline scans stay deterministic.
+# Deliberately additive: none of these appear in CORE_WATCHLIST. Keep to liquid,
+# optionable names; refresh manually.
+WIDE_POOL = [
+    "ACN", "ADI", "SNPS", "CDNS", "KLAC", "NXPI", "MCHP", "FTNT", "ADSK", "WDAY",
+    "DDOG", "NET", "ZS", "TTD", "DELL", "HPQ", "WDC", "ON", "GLW", "KEYS",
+    "REGN", "MRNA", "DXCM", "IDXX", "ZTS", "SYK", "BSX", "BDX", "HCA", "CI",
+    "ELV", "CVS", "HUM", "CNC", "MCK",
+    "COF", "TFC", "PNC", "BK", "AIG", "MET", "PRU", "TRV", "ALL", "ICE", "CME", "MCO",
+    "PSX", "MPC", "VLO", "EOG", "OXY", "KMI", "WMB", "HAL", "DVN", "FANG",
+    "ORLY", "AZO", "ROST", "DG", "DLTR", "YUM", "F", "FDX", "NSC", "CSX",
+    "WM", "ITW", "PH", "ROK", "MMC", "AON", "EMR", "GD", "NOC", "PCAR",
 ]
 
 # Sector for grouping on the dashboard. Anything not listed falls under "Other".
@@ -161,6 +177,8 @@ def relative_volume(df: pd.DataFrame, window: int) -> float:
 def build_universe(cfg: Config) -> list[str]:
     # Core quality names first (so they always get analysed), then the day's movers.
     syms: list[str] = list(CORE_WATCHLIST)
+    if getattr(cfg, "wide_universe", False):
+        syms += WIDE_POOL
     try:
         syms += market.most_actives(cfg)
         syms += market.movers(cfg)
@@ -497,8 +515,8 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
     checks = []
     short = direction == "SHORT"
 
-    def add(label, status, note):
-        checks.append({"label": label, "status": status, "note": note})
+    def add(label, status, note, weight=1.0):
+        checks.append({"label": label, "status": status, "note": note, "weight": weight})
 
     vs = context.get("vs_slow_ma_pct")
     if short:
@@ -513,6 +531,33 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             "pass" if bullish else "fail",
             "Yes — price is above its longer-term trend." if bullish
             else "No — price is below its trend, so you'd be betting against the current direction.")
+
+    # Relative strength — is this name leading or lagging the market?
+    rs_f = factors.get("rs")
+    if rs_f and rs_f.get("pct") is not None:
+        pct = rs_f["pct"]
+        w = cfg.rs_conviction_weight
+        if short:
+            # for a short we want a laggard: low percentile is good
+            if pct <= (100 - cfg.rs_pass_pct):
+                add("Leading the market?", "pass",
+                    f"Yes (for a short) — RS percentile {pct}; this name lags the market, so weakness has company.", w)
+            elif pct >= (100 - cfg.rs_fail_pct):
+                add("Leading the market?", "fail",
+                    f"No — RS percentile {pct}; you'd be shorting a relative leader.", w)
+            else:
+                add("Leading the market?", "warn",
+                    f"Mixed — RS percentile {pct}; no clear relative weakness yet.", w)
+        else:
+            if pct >= cfg.rs_pass_pct:
+                add("Leading the market?", "pass",
+                    f"Yes — RS percentile {pct}; this name is outrunning the market (leadership).", w)
+            elif pct <= cfg.rs_fail_pct:
+                add("Leading the market?", "fail",
+                    f"No — RS percentile {pct}; this name lags the market (laggard).", w)
+            else:
+                add("Leading the market?", "warn",
+                    f"Mixed — RS percentile {pct}; roughly in line with the market.", w)
 
     # Regime alignment — is this trade running with the broad market or against it?
     reg_lbl = (regime or {}).get("label")
@@ -752,7 +797,8 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 + (" — crowd is on this side." if with_us else " — crowd leans the other way (often contrarian)."))
 
     pts = {"pass": 1.0, "warn": 0.5, "fail": 0.0}
-    score = sum(pts[c["status"]] for c in checks) / len(checks)
+    wsum = sum(c.get("weight", 1.0) for c in checks)
+    score = sum(pts[c["status"]] * c.get("weight", 1.0) for c in checks) / wsum if wsum else 0.0
     label = "High" if score >= 0.75 else "Medium" if score >= 0.5 else "Low"
     # Earnings gate: a fresh entry within ~2 days of a report is a coin-flip event, so never
     # let it carry High conviction — that keeps it out of the digest/alerts (which key on High).
@@ -898,6 +944,29 @@ def scan(cfg: Config, live: bool) -> list[dict]:
             f"Scanned {len(symbols)} symbols: {errs} errored, {empty} returned no data, "
             f"0 usable. If on a free Alpaca plan, confirm market-data access (IEX feed)."
         )
+    # --- relative strength across the just-scanned universe (vs the benchmark) ---
+    try:
+        if live:
+            bench_df = get_bars(cfg.benchmark, cfg)
+        else:
+            bench_df = synthetic_bars(cfg.benchmark, n=cfg.lookback_days)
+        bench_close = bench_df["close"] if bench_df is not None and len(bench_df) else None
+        if bench_close is not None:
+            scores = {}
+            for row in rows:
+                df = row.get("_df")
+                if df is not None and len(df):
+                    scores[row["symbol"]] = rs_mod.rs_score(
+                        df["close"], bench_close, cfg.rs_lookbacks, cfg.rs_weights)
+            ranked = rs_mod.rank_universe(scores)
+            for row in rows:
+                rf = ranked.get(row["symbol"])
+                if rf:
+                    row.setdefault("factors", {})["rs"] = rf
+                    rescore(row, cfg)   # fold the RS check into conviction
+    except Exception:  # noqa: BLE001 - RS is additive; never break the scan
+        pass
+
     rows.sort(key=_rank_key)
     # Per-strategy backtests are the expensive part, so only run them for the
     # rows that will actually be shown; drop the stashed frame from the rest.

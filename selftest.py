@@ -305,6 +305,148 @@ def test_tradingview():
     _ok("none when no data", tv.alignment(None, "LONG") is None)
 
 
+def test_rs():
+    print("relative strength:")
+    import numpy as np
+    import pandas as pd
+    import rs
+    idx = pd.date_range("2024-01-01", periods=300)
+    bench = pd.Series(np.linspace(100, 110, 300), index=idx)        # benchmark +10%
+    strong = pd.Series(np.linspace(100, 200, 300), index=idx)       # way ahead of bench
+    weak = pd.Series(np.linspace(100, 95, 300), index=idx)          # behind bench
+    s_strong = rs.rs_score(strong, bench, (21, 63, 126), (0.2, 0.3, 0.5))
+    s_weak = rs.rs_score(weak, bench, (21, 63, 126), (0.2, 0.3, 0.5))
+    _ok("strong name has positive RS", s_strong > 0)
+    _ok("weak name has negative RS", s_weak < 0)
+    _ok("strong beats weak", s_strong > s_weak)
+    _ok("short history -> None", rs.rs_score(strong.iloc[:50], bench.iloc[:50], (21, 63, 126), (0.2, 0.3, 0.5)) is None)
+    ranks = rs.rank_universe({"A": s_strong, "B": s_weak, "C": 0.0})
+    _ok("ranks cover all symbols", set(ranks) == {"A", "B", "C"})
+    _ok("strong is top percentile", ranks["A"]["pct"] == 100)
+    _ok("weak is bottom percentile", ranks["B"]["pct"] <= ranks["C"]["pct"] <= ranks["A"]["pct"])
+    _ok("None scores excluded from ranking", "Z" not in rs.rank_universe({"A": s_strong, "Z": None}))
+
+
+def test_conviction_weighting():
+    print("conviction weighting:")
+    import scanner
+    from data import synthetic_bars
+    from config import CONFIG
+    row = scanner._analyse("MSFT", synthetic_bars("MSFT", n=CONFIG.lookback_days), CONFIG, CONFIG.starting_cash)
+    checks = row["conviction"]["checks"]
+    _ok("every check carries an explicit weight", all("weight" in c for c in checks))
+    pts = {"pass": 1.0, "warn": 0.5, "fail": 0.0}
+    manual = round(sum(pts[c["status"]] for c in checks) / len(checks) * 100)
+    _ok("unweighted score matches simple average", row["conviction"]["score_pct"] == manual)
+
+
+def test_rs_conviction():
+    print("rs conviction check:")
+    import scanner
+    from data import synthetic_bars
+    from config import CONFIG
+
+    def _rs_status(direction, pct):
+        # Direction is forced explicitly: synthetic_bars seeds off hash(symbol), which is
+        # process-randomised, so a named synthetic's direction is not stable across runs.
+        row = scanner._analyse("MSFT", synthetic_bars("MSFT", n=CONFIG.lookback_days), CONFIG, CONFIG.starting_cash)
+        row["direction"] = direction
+        row.setdefault("factors", {})["rs"] = {"rs": 0.25 if pct >= 50 else -0.2, "pct": pct}
+        scanner.rescore(row, CONFIG)
+        labels = [c["label"] for c in row["conviction"]["checks"]]
+        assert "Leading the market?" in labels, "RS check missing"
+        c = next(c for c in row["conviction"]["checks"] if c["label"] == "Leading the market?")
+        return c
+
+    c = _rs_status("LONG", 92)
+    _ok("RS check appears once RS factor present", c["label"] == "Leading the market?")
+    _ok("RS check is weighted heavily", c["weight"] == CONFIG.rs_conviction_weight)
+    _ok("high-RS long passes", c["status"] == "pass")
+    _ok("low-RS long fails", _rs_status("LONG", 8)["status"] == "fail")
+    # for a short, a laggard (low percentile) is the favourable case
+    _ok("low-RS short passes", _rs_status("SHORT", 8)["status"] == "pass")
+    _ok("high-RS short fails", _rs_status("SHORT", 92)["status"] == "fail")
+
+
+def test_rs_in_scan():
+    print("rs wired into scan:")
+    import scanner
+    from config import CONFIG
+    rows = scanner.scan(CONFIG, live=False)
+    _ok("scan returns rows", len(rows) > 0)
+    rs_rows = [r for r in rows if (r.get("factors") or {}).get("rs")]
+    _ok("at least one row carries an RS factor", len(rs_rows) > 0)
+    pcts = [r["factors"]["rs"]["pct"] for r in rs_rows]
+    _ok("RS percentiles are 0..100", all(0 <= p <= 100 for p in pcts))
+    sample = rs_rows[0]
+    _ok("RS check present in conviction", any(c["label"] == "Leading the market?" for c in sample["conviction"]["checks"]))
+
+
+def test_universe_cap():
+    print("universe cap:")
+    import dataclasses
+    import scanner
+    from config import CONFIG
+    cfg = dataclasses.replace(CONFIG, wide_universe=True, max_candidates=50)
+    u = scanner.build_universe(cfg)
+    _ok("universe respects max_candidates", len(u) <= cfg.max_candidates)
+    _ok("universe is de-duplicated", len(u) == len(set(u)))
+    _ok("core names still present", "AAPL" in u or "MSFT" in u)
+
+
+def test_tracker_checks_snapshot():
+    print("tracker stores conviction checks:")
+    import tempfile, json
+    import tracker
+    from config import CONFIG
+    tf = tempfile.mktemp(suffix=".json"); tracker.PATH = tf
+    json.dump([], open(tf, "w"))
+    sig = {"symbol": "X", "name": "X Co", "action": "BUY", "direction": "LONG",
+           "price": 100.0,
+           "plan": {"entry": 100.0, "stop": 95.0, "target": 115.0, "rr": 3.0},
+           "conviction": {"label": "High", "checks": [
+               {"label": "Is it trending up?", "status": "pass", "weight": 1.0},
+               {"label": "Leading the market?", "status": "pass", "weight": 2.0}]}}
+    tracker.run([sig], CONFIG, live=True, today="2026-06-12")
+    rec = json.load(open(tf))[0]
+    _ok("record stores conviction checks", isinstance(rec.get("checks"), list) and len(rec["checks"]) == 2)
+    _ok("snapshot keeps label+status", set(rec["checks"][0]) >= {"label", "status"})
+
+
+def test_attribution():
+    print("factor attribution:")
+    import attribution
+    log = [
+        {"status": "win",  "checks": [{"label": "Leading the market?", "status": "pass"},
+                                       {"label": "Room to rise?", "status": "fail"}]},
+        {"status": "win",  "checks": [{"label": "Leading the market?", "status": "pass"},
+                                       {"label": "Room to rise?", "status": "pass"}]},
+        {"status": "loss", "checks": [{"label": "Leading the market?", "status": "fail"},
+                                       {"label": "Room to rise?", "status": "pass"}]},
+        {"status": "open", "checks": [{"label": "Leading the market?", "status": "pass"}]},
+    ]
+    rep = attribution.attribute(log)
+    by = {r["label"]: r for r in rep}
+    _ok("only resolved trades counted", by["Leading the market?"]["n_pass"] == 2)
+    _ok("RS pass win rate computed", by["Leading the market?"]["win_rate_pass"] == 100.0)
+    _ok("RS fail win rate computed", by["Leading the market?"]["win_rate_fail"] == 0.0)
+    _ok("edge = pass minus fail win rate", by["Leading the market?"]["edge"] == 100.0)
+    _ok("report sorted by edge desc", rep == sorted(rep, key=lambda r: -(r["edge"] if r["edge"] is not None else -999)))
+
+
+def test_attribution_panel():
+    print("attribution panel renders:")
+    import dashboard
+    rep = [{"label": "Leading the market?", "n_pass": 12, "n_fail": 5,
+            "win_rate_pass": 64.0, "win_rate_fail": 30.0, "edge": 34.0},
+           {"label": "Retail buzz?", "n_pass": 8, "n_fail": 3,
+            "win_rate_pass": 40.0, "win_rate_fail": 45.0, "edge": -5.0}]
+    html = dashboard._attribution_html(rep)
+    _ok("panel names the best factor", "Leading the market?" in html)
+    _ok("panel shows the edge value", "+34" in html or "34.0" in html)
+    _ok("empty report yields a friendly note", "accruing" in dashboard._attribution_html([]).lower())
+
+
 def main():
     test_tradingview()
     test_audit_direction_aware()
@@ -323,6 +465,14 @@ def main():
     test_rescore()
     test_llm_prompt()
     test_regime()
+    test_rs()
+    test_conviction_weighting()
+    test_rs_conviction()
+    test_rs_in_scan()
+    test_universe_cap()
+    test_tracker_checks_snapshot()
+    test_attribution()
+    test_attribution_panel()
     print("\nALL TESTS PASSED")
 
 

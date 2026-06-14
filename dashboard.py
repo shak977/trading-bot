@@ -1156,6 +1156,31 @@ def _paper_html(p: dict | None) -> str:
             + realized_html + subline)
 
 
+def _attribution_html(rep: list[dict] | None) -> str:
+    """Panel: which conviction checks actually predicted wins (pass vs fail win rate)."""
+    intro = ('<h3 style="font-size:15px;margin:18px 0 8px;">Which checks earn their keep '
+             '<span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">'
+             '— win rate when each conviction check passed vs failed, on resolved calls</span></h3>')
+    if not rep:
+        return intro + ('<p style="color:var(--muted);font-size:13px;">Still accruing — per-check '
+                        'win rates appear here once enough tracked calls resolve.</p>')
+    rows = ""
+    for r in rep:
+        wp = "—" if r["win_rate_pass"] is None else f'{r["win_rate_pass"]:.0f}%'
+        wf = "—" if r["win_rate_fail"] is None else f'{r["win_rate_fail"]:.0f}%'
+        edge = r["edge"]
+        ec = "buy" if (edge or 0) > 0 else "sell" if (edge or 0) < 0 else ""
+        es = "—" if edge is None else f'{"+" if edge > 0 else ""}{edge:.0f} pts'
+        rows += (f'<tr><td>{r["label"]}</td>'
+                 f'<td style="text-align:right;">{r["n_pass"]}/{r["n_fail"]}</td>'
+                 f'<td style="text-align:right;">{wp}</td><td style="text-align:right;">{wf}</td>'
+                 f'<td style="text-align:right;" class="{ec}">{es}</td></tr>')
+    return (intro + '<table class="trackrec"><thead><tr><th>Check</th>'
+            '<th style="text-align:right;">Pass/Fail n</th><th style="text-align:right;">Win% pass</th>'
+            '<th style="text-align:right;">Win% fail</th><th style="text-align:right;">Edge</th>'
+            '</tr></thead><tbody>' + rows + '</tbody></table>')
+
+
 def _track_html(track: dict | None) -> str:
     """Server-rendered track-record block (works without JS)."""
     if not track:
@@ -1251,6 +1276,12 @@ def render_html(snap: dict) -> str:
         "SYNTHETIC": "Synthetic data — NOT real prices or news. Add Alpaca keys for the real thing.",
     }[mode]
     track_html = _track_html(snap.get("track"))
+    if track_html:
+        try:
+            import attribution
+            track_html += _attribution_html(attribution.report())
+        except Exception:  # noqa: BLE001 - attribution is additive; never break the build
+            pass
     _paper_acct = snap.get("paper_acct")
     paper_html = _paper_html(_paper_acct)
     paper_nav = '<button data-page="paper">Paper account</button>' if _paper_acct else ''
@@ -2265,20 +2296,27 @@ function _altData(s) {{
       extra: b.sentiment_pct!=null?b.sentiment_pct+'%':'',
       col: b.lean==='bull'?'var(--buy)':b.lean==='bear'?'var(--sell)':'var(--muted)',
       tip:`StockTwits: ${{b.n}} recent posts, ${{b.sentiment_pct}}% bullish of tagged. Crowd sentiment — noisy/contrarian.`}});
+  const rs = (s.factors||{{}}).rs;
+  if (rs && rs.pct!=null)
+    out.push({{icon:'📈', txt:'RS '+rs.pct, extra:'', nojump:true,
+      col: rs.pct>=70?'var(--buy)':rs.pct<=40?'var(--sell)':'var(--muted)',
+      tip:`Relative-strength percentile ${{rs.pct}} vs the market over recent months — higher = leading, lower = lagging.`}});
   return out;
 }}
 // Clear, labelled pills for the Cards layout.
 function _altPills(s) {{
   const d = _altData(s); if (!d.length) return '';
-  return '<div class="altrow">' + d.map(x =>
-    `<span class="altpill hint" style="color:${{x.col}};cursor:pointer;" data-tip="${{x.tip}} · Click for all findings →" onclick="event.stopPropagation();_gotoTab('altdata')">${{x.icon}} ${{x.txt}}${{x.extra!==''&&x.extra!=null?' '+x.extra:''}}</span>`
+  return '<div class="altrow">' + d.map(x => x.nojump
+    ? `<span class="altpill hint" style="color:${{x.col}};" data-tip="${{x.tip}}">${{x.icon}} ${{x.txt}}${{x.extra!==''&&x.extra!=null?' '+x.extra:''}}</span>`
+    : `<span class="altpill hint" style="color:${{x.col}};cursor:pointer;" data-tip="${{x.tip}} · Click for all findings →" onclick="event.stopPropagation();_gotoTab('altdata')">${{x.icon}} ${{x.txt}}${{x.extra!==''&&x.extra!=null?' '+x.extra:''}}</span>`
   ).join('') + '</div>';
 }}
 // Compact coloured icon strip for dense layouts (Terminal etc.).
 function _altMini(s) {{
   const d = _altData(s); if (!d.length) return '';
-  return '<div class="bbalt">' + d.map(x =>
-    `<span class="hint" style="color:${{x.col}};cursor:pointer;" data-tip="${{x.tip}} · Click for all findings →" onclick="event.stopPropagation();_gotoTab('altdata')">${{x.icon}} ${{x.extra!==''&&x.extra!=null?x.extra:x.txt}}</span>`
+  return '<div class="bbalt">' + d.map(x => x.nojump
+    ? `<span class="hint" style="color:${{x.col}};" data-tip="${{x.tip}}">${{x.icon}} ${{x.extra!==''&&x.extra!=null?x.extra:x.txt}}</span>`
+    : `<span class="hint" style="color:${{x.col}};cursor:pointer;" data-tip="${{x.tip}} · Click for all findings →" onclick="event.stopPropagation();_gotoTab('altdata')">${{x.icon}} ${{x.extra!==''&&x.extra!=null?x.extra:x.txt}}</span>`
   ).join('') + '</div>';
 }}
 function _dirCol(s) {{

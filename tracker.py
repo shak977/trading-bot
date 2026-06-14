@@ -70,6 +70,8 @@ def run(signals: list[dict], cfg: Config, live: bool, today: str) -> dict:
                 "advised_date": today, "entry": p["entry"], "stop": p["stop"],
                 "target": p["target"], "rr": p.get("rr"),
                 "conviction": (s.get("conviction") or {}).get("label"),
+                "checks": [{"label": c.get("label"), "status": c.get("status")}
+                           for c in ((s.get("conviction") or {}).get("checks") or [])],
                 "tv_align": tv_align,
                 "status": "open",
             }
