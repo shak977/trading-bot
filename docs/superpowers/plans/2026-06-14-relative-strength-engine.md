@@ -802,34 +802,22 @@ git commit -m "dashboard: RS percentile badge + factor-attribution panel"
 
 ---
 
-## Task 10: A/B backtest variant for RS (validation)
+## Task 10: RS validation — REVISED (not via backtest_compare)
 
-**Files:**
-- Modify: `backtest_compare.py` — add an RS-gated variant so RS must earn its place.
-- Test: none new (this is an analysis tool); just confirm it runs.
+**Finding during execution:** `backtest_compare.py` calls `run_backtest`, which exercises the
+raw MA-crossover strategy (`strategy.generate_signals`) and **never consults conviction**. RS lives
+entirely in the conviction layer (it changes which signals score High, hence which get
+paper-traded / tracked — not the per-symbol strategy edge). An `rs_conviction_weight` variant in
+that harness would therefore print **numbers identical to baseline** — a misleading no-op, the exact
+"decorative factor" failure mode the spec set out to avoid.
 
-- [ ] **Step 1: Add an RS variant**
+**Decision:** do NOT add a fake variant. RS is validated **forward** instead, by the
+factor-attribution loop (Tasks 7–9): once enough tracked calls resolve, the "Which checks earn
+their keep" panel shows the realized win-rate edge of the "Leading the market?" check directly. If
+a backtest-style validation of conviction *selection* is wanted later, it needs a new harness that
+ranks-and-selects signals by conviction and measures the chosen book — a separate spec.
 
-In `backtest_compare.py`, locate the list of config variants (baseline / ADX / trailing / both). Add a variant that raises the RS check's influence so its effect is measurable, e.g.:
-
-```python
-    import dataclasses
-    variants.append(("rs_weighted", dataclasses.replace(base, rs_conviction_weight=3.0)))
-```
-
-(Adapt to the file's actual variant-construction style; the point is one extra labelled config with a higher `rs_conviction_weight`.)
-
-- [ ] **Step 2: Run it**
-
-Run: `python3 backtest_compare.py`
-Expected: prints a comparison table including the `rs_weighted` row (win%, avg return, drawdown, Sharpe) with no traceback.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add backtest_compare.py
-git commit -m "backtest_compare: add RS-weighted variant for A/B validation"
-```
+- [x] No code change. Rationale recorded above and in the commit history.
 
 ---
 
