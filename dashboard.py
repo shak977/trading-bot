@@ -1233,6 +1233,13 @@ def render_html(snap: dict) -> str:
   .lad-row.stp > span:last-child, .lad-row.stp em {{ color:var(--sell); }}
   .lad-rr {{ padding:5px 11px; border-top:0.5px solid var(--line); font-size:11px; color:var(--muted); text-align:right; }}
   .card-warn {{ margin-top:9px; font-size:11.5px; color:var(--sell); font-weight:500; }}
+  /* scraped alt-data badges (insider / analyst rating / retail buzz) */
+  .altrow {{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }}
+  .altpill {{ font-size:11px; font-weight:700; padding:3px 9px; border-radius:7px;
+    border:1px solid currentColor; background:color-mix(in srgb, currentColor 10%, transparent);
+    display:inline-flex; align-items:center; gap:4px; cursor:help; line-height:1.3; }}
+  .bbalt {{ margin-top:4px; font-size:10.5px; font-weight:700; display:flex; gap:9px; flex-wrap:wrap; }}
+  .bbalt span {{ cursor:help; }}
   .conc-warn {{ margin:0 0 16px; padding:10px 14px; font-size:12.5px; line-height:1.5; border-radius:10px;
     background:color-mix(in srgb, #b8860b 12%, transparent); border:1px solid color-mix(in srgb, #b8860b 38%, transparent);
     color:var(--txt); cursor:help; }}
@@ -2058,9 +2065,7 @@ function makeCard(s) {{
     ${{ladder}}
     ${{whyHtml}}
     ${{s.catalyst ? `<div class="cat-chip hint" data-tip="${{_esc(s.catalyst.headline)}}">⚡ Catalyst — fresh news${{s.catalyst.source?' · '+s.catalyst.source:''}}</div>` : ''}}
-    ${{(s.insider && s.insider.cluster_buy) ? `<div class="cat-chip hint" style="background:color-mix(in srgb, var(--buy) 14%, transparent);color:var(--buy);" data-tip="SEC Form 4: ${{s.insider.buys}} recent open-market insider purchase(s), ${{(s.insider.buy_shares||0).toLocaleString()}} shares. Source: SEC EDGAR.">🏛 Insiders buying (${{s.insider.buys}})</div>` : ''}}
-    ${{(s.buzz && s.buzz.lean) ? `<div class="cat-chip hint" style="background:var(--inset);color:var(--txt2);" data-tip="StockTwits retail chatter: ${{s.buzz.n}} recent posts, ${{s.buzz.sentiment_pct}}% bullish of tagged. Crowd sentiment — noisy and sometimes contrarian.">💬 Buzz: ${{s.buzz.lean==='bull'?'bullish':s.buzz.lean==='bear'?'bearish':'mixed'}}${{s.buzz.sentiment_pct!=null?' '+s.buzz.sentiment_pct+'%':''}}</div>` : ''}}
-    ${{(s.fundamentals && s.fundamentals.analyst_actions && s.fundamentals.analyst_actions.latest && ['up','down'].includes(s.fundamentals.analyst_actions.latest.action)) ? (l => `<div class="cat-chip hint" style="background:color-mix(in srgb, ${{l.action==='up'?'var(--buy)':'var(--sell)'}} 14%, transparent);color:${{l.action==='up'?'var(--buy)':'var(--sell)'}};" data-tip="Latest analyst action (Finnhub): ${{_esc(l.firm||'')}} ${{l.from?l.from+' → ':''}}${{_esc(l.to||'')}} on ${{l.date}}. 60d: ${{s.fundamentals.analyst_actions.n_up}} up / ${{s.fundamentals.analyst_actions.n_down}} down.">${{l.action==='up'?'⬆ Upgraded':'⬇ Downgraded'}}${{l.firm?' · '+_esc(l.firm):''}}</div>`)(s.fundamentals.analyst_actions.latest) : ''}}
+    ${{_altPills(s)}}
     ${{s.tv ? `<div class="tv-chip hint" data-tip="TradingView's aggregate technical rating (independent of our engine) — daily ${{s.tv.d||'n/a'}}, weekly ${{s.tv.w||'n/a'}}">TradingView: ${{s.tv.d||'—'}} <span style="opacity:.7;">· 1W ${{s.tv.w||'—'}}</span></div>` : ''}}
     ${{s.ai_read ? `<div class="ai-box hint" data-tip="${{_esc(s.ai_read.slice(0,600))}}"><span class="ai-h">🤖 AI analyst</span> ${{_esc(s.ai_read.split('. ')[0]).slice(0,130)}}…</div>` : ''}}
     ${{edWarn}}
@@ -2086,6 +2091,41 @@ function _pxOf(s) {{ return (s.quote_price != null) ? s.quote_price : s.price; }
 function _rag(pct) {{ pct = pct||0; return pct>=70 ? 'var(--buy)' : (pct>=50 ? '#c08a1e' : 'var(--sell)'); }}
 function _ragT(pct) {{ pct = pct||0; return pct>=70 ? '#33d17a' : (pct>=50 ? '#e8a33d' : '#ff5c4d'); }}
 function _tvBit(s) {{ return (s.tv && s.tv.d) ? (' · TV ' + s.tv.d) : ''; }}  // short tail for compact rows
+
+// Scraped alt-data (SEC insiders / analyst rating change / StockTwits buzz) as a normalised list.
+function _altData(s) {{
+  const out = [];
+  const ins = s.insider;
+  if (ins && ins.cluster_buy)
+    out.push({{icon:'🏛', txt:'Insider buys', extra:ins.buys, col:'var(--buy)',
+      tip:`SEC Form 4: ${{ins.buys}} recent open-market insider purchase(s), ${{(ins.buy_shares||0).toLocaleString()}} shares.`}});
+  const aa = (s.fundamentals||{{}}).analyst_actions, lt = aa && aa.latest;
+  if (lt && (lt.action==='up' || lt.action==='down'))
+    out.push({{icon: lt.action==='up'?'⬆':'⬇', txt: lt.action==='up'?'Upgrade':'Downgrade', extra: lt.firm||'',
+      col: lt.action==='up'?'var(--buy)':'var(--sell)',
+      tip:`Analyst: ${{_esc(lt.firm||'')}} ${{lt.from?lt.from+' → ':''}}${{_esc(lt.to||'')}} on ${{lt.date}}.`}});
+  const b = s.buzz;
+  if (b && b.lean)
+    out.push({{icon:'💬', txt: b.lean==='bull'?'Bullish buzz':b.lean==='bear'?'Bearish buzz':'Mixed buzz',
+      extra: b.sentiment_pct!=null?b.sentiment_pct+'%':'',
+      col: b.lean==='bull'?'var(--buy)':b.lean==='bear'?'var(--sell)':'var(--muted)',
+      tip:`StockTwits: ${{b.n}} recent posts, ${{b.sentiment_pct}}% bullish of tagged. Crowd sentiment — noisy/contrarian.`}});
+  return out;
+}}
+// Clear, labelled pills for the Cards layout.
+function _altPills(s) {{
+  const d = _altData(s); if (!d.length) return '';
+  return '<div class="altrow">' + d.map(x =>
+    `<span class="altpill hint" style="color:${{x.col}};" data-tip="${{x.tip}}">${{x.icon}} ${{x.txt}}${{x.extra!==''&&x.extra!=null?' '+x.extra:''}}</span>`
+  ).join('') + '</div>';
+}}
+// Compact coloured icon strip for dense layouts (Terminal etc.).
+function _altMini(s) {{
+  const d = _altData(s); if (!d.length) return '';
+  return '<div class="bbalt">' + d.map(x =>
+    `<span class="hint" style="color:${{x.col}};" data-tip="${{x.tip}}">${{x.icon}} ${{x.extra!==''&&x.extra!=null?x.extra:x.txt}}</span>`
+  ).join('') + '</div>';
+}}
 function _dirCol(s) {{
   if (s.direction === 'SHORT') return 'var(--sell)';
   if (s.action === 'BUY' || s.action === 'HOLD LONG' || s.action === 'WATCH LONG') return 'var(--buy)';
@@ -2169,6 +2209,7 @@ function L_terminal(list) {{
       + `<div class="bbmeta">CONV <b style="color:${{_conv(s)>=0?_ragT(_conv(s)):'#8a8a6a'}};">${{_conv(s)>=0?_conv(s):'—'}}</b> · ${{_famOf(s)||'—'}}</div>`
       + `<div class="bblv">${{lv}}</div>`
       + (s.tv && s.tv.d ? `<div class="bbtv">TV <span style="color:#cbb88a;">${{s.tv.d}}</span> · 1W ${{s.tv.w||'—'}}</div>` : '')
+      + _altMini(s)
       + `</div>`;
   }}).join('');
   return _bindAll(_wrap('bbwrap', head + `<div class="bbgrid">${{tiles}}</div>`), list);
