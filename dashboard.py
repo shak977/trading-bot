@@ -1885,7 +1885,22 @@ def render_html(snap: dict) -> str:
         dip-buy, Bollinger squeeze breakout, EMA momentum stack) and their bearish mirrors (death cross,
         breakdowns, RSI-2 rip-sell, etc.). When 3+ agree <i>and</i> price is in the matching trend,
         the setup becomes actionable; 2 agreeing is a Watch. The detail panel shows which are firing.</li>
+        <li><b>Independent cross-check (TradingView)</b> — TradingView's own aggregate technical rating
+        (daily + weekly), as a second opinion that's separate from our engine.</li>
+        <li><b>News &amp; analysts</b> — recent news tone, the analyst consensus and average price target, plus
+        <b>recent rating changes</b> (upgrades/downgrades and the firm behind them).</li>
+        <li><b>Insider activity (SEC Form 4)</b> — clusters of open-market insider <i>purchases</i> raise a
+        long's conviction (and lower a short's); heavy insider selling leans the other way.</li>
+        <li><b>Retail buzz (StockTwits)</b> — crowd chatter and Bull/Bear sentiment, weighted gently since
+        it's noisy and often contrarian.</li>
+        <li><b>Market alignment</b> — is the trade running with the broad tape (Risk-on/off) or against it?
+        Counter-trend setups lose points.</li>
+        <li><b>Earnings gate</b> — a fresh entry within ~2 days of an earnings report is held back (capped
+        out of High conviction): a binary report can gap straight through the stop.</li>
       </ul>
+      <p>The Signals page also warns when <b>too many fresh signals cluster in one sector</b> (often the same
+      macro bet in disguise), and the <b>Data signals</b> tab explains and lists what the insider / rating /
+      buzz scrapers found today.</p>
       <p>The detail panel also flags <b>chart patterns</b> (golden cross, breakouts, pullbacks, MACD
       crosses, oversold bounces…) and reads the <b>market backdrop</b> — overall breadth (how many
       stocks are trending up) and which <b>sectors</b> are strongest — because signals work better when
@@ -1896,10 +1911,19 @@ def render_html(snap: dict) -> str:
       card for the full breakdown: a plain-English explanation, the trade plan (entry, stop, target,
       risk:reward), a chart marking where the strategy would have bought/sold, and recent news.</p>
 
+      <h4>Proving it out — paper trading &amp; honest backtests</h4>
+      <p>The <b>Track record</b> tab logs every call and grades it against real prices (hypothetical — no fees).
+      The <b>Paper account</b> tab goes further: when enabled, fresh High-conviction signals are auto-submitted
+      as bracket orders to a real Alpaca <b>paper</b> account, so you see actual fills, slippage and P&amp;L — the
+      honest counterpart to the hypothetical log. And the <b>Momentum</b> tab leads with a
+      <b>survivorship-bias-free</b> backtest (run on a fixed universe of always-alive ETFs) so its headline
+      Sharpe/return can't be flattered by today's winners.</p>
+
       <h4>Honest limits</h4>
       <p>This is an <b>educational tool, not financial advice</b>. Signals are often wrong, the data is
-      free and slightly delayed, and the numbers ignore fees and slippage. Treat it as a starting point
-      for your own research — never risk money you can't afford to lose.</p>
+      free and slightly delayed, and the numbers ignore fees and slippage. The extra inputs above (insider,
+      buzz, ratings) are <i>context, not certainty</i> — they tilt conviction, they don't guarantee anything.
+      Treat it all as a starting point for your own research — never risk money you can't afford to lose.</p>
     </div>
   </section>
 
