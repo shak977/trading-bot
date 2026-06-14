@@ -976,6 +976,80 @@ def _paper_spark(history: dict | None) -> str:
             f'<polyline points="{coords}" fill="none" stroke="{col}" stroke-width="2"/></svg>')
 
 
+def _altdata_html(snap: dict) -> str:
+    """Aggregate + explain what the alt-data scrapers (SEC insiders, analyst ratings, StockTwits
+    buzz) found across today's signals, and how each is meant to be read."""
+    sigs = snap.get("signals", []) or []
+
+    def _dir_tone(s):
+        return "buy" if s.get("direction") != "SHORT" else "sell"
+
+    def _rowlink(s, detail):
+        nm = (s.get("name") or "")[:26]
+        return (f'<tr><td><b>{s["symbol"]}</b> <span style="color:var(--muted);">{nm}</span></td>'
+                f'<td><span class="{_dir_tone(s)}" style="font-weight:700;">{s.get("action","")}</span></td>'
+                f'<td>{detail}</td></tr>')
+
+    def _block(title, lead, header3, rows, empty):
+        body = (f'<table class="trackrec" style="margin-top:8px;"><thead><tr><th>Ticker</th><th>Signal</th>'
+                f'<th>{header3}</th></tr></thead><tbody>{rows}</tbody></table>') if rows else \
+               f'<p style="color:var(--muted);font-size:13px;margin:6px 0 0;">{empty}</p>'
+        return (f'<div class="ovbox" style="margin:0 0 16px;"><div class="ovhead">{title}</div>'
+                f'<p style="color:var(--muted);font-size:12.5px;margin:6px 0 0;">{lead}</p>{body}</div>')
+
+    # Insider (SEC Form 4)
+    ins_rows = ""
+    for s in sigs:
+        i = s.get("insider") or {}
+        if i.get("cluster_buy"):
+            ins_rows += _rowlink(s, f'🏛 {i["buys"]} open-market purchase(s), '
+                                    f'{(i.get("buy_shares") or 0):,} shares (last {i.get("last_date","")})')
+    ins = _block("🏛 Insider buying (SEC Form 4)",
+                 "Insiders (officers/directors) must file a Form 4 within 2 business days of trading their own "
+                 "stock. Clusters of <b>open-market purchases</b> are a well-studied bullish tell — they're "
+                 "spending real money, unlike option grants. We raise a long's conviction (and cut a short's) when "
+                 "we see one.", "Finding", ins_rows,
+                 "No insider open-market buy clusters across today's signals (most names have none on a given day).")
+
+    # Analyst rating changes (Finnhub)
+    rat_rows = ""
+    for s in sigs:
+        aa = (s.get("fundamentals") or {}).get("analyst_actions") or {}
+        lt = aa.get("latest") or {}
+        if lt.get("action") in ("up", "down"):
+            arrow = "⬆" if lt["action"] == "up" else "⬇"
+            rat_rows += _rowlink(s, f'{arrow} {lt.get("firm","")}: {lt.get("from","") or "?"} → '
+                                    f'{lt.get("to","")} ({lt.get("date","")}) · 60d net '
+                                    f'{aa.get("n_up",0)}↑/{aa.get("n_down",0)}↓')
+    rat = _block("📈 Analyst rating changes (Finnhub)",
+                 "Recent upgrades/downgrades and the firm behind them, over the last 60 days. A fresh upgrade is a "
+                 "supportive catalyst for a long (headwind for a short); net downgrades lean the other way. It's one "
+                 "input, not gospel — analysts lag as often as they lead.", "Latest action", rat_rows,
+                 "No analyst rating changes in the last 60 days across today's signals (or Finnhub's free tier "
+                 "didn't return them).")
+
+    # Retail buzz (StockTwits)
+    buzz_rows = ""
+    for s in sigs:
+        b = s.get("buzz") or {}
+        if b.get("lean"):
+            lean = {"bull": "Bullish", "bear": "Bearish", "mixed": "Mixed"}.get(b["lean"], b["lean"])
+            buzz_rows += _rowlink(s, f'💬 {lean} — {b.get("sentiment_pct","?")}% bullish of tagged, '
+                                     f'{b.get("n","?")} recent posts')
+    buzz = _block("💬 Retail buzz (StockTwits)",
+                  "Crowd chatter: how many recent posts mention the ticker and the Bull/Bear split among those the "
+                  "author tagged. Treat it as a <b>contrarian-tinted attention gauge</b>, not a signal — it's noisy "
+                  "and the crowd is often late. We weight it gently.", "Buzz", buzz_rows,
+                  "No tickers cleared the buzz threshold (≥5 sentiment-tagged posts) across today's signals.")
+
+    note = ('<p style="color:var(--muted);font-size:12px;margin-top:4px;">These feed the conviction checklist on '
+            'each signal (open any card) and show as badges on the Cards/Terminal layouts. Data appears only on live '
+            'runs, and is sparse by design — a quiet day here is normal, not a bug. Sources: SEC EDGAR, Finnhub, StockTwits.</p>')
+    intro = ('<h2 style="margin-top:0;">Data signals <span style="text-transform:none;font-weight:400;'
+             'color:var(--muted);font-size:12px;">— what the scrapers found, and how to read it</span></h2>')
+    return intro + ins + rat + buzz + note
+
+
 def _paper_html(p: dict | None) -> str:
     """Server-rendered REAL paper-account block (opt-in). Honest, fills-based — distinct from
     the hypothetical tracker."""
@@ -1133,6 +1207,7 @@ def render_html(snap: dict) -> str:
     paper_html = _paper_html(_paper_acct)
     paper_nav = '<button data-page="paper">Paper account</button>' if _paper_acct else ''
     paper_section = f'<section class="page" id="page-paper">{paper_html}</section>' if _paper_acct else ''
+    altdata_html = _altdata_html(snap)
     regime_html = _regime_html(snap.get("regime"))
     _pd = snap.get("price_drops") or []
     pdrop_html = (f' &middot; <span style="color:var(--muted);" title="{(" | ".join(_pd))[:300].replace(chr(34), chr(39))}">'
@@ -1687,6 +1762,7 @@ def render_html(snap: dict) -> str:
     <button data-page="allweather">All Weather</button>
     <button data-page="ipos">IPO watch</button>
     <button data-page="track">Track record</button>
+    <button data-page="altdata">Data signals</button>
     {paper_nav}
     <button data-page="method">How it works</button>
     <button data-page="news">Market news</button>
@@ -1751,6 +1827,10 @@ def render_html(snap: dict) -> str:
 
   <section class="page" id="page-track">
 {track_html}
+  </section>
+
+  <section class="page" id="page-altdata">
+{altdata_html}
   </section>
 
   {paper_section}
