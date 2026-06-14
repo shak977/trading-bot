@@ -181,6 +181,54 @@ def ema_stack_down(df: pd.DataFrame, cfg: Config) -> pd.Series:
     return _state(entry, exit_)
 
 
+# ---- post-earnings drift (PEAD): ride the drift after a strong, high-volume reaction ----
+
+def _pead(df: pd.DataFrame, cfg: Config, *, short: bool) -> pd.Series:
+    """Drift after an earnings-like reaction, inferred from price+volume (no date feed).
+
+    A "reaction" bar = a close-to-close move of at least ``pead_gap_min`` in the trade's
+    direction, on volume >= ``pead_vol_mult`` x the rolling-median volume (an earnings-style
+    surprise). We then ride the drift while price holds the reaction (above its close for a
+    long, below for a short) and within ``pead_window`` bars, exiting when price breaks back
+    through the reaction bar's extreme. Bars-only, so it backtests like every other strategy.
+    """
+    if not getattr(cfg, "pead_enabled", True):
+        return pd.Series(0.0, index=df.index, dtype="float64")
+    c = df["close"]
+    ret = c.pct_change()
+    vol = df["volume"] if "volume" in df else pd.Series(1.0, index=df.index)
+    med = vol.rolling(cfg.pead_vol_window, min_periods=5).median()
+    surge = vol >= (cfg.pead_vol_mult * med)
+    if short:
+        reaction = (ret <= -cfg.pead_gap_min) & surge
+    else:
+        reaction = (ret >= cfg.pead_gap_min) & surge
+    reaction = reaction.fillna(False)
+    # carry forward the most recent reaction bar's close / extreme
+    ref_close = c.where(reaction).ffill()
+    ref_ext = (df["low"] if short else df["high"]).where(reaction).ffill()
+    within = reaction.rolling(cfg.pead_window, min_periods=1).max().astype(bool)
+    if short:
+        holding = c <= ref_close
+        entry = within & holding & reaction.cumsum().gt(0)
+        exit_ = c > ref_ext
+    else:
+        holding = c >= ref_close
+        entry = within & holding & reaction.cumsum().gt(0)
+        exit_ = c < ref_ext
+    return _state(entry.fillna(False), exit_.fillna(False))
+
+
+def pead_long(df: pd.DataFrame, cfg: Config) -> pd.Series:
+    """Long the drift after a strong, high-volume up reaction (post-earnings drift)."""
+    return _pead(df, cfg, short=False)
+
+
+def pead_short(df: pd.DataFrame, cfg: Config) -> pd.Series:
+    """Short the drift after a strong, high-volume down reaction (mirror)."""
+    return _pead(df, cfg, short=True)
+
+
 # registry: key -> (label, fn, kind, blurb)
 STRATEGIES: dict[str, tuple] = {
     "trend_cross": ("Trend crossover", trend_cross, "trend",
@@ -197,6 +245,8 @@ STRATEGIES: dict[str, tuple] = {
                   "Breaks above the Bollinger band after a low-volatility squeeze."),
     "ema_stack": ("EMA momentum stack", ema_stack, "momentum",
                   "Fast EMAs stacked above slow ones (8 > 21 > 50)."),
+    "pead": ("Post-earnings drift", pead_long, "event",
+             "Rides the drift after a strong, high-volume earnings-style reaction."),
 }
 
 
@@ -215,6 +265,8 @@ SHORT_STRATEGIES: dict[str, tuple] = {
                      "Breaks below the Bollinger band after a low-volatility squeeze."),
     "ema_stack_dn": ("EMA momentum stack (down)", ema_stack_down, "momentum",
                      "Fast EMAs stacked below slow ones (8 < 21 < 50)."),
+    "pead_dn": ("Post-earnings drift (down)", pead_short, "event",
+                "Rides the down-drift after a strong, high-volume negative reaction."),
 }
 
 

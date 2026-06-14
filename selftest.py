@@ -447,6 +447,56 @@ def test_attribution_panel():
     _ok("empty report yields a friendly note", "accruing" in dashboard._attribution_html([]).lower())
 
 
+def test_pead():
+    print("post-earnings drift:")
+    import numpy as np
+    import pandas as pd
+    import strategies
+    from config import CONFIG
+    n = 60
+    idx = pd.date_range("2024-01-01", periods=n)
+    close = np.linspace(100, 102, n).astype(float)
+    vol = np.full(n, 1_000_000.0)
+    close[40] = close[39] * 1.08          # +8% reaction (earnings-like)
+    vol[40] = 5_000_000.0                 # volume surge
+    close[41:46] = close[40] * 1.01       # drift holds above the reaction close
+    df = pd.DataFrame({"open": np.concatenate([[close[0]], close[:-1]]),
+                       "high": close * 1.01, "low": close * 0.99,
+                       "close": close, "volume": vol}, index=idx)
+    pos = strategies.pead_long(df, CONFIG)
+    _ok("pead is a 0/1 series", set(pos.dropna().unique()).issubset({0.0, 1.0}) and len(pos) == n)
+    _ok("pead long active during the held drift", bool(pos.iloc[44] == 1.0))
+    _ok("pead long flat before the reaction", bool(pos.iloc[35] == 0.0))
+    close2 = close.copy(); close2[47] = close[40] * 0.90
+    df2 = df.copy(); df2["close"] = close2; df2["low"] = close2 * 0.99
+    pos2 = strategies.pead_long(df2, CONFIG)
+    _ok("pead long exits when the drift breaks down", bool(pos2.iloc[48] == 0.0))
+    import dataclasses
+    off = dataclasses.replace(CONFIG, pead_enabled=False)
+    _ok("pead disabled => all flat", float(strategies.pead_long(df, off).sum()) == 0.0)
+    closed = np.linspace(100, 98, n).astype(float)
+    closed[40] = closed[39] * 0.92; closed[41:46] = closed[40] * 0.99
+    vold = np.full(n, 1_000_000.0); vold[40] = 5_000_000.0
+    dfd = pd.DataFrame({"open": np.concatenate([[closed[0]], closed[:-1]]),
+                        "high": closed * 1.01, "low": closed * 0.99,
+                        "close": closed, "volume": vold}, index=idx)
+    _ok("pead short active during a held down-drift", bool(strategies.pead_short(dfd, CONFIG).iloc[44] == 1.0))
+
+
+def test_pead_in_pipeline():
+    print("pead in pipeline:")
+    import strategies, analytics
+    from data import synthetic_bars
+    from config import CONFIG
+    df = synthetic_bars("TEST", n=CONFIG.lookback_days)
+    ev = strategies.evaluate(df, CONFIG)
+    _ok("confluence total now counts PEAD", ev["total"] == len(strategies.STRATEGIES))
+    _ok("PEAD registered long + short", "pead" in strategies.STRATEGIES and "pead_dn" in strategies.SHORT_STRATEGIES)
+    se = analytics.strategy_edges(df, CONFIG)
+    _ok("per-strategy edges include PEAD", "pead" in se["by"] and "pead_dn" in se["by"])
+    _ok("PEAD edge tagged with a side", se["by"]["pead"]["side"] == "long" and se["by"]["pead_dn"]["side"] == "short")
+
+
 def main():
     test_tradingview()
     test_audit_direction_aware()
@@ -465,6 +515,8 @@ def main():
     test_rescore()
     test_llm_prompt()
     test_regime()
+    test_pead()
+    test_pead_in_pipeline()
     test_rs()
     test_conviction_weighting()
     test_rs_conviction()

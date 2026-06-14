@@ -71,6 +71,13 @@ class Config:
     trail_atr_mult: float = 0.0     # >0 enables a trailing ATR stop in the backtest (e.g. 3.0; 0 = fixed stop)
     regime_block_buys: bool = True  # demote fresh BUYs to HOLD when the market regime is Risk-off
 
+    # --- Post-earnings drift (PEAD) setup ---
+    pead_enabled: bool = True       # include the post-earnings-drift strategy in confluence/backtests
+    pead_window: int = 5            # bars after the reaction during which a drift entry may trigger
+    pead_gap_min: float = 0.04      # reaction = close-to-close move >= this (4%) ...
+    pead_vol_mult: float = 1.5      # ... AND volume >= this multiple of the median (earnings-like surge)
+    pead_vol_window: int = 20       # median-volume lookback for the surge test
+
     # --- Optional auto paper-trading (build a REAL fills-based track record) ---
     # OFF by default. Set PAPER_TRADE=true (repo var/secret) to let the runner submit bracket
     # orders to your PAPER account for fresh High-conviction signals. Refuses on a live account.
