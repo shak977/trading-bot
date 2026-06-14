@@ -2172,6 +2172,9 @@ function _rag(pct) {{ pct = pct||0; return pct>=70 ? 'var(--buy)' : (pct>=50 ? '
 function _ragT(pct) {{ pct = pct||0; return pct>=70 ? '#33d17a' : (pct>=50 ? '#e8a33d' : '#ff5c4d'); }}
 function _tvBit(s) {{ return (s.tv && s.tv.d) ? (' · TV ' + s.tv.d) : ''; }}  // short tail for compact rows
 
+// Jump to a top-level tab programmatically (used by clickable alt-data badges).
+function _gotoTab(p) {{ const b = document.querySelector(`#tabs button[data-page="${{p}}"]`); if (b) b.click(); }}
+
 // Scraped alt-data (SEC insiders / analyst rating change / StockTwits buzz) as a normalised list.
 function _altData(s) {{
   const out = [];
@@ -2196,14 +2199,14 @@ function _altData(s) {{
 function _altPills(s) {{
   const d = _altData(s); if (!d.length) return '';
   return '<div class="altrow">' + d.map(x =>
-    `<span class="altpill hint" style="color:${{x.col}};" data-tip="${{x.tip}}">${{x.icon}} ${{x.txt}}${{x.extra!==''&&x.extra!=null?' '+x.extra:''}}</span>`
+    `<span class="altpill hint" style="color:${{x.col}};cursor:pointer;" data-tip="${{x.tip}} · Click for all findings →" onclick="event.stopPropagation();_gotoTab('altdata')">${{x.icon}} ${{x.txt}}${{x.extra!==''&&x.extra!=null?' '+x.extra:''}}</span>`
   ).join('') + '</div>';
 }}
 // Compact coloured icon strip for dense layouts (Terminal etc.).
 function _altMini(s) {{
   const d = _altData(s); if (!d.length) return '';
   return '<div class="bbalt">' + d.map(x =>
-    `<span class="hint" style="color:${{x.col}};" data-tip="${{x.tip}}">${{x.icon}} ${{x.extra!==''&&x.extra!=null?x.extra:x.txt}}</span>`
+    `<span class="hint" style="color:${{x.col}};cursor:pointer;" data-tip="${{x.tip}} · Click for all findings →" onclick="event.stopPropagation();_gotoTab('altdata')">${{x.icon}} ${{x.extra!==''&&x.extra!=null?x.extra:x.txt}}</span>`
   ).join('') + '</div>';
 }}
 function _dirCol(s) {{
