@@ -57,6 +57,8 @@ def backtest_positions(df: pd.DataFrame, positions: pd.Series, cfg: Config,
     cash = cfg.starting_cash
     shares = 0
     entry = stop = target = 0.0
+    held_bars = 0
+    took_partial = False
     equity_hist, trades = [], []
     # optional trailing ATR stop ("let winners run")
     from indicators import atr as _atr
@@ -80,17 +82,31 @@ def backtest_positions(df: pd.DataFrame, positions: pd.Series, cfg: Config,
                     a = a.iloc[-1]
                 if a is not None and not np.isnan(a):
                     stop = max(stop, float(price) - cfg.trail_atr_mult * float(a))
+            held_bars += 1
+            reached_1r = row["high"] >= entry + (entry - stop)
+            time_stop = cfg.max_hold_days > 0 and held_bars >= cfg.max_hold_days and not reached_1r
+            # partial profit-take at partial_take_r (once); move the remainder to breakeven
+            if (cfg.partial_take_r > 0 and not took_partial and shares >= 2
+                    and row["high"] >= entry + cfg.partial_take_r * (entry - stop)):
+                half = shares // 2
+                px = (entry + cfg.partial_take_r * (entry - stop)) * (1 - slip)
+                cash += half * px - comm
+                trades.append({"exit_time": ts, "exit_px": px, "shares": half,
+                               "pnl": half * (px - entry), "reason": "partial"})
+                shares -= half
+                took_partial = True
+                stop = max(stop, entry)
             hit_stop = row["low"] <= stop
             hit_target = row["high"] >= target
             exit_signal = signal == 0
-            if hit_stop or hit_target or exit_signal:
+            if hit_stop or hit_target or exit_signal or time_stop:
                 exit_px = stop if hit_stop else target if hit_target else price
                 fill = exit_px * (1 - slip)              # sell into slippage
                 cash += shares * fill - comm
                 trades.append(
                     {"exit_time": ts, "exit_px": fill, "shares": shares,
                      "pnl": shares * (fill - entry),
-                     "reason": "stop" if hit_stop else "target" if hit_target else "signal"}
+                     "reason": "stop" if hit_stop else "target" if hit_target else ("time" if time_stop else "signal")}
                 )
                 shares = 0
 
@@ -102,6 +118,8 @@ def backtest_positions(df: pd.DataFrame, positions: pd.Series, cfg: Config,
                 entry = price * (1 + slip)              # buy fill incl. slippage
                 stop = stop_loss_price(price, cfg)
                 target = take_profit_price(price, cfg)
+                held_bars = 0
+                took_partial = False
                 cash -= shares * entry + comm
                 trades.append({"entry_time": ts, "entry_px": entry, "shares": shares})
 
@@ -118,6 +136,8 @@ def _backtest_short(df: pd.DataFrame, positions: pd.Series, cfg: Config) -> Back
     cash = cfg.starting_cash
     shares = 0
     entry = stop = target = 0.0
+    held_bars = 0
+    took_partial = False
     equity_hist, trades = [], []
     from indicators import atr as _atr
     trail = cfg.trail_atr_mult > 0
@@ -140,17 +160,31 @@ def _backtest_short(df: pd.DataFrame, positions: pd.Series, cfg: Config) -> Back
                     a = a.iloc[-1]
                 if a is not None and not np.isnan(a):
                     stop = min(stop, float(price) + cfg.trail_atr_mult * float(a))
+            held_bars += 1
+            reached_1r = row["low"] <= entry - (stop - entry)
+            time_stop = cfg.max_hold_days > 0 and held_bars >= cfg.max_hold_days and not reached_1r
+            # partial cover at partial_take_r (once); move the remainder to breakeven
+            if (cfg.partial_take_r > 0 and not took_partial and shares >= 2
+                    and row["low"] <= entry - cfg.partial_take_r * (stop - entry)):
+                half = shares // 2
+                px = (entry - cfg.partial_take_r * (stop - entry)) * (1 + slip)
+                cash += half * (entry - px) - comm
+                trades.append({"exit_time": ts, "exit_px": px, "shares": half,
+                               "pnl": half * (entry - px), "reason": "partial"})
+                shares -= half
+                took_partial = True
+                stop = min(stop, entry)
             hit_stop = row["high"] >= stop          # price rose into the stop
             hit_target = row["low"] <= target        # price fell to the cover target
             exit_signal = signal == 0
-            if hit_stop or hit_target or exit_signal:
+            if hit_stop or hit_target or exit_signal or time_stop:
                 exit_px = stop if hit_stop else target if hit_target else price
                 fill = exit_px * (1 + slip)           # buy to cover into slippage
                 cash += shares * (entry - fill) - comm
                 trades.append(
                     {"exit_time": ts, "exit_px": fill, "shares": shares,
                      "pnl": shares * (entry - fill),
-                     "reason": "stop" if hit_stop else "target" if hit_target else "signal"}
+                     "reason": "stop" if hit_stop else "target" if hit_target else ("time" if time_stop else "signal")}
                 )
                 shares = 0
 
@@ -162,6 +196,8 @@ def _backtest_short(df: pd.DataFrame, positions: pd.Series, cfg: Config) -> Back
                 entry = price * (1 - slip)            # sell to open incl. slippage
                 stop = entry * (1 + cfg.stop_loss_pct)
                 target = entry * (1 - cfg.take_profit_pct)
+                held_bars = 0
+                took_partial = False
                 cash -= comm
                 trades.append({"entry_time": ts, "entry_px": entry, "shares": shares})
 

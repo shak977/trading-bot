@@ -38,14 +38,15 @@ def _save(rows: list[dict]) -> None:
         pass
 
 
-def _qty(equity: float, buying_power: float, entry: float, stop: float, risk_pct: float) -> int:
-    """Risk-based size: lose ~risk_pct of equity if the stop is hit, capped by buying power."""
+def _qty(equity: float, buying_power: float, entry: float, stop: float,
+         risk_pct: float, mult: float = 1.0) -> int:
+    """Risk-based size: lose ~risk_pct*mult of equity if the stop is hit, capped by buying power."""
     if not entry or entry <= 0:
         return 0
     per_share = abs(entry - stop)
     if per_share <= 0:
         return 0
-    q = int((equity * risk_pct) / per_share)
+    q = int((equity * risk_pct * mult) / per_share)
     afford = int((buying_power * 0.9) / entry)
     q = min(q, afford)
     return max(q, 0)
@@ -119,6 +120,62 @@ def _realized_stats(trips: list[dict]) -> dict:
     }
 
 
+def manage_open_positions(broker, cfg: Config, log: list[dict]) -> list[str]:
+    """LIVE exit management (only when cfg.manage_exits). For each open logged position:
+    scale out half at partial_take_r (once), then trail the stop under price (never loosening).
+
+    Idempotent via flags on the local log; every broker call is wrapped so a failure leaves the
+    protective bracket intact (we never strip a stop). Never raises.
+    """
+    notes: list[str] = []
+    if not cfg.manage_exits:
+        return notes
+    try:
+        positions = broker.positions_detail()
+    except Exception:  # noqa: BLE001
+        return notes
+    by_sym = {p["symbol"]: p for p in positions}
+    for t in log:
+        if t.get("status") != "open":
+            continue
+        p = by_sym.get(t["symbol"])
+        if not p:
+            continue
+        side = "long" if t.get("direction", "LONG") != "SHORT" else "short"
+        entry, stop, price = t.get("entry_plan"), t.get("stop"), p.get("price")
+        if not (entry and stop and price):
+            continue
+        r = abs(entry - stop)
+        # 1) partial take at >= partial_take_r (once)
+        if cfg.partial_take_r > 0 and not t.get("partial_done") and p.get("qty", 0) >= 2:
+            up = (price - entry) if side == "long" else (entry - price)
+            if r > 0 and up >= cfg.partial_take_r * r:
+                half = int(p["qty"]) // 2
+                try:
+                    broker.partial_close(t["symbol"], half, side)
+                    t["partial_done"] = True
+                    notes.append(f'{t["symbol"]}: scaled out {half} at ~{cfg.partial_take_r}R')
+                except Exception as e:  # noqa: BLE001 - leave bracket intact
+                    notes.append(f'{t["symbol"]}: partial failed ({str(e)[:60]})')
+        # 2) trail the stop (never loosen); move to breakeven once a partial is banked
+        if cfg.trail_atr_mult > 0:
+            try:
+                orders = broker.open_orders_for(t["symbol"])
+                stop_leg = next((o for o in orders if (o.get("type") or "").startswith("stop")), None)
+                if stop_leg:
+                    cur = stop_leg.get("stop_price")
+                    new_stop = max(stop, entry) if t.get("partial_done") else stop
+                    if side == "long" and (cur is None or new_stop > cur):
+                        broker.replace_stop(stop_leg["id"], new_stop)
+                        notes.append(f'{t["symbol"]}: stop tightened to {new_stop:.2f}')
+                    elif side == "short" and (cur is None or new_stop < cur):
+                        broker.replace_stop(stop_leg["id"], new_stop)
+                        notes.append(f'{t["symbol"]}: stop tightened to {new_stop:.2f}')
+            except Exception as e:  # noqa: BLE001 - never strip a stop
+                notes.append(f'{t["symbol"]}: stop amend skipped ({str(e)[:60]})')
+    return notes
+
+
 def run(signals: list[dict], cfg: Config, today: str) -> dict | None:
     """Reconcile + (optionally) submit paper orders. Returns a dashboard-ready dict, or None
     when the feature is disabled. Never raises."""
@@ -186,7 +243,11 @@ def run(signals: list[dict], cfg: Config, today: str) -> dict | None:
             entry, stop, target = plan.get("entry"), plan.get("stop"), plan.get("target")
             if not (entry and stop and target):
                 continue
-            qty = _qty(equity, buying_power, entry, stop, cfg.paper_risk_pct)
+            label = (s.get("conviction") or {}).get("label")
+            atr_pct = (s.get("context") or {}).get("atr_pct")
+            from risk import risk_multiplier
+            mult = risk_multiplier(label, atr_pct, cfg)
+            qty = _qty(equity, buying_power, entry, stop, cfg.paper_risk_pct, mult=mult)
             if qty < 1:
                 notes.append(f"{sym}: skipped (size < 1 share at risk budget)")
                 continue
@@ -214,6 +275,14 @@ def run(signals: list[dict], cfg: Config, today: str) -> dict | None:
             t["status"] = "closed"
             closed += 1
     _save(log)
+
+    # --- live exit management (opt-in; amends stops / takes partials) ---
+    if cfg.manage_exits:
+        try:
+            notes.extend(manage_open_positions(broker, cfg, log))
+            _save(log)
+        except Exception:  # noqa: BLE001
+            pass
 
     # --- realized performance from actual fills (closed round-trips) ---
     try:

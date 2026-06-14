@@ -116,6 +116,31 @@ class Broker:
             pass
         return out
 
+    def open_orders_for(self, symbol: str) -> list[dict]:
+        """Open orders for a symbol, normalised to {id, type, stop_price}. Best-effort -> []."""
+        out = []
+        try:
+            from alpaca.trading.requests import GetOrdersRequest
+            from alpaca.trading.enums import QueryOrderStatus
+            for o in self.client.get_orders(GetOrdersRequest(
+                    status=QueryOrderStatus.OPEN, symbols=[symbol], limit=50)):
+                out.append({"id": o.id,
+                            "type": getattr(o, "order_type", None) or getattr(o, "type", None),
+                            "stop_price": float(o.stop_price) if getattr(o, "stop_price", None) else None})
+        except Exception:  # noqa: BLE001
+            pass
+        return out
+
+    def replace_stop(self, order_id, new_stop: float):
+        """Move a stop leg to a tighter price (best-effort)."""
+        from alpaca.trading.requests import ReplaceOrderRequest
+        return self.client.replace_order_by_id(order_id, ReplaceOrderRequest(stop_price=round(float(new_stop), 2)))
+
+    def partial_close(self, symbol: str, qty: int, side: str):
+        """Close `qty` shares of an open position (market). `side` is the current position side."""
+        close_side = "sell" if side == "long" else "buy"
+        return self.submit_market(symbol, qty, close_side)
+
     # --- orders ---
     def submit_market(self, symbol: str, qty: int, side: str):
         from alpaca.trading.enums import OrderSide, TimeInForce

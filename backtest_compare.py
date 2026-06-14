@@ -25,10 +25,12 @@ from data import get_bars, synthetic_bars
 from scanner import CORE_WATCHLIST
 
 VARIANTS = {
-    "baseline":     {"adx_min": 0.0,  "trail_atr_mult": 0.0},
-    "adx_gate(20)": {"adx_min": 20.0, "trail_atr_mult": 0.0},
-    "trail_atr(3)": {"adx_min": 0.0,  "trail_atr_mult": 3.0},
-    "both":         {"adx_min": 20.0, "trail_atr_mult": 3.0},
+    "baseline":      {"adx_min": 0.0,  "trail_atr_mult": 0.0},
+    "adx_gate(20)":  {"adx_min": 20.0, "trail_atr_mult": 0.0},
+    "trail_atr(3)":  {"adx_min": 0.0,  "trail_atr_mult": 3.0},
+    "both":          {"adx_min": 20.0, "trail_atr_mult": 3.0},
+    "partial+trail": {"adx_min": 0.0,  "trail_atr_mult": 3.0, "partial_take_r": 1.0},
+    "time_stop(10)": {"adx_min": 0.0,  "trail_atr_mult": 0.0, "max_hold_days": 10},
 }
 
 

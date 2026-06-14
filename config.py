@@ -78,6 +78,19 @@ class Config:
     pead_vol_mult: float = 1.5      # ... AND volume >= this multiple of the median (earnings-like surge)
     pead_vol_window: int = 20       # median-volume lookback for the surge test
 
+    # --- Position sizing by conviction & volatility (live paper path) ---
+    size_by_conviction: bool = True   # scale risk by conviction tier
+    conv_mult_high: float = 1.0       # High-conviction risk multiplier (of paper_risk_pct)
+    conv_mult_medium: float = 0.6     # Medium
+    conv_mult_low: float = 0.3        # Low
+    vol_target_atr_pct: float = 4.0   # ATR% at which the vol multiplier == 1.0; higher ATR% -> smaller
+    min_size_mult: float = 0.25       # floor on the combined multiplier (never size below this x base)
+
+    # --- Exit management ---
+    partial_take_r: float = 1.0       # scale out half the position at this R multiple (0 = off)
+    max_hold_days: int = 0            # time-stop: close after this many bars if < 1R reached (0 = off)
+    manage_exits: bool = False        # LIVE only: actively amend stops / take partials (default OFF)
+
     # --- Optional auto paper-trading (build a REAL fills-based track record) ---
     # OFF by default. Set PAPER_TRADE=true (repo var/secret) to let the runner submit bracket
     # orders to your PAPER account for fresh High-conviction signals. Refuses on a live account.

@@ -447,6 +447,119 @@ def test_attribution_panel():
     _ok("empty report yields a friendly note", "accruing" in dashboard._attribution_html([]).lower())
 
 
+def test_risk_multiplier():
+    print("conviction/vol sizing:")
+    import risk
+    import dataclasses
+    from config import CONFIG
+    cfg = CONFIG
+    m_hi = risk.risk_multiplier("High", cfg.vol_target_atr_pct, cfg)
+    m_md = risk.risk_multiplier("Medium", cfg.vol_target_atr_pct, cfg)
+    m_lo = risk.risk_multiplier("Low", cfg.vol_target_atr_pct, cfg)
+    _ok("High >= Medium >= Low", m_hi >= m_md >= m_lo)
+    _ok("at target ATR%, High mult == conv_mult_high", abs(m_hi - cfg.conv_mult_high) < 1e-9)
+    m_calm = risk.risk_multiplier("High", cfg.vol_target_atr_pct, cfg)
+    m_wild = risk.risk_multiplier("High", cfg.vol_target_atr_pct * 2, cfg)
+    _ok("higher vol -> smaller size", m_wild < m_calm)
+    _ok("never exceeds base ceiling", risk.risk_multiplier("High", 0.1, cfg) <= 1.0 + 1e-9)
+    _ok("floored at min_size_mult", risk.risk_multiplier("Low", 100.0, cfg) >= cfg.min_size_mult - 1e-9)
+    off = dataclasses.replace(cfg, size_by_conviction=False)
+    _ok("disabled => multiplier 1.0", risk.risk_multiplier("Low", 100.0, off) == 1.0)
+
+
+def test_paper_sizing():
+    print("paper conviction sizing:")
+    import paper
+    from config import CONFIG
+    base = paper._qty(100_000, 100_000, 100.0, 95.0, CONFIG.paper_risk_pct, mult=1.0)
+    half = paper._qty(100_000, 100_000, 100.0, 95.0, CONFIG.paper_risk_pct, mult=0.5)
+    _ok("half multiplier ~ half the shares", half <= base and half >= base // 2 - 1)
+    _ok("min multiplier shrinks size", paper._qty(100_000, 100_000, 100.0, 95.0, CONFIG.paper_risk_pct, mult=CONFIG.min_size_mult) < base)
+    _ok("mult defaults to 1.0", paper._qty(100_000, 100_000, 100.0, 95.0, CONFIG.paper_risk_pct) == base)
+
+
+def test_time_stop():
+    print("backtest time-stop:")
+    import dataclasses
+    import pandas as pd
+    from backtest import backtest_positions
+    from config import CONFIG
+    idx = pd.date_range("2024-01-01", periods=20)
+    close = pd.Series([100 + (i % 2) * 0.2 for i in range(20)], index=idx)
+    df = pd.DataFrame({"open": close, "high": close * 1.002, "low": close * 0.998, "close": close})
+    pos = pd.Series(1.0, index=idx)
+    cfg = dataclasses.replace(CONFIG, max_hold_days=5, trail_atr_mult=0.0)
+    res = backtest_positions(df, pos, cfg, side="long")
+    reasons = [t.get("reason") for t in res.trades.to_dict("records") if t.get("reason")]
+    _ok("a time-stop exit is recorded", "time" in reasons)
+    cfg_off = dataclasses.replace(CONFIG, max_hold_days=0, trail_atr_mult=0.0)
+    res_off = backtest_positions(df, pos, cfg_off, side="long")
+    _ok("no time exit when disabled", "time" not in [t.get("reason") for t in res_off.trades.to_dict("records")])
+
+
+def test_partial_take():
+    print("backtest partial-take:")
+    import dataclasses
+    import pandas as pd
+    from backtest import backtest_positions
+    from config import CONFIG
+    idx = pd.date_range("2024-01-01", periods=12)
+    close = pd.Series([100, 101, 103, 106, 110, 113, 116, 118, 120, 121, 122, 123], index=idx, dtype=float)
+    df = pd.DataFrame({"open": close, "high": close * 1.01, "low": close * 0.99, "close": close})
+    pos = pd.Series(1.0, index=idx)
+    cfg = dataclasses.replace(CONFIG, partial_take_r=1.0, trail_atr_mult=0.0)
+    res = backtest_positions(df, pos, cfg, side="long")
+    recs = res.trades.to_dict("records")
+    _ok("a partial exit is recorded", any(t.get("reason") == "partial" for t in recs))
+    cfg_off = dataclasses.replace(CONFIG, partial_take_r=0.0, trail_atr_mult=0.0)
+    res_off = backtest_positions(df, pos, cfg_off, side="long")
+    _ok("no partial when disabled", not any(t.get("reason") == "partial" for t in res_off.trades.to_dict("records")))
+
+
+def test_manage_exits_mock():
+    print("live exit manager (mock broker, flagged):")
+    import dataclasses
+    import paper
+    from config import CONFIG
+
+    class MockBroker:
+        def __init__(self):
+            self.replaced = []; self.partials = []
+            self._positions = [{"symbol": "X", "qty": 10, "side": "long",
+                                "avg_entry": 100.0, "price": 110.0, "unrealized_plpc": 10.0}]
+            self._stops = {"X": 95.0}
+            self.fail = False
+        def positions_detail(self):
+            return list(self._positions)
+        def open_orders_for(self, sym):
+            return [{"id": "stop-" + sym, "type": "stop", "stop_price": self._stops.get(sym)}]
+        def replace_stop(self, order_id, new_stop):
+            if self.fail:
+                raise RuntimeError("broker down")
+            self.replaced.append((order_id, round(new_stop, 2)))
+        def partial_close(self, sym, qty, side):
+            if self.fail:
+                raise RuntimeError("broker down")
+            self.partials.append((sym, qty, side))
+
+    cfg = dataclasses.replace(CONFIG, manage_exits=True, partial_take_r=1.0, trail_atr_mult=3.0)
+    log = [{"client_id": "sd-X", "symbol": "X", "direction": "LONG", "qty": 10,
+            "entry_plan": 100.0, "stop": 95.0, "target": 130.0, "status": "open"}]
+    mb = MockBroker()
+    notes = paper.manage_open_positions(mb, cfg, log)
+    _ok("manager returns a list of notes", isinstance(notes, list))
+    _ok("partial taken once at >=1R (price 110, 1R=105)", len(mb.partials) == 1)
+    paper.manage_open_positions(mb, cfg, log)
+    _ok("partial is idempotent across a second run", len(mb.partials) == 1)
+    _ok("log marks the partial as taken", log[0].get("partial_done") is True)
+    _ok("stop was tightened (toward breakeven) after partial", len(mb.replaced) >= 1)
+    mb.fail = True
+    log2 = [{"client_id": "sd-Y", "symbol": "X", "direction": "LONG", "qty": 10,
+             "entry_plan": 100.0, "stop": 95.0, "target": 130.0, "status": "open"}]
+    notes2 = paper.manage_open_positions(mb, cfg, log2)
+    _ok("manager never raises on broker failure", isinstance(notes2, list))
+
+
 def test_pead():
     print("post-earnings drift:")
     import numpy as np
@@ -517,6 +630,11 @@ def main():
     test_regime()
     test_pead()
     test_pead_in_pipeline()
+    test_risk_multiplier()
+    test_paper_sizing()
+    test_time_stop()
+    test_partial_take()
+    test_manage_exits_mock()
     test_rs()
     test_conviction_weighting()
     test_rs_conviction()
