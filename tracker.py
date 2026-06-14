@@ -132,7 +132,10 @@ def run(signals: list[dict], cfg: Config, live: bool, today: str) -> dict:
         except Exception:  # noqa: BLE001 - never let one symbol break the whole tracker
             continue
 
-    _save(log)
+    # Persist only on LIVE runs. Synthetic/dev runs grade against fake prices, so writing would
+    # both corrupt the real record and dirty the git tree on every local build — never do it.
+    if live:
+        _save(log)
     return _stats(log)
 
 

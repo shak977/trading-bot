@@ -148,13 +148,13 @@ def test_tracker_no_lookahead():
     json.dump([{"id": "X:2026-06-09", "symbol": "X", "name": "X", "advised_date": "2026-06-09",
                 "entry": 100, "stop": 95, "target": 115, "rr": 3, "conviction": "High", "status": "open"}],
               open(tf, "w"))
-    tracker.run([], CONFIG, live=False, today="2026-06-12")
+    tracker.run([], CONFIG, live=True, today="2026-06-12")  # live=True: persists (bars are patched)
     t = json.load(open(tf))[0]
     _ok("past trade resolves on a completed later day", t["status"] == "win" and t["exit_date"] == "2026-06-10" and t["days_held"] == 1)
     json.dump([{"id": "Y:2026-06-12", "symbol": "Y", "name": "Y", "advised_date": "2026-06-12",
                 "entry": 100, "stop": 95, "target": 115, "rr": 3, "conviction": "High", "status": "open"}],
               open(tf, "w"))
-    tracker.run([], CONFIG, live=False, today="2026-06-12")
+    tracker.run([], CONFIG, live=True, today="2026-06-12")
     _ok("same-day trade stays open (no look-ahead)", json.load(open(tf))[0]["status"] == "open")
 
 
@@ -230,7 +230,7 @@ def test_short_tracker():
     json.dump([{"id": "S:2026-06-09", "symbol": "S", "name": "S", "direction": "SHORT",
                 "advised_date": "2026-06-09", "entry": 100, "stop": 105, "target": 88, "rr": 2.4,
                 "conviction": "High", "status": "open"}], open(tf, "w"))
-    tracker.run([], CONFIG, live=False, today="2026-06-12")
+    tracker.run([], CONFIG, live=True, today="2026-06-12")  # live=True: persists (bars are patched)
     t = json.load(open(tf))[0]
     _ok("short wins when price falls to target", t["status"] == "win" and t["return_pct"] > 0)
 
