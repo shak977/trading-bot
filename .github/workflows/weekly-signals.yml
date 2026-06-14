@@ -49,6 +49,14 @@ jobs:
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           PAPER_TRADE: ${{ vars.PAPER_TRADE }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+          ALERT_NTFY_TOPIC: ${{ vars.ALERT_NTFY_TOPIC }}
+          ALERT_EMAIL_TO: ${{ vars.ALERT_EMAIL_TO }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_PORT: ${{ vars.SMTP_PORT }}
+          SITE_URL: ${{ vars.SITE_URL }}
         run: |
           python dashboard.py
           mkdir -p _site
@@ -85,7 +93,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add track_record.json momentum_history.json paper_orders.json
+          git add track_record.json momentum_history.json paper_orders.json alerts_sent.json
           git diff --staged --quiet && exit 0
           git commit -m "update track record + momentum history [skip ci]"
           # rebase on any concurrent change, then push (best effort)

@@ -431,6 +431,13 @@ def build_snapshot() -> dict:
     except Exception:  # noqa: BLE001
         paper_acct = None
 
+    # Alerts: ping configured channels when a NEW high-conviction signal appears (deduped).
+    try:
+        import notify as _notify
+        alerts = _notify.run(shown, today)
+    except Exception:  # noqa: BLE001
+        alerts = None
+
     return {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         "mode": mode,
@@ -443,6 +450,7 @@ def build_snapshot() -> dict:
         "benchmark": benchmark,
         "track": track,
         "paper_acct": paper_acct,
+        "alerts": alerts,
         "regime": regime,
         "sectors": sectors,
         "concentration": _concentration(shown),
