@@ -698,6 +698,20 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 add("Upside to target?", "warn", f"Avg target ${tm:,.0f} is only {up:.0f}% above today — limited room.")
             else:
                 add("Upside to target?", "fail", f"Price is already above the avg analyst target (${tm:,.0f}).")
+        aa = fundamentals.get("analyst_actions")
+        if aa and (aa.get("n_up") or aa.get("n_down")):
+            nu, nd, lt = aa.get("n_up", 0), aa.get("n_down", 0), aa.get("latest", {})
+            firm = lt.get("firm") or "an analyst"
+            if nu > nd:
+                add("Recent rating change?", "fail" if short else "pass",
+                    f"{nu} upgrade{'s' if nu != 1 else ''} vs {nd} downgrade{'s' if nd != 1 else ''} in 60d "
+                    f"(latest: {firm} → {lt.get('to','')})" + (" — a headwind for a short." if short else "."))
+            elif nd > nu:
+                add("Recent rating change?", "pass" if short else "warn",
+                    f"{nd} downgrade{'s' if nd != 1 else ''} vs {nu} upgrade{'s' if nu != 1 else ''} in 60d "
+                    f"(latest: {firm} → {lt.get('to','')})" + ("." if short else " — analysts cooling, a caution."))
+            else:
+                add("Recent rating change?", "warn", f"Mixed analyst actions lately ({nu} up / {nd} down).")
         ed = fundamentals.get("earnings_days")
         if ed is not None:
             fresh = action in ("BUY", "SHORT")

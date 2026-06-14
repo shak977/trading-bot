@@ -205,6 +205,29 @@ def finnhub_snapshot(symbol: str, cfg: Config) -> dict | None:
                 break
     except Exception:  # noqa: BLE001
         pass
+    try:
+        import datetime as _dt
+        ud = _fh_get("/stock/upgrade-downgrade", key, {"symbol": symbol}) or []
+        cutoff = (_dt.date.today() - _dt.timedelta(days=60))
+        recent = []
+        for e in ud:
+            gt = e.get("gradeTime")
+            if not gt:
+                continue
+            d = _dt.datetime.utcfromtimestamp(int(gt)).date()
+            if d < cutoff:
+                continue
+            recent.append({"firm": e.get("company"), "from": e.get("fromGrade"),
+                           "to": e.get("toGrade"), "action": (e.get("action") or "").lower(),
+                           "date": d.isoformat()})
+        recent.sort(key=lambda x: x["date"], reverse=True)
+        if recent:
+            n_up = sum(1 for r in recent if r["action"] == "up")
+            n_down = sum(1 for r in recent if r["action"] == "down")
+            out["analyst_actions"] = {"recent": recent[:6], "n_up": n_up, "n_down": n_down,
+                                      "latest": recent[0]}
+    except Exception:  # noqa: BLE001
+        pass
     return out or None
 
 
