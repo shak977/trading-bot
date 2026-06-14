@@ -430,6 +430,62 @@ def _reasoning(sig, cfg: Config, action: str, direction: str, price: float, relv
     return summary, reasons
 
 
+def _target_scenarios(direction: str, entry: float, stop: float, base_target: float, df) -> list[dict]:
+    """Three labelled exit scenarios with a plain-English rationale each, so the user sees a
+    spectrum (quick / base / stretch) instead of one flat number. Display-only.
+
+    Conservative = ~1.5x risk, or the recent swing level if it sits nearer (resistance/support).
+    Base = the actual order target. Stretch = ~5x risk (toward the period high/low when relevant).
+    """
+    R = abs(entry - stop)
+    if R <= 0 or entry <= 0:
+        return []
+    short = direction == "SHORT"
+    try:
+        swing = float(df["low"].tail(20).min()) if short else float(df["high"].tail(20).max())
+        extreme = float(df["low"].min()) if short else float(df["high"].max())
+    except Exception:  # noqa: BLE001
+        swing = extreme = None
+
+    def mk(label, price, basis, odds):
+        if price is None or price <= 0:
+            return None
+        gain = (entry - price) if short else (price - entry)
+        return {"label": label, "price": round(price, 2),
+                "pct": round(gain / entry * 100, 1), "r": round(gain / R, 1),
+                "basis": basis, "odds": odds}
+
+    out = []
+    # --- conservative: ~1.5R, unless a recent swing level sits between entry and 1.5R (nearer) ---
+    if short:
+        cons, cb = entry - 1.5 * R, "about 1.5x your risk — a quick, higher-odds cover"
+        if swing is not None and entry > swing > cons:
+            cons, cb = swing, "just above the recent 20-day low, where buyers stepped in before"
+    else:
+        cons, cb = entry + 1.5 * R, "about 1.5x your risk — a quick, higher-odds exit"
+        if swing is not None and entry < swing < cons:
+            cons, cb = swing, "just under the recent 20-day high, where sellers showed up before"
+    out.append(mk("Conservative", cons, cb, "higher odds"))
+
+    # --- base: the actual order target ---
+    out.append(mk("Base (order target)", base_target,
+                  "the balanced reward:risk target this trade actually uses", "medium"))
+
+    # --- stretch: ~5R, noting the period extreme when it's in that neighbourhood ---
+    if short:
+        stretch = entry - 5 * R
+        sb = "about 5x your risk — lower odds, bigger payoff"
+        if extreme is not None and extreme <= stretch:
+            sb = "down toward the period low (~5x+ risk) — lower odds, bigger payoff"
+    else:
+        stretch = entry + 5 * R
+        sb = "about 5x your risk — lower odds, bigger payoff"
+        if extreme is not None and extreme >= stretch:
+            sb = "up toward the period high (~5x+ risk) — lower odds, bigger payoff"
+    out.append(mk("Stretch", stretch, sb, "lower odds"))
+    return [o for o in out if o]
+
+
 def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: str = "LONG"):
     """Concrete trade plan + market context, in price/dollar terms, for either direction.
 
@@ -480,6 +536,8 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: st
         "dollar_risk": r(dollar_risk),
         "exposure": r(exposure),
     }
+    # Three exit scenarios (display only — the order still uses plan["target"] as the base case).
+    plan["targets"] = _target_scenarios(direction, entry, working_stop, target, df)
 
     # --- market context ---
     closes = df["close"]

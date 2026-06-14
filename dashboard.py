@@ -1588,6 +1588,18 @@ def render_html(snap: dict) -> str:
   .stat .v {{ font-size:17px; font-weight:700; margin-top:2px; }}
   .stat .v.buy {{ color:var(--buy); }} .stat .v.sell {{ color:var(--sell); }}
   .stat .sub {{ color:var(--muted); font-size:11px; }}
+  /* target scenarios (conservative / base / stretch) */
+  .scen {{ grid-column:1/-1; margin-top:8px; border-top:1px solid var(--line); padding-top:12px; }}
+  .scen-h {{ font-size:12.5px; font-weight:700; margin-bottom:9px; }}
+  .scen-h span {{ font-weight:400; color:var(--muted); text-transform:none; }}
+  .scen-row {{ padding:8px 11px; border:1px solid var(--line); border-radius:9px; margin-bottom:7px; background:var(--inset); }}
+  .scen-row.higherodds {{ border-left:3px solid var(--buy); }}
+  .scen-row.medium {{ border-left:3px solid var(--accent); }}
+  .scen-row.lowerodds {{ border-left:3px solid #b8860b; }}
+  .scen-top {{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap; }}
+  .scen-px {{ font-variant-numeric:tabular-nums; font-weight:700; }}
+  .scen-px em {{ color:var(--muted); font-style:normal; font-weight:500; font-size:12px; }}
+  .scen-why {{ color:var(--muted); font-size:12px; margin-top:3px; line-height:1.4; }}
   .deskread {{ background:var(--inset); border:1px solid var(--line); border-left:3px solid var(--hold);
     border-radius:10px; padding:12px 14px; font-size:14px; margin:14px 0; }}
   .convbadge {{ font-size:13px; font-weight:700; padding:2px 10px; border-radius:999px; color:#fff; }}
@@ -2730,13 +2742,23 @@ function openModal(s) {{
   const _dirWord = _short ? 'short' : 'long';
   document.getElementById('mPlanNote').textContent =
     _active ? `(${{_dirWord}} — active)` : `— levels if you took this ${{_dirWord}}`;
+  const _scen = (Array.isArray(p.targets) && p.targets.length)
+    ? `<div class="scen"><div class="scen-h">🎯 Target scenarios <span>— the order uses the Base case; the others are where you could scale out or run it</span></div>`
+      + p.targets.map(t => {{
+          const cls = (t.odds||'').replace(/ /g,'');
+          return `<div class="scen-row ${{cls}}"><div class="scen-top"><b>${{t.label}}</b>`
+            + `<span class="scen-px">${{money(t.price)}} <em>${{_short?'−':'+'}}${{Math.abs(t.pct)}}% · ${{t.r}}R · ${{t.odds}}</em></span></div>`
+            + `<div class="scen-why">${{t.basis}}</div></div>`;
+        }}).join('') + `</div>`
+    : '';
   document.getElementById('mPlan').innerHTML =
     stat('Entry', money(p.entry), _short ? 'short here' : 'current price') +
     stat('Stop-loss', money(p.stop), `${{_short?'+':'−'}}${{p.stop_pct}}%  ·  ATR-based`, 'sell') +
     stat(_short ? 'Cover target' : 'Take-profit', money(p.target), `${{_short?'−':'+'}}${{p.target_pct}}%`, 'buy') +
     stat('Risk : Reward', p.rr!=null ? ('1 : '+p.rr) : '–', 'reward per $1 risked') +
     stat('Position size', (p.shares||0)+' sh', money(p.exposure)+' exposure') +
-    stat('$ at risk', money(p.dollar_risk), `${{p.shares||0}} sh to stop`, 'sell');
+    stat('$ at risk', money(p.dollar_risk), `${{p.shares||0}} sh to stop`, 'sell') +
+    _scen;
   document.getElementById('mContext').innerHTML =
     stat('Today', pct(ctx.day_change_pct)) +
     stat('Volatility (ATR)', money(ctx.atr), (ctx.atr_pct!=null?ctx.atr_pct+'% of price':'')) +
