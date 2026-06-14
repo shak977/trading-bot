@@ -113,6 +113,20 @@ export default {
       }
     }
 
+    // --- StockTwits retail buzz: /?st=AAPL ---
+    // Proxies StockTwits' public stream from the Worker's egress (it often blocks datacenter IPs).
+    const stSym = (url.searchParams.get("st") || "").trim();
+    if (stSym) {
+      const su = `https://api.stocktwits.com/api/2/streams/symbol/${encodeURIComponent(stSym)}.json`;
+      try {
+        const up = await fetch(su, { headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" } });
+        if (!up.ok) return json({ error: "stocktwits " + up.status }, 502, cors);
+        return json(await up.json(), 200, cors);
+      } catch (e) {
+        return json({ error: "fetch failed" }, 502, cors);
+      }
+    }
+
     // --- resolve a channel's CURRENT live video id: /?ytlive=CHANNEL_ID ---
     // YouTube's legacy embed/live_stream?channel= auto-resolve is deprecated and often
     // shows "video unavailable". Instead we fetch the channel's /live page server-side

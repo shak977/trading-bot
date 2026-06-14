@@ -93,6 +93,54 @@ def _for_symbol(sym: str, cik: str, lookback_days: int, max_forms: int) -> dict 
         return None
 
 
+def _st_parse(data: dict) -> dict | None:
+    """Tally StockTwits message volume + tagged Bull/Bear sentiment for one symbol."""
+    msgs = (data or {}).get("messages") or []
+    if not msgs:
+        return None
+    bull = bear = 0
+    for m in msgs:
+        basic = (((m.get("entities") or {}).get("sentiment")) or {}).get("basic")
+        if basic == "Bullish":
+            bull += 1
+        elif basic == "Bearish":
+            bear += 1
+    tagged = bull + bear
+    pct = round(bull / tagged * 100) if tagged else None
+    lean = None
+    if tagged >= 5:
+        lean = "bull" if pct >= 65 else "bear" if pct <= 35 else "mixed"
+    return {"n": len(msgs), "bull": bull, "bear": bear, "sentiment_pct": pct, "lean": lean}
+
+
+def stocktwits_buzz(symbols: list[str], proxy: str | None = None, max_symbols: int = 12) -> dict:
+    """Retail chatter per ticker from StockTwits' public stream (message volume + Bull/Bear
+    sentiment). Routes via the Worker (`{proxy}/?st=SYM`) when given, since StockTwits often
+    blocks datacenter IPs; falls back to a direct call. Best-effort; {} on failure."""
+    out: dict[str, dict] = {}
+    base_direct = "https://api.stocktwits.com/api/2/streams/symbol/{}.json"
+    for sym in list(dict.fromkeys(symbols))[:max_symbols]:
+        data = None
+        if proxy:
+            try:
+                r = requests.get(proxy.rstrip("/") + "/?st=" + sym, timeout=12)
+                if r.status_code == 200:
+                    data = r.json()
+            except Exception:  # noqa: BLE001
+                data = None
+        if data is None:
+            try:
+                r = requests.get(base_direct.format(sym), headers={"User-Agent": "Mozilla/5.0"}, timeout=12)
+                if r.status_code == 200:
+                    data = r.json()
+            except Exception:  # noqa: BLE001
+                data = None
+        parsed = _st_parse(data) if data else None
+        if parsed:
+            out[sym] = parsed
+    return out
+
+
 def insider_activity(symbols: list[str], lookback_days: int = 90,
                      max_symbols: int = 12, max_forms: int = 5) -> dict:
     """Return {symbol: {buys, sells, buy_shares, sell_shares, cluster_buy, last_date, n_filings}}.

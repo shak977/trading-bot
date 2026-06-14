@@ -334,23 +334,30 @@ def build_snapshot() -> dict:
                 [r["symbol"] for r in shown[: CONFIG.research_top]], CONFIG)
         except Exception:  # noqa: BLE001
             fundamentals = {}
-    # Insider transactions (SEC EDGAR Form 4) for the actionable names — keyless, works from CI.
-    insiders = {}
+    # Scraped alt-data for the actionable names: SEC EDGAR insider filings (keyless) +
+    # StockTwits retail buzz (routed via the Worker, which has a non-datacenter egress).
+    insiders, buzz = {}, {}
     if live:
+        _act = [r["symbol"] for r in shown
+                if r["action"] in ("BUY", "SHORT", "HOLD LONG", "HOLD SHORT")]
         try:
             import scrape as _scrape
-            _act = [r["symbol"] for r in shown
-                    if r["action"] in ("BUY", "SHORT", "HOLD LONG", "HOLD SHORT")]
             insiders = _scrape.insider_activity(_act)
         except Exception:  # noqa: BLE001
             insiders = {}
+        try:
+            import scrape as _scrape
+            buzz = _scrape.stocktwits_buzz(_act, proxy=CONFIG.live_quotes_url or None)
+        except Exception:  # noqa: BLE001
+            buzz = {}
 
     for r in shown:
         r["fundamentals"] = fundamentals.get(r["symbol"])
         r["insider"] = insiders.get(r["symbol"])
+        r["buzz"] = buzz.get(r["symbol"])
         # Re-score conviction + desk read now that research is in hand.
         scanner.rescore(r, CONFIG, sentiment=r.get("sentiment"), fundamentals=r.get("fundamentals"),
-                        tv=r.get("tv"), regime=regime, insider=r.get("insider"))
+                        tv=r.get("tv"), regime=regime, insider=r.get("insider"), buzz=r.get("buzz"))
 
     # Ray Dalio All Weather allocation + backtest vs SPY (keyless Yahoo history).
     try:
@@ -2052,6 +2059,7 @@ function makeCard(s) {{
     ${{whyHtml}}
     ${{s.catalyst ? `<div class="cat-chip hint" data-tip="${{_esc(s.catalyst.headline)}}">⚡ Catalyst — fresh news${{s.catalyst.source?' · '+s.catalyst.source:''}}</div>` : ''}}
     ${{(s.insider && s.insider.cluster_buy) ? `<div class="cat-chip hint" style="background:color-mix(in srgb, var(--buy) 14%, transparent);color:var(--buy);" data-tip="SEC Form 4: ${{s.insider.buys}} recent open-market insider purchase(s), ${{(s.insider.buy_shares||0).toLocaleString()}} shares. Source: SEC EDGAR.">🏛 Insiders buying (${{s.insider.buys}})</div>` : ''}}
+    ${{(s.buzz && s.buzz.lean) ? `<div class="cat-chip hint" style="background:var(--inset);color:var(--txt2);" data-tip="StockTwits retail chatter: ${{s.buzz.n}} recent posts, ${{s.buzz.sentiment_pct}}% bullish of tagged. Crowd sentiment — noisy and sometimes contrarian.">💬 Buzz: ${{s.buzz.lean==='bull'?'bullish':s.buzz.lean==='bear'?'bearish':'mixed'}}${{s.buzz.sentiment_pct!=null?' '+s.buzz.sentiment_pct+'%':''}}</div>` : ''}}
     ${{s.tv ? `<div class="tv-chip hint" data-tip="TradingView's aggregate technical rating (independent of our engine) — daily ${{s.tv.d||'n/a'}}, weekly ${{s.tv.w||'n/a'}}">TradingView: ${{s.tv.d||'—'}} <span style="opacity:.7;">· 1W ${{s.tv.w||'—'}}</span></div>` : ''}}
     ${{s.ai_read ? `<div class="ai-box hint" data-tip="${{_esc(s.ai_read.slice(0,600))}}"><span class="ai-h">🤖 AI analyst</span> ${{_esc(s.ai_read.split('. ')[0]).slice(0,130)}}…</div>` : ''}}
     ${{edWarn}}
