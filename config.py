@@ -55,7 +55,7 @@ class Config:
     benchmark: str = "SPY"                            # name ranked against; fetched once per scan
     rs_lookbacks: tuple[int, ...] = (21, 63, 126)     # trading-day windows for blended RS
     rs_weights: tuple[float, ...] = (0.2, 0.3, 0.5)   # weight per lookback (sums to 1.0)
-    rs_conviction_weight: float = 2.0                 # weight of the RS check in the conviction average
+    rs_conviction_weight: float = 1.0                 # weight of the RS check in conviction (1.0 = one vote; raise once the attribution loop proves RS predicts wins)
     rs_pass_pct: int = 70                             # RS percentile >= this = pass (long); <= 100-this = pass (short)
     rs_fail_pct: int = 40                             # RS percentile <= this = fail (long); >= 100-this = fail (short)
 
