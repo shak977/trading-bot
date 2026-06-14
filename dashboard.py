@@ -1069,10 +1069,13 @@ def _paper_html(p: dict | None) -> str:
 
     dp = p.get("day_pl", 0) or 0
     tone = "buy" if dp > 0 else "sell" if dp < 0 else ""
+    rz = p.get("realized") or {}
+    wr = rz.get("win_rate")
+    wr_v = "—" if wr is None else f"{wr:.0f}%"
     tiles = (tile("Equity", f"${p.get('equity',0):,.0f}", "", "paper account")
              + tile("Day P&amp;L", f"${dp:+,.0f}", tone, f"{p.get('day_pl_pct',0):+.2f}%")
              + tile("Open positions", str(p.get("n_open", 0)), "", f"of {p.get('tracked_total', 0)} tracked")
-             + tile("Closed", str(p.get("tracked_closed", 0)), "", "round-trips logged"))
+             + tile("Realized win rate", wr_v, "", f"over {rz.get('n_trades', 0)} closed trades"))
     spark = _paper_spark(p.get("history"))
     spark_html = f'<div style="margin:6px 0 16px;">{spark}</div>' if spark else ""
 
@@ -1091,6 +1094,50 @@ def _paper_html(p: dict | None) -> str:
                 f'<th style="text-align:right;">Unrealized</th></tr></thead><tbody>{rows}</tbody></table>'
                 if rows else '<p style="color:var(--muted);font-size:13px;">No open paper positions right now.</p>')
 
+    # --- realized performance: closed round-trips matched from actual fills ---
+    def _pct(v, sign=True):
+        if v is None:
+            return "—"
+        return f"{'+' if (sign and v > 0) else ''}{v}%"
+    rstats = ""
+    if rz.get("n_trades"):
+        tp = rz.get("total_pl", 0) or 0
+        rstats = ('<div class="kpis" style="margin-top:4px;">'
+                  + tile("Closed trades", str(rz.get("n_trades", 0)), "", "matched round-trips")
+                  + tile("Avg return / trade", _pct(rz.get("avg_return_pct")),
+                         "buy" if (rz.get("avg_return_pct") or 0) > 0 else "sell" if (rz.get("avg_return_pct") or 0) < 0 else "",
+                         "per closed trade")
+                  + tile("Avg win", _pct(rz.get("avg_win")), "buy", "winners only")
+                  + tile("Avg loss", _pct(rz.get("avg_loss")), "sell", "losers only")
+                  + tile("Realized P&amp;L", f"${tp:+,.0f}", "buy" if tp > 0 else "sell" if tp < 0 else "", "all closed trades")
+                  + '</div>')
+        trows = ""
+        for t in rz.get("recent", []):
+            ret = t.get("return_pct")
+            c = "buy" if (ret or 0) > 0 else "sell" if (ret or 0) < 0 else ""
+            when = (t.get("exit_time") or "")[:10]
+            pl = t.get("pl", 0) or 0
+            trows += (f'<tr><td><b>{t.get("symbol","")}</b></td><td>{t.get("direction","")}</td>'
+                      f'<td style="text-align:right;">{t.get("qty","")}</td>'
+                      f'<td style="text-align:right;">${t.get("entry_price",0):,.2f}</td>'
+                      f'<td style="text-align:right;">${t.get("exit_price",0):,.2f}</td>'
+                      f'<td style="text-align:right;" class="{c}">{_pct(ret)}</td>'
+                      f'<td style="text-align:right;" class="{c}">${pl:+,.0f}</td>'
+                      f'<td style="text-align:right;color:var(--muted);">{when}</td></tr>')
+        rtable = (f'<table class="trackrec"><thead><tr><th>Symbol</th><th>Side</th>'
+                  f'<th style="text-align:right;">Qty</th><th style="text-align:right;">Entry</th>'
+                  f'<th style="text-align:right;">Exit</th><th style="text-align:right;">Return</th>'
+                  f'<th style="text-align:right;">P&amp;L</th><th style="text-align:right;">Closed</th>'
+                  f'</tr></thead><tbody>{trows}</tbody></table>')
+        realized_html = ('<h3 style="font-size:15px;margin:18px 0 8px;">Realized performance '
+                         '<span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">'
+                         '— closed round-trips matched from real fills</span></h3>'
+                         + rstats + rtable)
+    else:
+        realized_html = ('<h3 style="font-size:15px;margin:18px 0 8px;">Realized performance</h3>'
+                         '<p style="color:var(--muted);font-size:13px;">No closed round-trips yet — '
+                         'win rate and per-trade return appear here once paper positions are opened and exited.</p>')
+
     sub = []
     if p.get("submitted_now"):
         sub.append("Opened this run: " + ", ".join(f'{r["symbol"]} ({r["action"]}, {r["qty"]}sh)' for r in p["submitted_now"]))
@@ -1105,7 +1152,8 @@ def _paper_html(p: dict | None) -> str:
             'paper account — actual entry prices, slippage and timing — so they reflect how the calls truly play out, '
             'unlike the hypothetical tracker. Not investment advice; paper money only.</p>'
             + f'<div class="kpis">{tiles}</div>{spark_html}'
-            + '<h3 style="font-size:15px;margin:6px 0 8px;">Open positions</h3>' + postable + subline)
+            + '<h3 style="font-size:15px;margin:6px 0 8px;">Open positions</h3>' + postable
+            + realized_html + subline)
 
 
 def _track_html(track: dict | None) -> str:

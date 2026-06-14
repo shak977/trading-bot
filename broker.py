@@ -79,6 +79,43 @@ class Broker:
             pass
         return ids
 
+    def fills(self, after: str | None = None, max_pages: int = 30) -> list[dict]:
+        """Every real execution (FILL activity) on the account, oldest-first.
+
+        Each row: symbol, side ('buy'/'sell'/'sell_short'), qty, price, time (ISO),
+        order_id. This is the ground truth for closed round-trips and realized P&L.
+        Paginates /account/activities/FILL (100/page). Never raises -> partial/[] on error.
+        """
+        out: list[dict] = []
+        try:
+            page_token = None
+            for _ in range(max_pages):  # safety cap (~3k fills)
+                params: dict = {"direction": "asc", "page_size": 100}
+                if after:
+                    params["after"] = after
+                if page_token:
+                    params["page_token"] = page_token
+                batch = self.client.get("/account/activities/FILL", params)
+                if not batch:
+                    break
+                for a in batch:
+                    out.append({
+                        "symbol": a.get("symbol"),
+                        "side": (a.get("side") or "").lower(),
+                        "qty": float(a.get("qty") or 0),
+                        "price": float(a.get("price") or 0),
+                        "time": a.get("transaction_time"),
+                        "order_id": a.get("order_id"),
+                    })
+                if len(batch) < 100:
+                    break
+                page_token = batch[-1].get("id")
+                if not page_token:
+                    break
+        except Exception:  # noqa: BLE001
+            pass
+        return out
+
     # --- orders ---
     def submit_market(self, symbol: str, qty: int, side: str):
         from alpaca.trading.enums import OrderSide, TimeInForce

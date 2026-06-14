@@ -51,6 +51,74 @@ def _qty(equity: float, buying_power: float, entry: float, stop: float, risk_pct
     return max(q, 0)
 
 
+def _round_trips(fills: list[dict]) -> list[dict]:
+    """Match raw fills into CLOSED round-trips per symbol via FIFO lot matching.
+
+    Handles longs and shorts, partial fills, bracket (stop/target) exits, and even a
+    position that flips through flat. A buy opens a long / closes a short; a sell
+    (incl. 'sell_short') opens a short / closes a long. Only fully-matched legs are
+    emitted, each with realized P&L and per-trade % return. Open exposure is ignored.
+    """
+    from collections import defaultdict, deque
+
+    open_lots: dict[str, deque] = defaultdict(deque)  # symbol -> FIFO of open lots
+    trips: list[dict] = []
+    for f in sorted(fills, key=lambda x: (x.get("time") or "")):
+        sym, qty, price = f.get("symbol"), f.get("qty") or 0, f.get("price") or 0
+        if not sym or qty <= 0 or price <= 0:
+            continue
+        is_buy = (f.get("side") or "").startswith("buy")
+        lots = open_lots[sym]
+        if lots and lots[0]["is_buy"] != is_buy:
+            # opposite side of the open position -> this fill closes lots (FIFO)
+            remaining = qty
+            while remaining > 1e-9 and lots:
+                lot = lots[0]
+                match = min(remaining, lot["qty"])
+                entry, exit_ = lot["price"], price
+                if lot["is_buy"]:                       # long: bought low, sold high
+                    pl, direction = (exit_ - entry) * match, "LONG"
+                else:                                   # short: sold high, bought low
+                    pl, direction = (entry - exit_) * match, "SHORT"
+                ret = (pl / (entry * match) * 100) if entry else 0.0
+                trips.append({
+                    "symbol": sym, "direction": direction, "qty": round(match, 4),
+                    "entry_price": round(entry, 4), "exit_price": round(exit_, 4),
+                    "entry_time": lot["time"], "exit_time": f.get("time"),
+                    "pl": round(pl, 2), "return_pct": round(ret, 2), "win": pl > 0,
+                })
+                lot["qty"] -= match
+                remaining -= match
+                if lot["qty"] <= 1e-9:
+                    lots.popleft()
+            if remaining > 1e-9:  # flipped through flat: leftover opens a new position
+                lots.append({"qty": remaining, "price": price, "time": f.get("time"), "is_buy": is_buy})
+        else:
+            lots.append({"qty": qty, "price": price, "time": f.get("time"), "is_buy": is_buy})
+    return trips
+
+
+def _realized_stats(trips: list[dict]) -> dict:
+    """Aggregate closed round-trips into a realized win-rate / avg-return summary."""
+    n = len(trips)
+    if not n:
+        return {"n_trades": 0, "win_rate": None, "avg_return_pct": None,
+                "avg_win": None, "avg_loss": None, "total_pl": 0.0, "recent": []}
+    wins = [t for t in trips if t["win"]]
+    losses = [t for t in trips if not t["win"]]
+    avg = lambda xs: round(sum(xs) / len(xs), 2) if xs else None  # noqa: E731
+    recent = sorted(trips, key=lambda t: (t.get("exit_time") or ""), reverse=True)[:12]
+    return {
+        "n_trades": n,
+        "win_rate": round(len(wins) / n * 100, 1),
+        "avg_return_pct": avg([t["return_pct"] for t in trips]),
+        "avg_win": avg([t["return_pct"] for t in wins]),
+        "avg_loss": avg([t["return_pct"] for t in losses]),
+        "total_pl": round(sum(t["pl"] for t in trips), 2),
+        "recent": recent,
+    }
+
+
 def run(signals: list[dict], cfg: Config, today: str) -> dict | None:
     """Reconcile + (optionally) submit paper orders. Returns a dashboard-ready dict, or None
     when the feature is disabled. Never raises."""
@@ -147,6 +215,12 @@ def run(signals: list[dict], cfg: Config, today: str) -> dict | None:
             closed += 1
     _save(log)
 
+    # --- realized performance from actual fills (closed round-trips) ---
+    try:
+        realized = _realized_stats(_round_trips(broker.fills()))
+    except Exception:  # noqa: BLE001
+        realized = _realized_stats([])
+
     pl = round(equity - last_equity, 2)
     open_logged = sum(1 for t in log if t.get("status") == "open")
     return {
@@ -164,5 +238,6 @@ def run(signals: list[dict], cfg: Config, today: str) -> dict | None:
         "tracked_open": open_logged,
         "tracked_total": len(log),
         "tracked_closed": sum(1 for t in log if t.get("status") == "closed"),
+        "realized": realized,
         "notes": notes[:8],
     }
