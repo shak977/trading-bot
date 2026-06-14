@@ -84,53 +84,96 @@ def _metrics(eq: list) -> dict:
             "sharpe": sharpe, "maxdd": dd * 100}
 
 
-def main():
-    bars, src = _load()
+# Survivorship-bias-free universe: broad ETFs that existed for the whole window and
+# never delist — sector SPDRs (9 originals, present since 1998) + asset classes. The
+# strategy can't be flattered by hindsight stock-picking because the universe is fixed
+# and contains every member, winners and losers alike.
+ETF_UNIVERSE = ["XLK", "XLF", "XLE", "XLV", "XLI", "XLY", "XLP", "XLU", "XLB",
+                "QQQ", "IWM", "EFA", "EEM", "TLT", "GLD", "IYR"]
+
+
+def _run(bars: dict, cap_by_sector: bool = True) -> dict | None:
+    """Monthly dual-momentum backtest over `bars` (must include 'SPY'). Returns metrics for
+    the portfolio and SPY, or None if there isn't enough data."""
     syms = [s for s in bars if s != "SPY"]
-    if not syms:
-        print("No data."); return
+    if not syms or "SPY" not in bars:
+        return None
     monthly = pd.DataFrame({s: df["close"] for s, df in bars.items()}).resample("ME").last()
     months = monthly.index
     start = LOOKBACK // 21 + 1
+    if len(months) <= start + 6:
+        return None
     slip = CONFIG.slippage_bps / 1e4
     port, spy = [1.0], [1.0]
-
     for i in range(start, len(months) - 1):
         asof = months[i]
         upto = {s: bars[s][bars[s].index <= asof] for s in syms
                 if len(bars[s][bars[s].index <= asof]) > LOOKBACK}
         ranked = mom.rank(upto, LOOKBACK, SKIP)
-        # sector cap: at most 3 names per sector (diversification)
         picks, cnt = [], {}
         for s, _ in ranked:
-            sec = sector_of(s)
-            if cnt.get(sec, 0) >= 3:
-                continue
+            if cap_by_sector:
+                sec = sector_of(s)
+                if cnt.get(sec, 0) >= 3:
+                    continue
+                cnt[sec] = cnt.get(sec, 0) + 1
             picks.append(s)
-            cnt[sec] = cnt.get(sec, 0) + 1
             if len(picks) >= TOP_K:
                 break
-        # inverse-volatility weights (risk parity) over the picks
-        ws, contrib = {}, 0.0
+        ws = {}
         for s in picks:
-            c = upto[s]["close"]
-            v = float(c.pct_change().dropna().tail(21).std())
+            v = float(upto[s]["close"].pct_change().dropna().tail(21).std())
             ws[s] = (1.0 / v) if v > 1e-9 else 0.0
         tw = sum(ws.values()) or 1.0
-        mret = -2 * slip  # rough rebalance cost
+        mret = -2 * slip
         for s in picks:
             p0, p1 = monthly[s].iloc[i], monthly[s].iloc[i + 1]
             if p0 and p1 and not np.isnan(p0) and not np.isnan(p1):
                 mret += (ws[s] / tw) * (p1 / p0 - 1)
         port.append(port[-1] * (1 + mret))
-        sp0, sp1 = monthly.get("SPY", pd.Series()).iloc[i] if "SPY" in monthly else np.nan, \
-            monthly.get("SPY", pd.Series()).iloc[i + 1] if "SPY" in monthly else np.nan
+        sp0, sp1 = monthly["SPY"].iloc[i], monthly["SPY"].iloc[i + 1]
         sret = (sp1 / sp0 - 1) if (sp0 and sp1 and not np.isnan(sp0) and not np.isnan(sp1)) else 0.0
         spy.append(spy[-1] * (1 + sret))
-
     pm, sm = _metrics(port), _metrics(spy)
-    print(f"\nDual-momentum portfolio (top {TOP_K}, monthly) vs SPY — {len(syms)} names, "
-          f"{len(port)} months, {src} data\n")
+    return {"strategy": pm, "spy": sm, "months": len(port), "n_universe": len(syms)}
+
+
+def build(live: bool = True) -> dict | None:
+    """Survivorship-bias-FREE momentum backtest for the dashboard: runs the same dual-momentum
+    rules on a fixed ETF universe (no hindsight stock selection). Returns metrics vs SPY, or
+    None if history can't be fetched. Mirrors allweather.build()."""
+    try:
+        bars = {}
+        for s in dict.fromkeys(ETF_UNIVERSE + ["SPY"]):
+            df = None
+            try:
+                df = _yahoo_closes(s)
+            except Exception:  # noqa: BLE001
+                df = None
+            if df is not None and len(df) > LOOKBACK + 40:
+                bars[s] = df
+        if len(bars) < 6 or "SPY" not in bars:
+            return None
+        res = _run(bars, cap_by_sector=False)
+        if not res:
+            return None
+        res["survivorship_free"] = True
+        res["universe"] = [s for s in ETF_UNIVERSE if s in bars]
+        return res
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def main():
+    bars, src = _load()
+    res = _run(bars, cap_by_sector=True)
+    if not res:
+        print("No data."); return
+    pm, sm = res["strategy"], res["spy"]
+    print(f"\nDual-momentum portfolio (top {TOP_K}, monthly) vs SPY — {res['n_universe']} names, "
+          f"{res['months']} months, {src} data")
+    print("NOTE: this stock universe is today's CORE_WATCHLIST (survivorship-biased — optimistic).")
+    print("      For an honest read, see momentum_lab.build() (fixed ETF universe).\n")
     print(f"{'':16}{'totRet%':>9}{'CAGR%':>8}{'Sharpe':>8}{'MaxDD%':>8}")
     print(f"{'Dual-momentum':16}{pm['ret']:>9.1f}{pm['cagr']:>8.1f}{pm['sharpe']:>8.2f}{pm['maxdd']:>8.1f}")
     print(f"{'SPY buy & hold':16}{sm['ret']:>9.1f}{sm['cagr']:>8.1f}{sm['sharpe']:>8.2f}{sm['maxdd']:>8.1f}")

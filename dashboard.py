@@ -346,6 +346,14 @@ def build_snapshot() -> dict:
     except Exception:  # noqa: BLE001
         all_weather = None
 
+    # Survivorship-bias-FREE momentum backtest (fixed ETF universe) — the honest performance
+    # read for the momentum strategy, vs the survivorship-biased single-stock ranking.
+    try:
+        import momentum_lab as _ml
+        momentum_bt = _ml.build(live)
+    except Exception:  # noqa: BLE001
+        momentum_bt = None
+
     # Macro backdrop (FRED) — once per run.
     macro = None
     if live and CONFIG.fred_api_key:
@@ -445,6 +453,7 @@ def build_snapshot() -> dict:
                      for m in momentum_rows],
         "mom_detail": _mom_detail(momentum_rows, rows_by_sym, shown),
         "allweather": all_weather,
+        "momentum_bt": momentum_bt,
         "portfolio": _portfolio(shown),
         "ipos": ipos,
         "ipo_news": ipo_news,
@@ -806,6 +815,37 @@ def _mom_detail(momentum_rows: list[dict], rows_by_sym: dict, shown: list[dict])
     return out
 
 
+def _momentum_bt_html(bt: dict | None) -> str:
+    """Honest, survivorship-bias-FREE momentum backtest (fixed ETF universe) vs SPY."""
+    if not bt or not bt.get("strategy") or not bt.get("spy"):
+        return ""
+    m, s = bt["strategy"], bt["spy"]
+    ddc = 'color:var(--buy);' if m["maxdd"] > s["maxdd"] else ''
+    shc = 'color:var(--buy);' if m["sharpe"] > s["sharpe"] else ''
+    rows = (f'<tr><td><b>Dual-momentum (ETFs)</b></td>'
+            f'<td style="text-align:right;font-variant-numeric:tabular-nums;">{m["ret"]:.1f}%</td>'
+            f'<td style="text-align:right;font-variant-numeric:tabular-nums;">{m["cagr"]:.1f}%</td>'
+            f'<td style="text-align:right;font-variant-numeric:tabular-nums;{shc}">{m["sharpe"]:.2f}</td>'
+            f'<td style="text-align:right;font-variant-numeric:tabular-nums;{ddc}">{m["maxdd"]:.1f}%</td></tr>'
+            f'<tr><td>SPY buy &amp; hold</td>'
+            f'<td style="text-align:right;font-variant-numeric:tabular-nums;">{s["ret"]:.1f}%</td>'
+            f'<td style="text-align:right;font-variant-numeric:tabular-nums;">{s["cagr"]:.1f}%</td>'
+            f'<td style="text-align:right;font-variant-numeric:tabular-nums;">{s["sharpe"]:.2f}</td>'
+            f'<td style="text-align:right;font-variant-numeric:tabular-nums;">{s["maxdd"]:.1f}%</td></tr>')
+    uni = ", ".join(bt.get("universe", [])[:18])
+    return ('<div class="ovbox" style="margin:0 0 16px;"><div class="ovhead">📐 Honest backtest — '
+            'survivorship-bias-free</div>'
+            f'<table class="trackrec" style="margin-top:8px;"><thead><tr><th>Strategy</th>'
+            '<th style="text-align:right;">Total return</th><th style="text-align:right;">CAGR</th>'
+            '<th style="text-align:right;" title="risk-adjusted return — higher is better">Sharpe</th>'
+            f'<th style="text-align:right;">Max drawdown</th></tr></thead><tbody>{rows}</tbody></table>'
+            f'<p style="color:var(--muted);font-size:12px;margin:10px 0 0;">Same dual-momentum rules run on a '
+            f'<b>fixed universe of {bt.get("n_universe","~16")} broad ETFs</b> that existed for the whole '
+            f'{bt.get("months","")}-month window and never delist ({uni}) — so the result can\'t be flattered '
+            'by hindsight stock-picking. This is the honest performance read; the single-stock ranking below is '
+            'for idea generation (and is survivorship-biased — it\'s today\'s winners).</p></div>')
+
+
 def _momentum_html(rows: list[dict]) -> str:
     intro = (_strat_badge("Dual momentum · positional, ~monthly rebalance") +
              '<p style="color:var(--muted);font-size:13px;margin:0 0 12px;max-width:680px;">'
@@ -1070,7 +1110,7 @@ def render_html(snap: dict) -> str:
     pdrop_html = (f' &middot; <span style="color:var(--muted);" title="{(" | ".join(_pd))[:300].replace(chr(34), chr(39))}">'
                   f'{len(_pd)} dropped (bad feed price)</span>') if _pd else ""
     kpi_html = _kpi_html(snap.get("regime"), snap)
-    momentum_html = _momentum_html(snap.get("momentum") or [])
+    momentum_html = _momentum_bt_html(snap.get("momentum_bt")) + _momentum_html(snap.get("momentum") or [])
     allweather_html = _allweather_html(snap.get("allweather"))
     portfolio_html = _portfolio_html(snap.get("portfolio"))
     ipo_html = _ipo_html(snap.get("ipos") or [], snap.get("ipo_news") or [])
