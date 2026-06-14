@@ -1600,6 +1600,15 @@ def render_html(snap: dict) -> str:
   .scen-px {{ font-variant-numeric:tabular-nums; font-weight:700; }}
   .scen-px em {{ color:var(--muted); font-style:normal; font-weight:500; font-size:12px; }}
   .scen-why {{ color:var(--muted); font-size:12px; margin-top:3px; line-height:1.4; }}
+  /* signal-input detail cards (modal Signals sub-tab) */
+  .sigdet {{ background:var(--inset); border:1px solid var(--line); border-left:3px solid var(--line);
+    border-radius:9px; padding:10px 12px; margin-bottom:9px; }}
+  .sigdet.good {{ border-left-color:var(--buy); }}
+  .sigdet.bad {{ border-left-color:var(--sell); }}
+  .sigdet.warn {{ border-left-color:#b8860b; }}
+  .sigdet-h {{ display:flex; align-items:baseline; gap:8px; font-size:13.5px; flex-wrap:wrap; }}
+  .sigdet-v {{ margin-left:auto; font-weight:700; font-variant-numeric:tabular-nums; font-size:12.5px; }}
+  .sigdet-why {{ color:var(--muted); font-size:12px; margin-top:4px; line-height:1.45; }}
   .deskread {{ background:var(--inset); border:1px solid var(--line); border-left:3px solid var(--hold);
     border-radius:10px; padding:12px 14px; font-size:14px; margin:14px 0; }}
   .convbadge {{ font-size:13px; font-weight:700; padding:2px 10px; border-radius:999px; color:#fff; }}
@@ -1886,8 +1895,13 @@ def render_html(snap: dict) -> str:
     <div class="strat-badge"><span class="k">Strategy type</span><span class="v">Multi-strategy confluence · 7 long + 7 short, trend-gated</span></div>
     <div id="concWarn"></div>
     <details class="tvwidget" open>
-      <summary>📺 Bloomberg live<a class="tvw-open" href="https://www.youtube.com/@markets/live" target="_blank" rel="noopener">open on YouTube ↗</a></summary>
-      <div class="tvw-frame"><iframe src="https://www.youtube.com/embed/iEpJwprxDdk?autoplay=1&amp;mute=1" title="Bloomberg live" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+      <summary>📺 Live market TV
+        <span class="ctlgrp wtvgrp">
+          <button data-wtv="KQp-e_XQnDE" class="on" onclick="event.preventDefault();event.stopPropagation();_wtvSet(this);">Yahoo Finance</button>
+          <button data-wtv="vKOd3v8VTYo" onclick="event.preventDefault();event.stopPropagation();_wtvSet(this);">Schwab Network</button>
+        </span>
+        <a class="tvw-open" href="#" onclick="event.preventDefault();event.stopPropagation();_gotoTab('livetv');return false;">more channels →</a></summary>
+      <div class="tvw-frame"><iframe id="wtvFrame" src="https://www.youtube.com/embed/KQp-e_XQnDE?autoplay=1&amp;mute=1" title="Live market TV" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
     </details>
     <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Layout:</span>
       <span class="ctlgrp" id="layoutBtns"></span></div>
@@ -2054,6 +2068,7 @@ def render_html(snap: dict) -> str:
         <button data-mkview="chart">Chart</button>
         <button data-mkview="plan">Trade plan</button>
         <button data-mkview="strategies">Strategies</button>
+        <button data-mkview="signals">Inputs</button>
         <button data-mkview="research">Research &amp; news</button>
       </nav>
       <div class="mk-main">
@@ -2081,6 +2096,10 @@ def render_html(snap: dict) -> str:
         <div class="mk-view" id="mkview-strategies">
           <div class="sech" style="margin-top:0;">Strategies in play <span style="text-transform:none;color:var(--muted);">— independent methods + their track record here</span></div>
           <div id="mStrategies"></div>
+        </div>
+        <div class="mk-view" id="mkview-signals">
+          <div class="sech" style="margin-top:0;">Signal inputs <span style="text-transform:none;color:var(--muted);">— the extra data feeding this call, in detail</span></div>
+          <div id="mSignals"></div>
         </div>
         <div class="mk-view" id="mkview-research">
           <div class="sech" style="margin-top:0;">Analysts, fundamentals &amp; news tone</div>
@@ -2289,6 +2308,13 @@ function _tvBit(s) {{ return (s.tv && s.tv.d) ? (' · TV ' + s.tv.d) : ''; }}  /
 
 // Jump to a top-level tab programmatically (used by clickable alt-data badges).
 function _gotoTab(p) {{ const b = document.querySelector(`#tabs button[data-page="${{p}}"]`); if (b) b.click(); }}
+
+// Signals-page TV widget: switch the embedded player between reliably-embeddable channels.
+function _wtvSet(btn) {{
+  const f = document.getElementById('wtvFrame');
+  if (f) f.src = `https://www.youtube.com/embed/${{btn.dataset.wtv}}?autoplay=1&mute=1`;
+  document.querySelectorAll('.wtvgrp button').forEach(b => b.classList.toggle('on', b === btn));
+}}
 
 // Scraped alt-data (SEC insiders / analyst rating change / StockTwits buzz) as a normalised list.
 function _altData(s) {{
@@ -2645,6 +2671,79 @@ setInterval(() => {{
 
 // ---- detail modal ----
 const overlay = document.getElementById('overlay');
+// Detailed, readable breakdown of every alt-data input behind a signal (for the Signals sub-tab).
+function _signalsDetail(s) {{
+  const short = s.direction === 'SHORT';
+  const cards = [];
+  const card = (icon, title, value, tone, why) =>
+    `<div class="sigdet ${{tone||''}}"><div class="sigdet-h">${{icon}} <b>${{title}}</b>`
+    + `<span class="sigdet-v">${{value}}</span></div><div class="sigdet-why">${{why}}</div></div>`;
+
+  // Relative strength
+  const rs = (s.factors||{{}}).rs;
+  if (rs && rs.pct!=null) {{
+    const lead = rs.pct>=70, lag = rs.pct<=40;
+    cards.push(card('📈','Relative strength', 'RS '+rs.pct+' percentile',
+      lead?'good':lag?'bad':'warn',
+      lead ? 'Outrunning most of the market — leadership, which tends to persist.'
+           : lag ? 'Lagging the market — relative weakness.'
+                 : 'Middle of the pack versus the market — no strong lead either way.'));
+  }}
+  // TradingView
+  if (s.tv && (s.tv.d||s.tv.w)) {{
+    const agree = (!short && /Buy/.test(s.tv.d||'')) || (short && /Sell/.test(s.tv.d||''));
+    cards.push(card('🟦','TradingView rating', (s.tv.d||'—')+' daily · '+(s.tv.w||'—')+' weekly',
+      agree?'good':'warn',
+      'An independent technical read (≈26 indicators), separate from our engine. '
+      + (agree ? 'It lines up with this '+(short?'short':'long')+'.' : 'It does not strongly confirm this side — weigh it.')));
+  }}
+  // Insider (SEC Form 4)
+  const ins = s.insider;
+  if (ins && ins.n_filings) {{
+    if (ins.cluster_buy)
+      cards.push(card('🏛','Insider activity (SEC Form 4)', ins.buys+' open-market buy(s)', short?'bad':'good',
+        ins.buys+' insider purchase(s) of '+(ins.buy_shares||0).toLocaleString()+' shares recently — real money down. '
+        + (short?'A headwind for a short.':'A bullish vote of confidence.')));
+    else if (ins.sells>=2)
+      cards.push(card('🏛','Insider activity (SEC Form 4)', ins.sells+' sale(s)', short?'good':'warn',
+        ins.sells+' insider sale(s) recently' + (short?' — supports the short.':' and little buying — mild caution.')));
+    else
+      cards.push(card('🏛','Insider activity (SEC Form 4)', 'no clear cluster', '',
+        'No notable cluster of insider buys or sells in recent filings.'));
+  }}
+  // Analyst rating changes
+  const aa = (s.fundamentals||{{}}).analyst_actions, lt = aa && aa.latest;
+  if (lt && (lt.action==='up'||lt.action==='down')) {{
+    const up = lt.action==='up';
+    cards.push(card(up?'⬆':'⬇','Analyst rating change',
+      (lt.firm||'analyst')+': '+(lt.from?lt.from+' → ':'')+(lt.to||''), up?(short?'bad':'good'):(short?'good':'warn'),
+      '60-day net: '+(aa.n_up||0)+' upgrades / '+(aa.n_down||0)+' downgrades. Latest on '+(lt.date||'')+'. '
+      + (up?'Fresh upgrades are a supportive catalyst for a long.':'Net downgrades lean bearish.')));
+  }}
+  // Retail buzz
+  const b = s.buzz;
+  if (b && b.lean) {{
+    const lean = b.lean==='bull'?'Bullish':b.lean==='bear'?'Bearish':'Mixed';
+    cards.push(card('💬','Retail buzz (StockTwits)', lean+' · '+(b.sentiment_pct)+'% bullish',
+      b.lean==='mixed'?'warn':'',
+      (b.n)+' recent posts tagged; '+(b.sentiment_pct)+'% bullish. Crowd sentiment is noisy and often contrarian — weighted gently.'));
+  }}
+  // Catalyst (fresh news)
+  if (s.catalyst) {{
+    cards.push(card('⚡','News catalyst', (s.catalyst.source||'news'),
+      '', 'Fresh headline driving attention: “'+_esc(s.catalyst.headline||'')+'”.'));
+  }}
+  // News tone
+  const sent = s.sentiment;
+  if (sent && sent.label && sent.label!=='Neutral') {{
+    cards.push(card('📰','News tone', sent.label, sent.label==='Positive'?(short?'bad':'good'):(short?'good':'warn'),
+      'Overall tone across '+(sent.n||'recent')+' headlines reads '+sent.label.toLowerCase()+'.'));
+  }}
+  return cards.length ? cards.join('')
+    : '<div class="sigdet"><div class="sigdet-why">No extra signal data for this name on this run '
+      + '(insider/analyst/buzz data is sparse and only appears on live runs).</div></div>';
+}}
+
 function openModal(s) {{
   const cls = (s.action||'').replace(' ','');
   document.getElementById('mTitle').innerHTML =
@@ -2777,6 +2876,8 @@ function openModal(s) {{
         return `<li>${{t}}<div class="src">${{n.source||''}} ${{n.created_at||''}}</div></li>`;
       }}).join('')
     : '<li class="src">No recent news tagged for this symbol.</li>';
+  // ---- Signals sub-tab: every alt-data input in detail, with plain-English reasoning ----
+  document.getElementById('mSignals').innerHTML = _signalsDetail(s);
   // load this symbol into the modal's Capital IQ-style chart engine
   if (modalTC) modalTC.setSymbol(s.symbol, s.plan || {{}});
   if (window._mkShow) window._mkShow('overview');   // every open starts on Overview
