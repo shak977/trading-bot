@@ -129,7 +129,8 @@ def scan(cfg, live: bool, regime: dict | None = None, bars_fn=None) -> dict:
     try:
         if bars_fn is None:
             if live:
-                from data import get_bars as bars_fn  # noqa: N813
+                from data import get_bars
+                bars_fn = lambda s: get_bars(s, cfg)  # noqa: E731 - get_bars needs (symbol, cfg)
             else:
                 from data import synthetic_bars
                 bars_fn = lambda s: synthetic_bars(s, n=getattr(cfg, "lookback_days", 400))  # noqa: E731

@@ -2699,6 +2699,11 @@ def render_html(snap: dict) -> str:
         long's conviction (and lower a short's); heavy insider selling leans the other way.</li>
         <li><b>Retail buzz (StockTwits)</b> — crowd chatter and Bull/Bear sentiment, weighted gently since
         it's noisy and often contrarian.</li>
+        <li><b>Short interest / squeeze risk (Yahoo)</b> — how heavily a name is shorted (% of float, days-to-cover).
+        A crowded short is squeeze fuel for a long (a tailwind) and a real danger for a fresh short.</li>
+        <li><b>Retail / social attention (Reddit &amp; WSB, via ApeWisdom)</b> — names the retail crowd is piling into.
+        The lightest nudge of all: a mention spike adds momentum and volatility, so it gently helps a long and
+        warns a short. Never a primary driver.</li>
         <li><b>Market alignment</b> — is the trade running with the broad tape (Risk-on/off) or against it?
         Counter-trend setups lose points.</li>
         <li><b>Earnings gate</b> — a fresh entry within ~2 days of an earnings report is held back (capped
@@ -2724,6 +2729,38 @@ def render_html(snap: dict) -> str:
       honest counterpart to the hypothetical log. And the <b>Momentum</b> tab leads with a
       <b>survivorship-bias-free</b> backtest (run on a fixed universe of always-alive ETFs) so its headline
       Sharpe/return can't be flattered by today's winners.</p>
+
+      <h4>Trusting the backtest — walk-forward / out-of-sample validation</h4>
+      <p>A single backtest sees the whole history, so any setting that happened to fit the past looks good — that's
+      curve-fitting. The <b>Momentum</b> tab now also runs a <b>walk-forward</b> test: it tunes the strategy on a
+      slice of <i>past</i> data, then trades the <i>next, unseen</i> slice with those frozen settings, and repeats
+      rolling forward. The result is an honest <b>out-of-sample</b> read plus a verdict — <i>holds up</i>,
+      <i>marginal</i>, or <i>fragile</i> — and a parameter-sensitivity sweep that shows whether the edge depends on
+      one lucky setting. If a strategy only shines in-sample, this is where it gets exposed.</p>
+
+      <h4>Protecting the whole book — the risk engine &amp; kill switch</h4>
+      <p>Stops protect a single trade; the <b>risk engine</b> protects the whole account. Before any new paper order
+      it checks the book and can throttle or stand down:</p>
+      <ul>
+        <li><b>Daily loss limit</b> — once the day is down ~3%, it stops opening new positions (open trades keep their brackets).</li>
+        <li><b>Drawdown control</b> — at ~8% peak-to-now drawdown it <b>halves</b> new-position size; at ~10% it
+        <b>halts</b> new entries until equity recovers.</li>
+        <li><b>Concentration cap</b> — no single position is allowed to exceed ~15% of equity.</li>
+        <li><b>Kill switch</b> — repeated run failures (broker/data outages) flip a hard stop, which auto-resets after
+        a few clean runs — so a glitch can never trigger runaway trading.</li>
+      </ul>
+      <p>Its current state shows as a colour-coded banner at the top of the <b>Paper account</b> tab
+      (green normal, amber de-risking, red halt, or the kill switch).</p>
+
+      <h4>A diversifier for flat markets — pairs &amp; mean-reversion</h4>
+      <p>The core engine trades <i>direction</i> (trend + momentum), which struggles when the market goes sideways.
+      The <b>Pairs</b> tab adds a market-neutral complement: it watches economically-related, liquid pairs
+      (e.g. KO/PEP, GS/MS, V/MA), and when the price <b>spread</b> between two normally-linked names stretches
+      unusually far — about <b>2 standard deviations</b> from its norm — it flags a bet that the gap closes again
+      (long the cheap leg, short the rich one). It only lists a pair once the two legs are genuinely correlated and
+      the spread is reliably <i>mean-reverting</i>; it exits as the spread reverts toward normal and stops out if the
+      relationship breaks (past ~3σ). It leans in when the broad tape is trendless and steps back when there's a
+      strong trend to ride. When a spread reaches its entry band you also get a <b>phone alert</b>, just like signal alerts.</p>
 
       <h4>Honest limits</h4>
       <p>This is an <b>educational tool, not financial advice</b>. Signals are often wrong, the data is
