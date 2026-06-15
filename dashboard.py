@@ -2719,6 +2719,20 @@ def render_html(snap: dict) -> str:
     border:1px solid var(--line); border-radius:8px; padding:6px 12px; font-size:13px; cursor:pointer;
     box-shadow:var(--shadow); }}
   .themebtn:hover {{ color:var(--txt); }}
+  /* ---- accent colour picker ---- */
+  .accent-wrap {{ position:relative; display:inline-block; }}
+  .accent-pop {{ position:absolute; right:0; top:calc(100% + 6px); background:var(--card);
+    border:1px solid var(--line); border-radius:10px; padding:11px; display:flex; flex-wrap:wrap;
+    gap:7px; width:184px; z-index:60; box-shadow:var(--shadow-lg); }}
+  .accent-pop .acsw {{ width:26px; height:26px; border-radius:50%; border:2px solid transparent;
+    cursor:pointer; padding:0; }}
+  .accent-pop .acsw.on {{ border-color:var(--txt); }}
+  .accent-pop .accustom {{ display:flex; align-items:center; gap:6px; font-size:11px;
+    color:var(--muted); width:100%; margin-top:2px; }}
+  .accent-pop .accustom input {{ width:26px; height:26px; padding:0; border:none; background:none; cursor:pointer; }}
+  .accent-pop .acreset {{ width:100%; font-size:11.5px; color:var(--muted); background:var(--inset);
+    border:1px solid var(--line); border-radius:7px; padding:6px; cursor:pointer; }}
+  .accent-pop .acreset:hover {{ color:var(--txt); }}
   /* ---- featured chart panel + watchlist ---- */
   .featured {{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px;
     margin:6px 0 18px; box-shadow:var(--shadow); }}
@@ -2881,6 +2895,20 @@ def render_html(snap: dict) -> str:
         <span class="badge m-{mode}">{mode}</span>
         <span class="livepill" id="liveStatus"></span>
         <button class="themebtn" title="Reload for the latest published build" onclick="location.reload()">⟳ Refresh</button>
+        <div class="accent-wrap">
+          <button id="accentBtn" class="themebtn" title="Accent colour" aria-label="Accent colour">🎨</button>
+          <div id="accentPop" class="accent-pop" hidden>
+            <button class="acsw" data-accent="#58a6ff" style="background:#58a6ff;" aria-label="Blue"></button>
+            <button class="acsw" data-accent="#2dd4bf" style="background:#2dd4bf;" aria-label="Cyan"></button>
+            <button class="acsw" data-accent="#8b5cf6" style="background:#8b5cf6;" aria-label="Violet"></button>
+            <button class="acsw" data-accent="#46d08a" style="background:#46d08a;" aria-label="Green"></button>
+            <button class="acsw" data-accent="#e0a82e" style="background:#e0a82e;" aria-label="Amber"></button>
+            <button class="acsw" data-accent="#ff7a59" style="background:#ff7a59;" aria-label="Coral"></button>
+            <button class="acsw" data-accent="#ec4899" style="background:#ec4899;" aria-label="Pink"></button>
+            <label class="accustom">Custom <input type="color" id="accentCustom" value="#58a6ff"></label>
+            <button id="accentReset" class="acreset">Reset to default</button>
+          </div>
+        </div>
         <button id="themeToggle" class="themebtn">🌙 Dark</button>
       </div>
     </div>
@@ -4351,6 +4379,29 @@ function _initCharts() {{
       apply(next);
     }};
   }}
+}})();
+// ---- accent colour picker (persists; overrides --accent for both themes) ----
+(function accentSetup() {{
+  const KEY = 'tb-accent';
+  const root = document.documentElement;
+  const pop = document.getElementById('accentPop');
+  const btn = document.getElementById('accentBtn');
+  const cust = document.getElementById('accentCustom');
+  if (!pop || !btn) return;
+  function apply(c) {{ if (c) root.style.setProperty('--accent', c); else root.style.removeProperty('--accent'); }}
+  function mark(c) {{ pop.querySelectorAll('.acsw').forEach(x => x.classList.toggle('on', x.dataset.accent === c)); }}
+  let saved = null;
+  try {{ saved = localStorage.getItem(KEY); }} catch (e) {{}}
+  if (saved) {{ apply(saved); if (cust) cust.value = saved; mark(saved); }}
+  btn.onclick = (e) => {{ e.stopPropagation(); pop.hidden = !pop.hidden; }};
+  document.addEventListener('click', (e) => {{ if (!pop.hidden && !pop.contains(e.target) && e.target !== btn) pop.hidden = true; }});
+  pop.querySelectorAll('.acsw').forEach(s => s.onclick = () => {{
+    apply(s.dataset.accent); try {{ localStorage.setItem(KEY, s.dataset.accent); }} catch (e) {{}}
+    if (cust) cust.value = s.dataset.accent; mark(s.dataset.accent);
+  }});
+  if (cust) cust.oninput = () => {{ apply(cust.value); try {{ localStorage.setItem(KEY, cust.value); }} catch (e) {{}} mark(cust.value); }};
+  const rst = document.getElementById('accentReset');
+  if (rst) rst.onclick = () => {{ apply(null); try {{ localStorage.removeItem(KEY); }} catch (e) {{}} mark(null); pop.hidden = true; }};
 }})();
 // resize the featured chart when its panel becomes visible
 function _refitCharts() {{
