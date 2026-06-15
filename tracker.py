@@ -26,24 +26,33 @@ PATH = os.getenv("TRACK_FILE", "track_record.json")
 HOLD_LIMIT_DAYS = 90
 
 
-def _load() -> list[dict]:
+def _load(path: str = PATH) -> list[dict]:
     try:
-        with open(PATH) as f:
+        with open(path) as f:
             return json.load(f)
     except Exception:  # noqa: BLE001
         return []
 
 
-def _save(rows: list[dict]) -> None:
+def _save(rows: list[dict], path: str = PATH) -> None:
     try:
-        with open(PATH, "w") as f:
+        with open(path, "w") as f:
             json.dump(rows, f, indent=2)
     except Exception:  # noqa: BLE001
         pass
 
 
-def run(signals: list[dict], cfg: Config, live: bool, today: str) -> dict:
-    log = _load()
+def run(signals: list[dict], cfg: Config, live: bool, today: str, *,
+        path: str | None = None, intraday: bool = False, now_ts=None,
+        hold_days: int = HOLD_LIMIT_DAYS) -> dict:
+    """Grade advised calls against real prices (a hypothetical, fills-free record).
+
+    Daily mode (default) grades on completed daily sessions after the advised day.
+    Intraday mode grades against intraday bars strictly after the advised TIMESTAMP — a
+    separate shadow record for the intraday layer (own ``path``, no orders, no clashing).
+    """
+    path = path or PATH
+    log = _load(path)
     by_id = {t["id"]: t for t in log}
 
     # 1) Log new actionable entries — fresh BUYs (long) and fresh SHORTs (short).
@@ -67,7 +76,9 @@ def run(signals: list[dict], cfg: Config, live: bool, today: str) -> dict:
             t = {
                 "id": tid, "symbol": s["symbol"], "name": s.get("name", ""),
                 "direction": s.get("direction", "LONG"),
-                "advised_date": today, "entry": p["entry"], "stop": p["stop"],
+                "advised_date": today,
+                "advised_ts": (now_ts.isoformat() if (intraday and now_ts is not None) else today),
+                "entry": p["entry"], "stop": p["stop"],
                 "target": p["target"], "rr": p.get("rr"),
                 "conviction": (s.get("conviction") or {}).get("label"),
                 "checks": [{"label": c.get("label"), "status": c.get("status")}
@@ -91,13 +102,18 @@ def run(signals: list[dict], cfg: Config, live: bool, today: str) -> dict:
             df = df.copy()
             if getattr(df.index, "tz", None) is not None:
                 df.index = df.index.tz_localize(None)
-            cutoff = pd.Timestamp(t["advised_date"])
-            run_day = pd.Timestamp(today)
-            # Only grade on FULLY-COMPLETED sessions strictly AFTER the advised day:
-            #  - exclude the advised day's own bar (you'd enter at its close, so its
-            #    intraday high/low already happened — counting them is look-ahead bias)
-            #  - exclude today's bar, which may still be forming during an intraday run
-            after = df[(df.index.normalize() > cutoff) & (df.index.normalize() < run_day)]
+            if intraday:
+                # Grade against intraday bars strictly AFTER the advised timestamp, excluding the
+                # still-forming current bar (everything up to now_ts).
+                cutoff = pd.Timestamp(t.get("advised_ts") or t["advised_date"])
+                end = pd.Timestamp(now_ts) if now_ts is not None else df.index[-1]
+                after = df[(df.index > cutoff) & (df.index < end)]
+            else:
+                cutoff = pd.Timestamp(t["advised_date"])
+                run_day = pd.Timestamp(today)
+                # Only grade on FULLY-COMPLETED sessions strictly AFTER the advised day:
+                #  - exclude the advised day's own bar (look-ahead) and today's forming bar.
+                after = df[(df.index.normalize() > cutoff) & (df.index.normalize() < run_day)]
             is_short = t.get("direction") == "SHORT"
             for ts, row in after.iterrows():
                 hi, lo = float(row["high"]), float(row["low"])
@@ -123,7 +139,7 @@ def run(signals: list[dict], cfg: Config, live: bool, today: str) -> dict:
                         break
             if t["status"] == "open" and len(after):
                 held = (after.index[-1] - cutoff).days
-                if held >= HOLD_LIMIT_DAYS:
+                if held >= hold_days:
                     t.update(status="expired", exit=round(float(after["close"].iloc[-1]), 2),
                              exit_date=str(after.index[-1].date()))
             if t["status"] != "open" and "exit" in t:
@@ -137,7 +153,7 @@ def run(signals: list[dict], cfg: Config, live: bool, today: str) -> dict:
     # Persist only on LIVE runs. Synthetic/dev runs grade against fake prices, so writing would
     # both corrupt the real record and dirty the git tree on every local build — never do it.
     if live:
-        _save(log)
+        _save(log, path)
     return _stats(log)
 
 

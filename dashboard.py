@@ -387,6 +387,7 @@ def build_snapshot() -> dict:
     # conviction. Any failure leaves it empty — the daily build is never affected.
     intraday_shown: list = []
     intraday_by_sym: dict = {}
+    intraday_track: dict = {}
     if live and getattr(CONFIG, "intraday_enabled", False):
         try:
             from dataclasses import replace as _replace
@@ -400,9 +401,21 @@ def build_snapshot() -> dict:
             intraday_by_sym = {_ir["symbol"]: _ir for _ir in _irows}
             _irows.sort(key=lambda r: -((r.get("conviction") or {}).get("score_pct") or 0))
             intraday_shown = _irows[: CONFIG.intraday_show_top]
+            # Shadow track-record for the intraday layer (NO orders): grade intraday calls against
+            # intraday bars, in a SEPARATE log so it never mixes with the daily record/paper book.
+            try:
+                import tracker as _tracker
+                import pandas as _pd
+                intraday_track = _tracker.run(
+                    list(intraday_by_sym.values()), _icfg, live, _today0,
+                    path="track_record_intraday.json", intraday=True,
+                    now_ts=_pd.Timestamp.utcnow().tz_localize(None), hold_days=3)
+            except Exception as _itexc:  # noqa: BLE001
+                intraday_track = {}
+                print("INTRADAY TRACK: skipped —", _itexc)
             print(f"INTRADAY: {len(intraday_shown)} signals on {CONFIG.intraday_timeframe} bars")
         except Exception as _iexc:  # noqa: BLE001 - never break the daily build
-            intraday_shown, intraday_by_sym = [], {}
+            intraday_shown, intraday_by_sym, intraday_track = [], {}, {}
             print("INTRADAY: skipped —", _iexc)
 
     _ACTIONABLE = ("BUY", "SHORT", "HOLD LONG", "HOLD SHORT")
@@ -659,6 +672,7 @@ def build_snapshot() -> dict:
         },
         "signals": shown,
         "intraday": intraday_shown,
+        "intraday_track": intraday_track,
         "charts": {k: charts[k] for k in shown_syms if k in charts},
         "news": news,
     }
@@ -2935,7 +2949,12 @@ function renderIntraday() {{
   const el = document.getElementById('intradayCards'); if (!el) return;
   const list = DATA.intraday || [];
   const tf = (DATA.params && DATA.params.intraday_timeframe) || '5Min';
-  el.innerHTML = `<div class="strat-badge"><span class="k">Layer</span><span class="v">Intraday · ${{tf}} bars — faster &amp; noisier than the daily signals; confirm before acting</span></div>`;
+  const it = DATA.intraday_track || {{}};
+  const rec = it.resolved
+    ? `Shadow record: <b>${{it.win_rate ?? '—'}}%</b> win over ${{it.resolved}} resolved · expectancy ${{(it.expectancy >= 0 ? '+' : '')}}${{it.expectancy ?? '—'}}% · ${{it.open || 0}} open`
+    : `Shadow record: building — grades these ${{tf}} calls against real prices over the next few days (no orders placed)`;
+  el.innerHTML = `<div class="strat-badge"><span class="k">Layer</span><span class="v">Intraday · ${{tf}} bars — faster &amp; noisier than the daily signals; confirm before acting</span></div>`
+    + `<div class="note" style="margin:0 0 12px;">📊 ${{rec}}</div>`;
   const grid = document.createElement('div'); grid.className = 'grid';
   if (!list.length) {{
     grid.innerHTML = '<div style="color:var(--muted);font-size:13px;">No intraday signals this build (or intraday data was unavailable — it falls back silently, so the daily view is never affected).</div>';

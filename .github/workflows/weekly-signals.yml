@@ -104,7 +104,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add track_record.json momentum_history.json paper_orders.json alerts_sent.json signals_seen.json
+          git add track_record.json track_record_intraday.json momentum_history.json paper_orders.json alerts_sent.json signals_seen.json
           git diff --staged --quiet && exit 0
           git commit -m "update track record + momentum history [skip ci]"
           # rebase on any concurrent change, then push (best effort)
