@@ -2742,8 +2742,10 @@ def render_html(snap: dict) -> str:
   .shell {{ display:flex; gap:0; align-items:flex-start; }}
   .sidebar {{ width:150px; flex:0 0 150px; position:sticky; top:8px; display:flex; flex-direction:column;
     gap:3px; padding:2px 10px 8px 0; }}
-  .sidebar button {{ text-align:left; background:none; border:none; color:var(--muted); font-size:13px;
-    font-weight:600; padding:9px 11px; border-radius:7px; cursor:pointer; letter-spacing:.02em; }}
+  .sidebar button {{ display:flex; align-items:center; gap:9px; text-align:left; background:none;
+    border:none; color:var(--muted); font-size:12px; font-weight:600; padding:9px 11px; border-radius:7px;
+    cursor:pointer; text-transform:uppercase; letter-spacing:.07em; }}
+  .sidebar button svg {{ width:15px; height:15px; flex:0 0 auto; }}
   .sidebar button:hover {{ background:var(--hover); color:var(--txt); }}
   .sidebar button.on {{ background:color-mix(in srgb,var(--accent) 15%,transparent); color:var(--accent); }}
   .maincol {{ flex:1; min-width:0; padding-left:16px; border-left:1px solid var(--line); }}
@@ -2941,18 +2943,17 @@ def render_html(snap: dict) -> str:
   </header>
   <div class="shell">
     <aside class="sidebar" id="sideNav">
-      <button data-area="signals" class="on">Signals</button>
-      <button data-area="markets">Markets</button>
-      <button data-area="portfolio">Portfolio</button>
-      <button data-area="intel">Intel</button>
-      <button data-area="news">News</button>
-      <button data-area="about">About</button>
+      <button data-area="signals" class="on"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 8h3l2-5 3 10 2-5h4"/></svg> Signals</button>
+      <button data-area="markets"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6.3"/><path d="M1.7 8h12.6M8 1.7c2.4 1.8 2.4 10.8 0 12.6M8 1.7c-2.4 1.8-2.4 10.8 0 12.6"/></svg> Markets</button>
+      <button data-area="portfolio"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.8" y="5" width="12.4" height="8.5" rx="1.2"/><path d="M5.5 5V3.7a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1V5"/></svg> Portfolio</button>
+      <button data-area="intel"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="4.5" y="4.5" width="7" height="7" rx="1"/><path d="M6.5 1.8v2.7M9.5 1.8v2.7M6.5 11.5v2.7M9.5 11.5v2.7M1.8 6.5h2.7M1.8 9.5h2.7M11.5 6.5h2.7M11.5 9.5h2.7"/></svg> Intel</button>
+      <button data-area="news"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.8" y="3" width="12.4" height="10" rx="1.2"/><path d="M4.3 6h7.4M4.3 8.3h7.4M4.3 10.6h4.5"/></svg> News</button>
+      <button data-area="about"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6.3"/><path d="M8 7.3v4"/><path d="M8 4.9h.01"/></svg> About</button>
     </aside>
     <div class="maincol">
       <nav class="toptabs" id="topTabs"></nav>
       <div class="subhead">Built {snap['generated_at']} <span id="builtAgo" style="opacity:.7;"></span> &middot; scanned {snap['scanned']} symbols{health_html}{pdrop_html}</div>
       <div class="subhead" id="marketClock" style="margin-top:-9px;opacity:.85;"></div>
-      {kpi_html}
       <div class="note" style="margin-top:0;">{mode_note}</div>
       <div id="diag"></div>
 
@@ -2979,6 +2980,7 @@ def render_html(snap: dict) -> str:
   </section>
 
   <section class="page on" id="page-signals">
+    {kpi_html}
     {brief_html}
     {changes_html}
     <div class="strat-badge"><span class="k">Strategy type</span><span class="v">Multi-strategy confluence · 7 long + 7 short, trend-gated</span></div>
