@@ -12,22 +12,10 @@
       "score": 88,
       "dir": "LONG"
     },
-    "ROKU": {
-      "action": "BUY",
-      "label": "High",
-      "score": 85,
-      "dir": "LONG"
-    },
     "AMAT": {
       "action": "BUY",
       "label": "High",
       "score": 87,
-      "dir": "LONG"
-    },
-    "PG": {
-      "action": "BUY",
-      "label": "High",
-      "score": 83,
       "dir": "LONG"
     },
     "LRCX": {
@@ -45,7 +33,7 @@
     "MS": {
       "action": "BUY",
       "label": "High",
-      "score": 86,
+      "score": 84,
       "dir": "LONG"
     },
     "ABNB": {
@@ -66,22 +54,28 @@
       "score": 83,
       "dir": "LONG"
     },
+    "ROKU": {
+      "action": "BUY",
+      "label": "High",
+      "score": 80,
+      "dir": "LONG"
+    },
     "MRK": {
       "action": "BUY",
       "label": "Medium",
       "score": 71,
       "dir": "LONG"
     },
+    "CL": {
+      "action": "BUY",
+      "label": "High",
+      "score": 76,
+      "dir": "LONG"
+    },
     "INTC": {
       "action": "BUY",
       "label": "High",
       "score": 75,
-      "dir": "LONG"
-    },
-    "CL": {
-      "action": "BUY",
-      "label": "High",
-      "score": 77,
       "dir": "LONG"
     },
     "JPM": {
@@ -105,7 +99,13 @@
     "PYPL": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 66,
+      "score": 71,
+      "dir": "SHORT"
+    },
+    "CMG": {
+      "action": "WATCH SHORT",
+      "label": "Medium",
+      "score": 71,
       "dir": "SHORT"
     },
     "META": {
@@ -126,46 +126,34 @@
       "score": 64,
       "dir": "SHORT"
     },
-    "ADBE": {
+    "DIS": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 63,
-      "dir": "SHORT"
-    },
-    "PEP": {
-      "action": "WATCH SHORT",
-      "label": "Medium",
-      "score": 59,
+      "score": 68,
       "dir": "SHORT"
     },
     "MCD": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 62,
-      "dir": "SHORT"
-    },
-    "DIS": {
-      "action": "WATCH SHORT",
-      "label": "Medium",
-      "score": 63,
+      "score": 60,
       "dir": "SHORT"
     },
     "AXP": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 55,
+      "score": 53,
       "dir": "SHORT"
     },
     "CMCSA": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 63,
+      "score": 66,
       "dir": "SHORT"
     },
-    "SCHW": {
+    "ADBE": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 54,
+      "score": 60,
       "dir": "SHORT"
     },
     "BLK": {
@@ -192,10 +180,10 @@
       "score": 83,
       "dir": "LONG"
     },
-    "GS": {
+    "MAR": {
       "action": "HOLD LONG",
-      "label": "High",
-      "score": 77,
+      "label": "Medium",
+      "score": 73,
       "dir": "LONG"
     },
     "C": {
@@ -204,16 +192,10 @@
       "score": 64,
       "dir": "LONG"
     },
-    "MAR": {
-      "action": "HOLD LONG",
-      "label": "Medium",
-      "score": 70,
-      "dir": "LONG"
-    },
     "MDLZ": {
       "action": "HOLD LONG",
       "label": "Medium",
-      "score": 71,
+      "score": 68,
       "dir": "LONG"
     },
     "MRVL": {
@@ -225,7 +207,7 @@
     "PANW": {
       "action": "HOLD LONG",
       "label": "Medium",
-      "score": 73,
+      "score": 71,
       "dir": "LONG"
     },
     "ABBV": {
@@ -239,12 +221,42 @@
       "label": "Medium",
       "score": 58,
       "dir": "LONG"
+    },
+    "GS": {
+      "action": "HOLD LONG",
+      "label": "Medium",
+      "score": 64,
+      "dir": "LONG"
+    },
+    "UBER": {
+      "action": "HOLD SHORT",
+      "label": "Medium",
+      "score": 67,
+      "dir": "SHORT"
+    },
+    "NFLX": {
+      "action": "HOLD SHORT",
+      "label": "Medium",
+      "score": 63,
+      "dir": "SHORT"
+    },
+    "PG": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 79,
+      "dir": "LONG"
+    },
+    "COP": {
+      "action": "FLAT",
+      "label": "Medium",
+      "score": 62,
+      "dir": "LONG"
     }
   },
   "sectors": {
     "Materials": 100,
-    "Other / Movers": 100,
     "Industrials": 100,
+    "Other / Movers": 100,
     "Financials": 80,
     "Technology": 75,
     "Staples": 67,
@@ -254,8 +266,10 @@
     "Energy": 0
   },
   "catalysts": [
+    "CL",
+    "AMD",
     "CRWD",
-    "COP"
+    "C"
   ],
   "generated_at": "2026-06-15"
 }
