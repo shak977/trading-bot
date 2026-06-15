@@ -1422,7 +1422,11 @@
       }
     ],
     "tv_align": null,
-    "status": "open"
+    "status": "win",
+    "exit": 167.71,
+    "exit_date": "2026-06-15",
+    "return_pct": 0.88,
+    "days_held": -1
   },
   {
     "id": "CAT:2026-06-15",
@@ -3736,7 +3740,11 @@
       }
     ],
     "tv_align": null,
-    "status": "open"
+    "status": "win",
+    "exit": 312.93,
+    "exit_date": "2026-06-15",
+    "return_pct": 0.24,
+    "days_held": -1
   },
   {
     "id": "META:2026-06-15",
@@ -5598,6 +5606,79 @@
       {
         "label": "Leading the market?",
         "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": null,
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "SHOP:2026-06-15",
+    "symbol": "SHOP",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-06-15",
+    "advised_ts": "2026-06-15T19:55:12.873250",
+    "entry": 112.33,
+    "stop": 111.91,
+    "target": 112.77,
+    "rr": 1.05,
+    "conviction": "High",
+    "conviction_pct": 79,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
       },
       {
         "label": "Room to rise?",
