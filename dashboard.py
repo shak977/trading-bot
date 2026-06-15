@@ -3018,6 +3018,36 @@ function _signalsDetail(s) {{
       + '(insider/analyst/buzz data is sparse and only appears on live runs).</div></div>';
 }}
 
+// ---- per-headline news implication (heuristic keyword read; no API cost) ----
+const _NEWS_POS = ['beat','beats','surge','surges','soar','soars','rally','rallies','gain','gains','jump','jumps',
+  'upgrade','upgraded','upgrades','outperform','growth','grow','grows','profit','profits','record','strong',
+  'bullish','rebound','rebounds','firepower','tops','wins','win','approval','approved',
+  'expansion','breakthrough','momentum','boost','boosts','optimistic','upside','accelerate','rise','rises',
+  'soaring','green','greenlight','demand','partnership','buyback','dividend'];
+const _NEWS_NEG = ['miss','misses','plunge','plunges','fall','falls','drop','drops','decline','declines','sink',
+  'sinks','slump','downgrade','downgraded','downgrades','lawsuit','probe','investigation','fraud','defeat','risk',
+  'risks','loss','losses','weak','bearish','warning','warns','recall','halt','ban','fine','fined','slash','slashes',
+  'layoff','layoffs','bankruptcy','default','concern','concerns','fears','plummet','tumble','selloff','sue','sued',
+  'delay','delays','disappoint','disappoints','crash','slows','slowing','cuts','subpoena','dispute'];
+function _newsLean(h) {{
+  const words = (h||'').toLowerCase().replace(/[^a-z0-9\s-]/g,' ').split(/\s+/);
+  let p=0,q=0; const hit=[];
+  words.forEach(w => {{ if (_NEWS_POS.indexOf(w)>=0) {{ p++; if (hit.indexOf(w)<0 && hit.length<3) hit.push(w); }}
+                       else if (_NEWS_NEG.indexOf(w)>=0) {{ q++; if (hit.indexOf(w)<0 && hit.length<3) hit.push(w); }} }});
+  return {{ lean: p>q ? 'bull' : q>p ? 'bear' : 'flat', hit }};
+}}
+function _newsDot(h) {{ const l=_newsLean(h).lean; return l==='bull'?'var(--buy)':l==='bear'?'var(--sell)':'var(--muted)'; }}
+function _newsTip(n, s) {{
+  const r=_newsLean(n.headline), sym=s.symbol, short=s.direction==='SHORT', dirw=short?'short':'long';
+  let lead, rel;
+  if (r.lean==='bull') {{ lead=`Reads bullish for ${{sym}} — positive coverage / potential catalyst.`;
+    rel = short ? `Headwind for your short: strength fights the trade.` : `Tailwind for your long: supports the thesis.`; }}
+  else if (r.lean==='bear') {{ lead=`Reads bearish for ${{sym}} — negative coverage / risk flagged.`;
+    rel = short ? `Tailwind for your short: weakness supports the trade.` : `Headwind for your long: a risk to the thesis.`; }}
+  else {{ lead=`Neutral / unclear for ${{sym}} — context, not a clear catalyst.`; rel=`No clear push for or against this ${{dirw}}.`; }}
+  const flags = r.hit.length ? ` Flags: ${{r.hit.join(', ')}}.` : '';
+  return `${{lead}}${{flags}} ${{rel}} (Heuristic read of the headline text — verify before acting.)`;
+}}
 function openModal(s) {{
   const cls = (s.action||'').replace(' ','');
   document.getElementById('mTitle').innerHTML =
@@ -3151,7 +3181,9 @@ function openModal(s) {{
     ? (s.news||[]).map(n => {{
         const t = n.url ? `<a href="${{n.url}}" target="_blank" rel="noopener">${{n.headline}}</a>`
                         : `<span class="h">${{n.headline}}</span>`;
-        return `<li>${{t}}<div class="src">${{n.source||''}} ${{n.created_at||''}}</div></li>`;
+        return `<li class="hint" data-tip="${{_esc(_newsTip(n, s))}}">`
+          + `<span style="color:${{_newsDot(n.headline)}};font-size:10px;vertical-align:1px;margin-right:5px;">●</span>`
+          + `${{t}}<div class="src">${{n.source||''}} ${{n.created_at||''}}</div></li>`;
       }}).join('')
     : '<li class="src">No recent news tagged for this symbol.</li>';
   // ---- Signals sub-tab: every alt-data input in detail, with plain-English reasoning ----
