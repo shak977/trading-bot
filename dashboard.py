@@ -3039,16 +3039,16 @@ function _newsLean(h) {{
 function _newsSent(h) {{ const l=_newsLean(h).lean;
   return l==='bull'?{{t:'Bullish',c:'var(--buy)'}}:l==='bear'?{{t:'Bearish',c:'var(--sell)'}}:{{t:'Neutral',c:'var(--muted)'}}; }}
 function _newsImpact(h, s) {{ const l=_newsLean(h).lean, short=s.direction==='SHORT';
-  if (l==='flat') return {{t:'Neutral',c:'var(--muted)',g:'•'}};
+  if (l==='flat') return {{t:'Neutral for your',c:'var(--muted)',g:'•'}};
   const helps = (l==='bull') !== short;  // bullish helps a long; bearish helps a short
-  return helps ? {{t:'Tailwind',c:'var(--buy)',g:'▲'}} : {{t:'Headwind',c:'var(--sell)',g:'▼'}}; }}
+  return helps ? {{t:'Supports your',c:'var(--buy)',g:'▲'}} : {{t:'Works against your',c:'var(--sell)',g:'▼'}}; }}
 function _newsTip(n, s) {{
   const r=_newsLean(n.headline), sym=s.symbol, short=s.direction==='SHORT', dirw=short?'short':'long';
   let lead, rel;
   if (r.lean==='bull') {{ lead=`Reads bullish for ${{sym}} — positive coverage / potential catalyst.`;
-    rel = short ? `Headwind for your short: strength fights the trade.` : `Tailwind for your long: supports the thesis.`; }}
+    rel = short ? `Bullish news pushes the price up, which works against your short.` : `Bullish news supports your long.`; }}
   else if (r.lean==='bear') {{ lead=`Reads bearish for ${{sym}} — negative coverage / risk flagged.`;
-    rel = short ? `Tailwind for your short: weakness supports the trade.` : `Headwind for your long: a risk to the thesis.`; }}
+    rel = short ? `Bearish news pushes the price down, which backs your short.` : `Bearish news is a headwind for your long.`; }}
   else {{ lead=`Neutral / unclear for ${{sym}} — context, not a clear catalyst.`; rel=`No clear push for or against this ${{dirw}}.`; }}
   const flags = r.hit.length ? ` Flags: ${{r.hit.join(', ')}}.` : '';
   return `${{lead}}${{flags}} ${{rel}} (Heuristic read of the headline text — verify before acting.)`;
@@ -3189,7 +3189,7 @@ function openModal(s) {{
         const se = _newsSent(n.headline), im = _newsImpact(n.headline, s);
         return `<li class="hint" data-tip="${{_esc(_newsTip(n, s))}}">${{t}}`
           + `<div class="src"><span style="color:${{se.c}};font-weight:600;">${{se.t}} for ${{s.symbol}}</span>`
-          + ` &middot; <span style="color:${{im.c}};font-weight:600;">${{im.g}} ${{im.t}} for your ${{s.direction==='SHORT'?'short':'long'}}</span>`
+          + ` &middot; <span style="color:${{im.c}};font-weight:600;">${{im.g}} ${{im.t}} ${{s.direction==='SHORT'?'short':'long'}}</span>`
           + ` &middot; ${{n.source||''}} ${{n.created_at||''}}</div></li>`;
       }}).join('')
     : '<li class="src">No recent news tagged for this symbol.</li>';

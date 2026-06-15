@@ -762,12 +762,12 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
         lbl = sentiment.get("label")
         if lbl == "Positive":
             add("News on side?", "fail" if short else "pass",
-                "Recent headlines lean positive — a headwind for a short." if short
-                else "Recent headlines lean positive.")
+                "Recent headlines lean positive (bullish) — that pushes the price up, which works against your short." if short
+                else "Recent headlines lean positive (bullish) — supports your long.")
         elif lbl == "Negative":
             add("News on side?", "pass" if short else "fail",
-                "Recent headlines lean negative — supports the short." if short
-                else "Recent headlines lean negative — a headwind.")
+                "Recent headlines lean negative (bearish) — downward pressure that backs your short." if short
+                else "Recent headlines lean negative (bearish) — a headwind for your long.")
         elif lbl == "Mixed":
             add("News on side?", "warn", "Recent headlines are mixed.")
     if fundamentals:
@@ -777,12 +777,14 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             # For a short, a Sell consensus is *supportive*; a Buy consensus is the headwind.
             if c == "Buy":
                 add("Analysts on side?", "fail" if short else "pass",
-                    f"Wall St leans Buy ({an['buy']} buy / {an['hold']} hold / {an['sell']} sell)"
-                    + (" — a headwind for a short." if short else "."))
+                    f"Wall St leans Buy ({an['buy']} buy / {an['hold']} hold / {an['sell']} sell) — "
+                    + ("they expect it to RISE, which works against your short." if short
+                       else "they expect it to rise, which supports your long."))
             elif c == "Sell":
                 add("Analysts on side?", "pass" if short else "fail",
-                    f"Wall St leans Sell ({an['sell']} sell / {an['hold']} hold / {an['buy']} buy)"
-                    + ("." if short else " — a headwind."))
+                    f"Wall St leans Sell ({an['sell']} sell / {an['hold']} hold / {an['buy']} buy) — "
+                    + ("they expect it to FALL, which backs your short." if short
+                       else "they expect it to fall — a headwind for your long."))
             else:
                 add("Analysts on side?", "warn", "Wall St is mostly on Hold — no strong analyst conviction.")
         tm = fundamentals.get("target_mean")
