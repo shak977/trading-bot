@@ -123,6 +123,35 @@ class Config:
     paper_risk_pct: float = 0.02     # risk per position (fraction of equity to the stop)
     paper_allow_shorts: bool = True  # also open shorts (set False for longs-only)
 
+    # --- Portfolio risk engine + kill switch (book-level safety overlay) ---
+    # The "non-negotiable overlay": per-trade stops protect a single position; THIS protects the
+    # whole book. Evaluated every run before any new order. All gated by risk_engine_enabled.
+    risk_engine_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("RISK_ENGINE_ENABLED"), True))
+    daily_loss_limit_pct: float = 3.0   # halt NEW entries once today's P&L <= -this% of equity
+    dd_derisk_pct: float = 8.0          # at this peak-to-now drawdown, halve new-position sizing
+    dd_halt_pct: float = 10.0           # at this drawdown, stop opening new positions entirely
+    max_position_pct: float = 15.0      # no single position worth more than this % of equity
+    kill_switch_trips: int = 3          # consecutive failed/errored runs before the kill switch flips
+    kill_switch_cooldown_runs: int = 3  # clean runs needed to auto-reset the kill switch
+
+    # --- Pairs / mean-reversion diversifier (stat-arb on cointegrated spreads) ---
+    # Trades the SPREAD between two economically-related liquid names, not direction. Best when
+    # the broad tape is trendless. Gated by pairs_enabled; powers the Pairs tab. Fail-silent.
+    pairs_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("PAIRS_ENABLED"), True))
+    pairs_lookback: int = 90       # bars used for hedge ratio + spread z-score
+    pairs_entry_z: float = 2.0     # |z| at/above which the spread is tradable
+    pairs_exit_z: float = 0.5      # |z| at/below which to take the pair off (reverted)
+    pairs_stop_z: float = 3.0      # |z| beyond which the relationship is treated as broken (stop)
+    pairs_min_corr: float = 0.5    # min return correlation for the legs to count as related
+    pairs_min_halflife: float = 2.0   # reject pairs that revert faster than this (noise)
+    pairs_max_halflife: float = 40.0  # reject pairs that revert slower than this (too slow / drifting)
+
+    # --- Walk-forward / out-of-sample validation (overfitting controls) ---
+    # Optimizes the MA pair on each in-sample window, tests on the next unseen window, and reports
+    # OOS-vs-IS so the backtest's headline edge can be trusted (or not). Gated; read-only.
+    walkforward_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("WALKFORWARD_ENABLED"), True))
+    walkforward_folds: int = 4
+
     # --- Backtest realism (applied to every backtest so edges are net of costs) ---
     slippage_bps: float = 5.0          # modeled slippage per fill (5 bps = 0.05%); ~0.1% round trip
     commission_per_trade: float = 0.0  # per-fill commission (Alpaca = $0; set for other brokers)

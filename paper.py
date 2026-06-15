@@ -187,6 +187,11 @@ def run(signals: list[dict], cfg: Config, today: str) -> dict | None:
         from broker import Broker
         broker = Broker(cfg)
     except Exception as e:  # noqa: BLE001
+        try:
+            import portfolio_risk
+            portfolio_risk.note_failure(cfg)
+        except Exception:  # noqa: BLE001
+            pass
         return {"enabled": False, "reason": f"broker unavailable: {str(e)[:120]}"}
 
     log = _load()
@@ -201,6 +206,11 @@ def run(signals: list[dict], cfg: Config, today: str) -> dict | None:
         last_equity = float(getattr(acct, "last_equity", 0) or equity)
         buying_power = float(getattr(acct, "buying_power", 0) or 0)
     except Exception as e:  # noqa: BLE001
+        try:
+            import portfolio_risk
+            portfolio_risk.note_failure(cfg)
+        except Exception:  # noqa: BLE001
+            pass
         return {"enabled": False, "reason": f"could not read account: {str(e)[:120]}"}
 
     positions = []
@@ -217,8 +227,20 @@ def run(signals: list[dict], cfg: Config, today: str) -> dict | None:
 
     market_open = broker.is_open()
 
+    # --- portfolio risk engine: book-level gate before any new order (non-negotiable overlay) ---
+    try:
+        import portfolio_risk
+        risk = portfolio_risk.evaluate(cfg, equity, last_equity, positions, history, errored=False)
+    except Exception:  # noqa: BLE001
+        risk = {"enabled": False, "state": "off", "ok_to_open": True, "size_scale": 1.0,
+                "max_position_value": None, "reasons": [], "warnings": []}
+    if risk.get("reasons"):
+        notes.append("Risk: " + " | ".join(risk["reasons"]))
+    elif risk.get("warnings"):
+        notes.append("Risk: " + " | ".join(risk["warnings"]))
+
     # --- submit new brackets for fresh High-conviction signals ---
-    if market_open and len(open_syms) < cfg.paper_max_open:
+    if market_open and risk.get("ok_to_open", True) and len(open_syms) < cfg.paper_max_open:
         candidates = [s for s in signals
                       if s.get("action") in ("BUY", "SHORT")
                       and (s.get("conviction") or {}).get("label") == "High"]
@@ -248,7 +270,17 @@ def run(signals: list[dict], cfg: Config, today: str) -> dict | None:
             atr_pct = (s.get("context") or {}).get("atr_pct")
             from risk import risk_multiplier
             mult = risk_multiplier(label, atr_pct, cfg, score_pct=score_pct)
+            mult *= float(risk.get("size_scale", 1.0))   # book-level throttle (drawdown de-risk)
             qty = _qty(equity, buying_power, entry, stop, cfg.paper_risk_pct, mult=mult)
+            # concentration cap: never let one position exceed max_position_pct of equity
+            try:
+                import portfolio_risk
+                capped = portfolio_risk.cap_qty_to_concentration(qty, entry, risk.get("max_position_value"))
+                if capped < qty:
+                    notes.append(f"{sym}: trimmed to {capped} sh (concentration cap)")
+                qty = capped
+            except Exception:  # noqa: BLE001
+                pass
             if qty < 1:
                 notes.append(f"{sym}: skipped (size < 1 share at risk budget)")
                 continue
@@ -309,5 +341,6 @@ def run(signals: list[dict], cfg: Config, today: str) -> dict | None:
         "tracked_total": len(log),
         "tracked_closed": sum(1 for t in log if t.get("status") == "closed"),
         "realized": realized,
+        "risk": risk,
         "notes": notes[:8],
     }

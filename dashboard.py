@@ -600,6 +600,14 @@ def build_snapshot() -> dict:
     except Exception:  # noqa: BLE001
         momentum_bt = None
 
+    # Walk-forward / out-of-sample validation (gated) — the honest "does the edge survive on
+    # data it wasn't tuned on?" read. Small basket, read-only; any failure -> None.
+    try:
+        import walkforward as _wf
+        walk_fwd = _wf.validate(CONFIG, live, n_folds=CONFIG.walkforward_folds)
+    except Exception:  # noqa: BLE001
+        walk_fwd = None
+
     # Macro backdrop (FRED) — once per run.
     macro = None
     if live and CONFIG.fred_api_key:
@@ -708,6 +716,14 @@ def build_snapshot() -> dict:
     except Exception:  # noqa: BLE001
         paper_acct = None
 
+    # Pairs / mean-reversion diversifier (gated). Market-neutral spread bets on related names —
+    # leans in when the tape is trendless. Any failure -> empty list; never breaks the build.
+    try:
+        import pairs as _pairs
+        pairs_data = _pairs.scan(CONFIG, live=live, regime=regime)
+    except Exception:  # noqa: BLE001
+        pairs_data = {"pairs": [], "regime_fit": False, "note": ""}
+
     # Alerts: ping configured channels when a NEW high-conviction signal appears (deduped).
     try:
         import notify as _notify
@@ -810,6 +826,7 @@ def build_snapshot() -> dict:
         "mom_detail": _mom_detail(momentum_rows, rows_by_sym, shown),
         "allweather": all_weather,
         "momentum_bt": momentum_bt,
+        "walkforward": walk_fwd,
         "portfolio": _portfolio(shown),
         "ipos": ipos,
         "ipo_news": ipo_news,
@@ -821,6 +838,7 @@ def build_snapshot() -> dict:
             "intraday_timeframe": CONFIG.intraday_timeframe,
         },
         "signals": shown,
+        "pairs": pairs_data,
         "intraday": intraday_shown,
         "intraday_track": intraday_track,
         "market_brief": market_brief,
@@ -1208,6 +1226,57 @@ def _momentum_bt_html(bt: dict | None) -> str:
             'for idea generation (and is survivorship-biased — it\'s today\'s winners).</p></div>')
 
 
+def _walkforward_html(wf: dict | None) -> str:
+    """Walk-forward / out-of-sample validation panel: IS vs OOS, per-fold, sensitivity sweep."""
+    if not wf or wf.get("error") or not wf.get("per_symbol"):
+        return ""
+    grade = wf.get("grade", "marginal")
+    gcol = {"holds up": "#16a34a", "marginal": "#d97706", "fragile": "#dc2626"}.get(grade, "#64748b")
+    oos = wf.get("oos_avg_pct")
+    pos = wf.get("oos_pos_folds_pct")
+    folds = wf.get("oos_total_folds")
+    syms = ", ".join(wf.get("symbols", []))
+
+    # per-symbol OOS row table
+    prows = ""
+    for s in wf.get("per_symbol", []):
+        oc = "buy" if (s.get("oos_avg_fold_pct") or 0) > 0 else "sell"
+        prows += (f'<tr><td><b>{s["symbol"]}</b></td>'
+                  f'<td style="text-align:right;">{s.get("is_avg_sharpe","—")}</td>'
+                  f'<td style="text-align:right;" class="{oc}">{s.get("oos_avg_fold_pct",0):+.2f}%</td>'
+                  f'<td style="text-align:right;">{s.get("oos_win_folds",0)}/{s.get("oos_n_folds",0)}</td></tr>')
+    ptable = ('<table class="tbl" style="margin-top:8px;"><thead><tr><th>Symbol</th>'
+              '<th style="text-align:right;" title="avg Sharpe on the in-sample windows the params were tuned on">IS Sharpe</th>'
+              '<th style="text-align:right;" title="avg per-fold return on unseen out-of-sample windows">OOS return/fold</th>'
+              '<th style="text-align:right;" title="profitable out-of-sample windows">OOS wins</th></tr></thead>'
+              f'<tbody>{prows}</tbody></table>')
+
+    # sensitivity sweep
+    srows = ""
+    for r in wf.get("sensitivity", []):
+        srows += (f'<tr><td>{r["params"]}</td>'
+                  f'<td style="text-align:right;">{r["total_return_pct"]:+.1f}%</td>'
+                  f'<td style="text-align:right;">{r["sharpe"]:.2f}</td>'
+                  f'<td style="text-align:right;">{r["max_dd_pct"]:.1f}%</td></tr>')
+    stable = ('<h4 style="font-size:13px;margin:14px 0 4px;">Parameter sensitivity (full sample)</h4>'
+              '<table class="tbl"><thead><tr><th title="fast/slow moving-average pair">MA pair</th>'
+              '<th style="text-align:right;">Return</th><th style="text-align:right;">Sharpe</th>'
+              '<th style="text-align:right;">Max DD</th></tr></thead>'
+              f'<tbody>{srows}</tbody></table>') if srows else ""
+
+    return ('<div class="ovbox" style="margin:0 0 16px;border-left:4px solid ' + gcol + ';">'
+            '<div class="ovhead">🔬 Walk-forward / out-of-sample validation — '
+            f'<span style="color:{gcol};text-transform:capitalize;">{grade}</span></div>'
+            f'<div style="font-size:12px;color:var(--muted);margin:6px 0 8px;">'
+            f'OOS return/fold <b>{oos:+.2f}%</b> &nbsp;·&nbsp; profitable unseen windows <b>{pos}%</b> '
+            f'({folds} folds across {len(wf.get("symbols",[]))} names) &nbsp;·&nbsp; basket: {syms}</div>'
+            f'<p style="color:var(--txt2);font-size:13px;margin:0 0 4px;">{wf.get("verdict","")}</p>'
+            + ptable + stable +
+            '<p style="color:var(--muted);font-size:11px;margin:10px 0 0;">Each fold tunes the moving-average pair '
+            'on past data only, then trades the next unseen window with those frozen settings — so OOS is a fair test '
+            'of the edge, not a curve-fit. Net of modeled slippage. Educational; not investment advice.</p></div>')
+
+
 def _momentum_html(rows: list[dict]) -> str:
     intro = (_strat_badge("Dual momentum · positional, ~monthly rebalance") +
              '<p style="color:var(--muted);font-size:13px;margin:0 0 12px;max-width:680px;">'
@@ -1469,6 +1538,103 @@ def _altdata_html(snap: dict) -> str:
     return intro + ins + rat + buzz + note
 
 
+def _pairs_html(data: dict | None) -> str:
+    """Render the pairs / mean-reversion diversifier tab: spread z-scores, signals, validation."""
+    intro = ('<h2 style="margin-top:0;">Pairs &amp; mean-reversion '
+             '<span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">'
+             '— market-neutral spread bets on related names; a diversifier for trendless tape</span></h2>')
+    if not data or not data.get("pairs"):
+        msg = (data or {}).get("note") or "No pairs qualified right now — none are stretched or stably mean-reverting."
+        return (intro + '<div class="ovbox"><div class="ovhead">No active pairs</div>'
+                f'<p style="color:var(--muted);font-size:13px;margin:8px 0 0;">{msg}</p>'
+                '<p style="color:var(--muted);font-size:12px;margin:8px 0 0;">A pair only appears once its two legs '
+                'are correlated, the spread is genuinely mean-reverting (sane half-life), and it has stretched toward '
+                '±2σ. Enter at ±2σ, exit toward 0, stop beyond ±3σ.</p></div>')
+
+    fit = data.get("regime_fit")
+    fit_col = "#16a34a" if fit else "#64748b"
+    fit_txt = data.get("note") or ""
+    banner = (f'<div class="ovbox" style="border-left:4px solid {fit_col};margin:0 0 16px;">'
+              f'<div class="ovhead">Regime fit: <span style="color:{fit_col};">'
+              f'{"favourable" if fit else "lower priority"}</span></div>'
+              f'<p style="color:var(--txt2);font-size:13px;margin:6px 0 0;">{fit_txt}</p></div>')
+
+    sig_style = {
+        "LONG_SPREAD": ("buy", "Long spread"), "SHORT_SPREAD": ("sell", "Short spread"),
+        "STOP": ("sell", "Stop / broken"), "WATCH": ("", "Watch"),
+        "FLAT": ("", "At fair value"),
+    }
+    rows = ""
+    hi = ' style="background:color-mix(in srgb,var(--accent) 7%,transparent);"'
+    for p in data["pairs"]:
+        cls, lab = sig_style.get(p["signal"], ("", p["signal"]))
+        star = "★ " if p.get("actionable") else ""
+        zc = "sell" if abs(p["z"]) >= p.get("stop_z", 3) else ("buy" if p.get("actionable") else "")
+        tr_attr = hi if p.get("actionable") else ""
+        rows += (
+            f'<tr{tr_attr}>'
+            f'<td><b>{p["a"]} / {p["b"]}</b><div style="color:var(--muted);font-size:11px;">'
+            f'${p["price_a"]} vs ${p["price_b"]}</div></td>'
+            f'<td class="{cls}">{star}{lab}</td>'
+            f'<td style="text-align:right;" class="{zc}"><b>{p["z"]:+.2f}σ</b></td>'
+            f'<td style="text-align:right;">{p["beta"]:.2f}</td>'
+            f'<td style="text-align:right;">{p["corr"]:.2f}</td>'
+            f'<td style="text-align:right;">{p["half_life"]:.0f}d</td>'
+            f'<td style="color:var(--txt2);font-size:12px;">{p["note"]}</td></tr>'
+        )
+    table = (
+        '<table class="tbl"><thead><tr>'
+        '<th>Pair</th><th>Signal</th>'
+        '<th style="text-align:right;" title="how many standard deviations the spread sits from its mean">Spread z</th>'
+        '<th style="text-align:right;" title="hedge ratio: shares of B per share of A for a neutral spread">β</th>'
+        '<th style="text-align:right;" title="return correlation of the two legs">Corr</th>'
+        '<th style="text-align:right;" title="how fast the spread reverts to its mean">Half-life</th>'
+        '<th>Read</th></tr></thead><tbody>' + rows + '</tbody></table>'
+    )
+    legend = ('<p style="color:var(--muted);font-size:12px;margin:12px 0 0;">'
+              '★ = actionable now (|z| ≥ 2σ). Enter at ±2σ, exit as the spread reverts toward 0, '
+              'stop if it stretches past ±3σ (the relationship may have broken). Dollar-neutral: trade β shares of '
+              'the second leg per share of the first. Diversifier only — not a core directional position. '
+              'Paper money / educational; not investment advice.</p>')
+    return intro + banner + table + legend
+
+
+def _risk_html(risk: dict | None) -> str:
+    """Book-level risk-engine status banner: state, drawdown, day P&L, and any active limits."""
+    if not risk or not risk.get("enabled"):
+        return ""
+    state = risk.get("state", "normal")
+    palette = {
+        "normal": ("#16a34a", "🟢", "Normal", "Within all book-level risk limits."),
+        "derisk": ("#d97706", "🟡", "De-risking", "Drawdown elevated — new positions sized at half."),
+        "halt":   ("#dc2626", "🔴", "Halted", "A book-level limit was hit — no new positions this session."),
+        "killed": ("#dc2626", "🛑", "Kill switch", "Trading paused after repeated run failures."),
+        "off":    ("#64748b", "⚪", "Off", "Risk engine not evaluated this run."),
+    }
+    col, dot, lab, default_msg = palette.get(state, palette["normal"])
+    dd = risk.get("drawdown_pct")
+    dpl = risk.get("day_pl_pct")
+    mpp = risk.get("max_position_pct")
+    bits = []
+    if dd is not None:
+        bits.append(f'<span title="peak-to-now equity drawdown">Drawdown <b>{dd:.1f}%</b></span>')
+    if dpl is not None:
+        bits.append(f'<span title="today\'s P&amp;L vs prior close">Day P&amp;L <b>{dpl:+.1f}%</b></span>')
+    if mpp is not None:
+        bits.append(f'<span title="max single-position size">Concentration cap <b>{mpp:.0f}%</b></span>')
+    metrics = ' &nbsp;·&nbsp; '.join(bits)
+    msgs = (risk.get("reasons") or []) + (risk.get("warnings") or [])
+    msg = " · ".join(msgs) if msgs else default_msg
+    return (
+        f'<div class="ovbox" style="border-left:4px solid {col};margin:0 0 16px;">'
+        f'<div class="ovhead" style="display:flex;align-items:center;gap:8px;">'
+        f'<span style="font-size:15px;">{dot}</span>'
+        f'<span>Portfolio risk engine — <span style="color:{col};">{lab}</span></span></div>'
+        f'<div style="font-size:12px;color:var(--muted);margin:6px 0 8px;">{metrics}</div>'
+        f'<p style="color:var(--txt2);font-size:13px;margin:0;">{msg}</p></div>'
+    )
+
+
 def _paper_html(p: dict | None) -> str:
     """Server-rendered REAL paper-account block (opt-in). Honest, fills-based — distinct from
     the hypothetical tracker."""
@@ -1570,6 +1736,7 @@ def _paper_html(p: dict | None) -> str:
             + '<p style="color:var(--muted);font-size:13px;margin:0 0 14px;">These are <b>real fills</b> on a '
             'paper account — actual entry prices, slippage and timing — so they reflect how the calls truly play out, '
             'unlike the hypothetical tracker. Not investment advice; paper money only.</p>'
+            + _risk_html(p.get("risk"))
             + f'<div class="kpis">{tiles}</div>{spark_html}'
             + '<h3 style="font-size:15px;margin:6px 0 8px;">Open positions</h3>' + postable
             + realized_html + subline)
@@ -1705,6 +1872,9 @@ def render_html(snap: dict) -> str:
     paper_html = _paper_html(_paper_acct)
     paper_nav = '<button data-page="paper">Paper account</button>' if _paper_acct else ''
     paper_section = f'<section class="page" id="page-paper">{paper_html}</section>' if _paper_acct else ''
+    _pairs_data = snap.get("pairs") or {}
+    pairs_html = _pairs_html(_pairs_data)
+    pairs_nav = '<button data-page="pairs">Pairs</button>' if _pairs_data.get("pairs") else ''
     altdata_html = _altdata_html(snap)
     news_ideas_html = _news_ideas_html(snap.get("news_ideas"))
     system_html = _system_html(snap.get("system"))
@@ -1722,7 +1892,9 @@ def render_html(snap: dict) -> str:
                      f'<span class="ai-h" style="color:#e0a82e;">⚡ What changed since last build</span>'
                      f'<ul style="margin:7px 0 0;padding-left:18px;line-height:1.8;">'
                      + "".join(f"<li>{_c}</li>" for _c in _changes) + "</ul></div>") if _changes else "")
-    momentum_html = _momentum_bt_html(snap.get("momentum_bt")) + _momentum_html(snap.get("momentum") or [])
+    momentum_html = (_momentum_bt_html(snap.get("momentum_bt"))
+                     + _walkforward_html(snap.get("walkforward"))
+                     + _momentum_html(snap.get("momentum") or []))
     allweather_html = _allweather_html(snap.get("allweather"))
     portfolio_html = _portfolio_html(snap.get("portfolio"))
     ipo_html = _ipo_html(snap.get("ipos") or [], snap.get("ipo_news") or [])
@@ -2348,6 +2520,7 @@ def render_html(snap: dict) -> str:
         <button data-page="heatmap">Heatmap</button>
         <button data-page="momentum">Momentum</button>
         <button data-page="intraday">Intraday</button>
+        {pairs_nav}
         <button data-page="portfolio">Portfolio</button>
         <button data-page="allweather">All Weather</button>
         <button data-page="ipos">IPO watch</button>
@@ -2426,6 +2599,10 @@ def render_html(snap: dict) -> str:
   <section class="page" id="page-heatmap">
     <h2 style="margin-top:0;">Market heatmap <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— the whole market by sector, sized by market cap, coloured by today's move (independent of signals). Use the widget's top bar to switch index (S&amp;P 500, Nasdaq 100, TSX…)</span></h2>
     <div id="heatmapHost" style="height:78vh;min-height:520px;width:100%;"></div>
+  </section>
+
+  <section class="page" id="page-pairs">
+{pairs_html}
   </section>
 
   <section class="page" id="page-portfolio">
