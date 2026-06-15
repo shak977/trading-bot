@@ -587,7 +587,7 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: st
 
 def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 factors=None, patterns=None, edge=None,
-                sentiment=None, fundamentals=None, price=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None):
+                sentiment=None, fundamentals=None, price=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None):
     """Auto-scored pre-entry checklist, direction-aware. Each check is pass/warn/fail.
 
     For a LONG it asks the bullish questions (trending up? room to rise?); for a SHORT it
@@ -898,6 +898,22 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             add("News catalyst aligns?", "warn",
                 f"News read is {nd} but low-confidence — weak/ambiguous catalyst: {reason}")
 
+    # Intraday confirmation — does the lower-timeframe chart agree with this daily trade?
+    # A light nudge (weight 0.6), not a dominant factor; only when an intraday signal exists.
+    if intraday and intraday.get("direction"):
+        tf = getattr(cfg, "intraday_timeframe", "5min")
+        iact = intraday.get("action", "")
+        if iact not in ("BUY", "SHORT", "HOLD LONG", "HOLD SHORT"):
+            add("Intraday on side?", "warn",
+                f"No clear {tf} intraday signal — no lower-timeframe confirmation either way.", 0.6)
+        elif intraday.get("direction") == direction:
+            add("Intraday on side?", "pass",
+                f"The {tf} chart agrees — lower-timeframe momentum points the same way, confirming the entry.", 0.6)
+        else:
+            add("Intraday on side?", "fail",
+                f"The {tf} chart disagrees — lower-timeframe momentum is currently against this "
+                + ("short." if short else "long."), 0.6)
+
     pts = {"pass": 1.0, "warn": 0.5, "fail": 0.0}
     wsum = sum(c.get("weight", 1.0) for c in checks)
     score = sum(pts[c["status"]] * c.get("weight", 1.0) for c in checks) / wsum if wsum else 0.0
@@ -914,14 +930,14 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             "earnings_days": ed, "earnings_gated": gated}
 
 
-def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None) -> None:
+def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None) -> None:
     """Recompute conviction + desk read for a shown row once research is fetched."""
     direction = row.get("direction", "LONG")
     _apply_fundamental_cap(row.get("plan"), fundamentals, cfg)
     conv = _conviction(row["action"], direction, row["rsi"], row["rel_volume"], row["plan"], row["context"], cfg,
                        row.get("factors"), row.get("patterns"), row.get("edge"),
                        sentiment=sentiment, fundamentals=fundamentals, price=row.get("price"), tv=tv,
-                       regime=regime, insider=insider, buzz=buzz, news_idea=news_idea)
+                       regime=regime, insider=insider, buzz=buzz, news_idea=news_idea, intraday=intraday)
     row["conviction"] = conv
     row["desk_read"] = _desk_read(row["action"], direction, row["plan"], row["context"], conv,
                                   row.get("patterns"), row.get("edge"),

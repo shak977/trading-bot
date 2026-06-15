@@ -382,15 +382,45 @@ def build_snapshot() -> dict:
             news_ideas = []
     _idea_map = {i["ticker"]: i for i in news_ideas}
 
+    # --- Intraday layer (gated + graceful): run the SAME engine on intraday bars over the same
+    # names. Powers the Intraday tab AND a lower-timeframe confirmation that nudges daily
+    # conviction. Any failure leaves it empty — the daily build is never affected.
+    intraday_shown: list = []
+    intraday_by_sym: dict = {}
+    if live and getattr(CONFIG, "intraday_enabled", False):
+        try:
+            from dataclasses import replace as _replace
+            _icfg = _replace(CONFIG, timeframe=CONFIG.intraday_timeframe,
+                             lookback_days=CONFIG.intraday_lookback_days,
+                             fast_ma=CONFIG.intraday_fast_ma, slow_ma=CONFIG.intraday_slow_ma)
+            _irows = scanner.scan(_icfg, live=live, universe=[r["symbol"] for r in rows])
+            for _ir in _irows:
+                _ir.pop("chart", None)
+                _ir["intraday"] = True
+            intraday_by_sym = {_ir["symbol"]: _ir for _ir in _irows}
+            _irows.sort(key=lambda r: -((r.get("conviction") or {}).get("score_pct") or 0))
+            intraday_shown = _irows[: CONFIG.intraday_show_top]
+            print(f"INTRADAY: {len(intraday_shown)} signals on {CONFIG.intraday_timeframe} bars")
+        except Exception as _iexc:  # noqa: BLE001 - never break the daily build
+            intraday_shown, intraday_by_sym = [], {}
+            print("INTRADAY: skipped —", _iexc)
+
+    _ACTIONABLE = ("BUY", "SHORT", "HOLD LONG", "HOLD SHORT")
     for r in shown:
         r["fundamentals"] = fundamentals.get(r["symbol"])
         r["insider"] = insiders.get(r["symbol"])
         r["buzz"] = buzz.get(r["symbol"])
         r["news_idea"] = _idea_map.get(r["symbol"])
-        # Re-score conviction + desk read now that research is in hand.
+        # Lower-timeframe confirmation: does the intraday signal agree with this daily trade?
+        _isig = intraday_by_sym.get(r["symbol"])
+        if _isig and _isig.get("action") in _ACTIONABLE:
+            r["intraday_confirm"] = "agree" if _isig.get("direction") == r.get("direction") else "disagree"
+        else:
+            r["intraday_confirm"] = "none"
+        # Re-score conviction + desk read now that research (and intraday) is in hand.
         scanner.rescore(r, CONFIG, sentiment=r.get("sentiment"), fundamentals=r.get("fundamentals"),
                         tv=r.get("tv"), regime=regime, insider=r.get("insider"), buzz=r.get("buzz"),
-                        news_idea=r.get("news_idea"))
+                        news_idea=r.get("news_idea"), intraday=_isig)
 
     # First-seen dates per signal — powers the "Newest" sort + a date chip on each card.
     # Persisted across runs (like the tracker); a symbol that leaves and returns gets a fresh date.
@@ -590,27 +620,6 @@ def build_snapshot() -> dict:
             {"name": "GitHub Pages hosting", "on": True, "note": "static site"},
         ],
     }
-
-    # --- Intraday layer (gated + graceful): run the SAME engine on intraday bars over the same
-    # names. Never breaks the daily build — any failure leaves intraday_shown empty.
-    intraday_shown: list = []
-    if live and getattr(CONFIG, "intraday_enabled", False):
-        try:
-            from dataclasses import replace as _replace
-            _icfg = _replace(CONFIG, timeframe=CONFIG.intraday_timeframe,
-                             lookback_days=CONFIG.intraday_lookback_days,
-                             fast_ma=CONFIG.intraday_fast_ma, slow_ma=CONFIG.intraday_slow_ma)
-            _iuniverse = [r["symbol"] for r in rows]          # reuse the daily-scanned names
-            _irows = scanner.scan(_icfg, live=live, universe=_iuniverse)
-            for _ir in _irows:
-                _ir.pop("chart", None)                        # drop heavy chart payload
-                _ir["intraday"] = True
-            _irows.sort(key=lambda r: -((r.get("conviction") or {}).get("score_pct") or 0))
-            intraday_shown = _irows[: CONFIG.intraday_show_top]
-            print(f"INTRADAY: {len(intraday_shown)} signals on {CONFIG.intraday_timeframe} bars")
-        except Exception as _iexc:  # noqa: BLE001 - never break the daily build
-            intraday_shown = []
-            print("INTRADAY: skipped —", _iexc)
 
     return {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
@@ -2501,6 +2510,12 @@ function _ageBit(s) {{
 function _alertBit(s) {{
   return s.alerted ? `<div class="card-age fresh" title="An ntfy alert fired for this name today — pinned here so your alerts and the dashboard stay in line">🔔 Alerted today</div>` : '';
 }}
+function _intradayBit(s) {{
+  if (!s.intraday_confirm || s.intraday_confirm === 'none') return '';
+  const ok = s.intraday_confirm === 'agree';
+  const tf = (DATA.params && DATA.params.intraday_timeframe) || '5m';
+  return `<div class="card-age${{ok ? ' fresh' : ''}}"${{ok ? '' : ' style="color:var(--sell);"'}} title="Lower-timeframe (${{tf}}) momentum ${{ok ? 'agrees with' : 'is against'}} this trade">⚡ Intraday ${{ok ? '✓' : '✗'}}</div>`;
+}}
 function makeCard(s) {{
   const el = document.createElement('div'); el.className='card';
   const cls = (s.action||'').replace(' ','');
@@ -2578,7 +2593,7 @@ function makeCard(s) {{
   const nNews = (s.news||[]).length;
   el.innerHTML = `
     <div class="card-top">${{logo}}
-      <div class="card-id"><div class="s">${{s.symbol}}</div><div class="n">${{s.name||s.exchange||''}}</div>${{_ageBit(s)}}${{_alertBit(s)}}</div>
+      <div class="card-id"><div class="s">${{s.symbol}}</div><div class="n">${{s.name||s.exchange||''}}</div>${{_ageBit(s)}}${{_alertBit(s)}}${{_intradayBit(s)}}</div>
       <span class="act a-${{cls}}">${{s.action}}</span>
       <button class="favbtn ${{FAVS.has(s.symbol)?'on':''}}" title="Save to favorites">${{FAVS.has(s.symbol)?'★':'☆'}}</button></div>
     <div class="card-px-row"><span class="card-px" data-px="${{s.symbol}}">$${{_px.toLocaleString()}}</span>${{dchg}}</div>
