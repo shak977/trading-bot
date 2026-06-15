@@ -1509,7 +1509,7 @@ def render_html(snap: dict) -> str:
 <script src="chart_engine.js"></script>
 <style>
   /* Light "Capital IQ Pro" palette is the default; dark is a toggle. */
-  :root {{ --bg:#f5f7fa; --card:#ffffff; --line:#e4e8ed; --txt:var(--inset);
+  :root {{ --bg:#f5f7fa; --card:#ffffff; --line:#e4e8ed; --txt:#16202c;
     --muted:#5b6776; --txt2:#3d4757; --buy:#0f9d58; --sell:#d1242f; --hold:#0b5cad; --flat:#8a96a3;
     --short:#c2410c; --watch:#475569; --exit:#b45309; --avoid:#6b7280;
     --accent:#0b5cad; --grid:rgba(120,130,145,0.16); --cross:rgba(60,70,85,0.4);
@@ -1517,10 +1517,10 @@ def render_html(snap: dict) -> str:
     --shadow:0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.06);
     --shadow-lg:0 6px 20px rgba(16,24,40,0.10); }}
   html[data-theme="dark"] {{ --bg:#0d1117; --card:#161b22; --line:#262d36; --txt:#e6edf3;
-    --muted:#8b97a6; --txt2:var(--txt2); --buy:#2ea043; --sell:#f85149; --hold:#58a6ff; --flat:#6e7681;
+    --muted:#8b97a6; --txt2:#c2cad4; --buy:#2ea043; --sell:#f85149; --hold:#58a6ff; --flat:#6e7681;
     --short:#fb7185; --watch:#94a3b8; --exit:#d29922; --avoid:#6e7681;
     --accent:#58a6ff; --grid:rgba(42,52,65,0.55); --cross:rgba(139,151,166,0.45);
-    --inset:var(--inset); --hover:#1c2530; --ring:rgba(88,166,255,.45);
+    --inset:#1c2530; --hover:#243042; --ring:rgba(88,166,255,.45);
     --shadow:0 1px 2px rgba(0,0,0,0.4); --shadow-lg:0 8px 28px rgba(0,0,0,0.5); }}
   * {{ box-sizing:border-box; }}
   /* ---- global polish: motion, focus, numerals, scrollbars ---- */
@@ -3199,7 +3199,7 @@ function _initCharts() {{
 }}
 // ---- light / dark theme ----
 (function themeSetup() {{
-  const KEY = 'tb-theme';
+  const KEY = 'tb-theme-v2';  // bumped: drops stale 'light' prefs so dark is the real default
   const btn = document.getElementById('themeToggle');
   function apply(t) {{
     document.documentElement.dataset.theme = t;
