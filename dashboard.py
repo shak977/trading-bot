@@ -2737,6 +2737,27 @@ def render_html(snap: dict) -> str:
   .accent-pop .acreset {{ width:100%; font-size:11.5px; color:var(--muted); background:var(--inset);
     border:1px solid var(--line); border-radius:7px; padding:6px; cursor:pointer; }}
   .accent-pop .acreset:hover {{ color:var(--txt); }}
+  /* ---- sidebar + top-tab shell ---- */
+  .shell {{ display:flex; gap:0; align-items:flex-start; }}
+  .sidebar {{ width:150px; flex:0 0 150px; position:sticky; top:8px; display:flex; flex-direction:column;
+    gap:3px; padding:2px 10px 8px 0; }}
+  .sidebar button {{ text-align:left; background:none; border:none; color:var(--muted); font-size:13px;
+    font-weight:600; padding:9px 11px; border-radius:7px; cursor:pointer; letter-spacing:.02em; }}
+  .sidebar button:hover {{ background:var(--hover); color:var(--txt); }}
+  .sidebar button.on {{ background:color-mix(in srgb,var(--accent) 15%,transparent); color:var(--accent); }}
+  .maincol {{ flex:1; min-width:0; padding-left:16px; border-left:1px solid var(--line); }}
+  .toptabs {{ display:flex; gap:3px; flex-wrap:wrap; border-bottom:1px solid var(--line); margin:0 0 14px; }}
+  .toptabs button {{ background:none; border:none; border-bottom:2px solid transparent; color:var(--muted);
+    font-size:13px; font-weight:600; padding:8px 13px; margin-bottom:-1px; cursor:pointer; }}
+  .toptabs button:hover {{ color:var(--txt); }}
+  .toptabs button.on {{ color:var(--accent); border-bottom-color:var(--accent); }}
+  @media (max-width:760px) {{
+    .shell {{ flex-direction:column; }}
+    .sidebar {{ flex-direction:row; width:auto; flex:none; position:sticky; top:0; z-index:40;
+      overflow-x:auto; background:var(--bg); border-bottom:1px solid var(--line); padding:6px 0; gap:2px; }}
+    .sidebar button {{ white-space:nowrap; padding:8px 12px; }}
+    .maincol {{ padding-left:0; border-left:none; width:100%; }}
+  }}
   /* ---- featured chart panel + watchlist ---- */
   .featured {{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px;
     margin:6px 0 18px; box-shadow:var(--shadow); }}
@@ -2916,34 +2937,23 @@ def render_html(snap: dict) -> str:
         <button id="themeToggle" class="themebtn">🌙 Dark</button>
       </div>
     </div>
-    <div class="tabsbar" id="tabsbar">
-      <button class="tabscroll left" id="tabPrev" type="button" aria-label="Scroll tabs left">‹</button>
-      <nav class="tabs" id="tabs">
-        <button data-page="signals" class="on">Signals</button>
-        <button data-page="markets">Markets</button>
-        <button data-page="heatmap">Heatmap</button>
-        <button data-page="momentum">Momentum</button>
-        <button data-page="intraday">Intraday</button>
-        {pairs_nav}
-        <button data-page="portfolio">Portfolio</button>
-        <button data-page="allweather">All Weather</button>
-        <button data-page="ipos">IPO watch</button>
-        <button data-page="track">Track record</button>
-        <button data-page="altdata">Data signals</button>
-        {paper_nav}
-        <button data-page="method">How it works</button>
-        <button data-page="system">System</button>
-        <button data-page="news">Market news</button>
-        <button data-page="livetv">Live TV</button>
-      </nav>
-      <button class="tabscroll right" id="tabNext" type="button" aria-label="Scroll tabs right">›</button>
-    </div>
   </header>
-  <div class="subhead">Built {snap['generated_at']} <span id="builtAgo" style="opacity:.7;"></span> &middot; scanned {snap['scanned']} symbols{health_html}{pdrop_html}</div>
-  <div class="subhead" id="marketClock" style="margin-top:-9px;opacity:.85;"></div>
-  {kpi_html}
-  <div class="note" style="margin-top:0;">{mode_note}</div>
-  <div id="diag"></div>
+  <div class="shell">
+    <aside class="sidebar" id="sideNav">
+      <button data-area="signals" class="on">Signals</button>
+      <button data-area="markets">Markets</button>
+      <button data-area="portfolio">Portfolio</button>
+      <button data-area="intel">Intel</button>
+      <button data-area="news">News</button>
+      <button data-area="about">About</button>
+    </aside>
+    <div class="maincol">
+      <nav class="toptabs" id="topTabs"></nav>
+      <div class="subhead">Built {snap['generated_at']} <span id="builtAgo" style="opacity:.7;"></span> &middot; scanned {snap['scanned']} symbols{health_html}{pdrop_html}</div>
+      <div class="subhead" id="marketClock" style="margin-top:-9px;opacity:.85;"></div>
+      {kpi_html}
+      <div class="note" style="margin-top:0;">{mode_note}</div>
+      <div id="diag"></div>
 
   <section class="page" id="page-markets">
     <div class="mkt">
@@ -3229,6 +3239,8 @@ def render_html(snap: dict) -> str:
     proxy for unusual activity, NOT real institutional/options order flow.<br>
     Educational tool only. Not financial advice. Signals can be wrong; backtests ignore
     fees and slippage. Verify before acting and never risk money you can't afford to lose.
+  </div>
+    </div>
   </div>
 </div>
 
@@ -3539,7 +3551,7 @@ function _ragT(pct) {{ pct = pct||0; return pct>=70 ? '#33d17a' : (pct>=50 ? '#e
 function _tvBit(s) {{ return (s.tv && s.tv.d) ? (' · TV ' + s.tv.d) : ''; }}  // short tail for compact rows
 
 // Jump to a top-level tab programmatically (used by clickable alt-data badges).
-function _gotoTab(p) {{ const b = document.querySelector(`#tabs button[data-page="${{p}}"]`); if (b) b.click(); }}
+function _gotoTab(p) {{ if (window._showPage) window._showPage(p); }}
 
 // Signals-page TV widget: switch the embedded player between reliably-embeddable channels.
 function _wtvSet(btn) {{
@@ -4494,50 +4506,46 @@ function _tvInit() {{
 
 // ---- tab navigation ----
 (function setupTabs() {{
-  const tabs = document.querySelectorAll('#tabs button');
+  // primary areas (sidebar) -> pages (top tabs). Pages not present in the DOM are filtered out.
+  const AREAS = [
+    ['signals', [['signals','Signals'],['intraday','Intraday'],['pairs','Pairs']]],
+    ['markets', [['markets','Markets'],['heatmap','Heatmap'],['momentum','Momentum']]],
+    ['portfolio', [['portfolio','Portfolio'],['paper','Paper account'],['allweather','All Weather']]],
+    ['intel', [['altdata','Data signals'],['track','Track record']]],
+    ['news', [['news','Market news'],['ipos','IPO watch'],['livetv','Live TV']]],
+    ['about', [['method','How it works'],['system','System']]]
+  ];
+  AREAS.forEach(a => a[1] = a[1].filter(p => document.getElementById('page-' + p[0])));
+  const sideNav = document.getElementById('sideNav');
+  const topTabs = document.getElementById('topTabs');
+  if (!sideNav || !topTabs) return;
+  const areaOf = page => AREAS.find(a => a[1].some(p => p[0] === page)) || AREAS[0];
+  function renderTop(area) {{
+    topTabs.innerHTML = area[1].map(p => `<button data-page="${{p[0]}}">${{p[1]}}</button>`).join('');
+  }}
   function show(page) {{
-    tabs.forEach(b => b.classList.toggle('on', b.dataset.page === page));
+    const area = areaOf(page);
+    if (!area[1].some(p => p[0] === page)) page = (area[1][0] || ['signals'])[0];
+    sideNav.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.area === area[0]));
+    if (!topTabs.querySelector(`[data-page="${{page}}"]`)) renderTop(area);
+    topTabs.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.page === page));
     document.querySelectorAll('.page').forEach(s => s.classList.toggle('on', s.id === 'page-' + page));
     try {{ localStorage.setItem('tab', page); }} catch (e) {{}}
-    const act = document.querySelector('#tabs button.on');
-    if (act) try {{ act.scrollIntoView({{ inline: 'center', block: 'nearest' }}); }} catch (e) {{}}
     window.scrollTo(0, 0);
-    // the Markets grid + charts are laid out while hidden; size them on first reveal
-    if (page === 'markets') setTimeout(() => {{
-      try {{ window.dispatchEvent(new Event('resize')); }} catch (e) {{}}
-      _refitCharts();
-    }}, 60);
-    // Live TV: build the channel buttons + lazy-load the stream on first open.
+    if (page === 'markets') setTimeout(() => {{ try {{ window.dispatchEvent(new Event('resize')); }} catch (e) {{}} _refitCharts(); }}, 60);
     if (page === 'livetv') {{ _tvInit(); if (!_tvLoaded) {{ _tvLoaded = true; _tvSet(_tvCur); }} }}
     if (page === 'heatmap') _heatmapInit();
   }}
-  tabs.forEach(b => b.addEventListener('click', () => show(b.dataset.page)));
-  // horizontal tab scroller: arrow controls + edge-aware fades so it reads as scrollable
-  (function() {{
-    const bar = document.getElementById('tabsbar');
-    const nav = document.getElementById('tabs');
-    const prev = document.getElementById('tabPrev');
-    const next = document.getElementById('tabNext');
-    if (!bar || !nav) return;
-    function sync() {{
-      const max = nav.scrollWidth - nav.clientWidth;
-      bar.classList.toggle('scrollable', max > 2);
-      bar.classList.toggle('at-start', nav.scrollLeft <= 1);
-      bar.classList.toggle('at-end', nav.scrollLeft >= max - 1);
-    }}
-    function step(dir) {{
-      const amt = Math.max(160, nav.clientWidth * 0.7);
-      nav.scrollBy({{ left: dir * amt, behavior: 'smooth' }});
-    }}
-    if (prev) prev.addEventListener('click', () => step(-1));
-    if (next) next.addEventListener('click', () => step(1));
-    nav.addEventListener('scroll', sync, {{ passive: true }});
-    window.addEventListener('resize', sync);
-    sync();
-    window._tabSync = sync;
-  }})();
+  window._showPage = show;
+  sideNav.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {{
+    const area = AREAS.find(a => a[0] === b.dataset.area);
+    if (area && area[1].length) {{ renderTop(area); show(area[1][0][0]); }}
+  }}));
+  topTabs.addEventListener('click', e => {{ const b = e.target.closest('button'); if (b && b.dataset.page) show(b.dataset.page); }});
   let saved = 'signals';
   try {{ saved = localStorage.getItem('tab') || 'signals'; }} catch (e) {{}}
+  if (!document.getElementById('page-' + saved)) saved = 'signals';
+  renderTop(areaOf(saved));
   show(saved);
 }})();
 
