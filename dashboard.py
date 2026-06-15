@@ -554,6 +554,20 @@ def build_snapshot() -> dict:
                         sector_pct=_sector_pct.get(r.get("sector")), short_interest=r.get("short_interest"),
                         retail=r.get("retail"))
 
+    # LLM structured news scoring: convert recent per-stock headlines into named structured scores
+    # (guidance / margin pressure / demand / regulatory risk / …) for the top actionable names only
+    # — one cheap batched call. The LLM converts text→numbers; it never decides the trade.
+    nlp_scores = {}
+    if live and CONFIG.llm_enabled:
+        try:
+            import llm as _llm_nlp
+            nlp_scores = _llm_nlp.structured_scores(shown, CONFIG)
+            for r in shown:
+                if r["symbol"] in nlp_scores:
+                    r["nlp"] = nlp_scores[r["symbol"]]
+        except Exception:  # noqa: BLE001
+            nlp_scores = {}
+
     # First-seen dates per signal — powers the "Newest" sort + a date chip on each card.
     # Persisted across runs (like the tracker); a symbol that leaves and returns gets a fresh date.
     try:
@@ -625,6 +639,29 @@ def build_snapshot() -> dict:
     except Exception:  # noqa: BLE001
         macro_posture = None
     _exposure_mult = (macro_posture or {}).get("exposure_mult", 1.0)
+
+    # Regime-specific weighting: in a defensive / high-volatility regime, RAISE the conviction bar
+    # a fresh entry must clear — so the bot makes fewer, higher-quality trades when the backdrop is
+    # hostile. With-tape setups below the regime threshold are demoted to the Watch tier.
+    _regime_threshold = 0
+    if getattr(CONFIG, "regime_weighting_enabled", True) and macro_posture:
+        _lab = macro_posture.get("label")
+        _tagset = {t.get("tag") for t in macro_posture.get("tags", [])}
+        _regime_threshold = {"Risk-on": 50, "Neutral": 55, "Risk-off": 62}.get(_lab, 50)
+        if "High-volatility" in _tagset:
+            _regime_threshold += 6
+        macro_posture["entry_threshold"] = _regime_threshold
+        for r in shown:
+            if r.get("action") not in ("BUY", "SHORT"):
+                continue
+            sc = (r.get("conviction") or {}).get("score_pct") or 0
+            if sc < _regime_threshold:
+                r["action"] = "WATCH LONG" if r.get("direction") == "LONG" else "WATCH SHORT"
+                r["regime_demoted"] = True
+                ctx = r.setdefault("context", {})
+                r.setdefault("reasons", []).insert(
+                    0, f"⚖️ {_lab} regime raises the bar to {_regime_threshold}% — this {sc}% setup is "
+                       "demoted to Watch (fewer, higher-quality entries when the backdrop is tough).")
 
     # Adaptive asset ranking: score actionable names for CAPITAL ALLOCATION (quality + vol-adj
     # reward + macro fit + liquidity + momentum). Mutates rows (rank_score/rank) + returns a list.
@@ -725,6 +762,30 @@ def build_snapshot() -> dict:
         track = tracker.run(shown, CONFIG, live, today, regime=macro_posture)
     except Exception:  # noqa: BLE001
         track = None
+
+    # Meta-signal model: a second-opinion verdict (accept/reduce/delay/reject) on every actionable
+    # candidate, from regime fit + liquidity + conflicts + how this regime has paid off historically.
+    try:
+        import meta as _meta
+        for r in shown:
+            if r.get("action") in ("BUY", "SHORT", "HOLD LONG", "HOLD SHORT"):
+                r["meta"] = _meta.evaluate(r, macro_posture=macro_posture, track=track, cfg=CONFIG)
+    except Exception:  # noqa: BLE001
+        pass
+
+    # Structured signal output: one tidy record per actionable trade (confidence, expected return
+    # range, hold, risk/liquidity/uncertainty scores, size rec, kill conditions, meta verdict).
+    structured = []
+    try:
+        import structured as _structured
+        for r in shown:
+            if r.get("action") in ("BUY", "SHORT", "HOLD LONG", "HOLD SHORT"):
+                _so = _structured.build(r, macro_posture, CONFIG)
+                if _so:
+                    r["structured"] = _so
+                    structured.append(_so)
+    except Exception:  # noqa: BLE001
+        structured = []
 
     # No-trade intelligence layer: one unified "should we be trading right now?" read (macro event,
     # abnormal vol, deteriorating performance, drawdown). Computed before paper so it can gate entries.
@@ -884,6 +945,8 @@ def build_snapshot() -> dict:
         },
         "signals": shown,
         "ranked": ranked,
+        "structured": structured,
+        "nlp_scores": nlp_scores,
         "pairs": pairs_data,
         "intraday": intraday_shown,
         "intraday_track": intraday_track,
@@ -1448,6 +1511,91 @@ def _notrade_html(nt: dict | None) -> str:
     )
 
 
+def _nlp_html(scores: dict | None) -> str:
+    """LLM structured news-read panel: named text scores per stock (LLM converts text → numbers)."""
+    if not scores:
+        return ""
+    dims = [("guidance", "Guidance"), ("demand_strength", "Demand"), ("management_confidence", "Mgmt"),
+            ("margin_pressure", "Margins"), ("regulatory_risk", "Reg risk"),
+            ("balance_sheet_concern", "Balance sht"), ("earnings_quality_risk", "Earn qual")]
+
+    def chip(v):
+        v = int(v or 0)
+        c = "#16a34a" if v > 0 else "#dc2626" if v < 0 else "#64748b"
+        return f'<span style="color:{c};font-weight:600;">{v:+d}</span>'
+    rows = ""
+    for sym, d in sorted(scores.items(), key=lambda kv: -(kv[1].get("net") or 0)):
+        net = d.get("net", 0)
+        ncol = "#16a34a" if net > 0.15 else "#dc2626" if net < -0.15 else "#64748b"
+        cells = "".join(f'<td style="text-align:center;">{chip(d.get(k,0))}</td>' for k, _ in dims)
+        rows += (f'<tr><td><b>{sym}</b></td>'
+                 f'<td style="text-align:center;color:{ncol};font-weight:700;">{net:+.2f}</td>'
+                 f'{cells}'
+                 f'<td style="color:var(--txt2);font-size:12px;">{d.get("note","")}</td></tr>')
+    heads = "".join(f'<th style="text-align:center;" title="{lab}">{lab}</th>' for _, lab in dims)
+    return (
+        '<div class="ovbox" style="margin:0 0 16px;"><div class="ovhead">🧠 AI news read '
+        '<span style="font-weight:400;color:var(--muted);font-size:12px;">— the LLM turns recent headlines into '
+        'structured scores (−2…+2); it never decides the trade, it just feeds the meta-model</span></div>'
+        '<table class="tbl" style="margin-top:8px;"><thead><tr><th>Symbol</th>'
+        '<th style="text-align:center;" title="average across dimensions">Net</th>'
+        f'{heads}<th>Note</th></tr></thead><tbody>{rows}</tbody></table>'
+        '<p style="color:var(--muted);font-size:11px;margin:10px 0 0;">+ is favourable for the stock, − is a risk '
+        'flag (for risk rows, − means the risk is elevated). Grounded only in the headlines shown on each card. '
+        'A strongly opposing read makes the meta-model trim size. Educational; not advice.</p></div>'
+    )
+
+
+def _structured_html(items: list | None, top: int = 14) -> str:
+    """Structured signal output: one row per actionable trade with the full signal contract."""
+    if not items:
+        return ""
+    order = {"reject": 0, "delay": 1, "reduce": 2, "accept": 3}
+    items = sorted(items, key=lambda s: (-(s.get("confidence") or 0)))
+    ucol = {"low": "#16a34a", "moderate": "#d97706", "high": "#dc2626"}
+    dcol = {"accept": "#16a34a", "reduce": "#d97706", "delay": "#64748b", "reject": "#dc2626"}
+    rows = ""
+    for s in items[:top]:
+        rr = s.get("return_range") or {}
+        up, dn = rr.get("upside_pct"), rr.get("downside_pct")
+        rng = (f'<span class="buy">+{up:.0f}%</span> / <span class="sell">{dn:.0f}%</span>'
+               if (up is not None and dn is not None) else "—")
+        d = s.get("direction", "LONG")
+        ddec = s.get("meta_decision", "accept")
+        rows += (
+            f'<tr><td><b>{s["symbol"]}</b></td>'
+            f'<td class="{"buy" if d=="LONG" else "sell"}">{s.get("action","")}</td>'
+            f'<td style="text-align:right;">{s.get("confidence","—")}</td>'
+            f'<td style="text-align:right;">{rng}</td>'
+            f'<td style="text-align:right;">{("%+.1f%%" % s["expected_value_pct"]) if s.get("expected_value_pct") is not None else "—"}</td>'
+            f'<td style="text-align:right;">{s.get("expected_hold_days","—")}d</td>'
+            f'<td style="text-align:right;">{s.get("risk_score","—")}</td>'
+            f'<td style="text-align:right;color:{ucol.get(s.get("uncertainty_band"),"#64748b")};">{s.get("uncertainty","—")}</td>'
+            f'<td style="text-align:center;color:{dcol.get(ddec,"#64748b")};font-weight:600;">{ddec}</td>'
+            f'<td style="text-align:center;">{s.get("size_recommendation","—")}</td></tr>'
+        )
+    return (
+        '<div class="ovbox" style="margin:0 0 16px;"><div class="ovhead">🧾 Structured signals '
+        '<span style="font-weight:400;color:var(--muted);font-size:12px;">— the full signal contract per trade: '
+        'confidence, expected range, risk, uncertainty and the meta verdict</span></div>'
+        '<table class="tbl" style="margin-top:8px;"><thead><tr>'
+        '<th>Symbol</th><th>Action</th>'
+        '<th style="text-align:right;" title="confidence score 0–100">Conf</th>'
+        '<th style="text-align:right;" title="target upside / stop downside">Range</th>'
+        '<th style="text-align:right;" title="probability-weighted expected return">EV</th>'
+        '<th style="text-align:right;" title="expected holding period (sessions)">Hold</th>'
+        '<th style="text-align:right;" title="risk score 0–100 (volatility + illiquidity)">Risk</th>'
+        '<th style="text-align:right;" title="uncertainty 0–100 (disagreement / mixed macro / thin liquidity)">Unc</th>'
+        '<th style="text-align:center;" title="meta-model verdict">Verdict</th>'
+        '<th style="text-align:center;" title="recommended size">Size</th></tr></thead>'
+        f'<tbody>{rows}</tbody></table>'
+        '<p style="color:var(--muted);font-size:11px;margin:10px 0 0;">EV and the range are rough, '
+        'probability-weighted estimates (confidence as win-odds), not promises. High uncertainty is what makes the '
+        'meta-model reduce or skip size — so a "reduce/Half" or "delay/Skip" verdict is the system being selective. '
+        'Educational; not advice.</p></div>'
+    )
+
+
 def _macro_posture_html(mp: dict | None) -> str:
     """Macro regime → exposure panel: composite posture, exposure multiplier, and the drivers."""
     if not mp:
@@ -1456,6 +1604,8 @@ def _macro_posture_html(mp: dict | None) -> str:
     em = mp.get("exposure_mult", 1.0)
     tilt = mp.get("cash_tilt_pct", 0)
     em_txt = (f"{em:.2f}× sizing" + (f" · ~{tilt}% more cash" if tilt else ""))
+    thr = mp.get("entry_threshold")
+    thr_txt = (f" · entry bar {thr}%" if thr else "")
     chips = ""
     for d in mp.get("drivers", []):
         dc = "#16a34a" if d["score"] > 0.1 else "#dc2626" if d["score"] < -0.1 else "#64748b"
@@ -1484,7 +1634,7 @@ def _macro_posture_html(mp: dict | None) -> str:
         f'<div class="ovbox" style="border-left:4px solid {col};margin:0 0 16px;">'
         f'<div class="ovhead">🧭 Macro regime → exposure: <span style="color:{col};">{mp.get("label")}</span> '
         f'<span style="font-weight:400;color:var(--muted);font-size:12px;">— composite {mp.get("score"):+.2f}, '
-        f'<b style="color:{col};">{em_txt}</b></span></div>'
+        f'<b style="color:{col};">{em_txt}</b>{thr_txt}</span></div>'
         f'{tags_row}'
         f'<p style="color:var(--txt2);font-size:13px;margin:6px 0 8px;">{mp.get("posture","")}</p>'
         f'<div>{chips}</div>'
@@ -2057,7 +2207,8 @@ def render_html(snap: dict) -> str:
                      + _walkforward_html(snap.get("walkforward"))
                      + _momentum_html(snap.get("momentum") or []))
     allweather_html = _allweather_html(snap.get("allweather"))
-    portfolio_html = _ranked_html(snap.get("ranked")) + _portfolio_html(snap.get("portfolio"))
+    portfolio_html = (_ranked_html(snap.get("ranked")) + _structured_html(snap.get("structured"))
+                      + _nlp_html(snap.get("nlp_scores")) + _portfolio_html(snap.get("portfolio")))
     ipo_html = _ipo_html(snap.get("ipos") or [], snap.get("ipo_news") or [])
     sectors_html = _sectors_html(snap.get("sectors"))
     macro_html = (_notrade_html(snap.get("notrade"))
@@ -2914,6 +3065,15 @@ def render_html(snap: dict) -> str:
       volatility, a deteriorating track record, or a drawdown breach — even if a signal fires. It's all transparent rules
       today; that logged history is also the foundation for adding machine-learning scoring later — and even then, every
       decision still passes through the rules-based risk engine, which always has the final say.</p>
+      <p>Two more layers sit on top. A <b>meta-signal model</b> gives every candidate a second opinion —
+      <i>accept, reduce, delay</i> or <i>reject</i> — weighing regime fit, liquidity, conflicting signals and how
+      that regime has paid off before; a "reduce" halves the size, a "delay/reject" skips it. Each trade is then
+      written out as a <b>structured record</b> (Portfolio tab) with its confidence, expected return range, holding
+      period, risk and <b>uncertainty</b> scores — and when uncertainty is high (signals disagree, macro mixed,
+      liquidity thin) the meta-model is what trims or skips it. Finally, an <b>AI news read</b> uses the language
+      model to turn recent headlines into structured scores (guidance, demand, margins, regulatory risk and so on);
+      it never places a trade — it just feeds the meta-model, so genuinely bad news quietly shrinks position size.
+      The whole point is to be <i>more selective, not more active</i> — fewer, better trades.</p>
 
       <h4>Macro sets the exposure dial (not the trades)</h4>
       <p>Macro data — the VIX, the yield curve, credit spreads, the dollar, plus overall market breadth —

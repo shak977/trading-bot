@@ -274,15 +274,26 @@ def run(signals: list[dict], cfg: Config, today: str, exposure_mult: float = 1.0
             cid = f"sd-{sym}-{today}"
             if cid in existing_ids or cid in by_cid:
                 continue
-            # per-name no-trade veto (earnings imminent, conflicting signals, illiquid)
-            try:
-                import notrade as _notrade
-                _veto = _notrade.symbol_veto(s, cfg)
-                if _veto and _veto.get("status") == "block":
-                    notes.append(f"{sym}: skipped ({_veto['reason']})")
+            # meta-signal verdict (accept/reduce/delay/reject) — the second opinion on this candidate
+            _meta_v = s.get("meta")
+            _meta_size = 1.0
+            if _meta_v:
+                _dec = _meta_v.get("decision")
+                if _dec in ("reject", "delay"):
+                    notes.append(f"{sym}: {_dec} ({(_meta_v.get('reasons') or ['—'])[0]})")
                     continue
-            except Exception:  # noqa: BLE001
-                pass
+                if _dec == "reduce":
+                    _meta_size = float(_meta_v.get("size_factor", 1.0))
+            else:
+                # meta disabled/unavailable — fall back to the standalone per-name veto
+                try:
+                    import notrade as _notrade
+                    _veto = _notrade.symbol_veto(s, cfg)
+                    if _veto and _veto.get("status") == "block":
+                        notes.append(f"{sym}: skipped ({_veto['reason']})")
+                        continue
+                except Exception:  # noqa: BLE001
+                    pass
             plan = s.get("plan") or {}
             entry, stop, target = plan.get("entry"), plan.get("stop"), plan.get("target")
             if not (entry and stop and target):
@@ -294,6 +305,7 @@ def run(signals: list[dict], cfg: Config, today: str, exposure_mult: float = 1.0
             mult = risk_multiplier(label, atr_pct, cfg, score_pct=score_pct)
             mult *= float(risk.get("size_scale", 1.0))   # book-level throttle (drawdown de-risk)
             mult *= float(exposure_mult or 1.0)          # macro-regime exposure scalar (risk-on/off)
+            mult *= _meta_size                           # meta-signal verdict (reduce → half size)
             qty = _qty(equity, buying_power, entry, stop, cfg.paper_risk_pct, mult=mult)
             # concentration cap: never let one position exceed max_position_pct of equity
             try:

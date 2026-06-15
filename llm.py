@@ -215,6 +215,85 @@ def news_ideas(news: list[dict], cfg: Config, universe: set | None = None, timeo
     return out[:10]
 
 
+_NLP_DIMS = ("guidance", "margin_pressure", "demand_strength", "regulatory_risk",
+             "balance_sheet_concern", "management_confidence", "earnings_quality_risk")
+
+
+def structured_scores(rows: list[dict], cfg: Config, max_names: int = 6,
+                      timeout: int = 30) -> dict:
+    """Turn recent per-stock NEWS HEADLINES into structured, named scores via ONE batched LLM call
+    (cheap — only the top actionable names). Each dimension is a signed effect on the thesis from
+    -2 (clearly negative) to +2 (clearly positive). The model converts text → numbers; it never
+    decides a trade. Returns {SYMBOL: {dim: score..., note, net}}; {} on no key / failure.
+
+    Dimensions: guidance, margin_pressure, demand_strength, regulatory_risk, balance_sheet_concern,
+    management_confidence, earnings_quality_risk — each signed so + is good for the stock and − is a
+    risk flag (e.g. high regulatory risk → negative)."""
+    if not cfg.llm_enabled or not rows:
+        return {}
+    import json as _json
+    # pick the strongest actionable names that actually have news to read
+    cand = [r for r in rows
+            if r.get("action") in ("BUY", "SHORT", "HOLD LONG", "HOLD SHORT") and r.get("news")]
+    cand.sort(key=lambda r: -((r.get("conviction") or {}).get("score_pct") or 0))
+    cand = cand[:max_names]
+    if not cand:
+        return {}
+    blocks = []
+    for r in cand:
+        heads = "; ".join((n.get("headline") or "").strip() for n in (r.get("news") or [])[:5] if n.get("headline"))
+        if heads:
+            blocks.append(f'{r["symbol"]} ({r.get("name","")}): {heads}')
+    if not blocks:
+        return {}
+    prompt = (
+        "You are an equity analyst. For each stock below, read ONLY the provided headlines and rate "
+        "seven dimensions as a signed integer from -2 to +2 for their effect on the investment thesis "
+        "(+2 clearly positive for the stock, 0 neutral/none, -2 clearly negative/high-risk):\n"
+        "guidance, margin_pressure, demand_strength, regulatory_risk, balance_sheet_concern, "
+        "management_confidence, earnings_quality_risk.\n"
+        "Note: for risk dimensions (margin_pressure, regulatory_risk, balance_sheet_concern, "
+        "earnings_quality_risk), a NEGATIVE number means the risk is ELEVATED (bad); 0 means no signal.\n"
+        "If the headlines say nothing about a dimension, score it 0. Do NOT invent facts. Add a 'note' "
+        "of at most 12 words grounded only in the headlines.\n"
+        'Return ONLY a JSON object keyed by ticker, e.g. {"NVDA":{"guidance":1,"margin_pressure":0,'
+        '"demand_strength":2,"regulatory_risk":0,"balance_sheet_concern":0,"management_confidence":1,'
+        '"earnings_quality_risk":0,"note":"..."}}. No prose.\n\nSTOCKS:\n' + "\n".join(blocks))
+    try:
+        r = requests.post(
+            _URL,
+            headers={"x-api-key": cfg.anthropic_api_key, "anthropic-version": "2023-06-01",
+                     "content-type": "application/json"},
+            json={"model": cfg.llm_model, "max_tokens": 1100,
+                  "messages": [{"role": "user", "content": prompt}]},
+            timeout=timeout,
+        )
+        r.raise_for_status()
+        txt = "".join(b.get("text", "") for b in r.json().get("content", []) if b.get("type") == "text").strip()
+        if "```" in txt:
+            parts = txt.split("```")
+            txt = parts[1].lstrip("json").strip() if len(parts) > 1 else txt
+        a, b = txt.find("{"), txt.rfind("}")
+        if a < 0 or b < 0:
+            return {}
+        raw = _json.loads(txt[a:b + 1])
+    except Exception:  # noqa: BLE001
+        return {}
+    out = {}
+    for sym, d in (raw.items() if isinstance(raw, dict) else []):
+        try:
+            rec = {}
+            for k in _NLP_DIMS:
+                v = d.get(k, 0)
+                rec[k] = int(max(-2, min(2, int(v)))) if isinstance(v, (int, float)) else 0
+            rec["note"] = str(d.get("note", ""))[:140]
+            rec["net"] = round(sum(rec[k] for k in _NLP_DIMS) / len(_NLP_DIMS), 2)
+            out[str(sym).upper().strip().lstrip("$")] = rec
+        except Exception:  # noqa: BLE001
+            continue
+    return out
+
+
 def diagnose(cfg: Config, timeout: int = 15) -> dict:
     """One tiny probe call so we can see WHY the analyst layer is/ isn't producing notes
     (used to populate a diagnostic field in signals.json). Never raises."""

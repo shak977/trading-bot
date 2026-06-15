@@ -171,6 +171,15 @@ class Config:
     # --- Adaptive asset ranking (allocate capital to the best setups, not every signal) ---
     rank_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("RANK_ENABLED"), True))
 
+    # --- Regime-specific weighting (raise the entry bar when the backdrop is hostile) ---
+    regime_weighting_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("REGIME_WEIGHTING_ENABLED"), True))
+
+    # --- Meta-signal model (second-opinion accept/reduce/delay/reject on every candidate) ---
+    meta_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("META_ENABLED"), True))
+
+    # --- Structured signal output + uncertainty scoring ---
+    structured_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("STRUCTURED_ENABLED"), True))
+
     # --- No-trade intelligence layer (sit on your hands when conditions are poor) ---
     notrade_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("NOTRADE_ENABLED"), True))
     notrade_vix_block: float = 36.0     # VIX above this halts NEW entries (panic tape)
