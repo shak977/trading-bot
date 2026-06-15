@@ -62,7 +62,11 @@
       }
     ],
     "tv_align": null,
-    "status": "open"
+    "status": "loss",
+    "exit": 332.79,
+    "exit_date": "2026-06-15",
+    "return_pct": -0.5,
+    "days_held": -1
   },
   {
     "id": "UNH:2026-06-15",
@@ -192,7 +196,11 @@
       }
     ],
     "tv_align": null,
-    "status": "open"
+    "status": "loss",
+    "exit": 221.83,
+    "exit_date": "2026-06-15",
+    "return_pct": -0.53,
+    "days_held": -1
   },
   {
     "id": "AAPL:2026-06-15",
@@ -4630,7 +4638,11 @@
       }
     ],
     "tv_align": null,
-    "status": "open"
+    "status": "win",
+    "exit": 115.07,
+    "exit_date": "2026-06-15",
+    "return_pct": 0.36,
+    "days_held": -1
   },
   {
     "id": "BA:2026-06-15",
@@ -4890,7 +4902,11 @@
       }
     ],
     "tv_align": null,
-    "status": "open"
+    "status": "win",
+    "exit": 267.74,
+    "exit_date": "2026-06-15",
+    "return_pct": 0.26,
+    "days_held": -1
   },
   {
     "id": "LRCX:2026-06-15",
@@ -5017,6 +5033,201 @@
       {
         "label": "Reward:risk worth it?",
         "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "status": "open"
+  },
+  {
+    "id": "MRVL:2026-06-15",
+    "symbol": "MRVL",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-06-15",
+    "advised_ts": "2026-06-15T18:06:16.935585",
+    "entry": 304.9,
+    "stop": 302.13,
+    "target": 316.0,
+    "rr": 4.0,
+    "conviction": "High",
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "warn"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "status": "open"
+  },
+  {
+    "id": "DHR:2026-06-15",
+    "symbol": "DHR",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-06-15",
+    "advised_ts": "2026-06-15T18:06:16.935585",
+    "entry": 180.76,
+    "stop": 181.19,
+    "target": 180.04,
+    "rr": 1.67,
+    "conviction": "High",
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "status": "open"
+  },
+  {
+    "id": "JNJ:2026-06-15",
+    "symbol": "JNJ",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-06-15",
+    "advised_ts": "2026-06-15T18:06:16.935585",
+    "entry": 236.21,
+    "stop": 236.72,
+    "target": 235.97,
+    "rr": 0.48,
+    "conviction": "High",
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
       }
     ],
     "tv_align": null,
