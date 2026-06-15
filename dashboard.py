@@ -1453,10 +1453,10 @@ def _ranked_html(ranked: list | None, top: int = 12) -> str:
     if not ranked:
         return ""
 
-    def fcell(v):
+    def fcell(v, cls=""):
         v = max(0, min(100, int(v or 0)))
         c = "#16a34a" if v >= 67 else "#d9a93a" if v >= 40 else "#dc2626"
-        return (f'<td style="min-width:62px;vertical-align:middle;">'
+        return (f'<td class="{cls}" style="min-width:62px;vertical-align:middle;">'
                 f'<div style="font-size:12px;color:var(--txt2);margin-bottom:3px;text-align:center;">{v}</div>'
                 f'<div style="height:6px;border-radius:3px;background:color-mix(in srgb,var(--accent) 12%,transparent);">'
                 f'<div style="height:100%;width:{v}%;border-radius:3px;background:{c};"></div></div></td>')
@@ -1477,9 +1477,10 @@ def _ranked_html(ranked: list | None, top: int = 12) -> str:
             f'<td class="{dcol}" style="white-space:nowrap;">{r.get("action","")}</td>'
             f'<td style="text-align:center;"><b style="font-size:16px;">{r.get("rank_score","")}</b></td>'
             + fcell(f.get("quality")) + fcell(f.get("vreward")) + fcell(f.get("macrofit"))
-            + fcell(f.get("liquidity")) + fcell(f.get("momentum")) + '</tr>'
+            + fcell(f.get("liquidity"), "rkf-sm") + fcell(f.get("momentum"), "rkf-sm") + '</tr>'
         )
     th = ('<th style="text-align:center;font-size:11px;">{}</th>')
+    thh = ('<th class="rkf-sm" style="text-align:center;font-size:11px;">{}</th>')
     return (
         '<div class="ovbox" style="margin:0 0 16px;"><div class="ovhead">🎯 Top opportunities '
         '<span style="font-weight:400;color:var(--muted);font-size:12px;">— adaptive allocation rank: '
@@ -1488,7 +1489,7 @@ def _ranked_html(ranked: list | None, top: int = 12) -> str:
         '<th style="text-align:right;">#</th><th>Stock</th><th>Action</th>'
         '<th style="text-align:center;" title="0–100 composite allocation score">Rank</th>'
         + th.format("Quality") + th.format("Reward") + th.format("Macro&nbsp;fit")
-        + th.format("Liquidity") + th.format("Momentum") + '</tr></thead>'
+        + thh.format("Liquidity") + thh.format("Momentum") + '</tr></thead>'
         f'<tbody>{rows}</tbody></table>'
         '<p style="color:var(--muted);font-size:12px;margin:12px 0 0;line-height:1.6;">The <b>Rank</b> blends the five '
         'factors into one 0–100 allocation score, and capital (paper entries) goes to the highest first. '
@@ -2836,6 +2837,8 @@ def render_html(snap: dict) -> str:
   .favbtn:hover, .favbtn.on {{ color:#e8a93a; }}
   /* ---- mobile / small screens ---- */
   @media (max-width:600px) {{
+    /* rank table: drop to the 3 key factors on a narrow screen */
+    .rkf-sm {{ display:none; }}
     .wrap {{ padding:16px 12px 48px; }}
     h1 {{ font-size:21px; }}
     .appbar-top {{ gap:8px; padding:11px 2px 7px; }}
