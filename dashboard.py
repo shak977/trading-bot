@@ -1449,41 +1449,52 @@ def _sectors_html(secs: list[dict]) -> str:
 
 
 def _ranked_html(ranked: list | None, top: int = 12) -> str:
-    """Adaptive allocation ranking — the best setups for capital, with a factor breakdown."""
+    """Adaptive allocation ranking — the best setups for capital, with a labelled factor breakdown."""
     if not ranked:
         return ""
+
+    def fcell(v):
+        v = max(0, min(100, int(v or 0)))
+        c = "#16a34a" if v >= 67 else "#d9a93a" if v >= 40 else "#dc2626"
+        return (f'<td style="min-width:62px;vertical-align:middle;">'
+                f'<div style="font-size:12px;color:var(--txt2);margin-bottom:3px;text-align:center;">{v}</div>'
+                f'<div style="height:6px;border-radius:3px;background:color-mix(in srgb,var(--accent) 12%,transparent);">'
+                f'<div style="height:100%;width:{v}%;border-radius:3px;background:{c};"></div></div></td>')
     rows = ""
     for i, r in enumerate(ranked[:top], 1):
         f = r.get("factors", {})
         d = r.get("direction", "LONG")
         dcol = "buy" if d == "LONG" else "sell"
-        # mini factor bars
-        def bar(label, v):
-            v = max(0, min(100, int(v or 0)))
-            return (f'<span title="{label} {v}/100" style="display:inline-block;width:34px;height:6px;'
-                    f'border-radius:3px;margin-right:3px;background:linear-gradient(90deg,'
-                    f'var(--accent) {v}%, color-mix(in srgb,var(--accent) 14%,transparent) {v}%);"></span>')
-        bars = (bar("Quality", f.get("quality")) + bar("Vol-adj reward", f.get("vreward"))
-                + bar("Macro fit", f.get("macrofit")) + bar("Liquidity", f.get("liquidity"))
-                + bar("Momentum", f.get("momentum")))
-        rows += (f'<tr><td style="text-align:right;color:var(--muted);">{i}</td>'
-                 f'<td><b>{r["symbol"]}</b></td>'
-                 f'<td class="{dcol}">{r.get("action","")}</td>'
-                 f'<td style="text-align:right;"><b>{r.get("rank_score","")}</b></td>'
-                 f'<td style="white-space:nowrap;">{bars}</td></tr>')
+        nm = (r.get("name") or "")
+        nm = (nm[:22] + "…") if len(nm) > 23 else nm
+        pr = r.get("price")
+        prc = f'${pr:,.2f}' if isinstance(pr, (int, float)) else ""
+        rows += (
+            f'<tr><td style="text-align:right;color:var(--muted);">{i}</td>'
+            f'<td style="min-width:170px;"><b>{r["symbol"]}</b> '
+            f'<span style="color:var(--muted);font-size:12px;">{nm}</span>'
+            f'<div style="color:var(--muted);font-size:11px;">{prc}</div></td>'
+            f'<td class="{dcol}" style="white-space:nowrap;">{r.get("action","")}</td>'
+            f'<td style="text-align:center;"><b style="font-size:16px;">{r.get("rank_score","")}</b></td>'
+            + fcell(f.get("quality")) + fcell(f.get("vreward")) + fcell(f.get("macrofit"))
+            + fcell(f.get("liquidity")) + fcell(f.get("momentum")) + '</tr>'
+        )
+    th = ('<th style="text-align:center;font-size:11px;">{}</th>')
     return (
         '<div class="ovbox" style="margin:0 0 16px;"><div class="ovhead">🎯 Top opportunities '
         '<span style="font-weight:400;color:var(--muted);font-size:12px;">— adaptive allocation rank: '
         'where limited capital should go first</span></div>'
-        '<table class="tbl" style="margin-top:8px;"><thead><tr>'
-        '<th style="text-align:right;">#</th><th>Symbol</th><th>Action</th>'
-        '<th style="text-align:right;" title="0–100 composite allocation score">Rank</th>'
-        '<th title="Quality · Vol-adj reward · Macro fit · Liquidity · Momentum">Factors</th></tr></thead>'
+        '<table class="tbl" style="margin-top:8px;width:100%;"><thead><tr>'
+        '<th style="text-align:right;">#</th><th>Stock</th><th>Action</th>'
+        '<th style="text-align:center;" title="0–100 composite allocation score">Rank</th>'
+        + th.format("Quality") + th.format("Reward") + th.format("Macro&nbsp;fit")
+        + th.format("Liquidity") + th.format("Momentum") + '</tr></thead>'
         f'<tbody>{rows}</tbody></table>'
-        '<p style="color:var(--muted);font-size:11px;margin:10px 0 0;">Blends conviction quality, '
-        'volatility-adjusted reward, macro fit, liquidity and momentum into one 0–100 score, so capital '
-        'goes to the strongest setups first (paper entries are opened in this order). The five bars are '
-        'the factor breakdown. Educational; not advice.</p></div>'
+        '<p style="color:var(--muted);font-size:12px;margin:12px 0 0;line-height:1.6;">The <b>Rank</b> blends the five '
+        'factors into one 0–100 allocation score, and capital (paper entries) goes to the highest first. '
+        '<b>Quality</b> = conviction; <b>Reward</b> = volatility-adjusted reward:risk; <b>Macro fit</b> = how well the '
+        'trade suits the current regime; <b>Liquidity</b> = how cleanly it trades; <b>Momentum</b> = trend strength. '
+        'Greener bars are stronger. Educational; not advice.</p></div>'
     )
 
 
@@ -1851,9 +1862,33 @@ def _pairs_html(data: dict | None) -> str:
     intro = ('<h2 style="margin-top:0;">Pairs &amp; mean-reversion '
              '<span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">'
              '— market-neutral spread bets on related names; a diversifier for trendless tape</span></h2>')
+    explainer = (
+        '<details class="ovbox" style="margin:0 0 16px;" open><summary style="cursor:pointer;font-weight:700;'
+        'font-size:14px;list-style:none;">📘 What is pairs trading? <span style="font-weight:400;color:var(--muted);'
+        'font-size:12px;">(tap to hide)</span></summary>'
+        '<div style="margin-top:10px;font-size:13px;line-height:1.7;color:var(--txt2);">'
+        '<p style="margin:0 0 8px;">Two stocks in the same business — say <b>Coca-Cola (KO)</b> and <b>Pepsi (PEP)</b> '
+        '— normally move together. <b>Pairs trading</b> ignores whether the market goes up or down and instead bets that '
+        'when the <i>gap</i> between such a pair stretches unusually wide, it will snap back to normal. You '
+        '<b>buy the cheap one and short the expensive one</b> in equal dollar amounts, so you only profit from the gap '
+        'closing — not from the market\'s direction. That\'s why it\'s a useful diversifier: it can work when the trend-following '
+        'engine is struggling in a sideways market.</p>'
+        '<p style="margin:0 0 6px;"><b>How to read the table:</b></p>'
+        '<ul style="margin:0 0 8px;padding-left:18px;">'
+        '<li><b>Spread z</b> — how far the gap is from normal, in standard deviations. <b>±2σ</b> = unusually stretched '
+        '(actionable, marked ★). 0 = at its normal level.</li>'
+        '<li><b>Signal</b> — <span class="buy">Long spread</span> = buy the first name, short the second; '
+        '<span class="sell">Short spread</span> = the reverse; <b>Watch</b> = not stretched enough yet.</li>'
+        '<li><b>β (beta)</b> — the hedge ratio: how many shares of the second name to trade per share of the first so the '
+        'two legs cancel out market risk.</li>'
+        '<li><b>Corr</b> — how tightly the two normally move together (closer to 1.0 = more reliable pair).</li>'
+        '<li><b>Half-life</b> — roughly how many days the gap has historically taken to revert to normal.</li></ul>'
+        '<p style="margin:0;"><b>How a trade works:</b> enter when the gap hits ±2σ, take it off as the gap reverts toward '
+        '0, and stop out if it stretches past ±3σ (a sign the relationship may have broken). It\'s a paper-money '
+        'diversifier here — educational, not investment advice.</p></div></details>')
     if not data or not data.get("pairs"):
         msg = (data or {}).get("note") or "No pairs qualified right now — none are stretched or stably mean-reverting."
-        return (intro + '<div class="ovbox"><div class="ovhead">No active pairs</div>'
+        return (intro + explainer + '<div class="ovbox"><div class="ovhead">No active pairs</div>'
                 f'<p style="color:var(--muted);font-size:13px;margin:8px 0 0;">{msg}</p>'
                 '<p style="color:var(--muted);font-size:12px;margin:8px 0 0;">A pair only appears once its two legs '
                 'are correlated, the spread is genuinely mean-reverting (sane half-life), and it has stretched toward '
@@ -1904,7 +1939,7 @@ def _pairs_html(data: dict | None) -> str:
               'stop if it stretches past ±3σ (the relationship may have broken). Dollar-neutral: trade β shares of '
               'the second leg per share of the first. Diversifier only — not a core directional position. '
               'Paper money / educational; not investment advice.</p>')
-    return intro + banner + table + legend
+    return intro + explainer + banner + table + legend
 
 
 def _risk_html(risk: dict | None) -> str:
@@ -2860,8 +2895,6 @@ def render_html(snap: dict) -> str:
   {kpi_html}
   <div class="note" style="margin-top:0;">{mode_note}</div>
   <div id="diag"></div>
-  {brief_html}
-  {changes_html}
 
   <section class="page" id="page-markets">
     <div class="mkt">
@@ -2886,6 +2919,8 @@ def render_html(snap: dict) -> str:
   </section>
 
   <section class="page on" id="page-signals">
+    {brief_html}
+    {changes_html}
     <div class="strat-badge"><span class="k">Strategy type</span><span class="v">Multi-strategy confluence · 7 long + 7 short, trend-gated</span></div>
     <div id="concWarn"></div>
     <details class="tvwidget" open>

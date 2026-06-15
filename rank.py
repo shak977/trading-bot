@@ -90,7 +90,7 @@ def rank_rows(rows: list[dict], macro_posture: dict | None, cfg) -> list[dict]:
             r["rank_factors"] = f
             ranked.append({"symbol": r["symbol"], "name": r.get("name", ""), "action": r["action"],
                            "direction": r.get("direction", "LONG"), "sector": r.get("sector"),
-                           "rank_score": sc, "factors": f,
+                           "price": r.get("price"), "rank_score": sc, "factors": f,
                            "conviction": (r.get("conviction") or {}).get("score_pct")})
         return ranked
     except Exception:  # noqa: BLE001 — ranking must never break the build
