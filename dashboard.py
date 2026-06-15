@@ -440,8 +440,9 @@ def build_snapshot() -> dict:
             except Exception:  # noqa: BLE001
                 ipos = []
 
-    # Optional AI analyst note — only for the strongest, actionable setups (High conviction
-    # BUY/SHORT/HOLD), capped, so we spend the API budget where it matters and keep builds fast.
+    # Optional AI analyst note — for every High-conviction actionable setup (BUY/SHORT/HOLD).
+    # No hard top-N cap (the High-conviction floor already limits the count); a generous safety
+    # ceiling guards against a pathological run firing dozens of calls.
     llm_status = {"enabled": bool(CONFIG.llm_enabled)}
     if CONFIG.llm_enabled:
         import llm
@@ -451,7 +452,7 @@ def build_snapshot() -> dict:
         _ai_picks.sort(key=lambda r: -((r.get("conviction") or {}).get("score_pct") or 0))
         llm_status["candidates"] = len(_ai_picks)
         _gen = 0
-        for r in _ai_picks[:8]:
+        for r in _ai_picks[:40]:  # effectively all High-conviction actionable; 40 = safety ceiling
             note = llm.analyst_note(r, CONFIG, regime=regime, macro=macro)
             if note:
                 r["ai_read"] = note
