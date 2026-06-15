@@ -493,6 +493,65 @@ def fred_macro(cfg: Config) -> dict | None:
     return m
 
 
+_YF_CRUMB: dict = {"crumb": None, "cookies": None}
+
+
+def _yahoo_crumb():
+    """One-time Yahoo cookie+crumb handshake so we can read quoteSummary (short interest)."""
+    if _YF_CRUMB["crumb"]:
+        return _YF_CRUMB["crumb"], _YF_CRUMB["cookies"]
+    try:
+        s = requests.Session()
+        s.headers.update({"User-Agent": "Mozilla/5.0"})
+        s.get("https://fc.yahoo.com", timeout=10)
+        c = s.get("https://query2.finance.yahoo.com/v1/test/getcrumb", timeout=10)
+        crumb = (c.text or "").strip()
+        if crumb and "<" not in crumb and len(crumb) < 40:
+            _YF_CRUMB["crumb"], _YF_CRUMB["cookies"] = crumb, s.cookies
+            return crumb, s.cookies
+    except Exception:  # noqa: BLE001
+        pass
+    return None, None
+
+
+def short_interest(symbols: list[str], cap: int = 25) -> dict:
+    """Short interest per symbol from Yahoo key-stats: {sym: {short_pct_float, days_to_cover,
+    shares_short}}. Gated by the crumb handshake; capped + threaded; never raises."""
+    crumb, cookies = _yahoo_crumb()
+    if not crumb:
+        return {}
+
+    def _fetch(sym):
+        try:
+            url = (f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{sym}"
+                   f"?modules=defaultKeyStatistics&crumb={crumb}")
+            r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, cookies=cookies, timeout=10)
+            if r.status_code != 200:
+                return None
+            ks = ((((r.json().get("quoteSummary") or {}).get("result") or [{}])[0]) or {}).get("defaultKeyStatistics") or {}
+            spf = (ks.get("shortPercentOfFloat") or {}).get("raw")
+            dtc = (ks.get("shortRatio") or {}).get("raw")
+            ss = (ks.get("sharesShort") or {}).get("raw")
+            if spf is None and dtc is None:
+                return None
+            return {"short_pct_float": round(spf * 100, 1) if spf is not None else None,
+                    "days_to_cover": round(dtc, 1) if dtc is not None else None,
+                    "shares_short": ss}
+        except Exception:  # noqa: BLE001
+            return None
+
+    out, syms = {}, list(symbols)[:cap]
+    try:
+        import concurrent.futures as _cf
+        with _cf.ThreadPoolExecutor(max_workers=6) as ex:
+            for sym, res in zip(syms, ex.map(_fetch, syms)):
+                if res:
+                    out[sym] = res
+    except Exception:  # noqa: BLE001
+        pass
+    return out
+
+
 _KEY_RELEASES = ("consumer price index", "employment situation", "producer price",
                  "gross domestic product", "personal income", "retail trade")
 

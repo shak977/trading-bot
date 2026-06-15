@@ -587,7 +587,7 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: st
 
 def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 factors=None, patterns=None, edge=None,
-                sentiment=None, fundamentals=None, price=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None):
+                sentiment=None, fundamentals=None, price=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None):
     """Auto-scored pre-entry checklist, direction-aware. Each check is pass/warn/fail.
 
     For a LONG it asks the bullish questions (trending up? room to rise?); for a SHORT it
@@ -934,6 +934,26 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             add("Sector trending right?", "warn",
                 f"Its sector is mixed ({sector_pct}% above trend) — no clear sector momentum either way.", sw)
 
+    # Short interest / squeeze risk. For a SHORT, a crowded short (high % of float / days-to-cover)
+    # is a real squeeze danger; for a LONG, heavy shorting is potential squeeze FUEL to the upside.
+    if short_interest:
+        spf = short_interest.get("short_pct_float")
+        dtc = short_interest.get("days_to_cover")
+        if spf is not None or dtc is not None:
+            crowded = (spf is not None and spf >= 15) or (dtc is not None and dtc >= 5)
+            _si = (f"{spf}% of float short" if spf is not None else "") + \
+                  (f"{', ' if spf is not None else ''}{dtc}d to cover" if dtc is not None else "")
+            if short:
+                if crowded:
+                    add("Crowd already short?", "fail",
+                        f"{_si} — a crowded short with real squeeze risk if it reverses.", 0.8)
+                else:
+                    add("Crowd already short?", "pass",
+                        f"{_si} — not a crowded short, so lower squeeze risk.", 0.5)
+            elif crowded:
+                add("Short-squeeze fuel?", "pass",
+                    f"{_si} — heavy shorting can fuel a squeeze higher, a tailwind for this long.", 0.5)
+
     # Reward:risk — with honest (structural) targets, a cramped target vs the stop is a weak trade.
     # This is the number to judge a small target by: payoff relative to what you risk.
     rr = (plan or {}).get("rr")
@@ -964,7 +984,7 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             "earnings_days": ed, "earnings_gated": gated}
 
 
-def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None) -> None:
+def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None) -> None:
     """Recompute conviction + desk read for a shown row once research is fetched."""
     direction = row.get("direction", "LONG")
     _apply_fundamental_cap(row.get("plan"), fundamentals, cfg)
@@ -972,7 +992,7 @@ def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, 
                        row.get("factors"), row.get("patterns"), row.get("edge"),
                        sentiment=sentiment, fundamentals=fundamentals, price=row.get("price"), tv=tv,
                        regime=regime, insider=insider, buzz=buzz, news_idea=news_idea, intraday=intraday,
-                       sector_pct=sector_pct)
+                       sector_pct=sector_pct, short_interest=short_interest)
     row["conviction"] = conv
     row["desk_read"] = _desk_read(row["action"], direction, row["plan"], row["context"], conv,
                                   row.get("patterns"), row.get("edge"),

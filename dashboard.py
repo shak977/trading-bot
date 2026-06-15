@@ -512,6 +512,16 @@ def build_snapshot() -> dict:
             intraday_shown, intraday_by_sym, intraday_track = [], {}, {}
             print("INTRADAY: skipped —", _iexc)
 
+    # Short interest (squeeze risk) — Yahoo key-stats for the actionable names. Gated + fail-silent.
+    short_int = {}
+    if live:
+        try:
+            _si_syms = [r["symbol"] for r in shown
+                        if r.get("action") in ("BUY", "SHORT", "WATCH SHORT", "HOLD SHORT", "WATCH LONG", "HOLD LONG")]
+            short_int = research.short_interest(_si_syms)
+        except Exception:  # noqa: BLE001
+            short_int = {}
+
     _ACTIONABLE = ("BUY", "SHORT", "HOLD LONG", "HOLD SHORT")
     _sector_pct = {s["sector"]: s.get("pct_up") for s in (sectors or [])}   # sector momentum map
     for r in shown:
@@ -519,6 +529,7 @@ def build_snapshot() -> dict:
         r["insider"] = insiders.get(r["symbol"])
         r["buzz"] = buzz.get(r["symbol"])
         r["news_idea"] = _idea_map.get(r["symbol"])
+        r["short_interest"] = short_int.get(r["symbol"])
         # Lower-timeframe confirmation: does the intraday signal agree with this daily trade?
         _isig = intraday_by_sym.get(r["symbol"])
         if _isig and _isig.get("action") in _ACTIONABLE:
@@ -529,7 +540,7 @@ def build_snapshot() -> dict:
         scanner.rescore(r, CONFIG, sentiment=r.get("sentiment"), fundamentals=r.get("fundamentals"),
                         tv=r.get("tv"), regime=regime, insider=r.get("insider"), buzz=r.get("buzz"),
                         news_idea=r.get("news_idea"), intraday=_isig,
-                        sector_pct=_sector_pct.get(r.get("sector")))
+                        sector_pct=_sector_pct.get(r.get("sector")), short_interest=r.get("short_interest"))
 
     # First-seen dates per signal — powers the "Newest" sort + a date chip on each card.
     # Persisted across runs (like the tracker); a symbol that leaves and returns gets a fresh date.
