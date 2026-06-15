@@ -2175,6 +2175,7 @@ def render_html(snap: dict) -> str:
     </div>
   </header>
   <div class="subhead">Built {snap['generated_at']} <span id="builtAgo" style="opacity:.7;"></span> &middot; scanned {snap['scanned']} symbols{health_html}{pdrop_html}</div>
+  <div class="subhead" id="marketClock" style="margin-top:-9px;opacity:.85;"></div>
   {kpi_html}
   <div class="note" style="margin-top:0;">{mode_note}</div>
   <div id="diag"></div>
@@ -3032,6 +3033,26 @@ if (LIVE_URL) {{ refreshLive(); setInterval(refreshLive, 15000); }}
     el.textContent = '· ' + (m < 1 ? 'just now' : (m === 1 ? '1 min ago' : m + ' min ago'));
   }}
   upd(); setInterval(upd, 30000);
+}})();
+// Live clock: current time in GMT and GMT+4, plus the US market window + open/closed status.
+(function marketClock() {{
+  const el = document.getElementById('marketClock'); if (!el) return;
+  const t = (tz) => new Date().toLocaleTimeString('en-GB', {{timeZone:tz, hour12:false, hour:'2-digit', minute:'2-digit'}});
+  function isOpen() {{
+    try {{
+      const et = new Date(new Date().toLocaleString('en-US', {{timeZone:'America/New_York'}}));
+      const d = et.getDay(), m = et.getHours()*60 + et.getMinutes();
+      return d >= 1 && d <= 5 && m >= 570 && m < 960;   // Mon–Fri, 09:30–16:00 ET
+    }} catch (e) {{ return false; }}
+  }}
+  function upd() {{
+    const open = isOpen();
+    el.innerHTML = '🕒 ' + t('GMT') + ' GMT &middot; ' + t('Asia/Dubai') + ' GMT+4'
+      + ' &middot; NYSE 09:30–16:00 ET ('
+      + (open ? '<span style="color:var(--buy);font-weight:600;">open</span>'
+              : '<span style="color:var(--muted);font-weight:600;">closed</span>') + ')';
+  }}
+  upd(); setInterval(upd, 1000);
 }})();
 // live ET clock for the terminal header (only present when Terminal layout is active)
 setInterval(() => {{

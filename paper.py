@@ -244,9 +244,10 @@ def run(signals: list[dict], cfg: Config, today: str) -> dict | None:
             if not (entry and stop and target):
                 continue
             label = (s.get("conviction") or {}).get("label")
+            score_pct = (s.get("conviction") or {}).get("score_pct")
             atr_pct = (s.get("context") or {}).get("atr_pct")
             from risk import risk_multiplier
-            mult = risk_multiplier(label, atr_pct, cfg)
+            mult = risk_multiplier(label, atr_pct, cfg, score_pct=score_pct)
             qty = _qty(equity, buying_power, entry, stop, cfg.paper_risk_pct, mult=mult)
             if qty < 1:
                 notes.append(f"{sym}: skipped (size < 1 share at risk budget)")

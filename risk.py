@@ -23,24 +23,36 @@ def position_size(equity: float, price: float, cfg: Config) -> int:
     return max(0, min(shares, max_affordable))
 
 
-def risk_multiplier(conviction_label: str | None, atr_pct: float | None, cfg: Config) -> float:
-    """Combined conviction x volatility multiplier on the base risk budget.
+def risk_multiplier(conviction_label: str | None, atr_pct: float | None, cfg: Config,
+                    score_pct: float | None = None) -> float:
+    """Size multiplier on the base risk budget.
 
-    Conviction tier scales the bet up for stronger setups; the vol term targets a constant
-    dollar-volatility by shrinking size as ATR% rises above ``vol_target_atr_pct``. The result
-    is clamped to ``[min_size_mult, 1.0]`` — it only ever throttles risk below the base ceiling,
-    never above it. Returns 1.0 when ``size_by_conviction`` is off.
+    When a continuous conviction ``score_pct`` is given (the preferred path), size is TILTED by
+    momentum/conviction: it scales up with the score across ``[tilt_min, tilt_max]`` so the
+    strongest setups carry the most weight, and a VOLATILITY GUARDRAIL only throttles names whose
+    ATR% is clearly excessive (above ``vol_guard_mult x vol_target_atr_pct``) — so a high-momentum
+    semiconductor isn't penalised for normal volatility, but a hyper-volatile name still gets cut.
+
+    Without a score (legacy/label-only path) it falls back to the original conviction x inverse-vol
+    multiplier, clamped to ``[min_size_mult, 1.0]``. Returns 1.0 when ``size_by_conviction`` is off.
     """
     if not getattr(cfg, "size_by_conviction", True):
         return 1.0
+    if score_pct is not None:
+        s = max(0.0, min(1.0, (float(score_pct) - 50.0) / 50.0))   # 50% -> 0, 100% -> 1
+        tilt = cfg.tilt_min + (cfg.tilt_max - cfg.tilt_min) * s
+        guard = cfg.vol_guard_mult * cfg.vol_target_atr_pct
+        if atr_pct and atr_pct > guard > 0:
+            tilt *= guard / atr_pct                                 # throttle only the hyper-volatile
+        return max(cfg.min_size_mult, min(tilt, cfg.max_size_mult))
+    # legacy label-only path (unchanged): conviction x inverse-vol, never above the base ceiling
     conv = {"High": cfg.conv_mult_high, "Medium": cfg.conv_mult_medium,
             "Low": cfg.conv_mult_low}.get(conviction_label or "", cfg.conv_mult_medium)
     if atr_pct and atr_pct > 0 and cfg.vol_target_atr_pct > 0:
         vol = cfg.vol_target_atr_pct / atr_pct
     else:
         vol = 1.0
-    mult = conv * vol
-    return max(cfg.min_size_mult, min(mult, 1.0))
+    return max(cfg.min_size_mult, min(conv * vol, 1.0))
 
 
 def stop_loss_price(entry: float, cfg: Config) -> float:

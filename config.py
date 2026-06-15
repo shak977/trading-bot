@@ -95,6 +95,13 @@ class Config:
     conv_mult_low: float = 0.3        # Low
     vol_target_atr_pct: float = 4.0   # ATR% at which the vol multiplier == 1.0; higher ATR% -> smaller
     min_size_mult: float = 0.25       # floor on the combined multiplier (never size below this x base)
+    # Momentum/conviction sizing tilt: size UP with the conviction SCORE so strong-momentum,
+    # high-conviction names carry the most weight; a vol guardrail only throttles names that are
+    # clearly hyper-volatile (ATR% above vol_guard_mult x vol_target_atr_pct).
+    tilt_min: float = 0.40            # size mult at a just-actionable (~50%) conviction score
+    tilt_max: float = 1.60            # size mult at a top (~100%) conviction score
+    max_size_mult: float = 1.60       # hard cap on the combined size multiplier
+    vol_guard_mult: float = 1.5       # only throttle when ATR% exceeds this x vol_target_atr_pct
 
     # --- Exit management ---
     partial_take_r: float = 1.0       # scale out half the position at this R multiple (0 = off)
