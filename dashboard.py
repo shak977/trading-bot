@@ -1491,9 +1491,12 @@ def render_html(snap: dict) -> str:
             health_html = (f' &middot; <span style="color:#2ea043;" '
                            f'title="{dh.get("checks",0)} integrity checks passed">data check ✓</span>')
     return f"""<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8">
+<html lang="en" data-theme="dark"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Trading Signals Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://s3.tradingview.com/tv.js"></script>
 <script src="chart_engine.js"></script>
 <style>
@@ -1530,8 +1533,9 @@ def render_html(snap: dict) -> str:
     *, *::before, *::after {{ transition:none !important; animation:none !important; scroll-behavior:auto !important; }}
     .card:hover {{ transform:none; }} }}
   html, body {{ max-width:100%; overflow-x:hidden; }}
-  body {{ margin:0; font:15px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;
-    background:var(--bg); color:var(--txt); }}
+  body {{ margin:0; font:15px/1.5 'Inter',-apple-system,Segoe UI,Roboto,sans-serif;
+    background:var(--bg); color:var(--txt);
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-rendering:optimizeLegibility; }}
   .wrap {{ width:100%; max-width:1480px; margin:0 auto; padding:28px 24px 60px; }}
   .grid-stack {{ width:100%; }}
   h1 {{ font-size:25px; font-weight:800; letter-spacing:-.015em; margin:0 0 5px; }}
@@ -1829,11 +1833,30 @@ def render_html(snap: dict) -> str:
     border-color:color-mix(in srgb, var(--sell) 32%, transparent); }}
   .chip.neutral {{ background:var(--inset); color:var(--txt2); border-color:var(--line); }}
   .chip.mini {{ font-size:10.5px; padding:1px 7px; }}
-  .tabs {{ display:flex; gap:4px; flex-wrap:wrap; border-bottom:1px solid var(--line);
-    margin:18px 0 22px; position:sticky; top:0; z-index:10; padding-top:6px;
-    background:color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter:saturate(1.3) blur(10px); }}
-  .tabs button {{ background:none; border:none; color:var(--muted); font-size:15px;
-    font-weight:600; padding:10px 16px; cursor:pointer; border-bottom:2px solid transparent; }}
+  /* primary nav: brand-aligned horizontal scroller flanked by arrow controls */
+  .tabsbar {{ display:flex; align-items:stretch; gap:2px; }}
+  .tabscroll {{ flex:none; display:none; align-items:center; justify-content:center;
+    width:28px; padding:0 0 2px; background:none; border:none; cursor:pointer; color:var(--muted);
+    font-size:20px; line-height:1; border-bottom:2px solid transparent;
+    transition:color .15s ease, opacity .15s ease; }}
+  .tabscroll:hover {{ color:var(--txt); }}
+  .tabsbar.scrollable .tabscroll {{ display:inline-flex; }}
+  .tabsbar.at-start .tabscroll.left {{ opacity:0; pointer-events:none; }}
+  .tabsbar.at-end .tabscroll.right {{ opacity:0; pointer-events:none; }}
+  .tabs {{ flex:1 1 auto; min-width:0; display:flex; gap:1px; flex-wrap:nowrap; margin:0; padding:0;
+    overflow-x:auto; overflow-y:hidden; scrollbar-width:none; -ms-overflow-style:none;
+    -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; scroll-behavior:smooth; }}
+  .tabsbar.scrollable .tabs {{
+    -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 18px,#000 calc(100% - 18px),transparent 100%);
+            mask-image:linear-gradient(90deg,transparent 0,#000 18px,#000 calc(100% - 18px),transparent 100%); }}
+  .tabsbar.scrollable.at-start .tabs {{ -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 18px),transparent 100%);
+            mask-image:linear-gradient(90deg,#000 calc(100% - 18px),transparent 100%); }}
+  .tabsbar.scrollable.at-end .tabs {{ -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 18px,#000 100%);
+            mask-image:linear-gradient(90deg,transparent 0,#000 18px,#000 100%); }}
+  .tabs::-webkit-scrollbar {{ height:0; display:none; }}
+  .tabs button {{ background:none; border:none; color:var(--muted); font-size:14px;
+    font-weight:600; padding:9px 14px 11px; cursor:pointer; white-space:nowrap; flex:none;
+    letter-spacing:-.004em; border-bottom:2px solid transparent; scroll-snap-align:start; }}
   .tabs button.on {{ color:var(--txt); border-bottom-color:var(--accent); }}
   .tabs button:hover {{ color:var(--txt); }}
   .ctlbtn:hover, .ctlgrp button:hover {{ color:var(--txt); background:var(--hover); }}
@@ -1951,16 +1974,20 @@ def render_html(snap: dict) -> str:
   .tc-chip {{ display:inline-block; background:var(--line); border-radius:10px; padding:1px 8px; cursor:pointer;
     font-size:11px; color:var(--txt); }}
   /* ---- app shell ---- */
-  .appbar {{ display:flex; align-items:center; justify-content:space-between; gap:12px;
-    padding:14px 0; border-bottom:1px solid var(--line); margin-bottom:16px;
-    position:sticky; top:0; z-index:20;
-    background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:saturate(1.3) blur(10px); }}
-  .brand {{ display:flex; align-items:center; gap:10px; font-weight:800; font-size:18px; letter-spacing:-.01em; }}
-  .brand-mark {{ display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px;
-    border-radius:9px; background:var(--accent); color:#fff; font-size:15px; }}
+  /* unified sticky header: brand + status on top, primary tab nav directly beneath */
+  .appbar {{ position:sticky; top:0; z-index:30; margin:0 0 18px;
+    background:color-mix(in srgb, var(--bg) 86%, transparent);
+    backdrop-filter:saturate(1.4) blur(12px); -webkit-backdrop-filter:saturate(1.4) blur(12px);
+    border-bottom:1px solid var(--line); }}
+  .appbar-top {{ display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:13px 2px 9px; }}
+  .brand {{ display:flex; align-items:center; gap:11px; font-weight:800; font-size:18px; letter-spacing:-.02em; }}
+  .brand-mark {{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px;
+    border-radius:9px; color:#fff; font-size:15px; box-shadow:0 2px 8px color-mix(in srgb, var(--accent) 45%, transparent);
+    background:linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 50%, #16c98d)); }}
   .appbar-right {{ display:flex; align-items:center; gap:10px; }}
   .livepill {{ font-size:12px; color:var(--muted); }}
-  .subhead {{ color:var(--muted); font-size:13px; margin:0 0 14px; }}
+  .subhead {{ color:var(--muted); font-size:12.5px; margin:0 0 16px; }}
   /* ---- KPI summary strip ---- */
   .kpis {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(148px,1fr)); gap:12px; margin:0 0 20px; }}
   .kpi {{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; box-shadow:var(--shadow); }}
@@ -2017,9 +2044,9 @@ def render_html(snap: dict) -> str:
   @media (max-width:600px) {{
     .wrap {{ padding:16px 12px 48px; }}
     h1 {{ font-size:21px; }}
-    .appbar {{ flex-wrap:wrap; gap:8px; }}
-    .tabs {{ overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch; }}
-    .tabs button {{ white-space:nowrap; padding:10px 12px; font-size:14px; }}
+    .appbar-top {{ gap:8px; padding:11px 2px 7px; }}
+    .brand {{ font-size:16.5px; }}
+    .tabs button {{ padding:9px 12px 11px; font-size:13.5px; }}
     /* tighter KPI tiles so signals aren't pushed a full screen down */
     .kpis {{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; margin-bottom:16px; }}
     .kpi {{ padding:9px 11px; }}
@@ -2037,33 +2064,38 @@ def render_html(snap: dict) -> str:
 </style></head>
 <body><div class="wrap">
   <header class="appbar">
-    <div class="brand"><span class="brand-mark">◈</span><span>Signal Desk</span></div>
-    <div class="appbar-right">
-      <span class="badge m-{mode}">{mode}</span>
-      <span class="livepill" id="liveStatus"></span>
-      <button id="themeToggle" class="themebtn">🌙 Dark</button>
+    <div class="appbar-top">
+      <div class="brand"><span class="brand-mark">◈</span><span>Signal Desk</span></div>
+      <div class="appbar-right">
+        <span class="badge m-{mode}">{mode}</span>
+        <span class="livepill" id="liveStatus"></span>
+        <button id="themeToggle" class="themebtn">🌙 Dark</button>
+      </div>
+    </div>
+    <div class="tabsbar" id="tabsbar">
+      <button class="tabscroll left" id="tabPrev" type="button" aria-label="Scroll tabs left">‹</button>
+      <nav class="tabs" id="tabs">
+        <button data-page="signals" class="on">Signals</button>
+        <button data-page="markets">Markets</button>
+        <button data-page="momentum">Momentum</button>
+        <button data-page="portfolio">Portfolio</button>
+        <button data-page="allweather">All Weather</button>
+        <button data-page="ipos">IPO watch</button>
+        <button data-page="track">Track record</button>
+        <button data-page="altdata">Data signals</button>
+        {paper_nav}
+        <button data-page="method">How it works</button>
+        <button data-page="system">System</button>
+        <button data-page="news">Market news</button>
+        <button data-page="livetv">Live TV</button>
+      </nav>
+      <button class="tabscroll right" id="tabNext" type="button" aria-label="Scroll tabs right">›</button>
     </div>
   </header>
   <div class="subhead">Generated {snap['generated_at']} &middot; scanned {snap['scanned']} symbols{health_html}{pdrop_html}</div>
   {kpi_html}
   <div class="note" style="margin-top:0;">{mode_note}</div>
   <div id="diag"></div>
-
-  <nav class="tabs" id="tabs">
-    <button data-page="signals" class="on">Signals</button>
-    <button data-page="markets">Markets</button>
-    <button data-page="momentum">Momentum</button>
-    <button data-page="portfolio">Portfolio</button>
-    <button data-page="allweather">All Weather</button>
-    <button data-page="ipos">IPO watch</button>
-    <button data-page="track">Track record</button>
-    <button data-page="altdata">Data signals</button>
-    {paper_nav}
-    <button data-page="method">How it works</button>
-    <button data-page="system">System</button>
-    <button data-page="news">Market news</button>
-    <button data-page="livetv">Live TV</button>
-  </nav>
 
   <section class="page" id="page-markets">
     <div class="mkt">
@@ -3153,8 +3185,8 @@ function _initCharts() {{
     if (featTC) featTC.applyTheme();
     if (modalTC) modalTC.applyTheme();
   }}
-  let cur = 'light';
-  try {{ cur = localStorage.getItem(KEY) || 'light'; }} catch (e) {{}}
+  let cur = 'dark';
+  try {{ cur = localStorage.getItem(KEY) || 'dark'; }} catch (e) {{}}
   document.documentElement.dataset.theme = cur;
   if (btn) {{
     btn.textContent = (cur === 'dark') ? '☀ Light' : '🌙 Dark';
@@ -3229,6 +3261,8 @@ function _tvInit() {{
     tabs.forEach(b => b.classList.toggle('on', b.dataset.page === page));
     document.querySelectorAll('.page').forEach(s => s.classList.toggle('on', s.id === 'page-' + page));
     try {{ localStorage.setItem('tab', page); }} catch (e) {{}}
+    const act = document.querySelector('#tabs button.on');
+    if (act) try {{ act.scrollIntoView({{ inline: 'center', block: 'nearest' }}); }} catch (e) {{}}
     window.scrollTo(0, 0);
     // the Markets grid + charts are laid out while hidden; size them on first reveal
     if (page === 'markets') setTimeout(() => {{
@@ -3239,6 +3273,30 @@ function _tvInit() {{
     if (page === 'livetv') {{ _tvInit(); if (!_tvLoaded) {{ _tvLoaded = true; _tvSet(_tvCur); }} }}
   }}
   tabs.forEach(b => b.addEventListener('click', () => show(b.dataset.page)));
+  // horizontal tab scroller: arrow controls + edge-aware fades so it reads as scrollable
+  (function() {{
+    const bar = document.getElementById('tabsbar');
+    const nav = document.getElementById('tabs');
+    const prev = document.getElementById('tabPrev');
+    const next = document.getElementById('tabNext');
+    if (!bar || !nav) return;
+    function sync() {{
+      const max = nav.scrollWidth - nav.clientWidth;
+      bar.classList.toggle('scrollable', max > 2);
+      bar.classList.toggle('at-start', nav.scrollLeft <= 1);
+      bar.classList.toggle('at-end', nav.scrollLeft >= max - 1);
+    }}
+    function step(dir) {{
+      const amt = Math.max(160, nav.clientWidth * 0.7);
+      nav.scrollBy({{ left: dir * amt, behavior: 'smooth' }});
+    }}
+    if (prev) prev.addEventListener('click', () => step(-1));
+    if (next) next.addEventListener('click', () => step(1));
+    nav.addEventListener('scroll', sync, {{ passive: true }});
+    window.addEventListener('resize', sync);
+    sync();
+    window._tabSync = sync;
+  }})();
   let saved = 'signals';
   try {{ saved = localStorage.getItem('tab') || 'signals'; }} catch (e) {{}}
   show(saved);
