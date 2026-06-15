@@ -3749,7 +3749,11 @@
       }
     ],
     "tv_align": null,
-    "status": "open"
+    "status": "loss",
+    "exit": 595.22,
+    "exit_date": "2026-06-15",
+    "return_pct": -0.44,
+    "days_held": -1
   },
   {
     "id": "MCD:2026-06-15",
@@ -4289,7 +4293,11 @@
       }
     ],
     "tv_align": null,
-    "status": "open"
+    "status": "loss",
+    "exit": 135.17,
+    "exit_date": "2026-06-15",
+    "return_pct": -0.29,
+    "days_held": -1
   },
   {
     "id": "ABNB:2026-06-15",
@@ -4879,6 +4887,136 @@
       {
         "label": "Reward:risk worth it?",
         "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "status": "open"
+  },
+  {
+    "id": "LRCX:2026-06-15",
+    "symbol": "LRCX",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-06-15",
+    "advised_ts": "2026-06-15T17:46:41.520418",
+    "entry": 390.75,
+    "stop": 388.56,
+    "target": 393.07,
+    "rr": 1.05,
+    "conviction": "High",
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "status": "open"
+  },
+  {
+    "id": "MDLZ:2026-06-15",
+    "symbol": "MDLZ",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-06-15",
+    "advised_ts": "2026-06-15T17:46:41.520418",
+    "entry": 61.62,
+    "stop": 61.79,
+    "target": 61.41,
+    "rr": 1.35,
+    "conviction": "High",
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
       }
     ],
     "tv_align": null,
