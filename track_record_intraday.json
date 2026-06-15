@@ -2108,7 +2108,11 @@
       }
     ],
     "tv_align": null,
-    "status": "open"
+    "status": "loss",
+    "exit": 126.61,
+    "exit_date": "2026-06-15",
+    "return_pct": -1.26,
+    "days_held": -1
   },
   {
     "id": "MS:2026-06-15",
@@ -5950,6 +5954,79 @@
       {
         "label": "Worked here before?",
         "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": null,
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "EA:2026-06-15",
+    "symbol": "EA",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-06-15",
+    "advised_ts": "2026-06-15T21:40:06.362775",
+    "entry": 203.05,
+    "stop": 202.94,
+    "target": 203.31,
+    "rr": 2.33,
+    "conviction": "Medium",
+    "conviction_pct": 67,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "fail"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
       },
       {
         "label": "Strategies agree?",
