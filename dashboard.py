@@ -2728,6 +2728,7 @@ def render_html(snap: dict) -> str:
   .accent-pop {{ position:absolute; right:0; top:calc(100% + 6px); background:var(--card);
     border:1px solid var(--line); border-radius:10px; padding:11px; display:flex; flex-wrap:wrap;
     gap:7px; width:184px; z-index:60; box-shadow:var(--shadow-lg); }}
+  .accent-pop[hidden] {{ display:none; }}
   .accent-pop .acsw {{ width:26px; height:26px; border-radius:50%; border:2px solid transparent;
     cursor:pointer; padding:0; }}
   .accent-pop .acsw.on {{ border-color:var(--txt); }}
@@ -4413,8 +4414,9 @@ function _initCharts() {{
   document.addEventListener('click', (e) => {{ if (!pop.hidden && !pop.contains(e.target) && e.target !== btn) pop.hidden = true; }});
   pop.querySelectorAll('.acsw').forEach(s => s.onclick = () => {{
     apply(s.dataset.accent); try {{ localStorage.setItem(KEY, s.dataset.accent); }} catch (e) {{}}
-    if (cust) cust.value = s.dataset.accent; mark(s.dataset.accent);
+    if (cust) cust.value = s.dataset.accent; mark(s.dataset.accent); pop.hidden = true;
   }});
+  document.addEventListener('keydown', (e) => {{ if (e.key === 'Escape') pop.hidden = true; }});
   if (cust) cust.oninput = () => {{ apply(cust.value); try {{ localStorage.setItem(KEY, cust.value); }} catch (e) {{}} mark(cust.value); }};
   const rst = document.getElementById('accentReset');
   if (rst) rst.onclick = () => {{ apply(null); try {{ localStorage.removeItem(KEY); }} catch (e) {{}} mark(null); pop.hidden = true; }};
