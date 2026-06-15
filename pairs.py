@@ -120,7 +120,8 @@ def _evaluate_pair(a: str, b: str, da, db, cfg) -> dict | None:
     }
 
 
-def scan(cfg, live: bool, regime: dict | None = None, bars_fn=None) -> dict:
+def scan(cfg, live: bool, regime: dict | None = None, bars_fn=None,
+         macro_posture: dict | None = None) -> dict:
     """Validate + score every candidate pair. Returns:
         {"pairs": [...sorted, most-actionable first...], "regime_fit": bool, "note": str}
     Never raises; returns an empty list on any failure or when disabled."""
@@ -161,9 +162,15 @@ def scan(cfg, live: bool, regime: dict | None = None, bars_fn=None) -> dict:
         out.sort(key=lambda p: (p["actionable"], abs(p["z"])), reverse=True)
 
         # regime fit: pairs/mean-reversion shines when the tape is trendless (Neutral / weak breadth)
+        # OR when the macro regime is High-volatility (mean-reversion thrives in choppy, fast tape).
         regime_fit = True
         rnote = "Mean-reversion suits the current trendless tape — a useful complement to the momentum book."
-        if regime:
+        high_vol = any(t.get("tag") == "High-volatility" for t in (macro_posture or {}).get("tags", []))
+        if high_vol:
+            regime_fit = True
+            rnote = ("Macro regime is High-volatility — mean-reversion is favoured here; pairs move up the "
+                     "priority list while the momentum book sizes down.")
+        elif regime:
             lbl = regime.get("label")
             if lbl in ("Risk-on", "Risk-off"):
                 regime_fit = False

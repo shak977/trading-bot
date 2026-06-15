@@ -44,7 +44,7 @@ def _save(rows: list[dict], path: str = PATH) -> None:
 
 def run(signals: list[dict], cfg: Config, live: bool, today: str, *,
         path: str | None = None, intraday: bool = False, now_ts=None,
-        hold_days: int = HOLD_LIMIT_DAYS) -> dict:
+        hold_days: int = HOLD_LIMIT_DAYS, regime: dict | None = None) -> dict:
     """Grade advised calls against real prices (a hypothetical, fills-free record).
 
     Daily mode (default) grades on completed daily sessions after the advised day.
@@ -81,9 +81,14 @@ def run(signals: list[dict], cfg: Config, live: bool, today: str, *,
                 "entry": p["entry"], "stop": p["stop"],
                 "target": p["target"], "rr": p.get("rr"),
                 "conviction": (s.get("conviction") or {}).get("label"),
+                "conviction_pct": (s.get("conviction") or {}).get("score_pct"),
                 "checks": [{"label": c.get("label"), "status": c.get("status")}
                            for c in ((s.get("conviction") or {}).get("checks") or [])],
                 "tv_align": tv_align,
+                # macro regime AT ENTRY — powers regime-conditional performance + future ML labels
+                "regime": (regime or {}).get("label"),
+                "regime_score": (regime or {}).get("score"),
+                "liquidity_tier": (s.get("liquidity") or {}).get("tier"),
                 "status": "open",
             }
             by_id[tid] = t
@@ -176,6 +181,9 @@ def _stats(log: list[dict]) -> dict:
 
     by_dir = {d: _grp([t for t in resolved if (t.get("direction") or "LONG") == d]) for d in ("LONG", "SHORT")}
     by_conv = {c: _grp([t for t in resolved if t.get("conviction") == c]) for c in ("High", "Medium", "Low")}
+    # Regime-conditional performance — which macro regime each strategy actually works in.
+    _regs = [r for r in ("Risk-on", "Neutral", "Risk-off") if any(t.get("regime") == r for t in resolved)]
+    by_regime = {r: _grp([t for t in resolved if t.get("regime") == r]) for r in _regs}
     # Does the TradingView cross-check actually help? Win rate when it agreed vs didn't.
     by_tv = {"agree": _grp([t for t in resolved if t.get("tv_align") == "agree"]),
              "not_agree": _grp([t for t in resolved if t.get("tv_align") in ("mixed", "oppose")])}
@@ -194,5 +202,6 @@ def _stats(log: list[dict]) -> dict:
         "by_direction": by_dir,
         "by_conviction": by_conv,
         "by_tv": by_tv,
+        "by_regime": by_regime,
         "recent": recent,
     }

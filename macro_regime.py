@@ -114,6 +114,72 @@ def _breadth_score(tape) -> tuple[float, str] | None:
 _WEIGHTS = {"VIX": 0.25, "Credit": 0.30, "Yield curve": 0.15, "US dollar": 0.10, "Breadth": 0.20}
 
 
+def _regime_tags(macro: dict, tape_regime: dict | None) -> list[dict]:
+    """Secondary, possibly co-occurring regime labels beyond the risk-on/off axis.
+    Each tag is {tag, why}. These describe the *character* of the tape, not just its risk level."""
+    tags = []
+    vix = macro.get("vix")
+    curve = macro.get("curve")
+    hy_widening = macro.get("hy_trend") == "widening"
+    cpi = macro.get("cpi_yoy")
+    oil = macro.get("oil")
+    hy = macro.get("hy_oas")
+    breadth = (tape_regime or {}).get("breadth")
+
+    if vix is not None and (vix >= 25 or (vix >= 20 and macro.get("vix_trend") == "rising")):
+        tags.append({"tag": "High-volatility", "why": f"VIX {vix}{' rising' if macro.get('vix_trend')=='rising' else ''} — choppy, fast tape."})
+    # recessionary: inverted curve + a corroborating stress signal
+    if curve is not None and curve < 0 and (hy_widening or (breadth is not None and breadth <= 40)):
+        why = "inverted yield curve" + (", widening credit" if hy_widening else ", weak breadth")
+        tags.append({"tag": "Recessionary", "why": f"{why} — late-cycle / contraction risk."})
+    # inflationary: hot CPI (and/or firm oil)
+    if cpi is not None and cpi >= 3.5:
+        tags.append({"tag": "Inflationary", "why": f"CPI {cpi}% — sticky inflation; favours real assets over long-duration growth."})
+    elif cpi is None and oil is not None and oil >= 95:
+        tags.append({"tag": "Inflationary", "why": f"oil ${oil} firm — commodity-led price pressure."})
+    # liquidity-driven: calm vol + tight credit + broad participation (easy-money risk appetite)
+    if (vix is not None and vix < 16 and hy is not None and hy < 3.5
+            and breadth is not None and breadth >= 60):
+        tags.append({"tag": "Liquidity-driven", "why": "low vol, tight credit, broad breadth — risk appetite running on easy conditions."})
+    return tags
+
+
+def _strategy_bias(label: str, tags: list[dict]) -> dict:
+    """Map the regime to which strategies to lean on vs. ease off — the 'strategy selection' the
+    spec asks the regime to drive. Transparent, not a hard switch: it tilts emphasis, not rules."""
+    tagset = {t["tag"] for t in tags}
+    favored, caution = [], []
+
+    if label == "Risk-on":
+        favored += ["Momentum / trend", "Breakouts", "Long bias"]
+        caution += ["Fresh shorts"]
+    elif label == "Risk-off":
+        favored += ["Defensives & quality", "Cash buffer", "Shorts on breakdowns"]
+        caution += ["High-beta longs", "Adding gross exposure"]
+    else:
+        favored += ["Selective both ways", "Mean-reversion in range"]
+        caution += ["Aggressive trend bets"]
+
+    if "High-volatility" in tagset:
+        favored += ["Mean-reversion / pairs", "Smaller size, wait for confirmation"]
+        caution += ["Breakout chasing", "Oversized positions"]
+    if "Recessionary" in tagset:
+        favored += ["Defensives", "Reduced net long"]
+        caution += ["Cyclical / high-beta longs"]
+    if "Inflationary" in tagset:
+        favored += ["Energy / materials / real assets", "Pricing-power names"]
+        caution += ["Long-duration growth / rate-sensitive"]
+    if "Liquidity-driven" in tagset:
+        favored += ["Momentum (ride it)"]
+        caution += ["Complacency — watch for a vol spike"]
+
+    # de-dupe, preserve order
+    favored = list(dict.fromkeys(favored))
+    caution = list(dict.fromkeys(caution))
+    note = "Regime tilts emphasis (favoured vs. caution); it never overrides the rules-based risk engine."
+    return {"favored": favored, "caution": caution, "note": note}
+
+
 def assess(macro: dict | None, tape_regime: dict | None, cfg) -> dict | None:
     """Blend the macro backdrop + equity breadth into a composite posture and an exposure
     multiplier. Returns None if disabled or there's nothing to score. Never raises."""
@@ -162,12 +228,16 @@ def assess(macro: dict | None, tape_regime: dict | None, cfg) -> dict | None:
         exposure_mult = round(_clamp(base + slope * composite, lo, hi), 3)
 
         drivers.sort(key=lambda d: d["score"])  # most negative (risk-off) first
+        tags = _regime_tags(macro, tape_regime)
+        strategy_bias = _strategy_bias(label, tags)
         return {
             "label": label,
             "score": round(composite, 2),
             "exposure_mult": exposure_mult,
             "posture": posture,
             "drivers": drivers,
+            "tags": tags,
+            "strategy_bias": strategy_bias,
             "cash_tilt_pct": round((1 - exposure_mult) * 100) if exposure_mult < 1 else 0,
         }
     except Exception:  # noqa: BLE001 — macro must never break the build

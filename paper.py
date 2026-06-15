@@ -176,7 +176,8 @@ def manage_open_positions(broker, cfg: Config, log: list[dict]) -> list[str]:
     return notes
 
 
-def run(signals: list[dict], cfg: Config, today: str, exposure_mult: float = 1.0) -> dict | None:
+def run(signals: list[dict], cfg: Config, today: str, exposure_mult: float = 1.0,
+        regime: dict | None = None) -> dict | None:
     """Reconcile + (optionally) submit paper orders. Returns a dashboard-ready dict, or None
     when the feature is disabled. Never raises.
 
@@ -251,8 +252,10 @@ def run(signals: list[dict], cfg: Config, today: str, exposure_mult: float = 1.0
         candidates = [s for s in signals
                       if s.get("action") in ("BUY", "SHORT")
                       and (s.get("conviction") or {}).get("label") == "High"]
-        # strongest first
-        candidates.sort(key=lambda s: -((s.get("conviction") or {}).get("score_pct") or 0))
+        # best first — by the adaptive allocation rank when present, else by conviction
+        candidates.sort(key=lambda s: -(s.get("rank_score")
+                                        if s.get("rank_score") is not None
+                                        else ((s.get("conviction") or {}).get("score_pct") or 0)))
         new_count = 0
         for s in candidates:
             if new_count >= cfg.paper_max_new_per_run:
@@ -313,7 +316,11 @@ def run(signals: list[dict], cfg: Config, today: str, exposure_mult: float = 1.0
                 rec = {"client_id": cid, "symbol": sym, "direction": direction,
                        "action": s["action"], "submitted_date": today, "qty": qty,
                        "entry_plan": entry, "stop": stop, "target": target,
-                       "conviction": (s.get("conviction") or {}).get("score_pct"), "status": "open"}
+                       "conviction": (s.get("conviction") or {}).get("score_pct"),
+                       # entry-time context for the feedback loop / future ML labels
+                       "regime": (regime or {}).get("label"), "regime_score": (regime or {}).get("score"),
+                       "exposure_mult": round(float(exposure_mult or 1.0), 3),
+                       "liquidity_tier": (s.get("liquidity") or {}).get("tier"), "status": "open"}
                 log.append(rec)
                 by_cid[cid] = rec
                 submitted_now.append(rec)

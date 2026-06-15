@@ -626,6 +626,14 @@ def build_snapshot() -> dict:
         macro_posture = None
     _exposure_mult = (macro_posture or {}).get("exposure_mult", 1.0)
 
+    # Adaptive asset ranking: score actionable names for CAPITAL ALLOCATION (quality + vol-adj
+    # reward + macro fit + liquidity + momentum). Mutates rows (rank_score/rank) + returns a list.
+    try:
+        import rank as _rank
+        ranked = _rank.rank_rows(shown, macro_posture, CONFIG)
+    except Exception:  # noqa: BLE001
+        ranked = []
+
     # IPO watch: upcoming-IPO calendar + general news mentioning pre-IPO names
     # (e.g. SpaceX). Private names have no ticker, so this is the only way they surface.
     ipos, ipo_news = [], []
@@ -714,7 +722,7 @@ def build_snapshot() -> dict:
     import tracker
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     try:
-        track = tracker.run(shown, CONFIG, live, today)
+        track = tracker.run(shown, CONFIG, live, today, regime=macro_posture)
     except Exception:  # noqa: BLE001
         track = None
 
@@ -722,7 +730,7 @@ def build_snapshot() -> dict:
     # fresh High-conviction signals and reads the live paper account. Disabled -> None.
     try:
         import paper as _paper
-        paper_acct = _paper.run(shown, CONFIG, today, exposure_mult=_exposure_mult)
+        paper_acct = _paper.run(shown, CONFIG, today, exposure_mult=_exposure_mult, regime=macro_posture)
     except Exception:  # noqa: BLE001
         paper_acct = None
 
@@ -730,7 +738,7 @@ def build_snapshot() -> dict:
     # leans in when the tape is trendless. Any failure -> empty list; never breaks the build.
     try:
         import pairs as _pairs
-        pairs_data = _pairs.scan(CONFIG, live=live, regime=regime)
+        pairs_data = _pairs.scan(CONFIG, live=live, regime=regime, macro_posture=macro_posture)
     except Exception:  # noqa: BLE001
         pairs_data = {"pairs": [], "regime_fit": False, "note": ""}
 
@@ -855,6 +863,7 @@ def build_snapshot() -> dict:
             "intraday_timeframe": CONFIG.intraday_timeframe,
         },
         "signals": shown,
+        "ranked": ranked,
         "pairs": pairs_data,
         "intraday": intraday_shown,
         "intraday_track": intraday_track,
@@ -1356,6 +1365,45 @@ def _sectors_html(secs: list[dict]) -> str:
             f'{rows}</div>')
 
 
+def _ranked_html(ranked: list | None, top: int = 12) -> str:
+    """Adaptive allocation ranking — the best setups for capital, with a factor breakdown."""
+    if not ranked:
+        return ""
+    rows = ""
+    for i, r in enumerate(ranked[:top], 1):
+        f = r.get("factors", {})
+        d = r.get("direction", "LONG")
+        dcol = "buy" if d == "LONG" else "sell"
+        # mini factor bars
+        def bar(label, v):
+            v = max(0, min(100, int(v or 0)))
+            return (f'<span title="{label} {v}/100" style="display:inline-block;width:34px;height:6px;'
+                    f'border-radius:3px;margin-right:3px;background:linear-gradient(90deg,'
+                    f'var(--accent) {v}%, color-mix(in srgb,var(--accent) 14%,transparent) {v}%);"></span>')
+        bars = (bar("Quality", f.get("quality")) + bar("Vol-adj reward", f.get("vreward"))
+                + bar("Macro fit", f.get("macrofit")) + bar("Liquidity", f.get("liquidity"))
+                + bar("Momentum", f.get("momentum")))
+        rows += (f'<tr><td style="text-align:right;color:var(--muted);">{i}</td>'
+                 f'<td><b>{r["symbol"]}</b></td>'
+                 f'<td class="{dcol}">{r.get("action","")}</td>'
+                 f'<td style="text-align:right;"><b>{r.get("rank_score","")}</b></td>'
+                 f'<td style="white-space:nowrap;">{bars}</td></tr>')
+    return (
+        '<div class="ovbox" style="margin:0 0 16px;"><div class="ovhead">🎯 Top opportunities '
+        '<span style="font-weight:400;color:var(--muted);font-size:12px;">— adaptive allocation rank: '
+        'where limited capital should go first</span></div>'
+        '<table class="tbl" style="margin-top:8px;"><thead><tr>'
+        '<th style="text-align:right;">#</th><th>Symbol</th><th>Action</th>'
+        '<th style="text-align:right;" title="0–100 composite allocation score">Rank</th>'
+        '<th title="Quality · Vol-adj reward · Macro fit · Liquidity · Momentum">Factors</th></tr></thead>'
+        f'<tbody>{rows}</tbody></table>'
+        '<p style="color:var(--muted);font-size:11px;margin:10px 0 0;">Blends conviction quality, '
+        'volatility-adjusted reward, macro fit, liquidity and momentum into one 0–100 score, so capital '
+        'goes to the strongest setups first (paper entries are opened in this order). The five bars are '
+        'the factor breakdown. Educational; not advice.</p></div>'
+    )
+
+
 def _macro_posture_html(mp: dict | None) -> str:
     """Macro regime → exposure panel: composite posture, exposure multiplier, and the drivers."""
     if not mp:
@@ -1370,16 +1418,36 @@ def _macro_posture_html(mp: dict | None) -> str:
         chips += (f'<span style="display:inline-block;margin:3px 6px 3px 0;padding:3px 9px;border-radius:999px;'
                   f'background:color-mix(in srgb,{dc} 14%,transparent);color:{dc};font-size:12px;" '
                   f'title="{d["read"]}">{d["name"]} {d["score"]:+.1f}</span>')
+    # secondary regime tags (high-vol / recessionary / inflationary / liquidity-driven)
+    tag_html = ""
+    for t in mp.get("tags", []):
+        tag_html += (f'<span style="display:inline-block;margin:3px 6px 3px 0;padding:3px 10px;border-radius:6px;'
+                     f'background:color-mix(in srgb,#e0a82e 16%,transparent);color:#e0a82e;font-size:12px;font-weight:600;" '
+                     f'title="{t["why"]}">{t["tag"]}</span>')
+    tags_row = (f'<div style="margin:2px 0 8px;">{tag_html}</div>') if tag_html else ""
+    # strategy bias (favoured vs caution)
+    sb = mp.get("strategy_bias") or {}
+    bias_html = ""
+    if sb.get("favored") or sb.get("caution"):
+        fav = " · ".join(sb.get("favored", []))
+        cau = " · ".join(sb.get("caution", []))
+        bias_html = (
+            '<div style="font-size:12px;margin:6px 0 0;line-height:1.7;">'
+            f'<div><span style="color:#16a34a;">▲ Favour:</span> <span style="color:var(--txt2);">{fav}</span></div>'
+            f'<div><span style="color:#dc2626;">▼ Ease off:</span> <span style="color:var(--txt2);">{cau}</span></div>'
+            '</div>')
     return (
         f'<div class="ovbox" style="border-left:4px solid {col};margin:0 0 16px;">'
         f'<div class="ovhead">🧭 Macro regime → exposure: <span style="color:{col};">{mp.get("label")}</span> '
         f'<span style="font-weight:400;color:var(--muted);font-size:12px;">— composite {mp.get("score"):+.2f}, '
         f'<b style="color:{col};">{em_txt}</b></span></div>'
+        f'{tags_row}'
         f'<p style="color:var(--txt2);font-size:13px;margin:6px 0 8px;">{mp.get("posture","")}</p>'
         f'<div>{chips}</div>'
-        '<p style="color:var(--muted);font-size:11px;margin:8px 0 0;">Macro sets <b>exposure</b>, not direction: '
-        'this multiplier scales how big new positions are sized (smaller in risk-off, larger in risk-on) — it never '
-        'directly buys or sells. Hover a chip for the read behind it.</p></div>'
+        f'{bias_html}'
+        '<p style="color:var(--muted);font-size:11px;margin:8px 0 0;">Macro sets <b>exposure</b> and <b>strategy emphasis</b>, '
+        'not direction: it scales position size and tilts which strategies to lean on — it never directly buys or sells, '
+        'and the rules-based risk engine always has the final say. Hover a chip/tag for the read behind it.</p></div>'
     )
 
 
@@ -1849,6 +1917,9 @@ def _track_html(track: dict | None) -> str:
     if track.get("resolved"):
         breakdown = (_brk("By direction", track.get("by_direction"), ["LONG", "SHORT"]) +
                      _brk("By conviction", track.get("by_conviction"), ["High", "Medium", "Low"]))
+        _byreg = track.get("by_regime") or {}
+        if _byreg:
+            breakdown += _brk("By macro regime", _byreg, list(_byreg.keys()))
         tv = track.get("by_tv") or {}
         if (tv.get("agree", {}) or {}).get("n") or (tv.get("not_agree", {}) or {}).get("n"):
             def _tvrow(label, g):
@@ -1942,7 +2013,7 @@ def render_html(snap: dict) -> str:
                      + _walkforward_html(snap.get("walkforward"))
                      + _momentum_html(snap.get("momentum") or []))
     allweather_html = _allweather_html(snap.get("allweather"))
-    portfolio_html = _portfolio_html(snap.get("portfolio"))
+    portfolio_html = _ranked_html(snap.get("ranked")) + _portfolio_html(snap.get("portfolio"))
     ipo_html = _ipo_html(snap.get("ipos") or [], snap.get("ipo_news") or [])
     sectors_html = _sectors_html(snap.get("sectors"))
     macro_html = (_macro_posture_html(snap.get("macro_posture"))
@@ -2783,6 +2854,19 @@ def render_html(snap: dict) -> str:
       rolling forward. The result is an honest <b>out-of-sample</b> read plus a verdict — <i>holds up</i>,
       <i>marginal</i>, or <i>fragile</i> — and a parameter-sensitivity sweep that shows whether the edge depends on
       one lucky setting. If a strategy only shines in-sample, this is where it gets exposed.</p>
+
+      <h4>The intelligence layer — regimes, ranking &amp; learning</h4>
+      <p>On top of the per-stock signals sit a few adaptive layers. The <b>macro regime classifier</b> (Markets tab)
+      reads the backdrop and labels it risk-on / neutral / risk-off plus secondary tags — <i>high-volatility,
+      recessionary, inflationary, liquidity-driven</i> — and uses that to set an exposure dial <i>and</i> tilt which
+      strategies to lean on (momentum in risk-on, mean-reversion/pairs when it's choppy). The <b>adaptive ranking</b>
+      (Portfolio tab → "Top opportunities") scores every actionable name 0–100 for where capital should go first,
+      blending conviction quality, volatility-adjusted reward, macro fit, liquidity and momentum — so a high-conviction
+      but illiquid or poorly-paying setup is correctly ranked below a cleaner one. And a <b>feedback loop</b> tags every
+      logged trade with the macro regime and score at entry, so the Track record tab can show which regimes each
+      strategy actually works in as results accrue. It's all transparent rules today; that logged history is also the
+      foundation for adding machine-learning scoring later — and even then, every decision still passes through the
+      rules-based risk engine, which always has the final say.</p>
 
       <h4>Macro sets the exposure dial (not the trades)</h4>
       <p>Macro data — the VIX, the yield curve, credit spreads, the dollar, plus overall market breadth —

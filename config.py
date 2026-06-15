@@ -168,6 +168,9 @@ class Config:
     min_dollar_volume: float = 5_000_000.0  # skip paper entries below ~$5M/day average turnover
     max_pct_of_adv: float = 0.02            # a single position may be at most ~2% of avg daily $ volume
 
+    # --- Adaptive asset ranking (allocate capital to the best setups, not every signal) ---
+    rank_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("RANK_ENABLED"), True))
+
     # --- Backtest realism (applied to every backtest so edges are net of costs) ---
     slippage_bps: float = 5.0          # modeled slippage per fill (5 bps = 0.05%); ~0.1% round trip
     commission_per_trade: float = 0.0  # per-fill commission (Alpaca = $0; set for other brokers)
