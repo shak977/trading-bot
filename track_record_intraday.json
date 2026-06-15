@@ -265,7 +265,11 @@
       }
     ],
     "tv_align": null,
-    "status": "open"
+    "status": "loss",
+    "exit": 295.49,
+    "exit_date": "2026-06-15",
+    "return_pct": -0.41,
+    "days_held": -1
   },
   {
     "id": "BLK:2026-06-15",
@@ -1146,7 +1150,11 @@
       }
     ],
     "tv_align": null,
-    "status": "open"
+    "status": "loss",
+    "exit": 488.46,
+    "exit_date": "2026-06-15",
+    "return_pct": -0.45,
+    "days_held": -1
   },
   {
     "id": "V:2026-06-15",
@@ -1544,7 +1552,11 @@
       }
     ],
     "tv_align": null,
-    "status": "open"
+    "status": "loss",
+    "exit": 320.49,
+    "exit_date": "2026-06-15",
+    "return_pct": -0.33,
+    "days_held": -1
   },
   {
     "id": "C:2026-06-15",
@@ -1739,7 +1751,11 @@
       }
     ],
     "tv_align": null,
-    "status": "open"
+    "status": "loss",
+    "exit": 56.03,
+    "exit_date": "2026-06-15",
+    "return_pct": -0.3,
+    "days_held": -1
   },
   {
     "id": "GS:2026-06-15",
@@ -1804,7 +1820,11 @@
       }
     ],
     "tv_align": null,
-    "status": "open"
+    "status": "loss",
+    "exit": 1080.99,
+    "exit_date": "2026-06-15",
+    "return_pct": -0.39,
+    "days_held": -1
   },
   {
     "id": "AMAT:2026-06-15",
@@ -3022,7 +3042,11 @@
       }
     ],
     "tv_align": null,
-    "status": "open"
+    "status": "win",
+    "exit": 116.64,
+    "exit_date": "2026-06-15",
+    "return_pct": 1.05,
+    "days_held": -1
   },
   {
     "id": "VZ:2026-06-15",
@@ -4979,7 +5003,11 @@
       }
     ],
     "tv_align": null,
-    "status": "open"
+    "status": "loss",
+    "exit": 388.56,
+    "exit_date": "2026-06-15",
+    "return_pct": -0.56,
+    "days_held": -1
   },
   {
     "id": "MDLZ:2026-06-15",
@@ -5236,6 +5264,201 @@
       {
         "label": "Reward:risk worth it?",
         "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "status": "open"
+  },
+  {
+    "id": "MU:2026-06-15",
+    "symbol": "MU",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-06-15",
+    "advised_ts": "2026-06-15T18:33:30.089455",
+    "entry": 1081.28,
+    "stop": 1074.61,
+    "target": 1089.15,
+    "rr": 1.18,
+    "conviction": "High",
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "status": "open"
+  },
+  {
+    "id": "ABT:2026-06-15",
+    "symbol": "ABT",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-06-15",
+    "advised_ts": "2026-06-15T18:33:30.089455",
+    "entry": 88.39,
+    "stop": 88.6,
+    "target": 87.55,
+    "rr": 4.0,
+    "conviction": "High",
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "warn"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "status": "open"
+  },
+  {
+    "id": "COP:2026-06-15",
+    "symbol": "COP",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-06-15",
+    "advised_ts": "2026-06-15T18:33:30.089455",
+    "entry": 112.75,
+    "stop": 113.1,
+    "target": 112.24,
+    "rr": 1.46,
+    "conviction": "Medium",
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
       }
     ],
     "tv_align": null,
