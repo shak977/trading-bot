@@ -5530,7 +5530,11 @@
       }
     ],
     "tv_align": null,
-    "status": "open"
+    "status": "win",
+    "exit": 112.24,
+    "exit_date": "2026-06-15",
+    "return_pct": 0.45,
+    "days_held": -1
   },
   {
     "id": "LIN:2026-06-15",
@@ -5873,6 +5877,79 @@
       {
         "label": "Worked here before?",
         "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": null,
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "DE:2026-06-15",
+    "symbol": "DE",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-06-15",
+    "advised_ts": "2026-06-15T20:30:28.322358",
+    "entry": 575.51,
+    "stop": 578.4,
+    "target": 563.94,
+    "rr": 4.0,
+    "conviction": "High",
+    "conviction_pct": 91,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
       },
       {
         "label": "Strategies agree?",
