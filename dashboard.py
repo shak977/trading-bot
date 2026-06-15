@@ -1340,7 +1340,7 @@ def _walkforward_html(wf: dict | None) -> str:
     if not wf or wf.get("error") or not wf.get("per_symbol"):
         return ""
     grade = wf.get("grade", "marginal")
-    gcol = {"holds up": "#16a34a", "marginal": "#d97706", "fragile": "#dc2626"}.get(grade, "#64748b")
+    gcol = {"holds up": "var(--buy)", "marginal": "var(--warn)", "fragile": "var(--sell)"}.get(grade, "var(--muted)")
     oos = wf.get("oos_avg_pct")
     pos = wf.get("oos_pos_folds_pct")
     folds = wf.get("oos_total_folds")
@@ -1455,7 +1455,7 @@ def _ranked_html(ranked: list | None, top: int = 12) -> str:
 
     def fcell(v, cls=""):
         v = max(0, min(100, int(v or 0)))
-        c = "#16a34a" if v >= 67 else "#d9a93a" if v >= 40 else "#dc2626"
+        c = "var(--buy)" if v >= 67 else "var(--warn)" if v >= 40 else "var(--sell)"
         return (f'<td class="{cls}" style="min-width:62px;vertical-align:middle;">'
                 f'<div style="font-size:12px;color:var(--txt2);margin-bottom:3px;text-align:center;">{v}</div>'
                 f'<div style="height:6px;border-radius:3px;background:color-mix(in srgb,var(--accent) 12%,transparent);">'
@@ -1504,7 +1504,7 @@ def _notrade_html(nt: dict | None) -> str:
     if not nt or not nt.get("checks"):
         return ""
     blocked = nt.get("block_new")
-    head_col = "#dc2626" if blocked else ("#d97706" if nt.get("cautions") else "#16a34a")
+    head_col = "var(--sell)" if blocked else ("var(--warn)" if nt.get("cautions") else "var(--buy)")
     head_txt = ("Standing down — not opening new positions" if blocked
                 else "Caution — trading with reservations" if nt.get("cautions")
                 else "Clear to trade — no blocking conditions")
@@ -1533,12 +1533,12 @@ def _nlp_html(scores: dict | None) -> str:
 
     def chip(v):
         v = int(v or 0)
-        c = "#16a34a" if v > 0 else "#dc2626" if v < 0 else "#64748b"
+        c = "var(--buy)" if v > 0 else "var(--sell)" if v < 0 else "var(--muted)"
         return f'<span style="color:{c};font-weight:600;">{v:+d}</span>'
     rows = ""
     for sym, d in sorted(scores.items(), key=lambda kv: -(kv[1].get("net") or 0)):
         net = d.get("net", 0)
-        ncol = "#16a34a" if net > 0.15 else "#dc2626" if net < -0.15 else "#64748b"
+        ncol = "var(--buy)" if net > 0.15 else "var(--sell)" if net < -0.15 else "var(--muted)"
         cells = "".join(f'<td style="text-align:center;">{chip(d.get(k,0))}</td>' for k, _ in dims)
         rows += (f'<tr><td><b>{sym}</b></td>'
                  f'<td style="text-align:center;color:{ncol};font-weight:700;">{net:+.2f}</td>'
@@ -1564,8 +1564,8 @@ def _structured_html(items: list | None, top: int = 14) -> str:
         return ""
     order = {"reject": 0, "delay": 1, "reduce": 2, "accept": 3}
     items = sorted(items, key=lambda s: (-(s.get("confidence") or 0)))
-    ucol = {"low": "#16a34a", "moderate": "#d97706", "high": "#dc2626"}
-    dcol = {"accept": "#16a34a", "reduce": "#d97706", "delay": "#64748b", "reject": "#dc2626"}
+    ucol = {"low": "var(--buy)", "moderate": "var(--warn)", "high": "var(--sell)"}
+    dcol = {"accept": "var(--buy)", "reduce": "var(--warn)", "delay": "var(--muted)", "reject": "var(--sell)"}
     rows = ""
     for s in items[:top]:
         rr = s.get("return_range") or {}
@@ -1582,8 +1582,8 @@ def _structured_html(items: list | None, top: int = 14) -> str:
             f'<td style="text-align:right;">{("%+.1f%%" % s["expected_value_pct"]) if s.get("expected_value_pct") is not None else "—"}</td>'
             f'<td style="text-align:right;">{s.get("expected_hold_days","—")}d</td>'
             f'<td style="text-align:right;">{s.get("risk_score","—")}</td>'
-            f'<td style="text-align:right;color:{ucol.get(s.get("uncertainty_band"),"#64748b")};">{s.get("uncertainty","—")}</td>'
-            f'<td style="text-align:center;color:{dcol.get(ddec,"#64748b")};font-weight:600;">{ddec}</td>'
+            f'<td style="text-align:right;color:{ucol.get(s.get("uncertainty_band"),"var(--muted)")};">{s.get("uncertainty","—")}</td>'
+            f'<td style="text-align:center;color:{dcol.get(ddec,"var(--muted)")};font-weight:600;">{ddec}</td>'
             f'<td style="text-align:center;">{s.get("size_recommendation","—")}</td></tr>'
         )
     return (
@@ -1612,7 +1612,7 @@ def _macro_posture_html(mp: dict | None) -> str:
     """Macro regime → exposure panel: composite posture, exposure multiplier, and the drivers."""
     if not mp:
         return ""
-    col = {"Risk-on": "#16a34a", "Neutral": "#64748b", "Risk-off": "#dc2626"}.get(mp.get("label"), "#64748b")
+    col = {"Risk-on": "var(--buy)", "Neutral": "var(--muted)", "Risk-off": "var(--sell)"}.get(mp.get("label"), "var(--muted)")
     em = mp.get("exposure_mult", 1.0)
     tilt = mp.get("cash_tilt_pct", 0)
     em_txt = (f"{em:.2f}× sizing" + (f" · ~{tilt}% more cash" if tilt else ""))
@@ -1620,7 +1620,7 @@ def _macro_posture_html(mp: dict | None) -> str:
     thr_txt = (f" · entry bar {thr}%" if thr else "")
     chips = ""
     for d in mp.get("drivers", []):
-        dc = "#16a34a" if d["score"] > 0.1 else "#dc2626" if d["score"] < -0.1 else "#64748b"
+        dc = "var(--buy)" if d["score"] > 0.1 else "var(--sell)" if d["score"] < -0.1 else "var(--muted)"
         chips += (f'<span style="display:inline-block;margin:3px 6px 3px 0;padding:3px 9px;border-radius:999px;'
                   f'background:color-mix(in srgb,{dc} 14%,transparent);color:{dc};font-size:12px;" '
                   f'title="{d["read"]}">{d["name"]} {d["score"]:+.1f}</span>')
@@ -1639,8 +1639,8 @@ def _macro_posture_html(mp: dict | None) -> str:
         cau = " · ".join(sb.get("caution", []))
         bias_html = (
             '<div style="font-size:12px;margin:6px 0 0;line-height:1.7;">'
-            f'<div><span style="color:#16a34a;">▲ Favour:</span> <span style="color:var(--txt2);">{fav}</span></div>'
-            f'<div><span style="color:#dc2626;">▼ Ease off:</span> <span style="color:var(--txt2);">{cau}</span></div>'
+            f'<div><span style="color:var(--buy);">▲ Favour:</span> <span style="color:var(--txt2);">{fav}</span></div>'
+            f'<div><span style="color:var(--sell);">▼ Ease off:</span> <span style="color:var(--txt2);">{cau}</span></div>'
             '</div>')
     return (
         f'<div class="ovbox" style="border-left:4px solid {col};margin:0 0 16px;">'
@@ -1896,7 +1896,7 @@ def _pairs_html(data: dict | None) -> str:
                 '±2σ. Enter at ±2σ, exit toward 0, stop beyond ±3σ.</p></div>')
 
     fit = data.get("regime_fit")
-    fit_col = "#16a34a" if fit else "#64748b"
+    fit_col = "var(--buy)" if fit else "var(--muted)"
     fit_txt = data.get("note") or ""
     banner = (f'<div class="ovbox" style="border-left:4px solid {fit_col};margin:0 0 16px;">'
               f'<div class="ovhead">Regime fit: <span style="color:{fit_col};">'
@@ -1949,11 +1949,11 @@ def _risk_html(risk: dict | None) -> str:
         return ""
     state = risk.get("state", "normal")
     palette = {
-        "normal": ("#16a34a", "🟢", "Normal", "Within all book-level risk limits."),
-        "derisk": ("#d97706", "🟡", "De-risking", "Drawdown elevated — new positions sized at half."),
-        "halt":   ("#dc2626", "🔴", "Halted", "A book-level limit was hit — no new positions this session."),
-        "killed": ("#dc2626", "🛑", "Kill switch", "Trading paused after repeated run failures."),
-        "off":    ("#64748b", "⚪", "Off", "Risk engine not evaluated this run."),
+        "normal": ("var(--buy)", "🟢", "Normal", "Within all book-level risk limits."),
+        "derisk": ("var(--warn)", "🟡", "De-risking", "Drawdown elevated — new positions sized at half."),
+        "halt":   ("var(--sell)", "🔴", "Halted", "A book-level limit was hit — no new positions this session."),
+        "killed": ("var(--sell)", "🛑", "Kill switch", "Trading paused after repeated run failures."),
+        "off":    ("var(--muted)", "⚪", "Off", "Risk engine not evaluated this run."),
     }
     col, dot, lab, default_msg = palette.get(state, palette["normal"])
     dd = risk.get("drawdown_pct")
@@ -2290,14 +2290,14 @@ def render_html(snap: dict) -> str:
   /* Light "Capital IQ Pro" palette is the default; dark is a toggle. */
   :root {{ --bg:#f5f7fa; --card:#ffffff; --line:#e4e8ed; --txt:#16202c;
     --muted:#5b6776; --txt2:#3d4757; --buy:#0a7d44; --sell:#d1242f; --hold:#0b5cad; --flat:#6b7785;
-    --short:#c2410c; --watch:#475569; --exit:#b45309; --avoid:#6b7280;
+    --short:#c2410c; --watch:#475569; --exit:#b45309; --avoid:#6b7280; --warn:#b7791f;
     --accent:#0b5cad; --grid:rgba(120,130,145,0.16); --cross:rgba(60,70,85,0.4);
     --inset:#f1f4f8; --hover:#eef2f7; --ring:rgba(11,92,173,.40);
     --shadow:0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.06);
     --shadow-lg:0 6px 20px rgba(16,24,40,0.10); }}
   html[data-theme="dark"] {{ --bg:#0d1117; --card:#161b22; --line:#262d36; --txt:#e6edf3;
     --muted:#8b97a6; --txt2:#c2cad4; --buy:#2ea043; --sell:#f85149; --hold:#58a6ff; --flat:#6e7681;
-    --short:#fb7185; --watch:#94a3b8; --exit:#d29922; --avoid:#6e7681;
+    --short:#fb7185; --watch:#94a3b8; --exit:#d29922; --avoid:#6e7681; --warn:#e0a82e;
     --accent:#58a6ff; --grid:rgba(42,52,65,0.55); --cross:rgba(139,151,166,0.45);
     --inset:#1c2530; --hover:#243042; --ring:rgba(88,166,255,.45);
     --shadow:0 1px 2px rgba(0,0,0,0.4); --shadow-lg:0 8px 28px rgba(0,0,0,0.5); }}
@@ -2683,6 +2683,16 @@ def render_html(snap: dict) -> str:
   .trackrec th, .trackrec td {{ text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); }}
   .trackrec th {{ color:var(--muted); font-weight:600; }}
   .win {{ color:var(--buy); }} .loss {{ color:var(--sell); }} .exp {{ color:var(--muted); }}
+  /* shared table style for the intelligence/data panels (was previously unstyled) */
+  .tbl {{ width:100%; border-collapse:collapse; font-size:13px; }}
+  .tbl th, .tbl td {{ text-align:left; padding:7px 9px; border-bottom:1px solid var(--line); vertical-align:middle; }}
+  .tbl thead th {{ color:var(--muted); font-weight:600; font-size:12px; white-space:nowrap;
+    position:sticky; top:0; background:var(--card); }}
+  .tbl tbody tr:hover {{ background:var(--hover); }}
+  .tbl tbody tr:last-child td {{ border-bottom:none; }}
+  .tbl .buy {{ color:var(--buy); }} .tbl .sell {{ color:var(--sell); }}
+  details.ovbox summary {{ list-style:none; }}
+  details.ovbox summary::-webkit-details-marker {{ display:none; }}
   .chartctl {{ display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin-bottom:10px; }}
   .ctlgrp {{ display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }}
   .ctlgrp button {{ background:var(--card); color:var(--muted); border:none; padding:5px 11px;
@@ -2839,6 +2849,10 @@ def render_html(snap: dict) -> str:
   @media (max-width:600px) {{
     /* rank table: drop to the 3 key factors on a narrow screen */
     .rkf-sm {{ display:none; }}
+    /* data/intelligence tables: denser, and let a wide one scroll inside its panel */
+    .tbl {{ font-size:12px; }}
+    .tbl th, .tbl td {{ padding:5px 6px; }}
+    .ovbox {{ overflow-x:auto; }}
     .wrap {{ padding:16px 12px 48px; }}
     h1 {{ font-size:21px; }}
     .appbar-top {{ gap:8px; padding:11px 2px 7px; }}
@@ -4217,7 +4231,7 @@ function openModal(s) {{
   if (mMeta) {{
     if (!mv) mMeta.innerHTML = '<div class="deskread">No meta verdict for this name on this run.</div>';
     else {{
-      const _dc = ({{accept:'#16a34a',reduce:'#d97706',delay:'#64748b',reject:'#dc2626'}})[mv.decision] || '#64748b';
+      const _dc = ({{accept:'var(--buy)',reduce:'var(--warn)',delay:'var(--muted)',reject:'var(--sell)'}})[mv.decision] || 'var(--muted)';
       mMeta.innerHTML = '<div class="deskread" style="border-left-color:'+_dc+';"><b style="color:'+_dc+';text-transform:capitalize;">'+mv.decision+'</b>'
         + ((mv.decision==='reduce'&&mv.size_factor!=null)?(' — size × '+mv.size_factor):'')
         + '<ul style="margin:8px 0 0;padding-left:18px;line-height:1.7;">'+(mv.reasons||[]).map(r=>'<li>'+r+'</li>').join('')+'</ul></div>';
@@ -4247,9 +4261,9 @@ function openModal(s) {{
     if (!nlp) mNR.innerHTML = '<div class="deskread">No AI news read for this name this run (top actionable names only, live runs).</div>';
     else {{
       const dims = [['guidance','Guidance'],['demand_strength','Demand'],['management_confidence','Mgmt confidence'],['margin_pressure','Margin pressure'],['regulatory_risk','Regulatory risk'],['balance_sheet_concern','Balance-sheet'],['earnings_quality_risk','Earnings quality']];
-      const cells = dims.map(d => {{ const v = nlp[d[0]]||0; const c = v>0?'#16a34a':v<0?'#dc2626':'#64748b';
+      const cells = dims.map(d => {{ const v = nlp[d[0]]||0; const c = v>0?'var(--buy)':v<0?'var(--sell)':'var(--muted)';
         return '<div class="stat"><div class="l">'+d[1]+'</div><div class="v" style="color:'+c+';font-size:17px;">'+(v>0?'+':'')+v+'</div></div>'; }}).join('');
-      const net = nlp.net; const nc = net>0.15?'#16a34a':net<-0.15?'#dc2626':'#64748b';
+      const net = nlp.net; const nc = net>0.15?'var(--buy)':net<-0.15?'var(--sell)':'var(--muted)';
       mNR.innerHTML = '<div class="deskread">Net read: <b style="color:'+nc+';">'+(net>0?'+':'')+net+'</b>'+(nlp.note?(' — '+_esc(nlp.note)):'')+'</div>'
         + '<div class="plangrid">'+cells+'</div>'
         + '<p style="color:var(--muted);font-size:11px;margin:8px 0 0;">+ favourable, − a risk flag. Built from headlines only; it feeds the meta-model, it never places the trade.</p>';
