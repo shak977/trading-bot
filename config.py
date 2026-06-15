@@ -63,6 +63,16 @@ class Config:
     fast_ma: int = 20
     slow_ma: int = 50
     rsi_period: int = 14
+
+    # --- Intraday signal layer: runs the SAME engine on intraday bars over the scanned names,
+    # shown in its own tab (and later nudges daily conviction). Fully gated + graceful: if the
+    # intraday fetch fails/rate-limits, the daily build is untouched. ---
+    intraday_enabled: bool = field(default_factory=lambda: os.getenv("INTRADAY_ENABLED", "true").lower() == "true")
+    intraday_timeframe: str = "5Min"        # 1Min / 5Min / 15Min / 1Hour
+    intraday_lookback_days: int = 15        # calendar days of intraday history to pull
+    intraday_fast_ma: int = 9               # MA periods are in BARS at the intraday timeframe
+    intraday_slow_ma: int = 20
+    intraday_show_top: int = 60             # cap intraday cards shown
     rsi_overbought: float = 70.0
     rsi_oversold: float = 30.0
 

@@ -1012,10 +1012,12 @@ def _rank_key(row: dict) -> tuple:
 LAST_ERRORS: list[str] = []
 
 
-def scan(cfg: Config, live: bool, pin: set | None = None) -> list[dict]:
+def scan(cfg: Config, live: bool, pin: set | None = None, universe: list | None = None) -> list[dict]:
     LAST_ERRORS.clear()
     equity = cfg.starting_cash
-    if live and cfg.scan_market:
+    if universe is not None:           # explicit list (e.g. the intraday pass reuses daily names)
+        symbols = list(universe)
+    elif live and cfg.scan_market:
         symbols = build_universe(cfg)
     elif live:
         symbols = list(cfg.symbols)

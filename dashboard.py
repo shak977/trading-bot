@@ -591,6 +591,27 @@ def build_snapshot() -> dict:
         ],
     }
 
+    # --- Intraday layer (gated + graceful): run the SAME engine on intraday bars over the same
+    # names. Never breaks the daily build — any failure leaves intraday_shown empty.
+    intraday_shown: list = []
+    if live and getattr(CONFIG, "intraday_enabled", False):
+        try:
+            from dataclasses import replace as _replace
+            _icfg = _replace(CONFIG, timeframe=CONFIG.intraday_timeframe,
+                             lookback_days=CONFIG.intraday_lookback_days,
+                             fast_ma=CONFIG.intraday_fast_ma, slow_ma=CONFIG.intraday_slow_ma)
+            _iuniverse = [r["symbol"] for r in rows]          # reuse the daily-scanned names
+            _irows = scanner.scan(_icfg, live=live, universe=_iuniverse)
+            for _ir in _irows:
+                _ir.pop("chart", None)                        # drop heavy chart payload
+                _ir["intraday"] = True
+            _irows.sort(key=lambda r: -((r.get("conviction") or {}).get("score_pct") or 0))
+            intraday_shown = _irows[: CONFIG.intraday_show_top]
+            print(f"INTRADAY: {len(intraday_shown)} signals on {CONFIG.intraday_timeframe} bars")
+        except Exception as _iexc:  # noqa: BLE001 - never break the daily build
+            intraday_shown = []
+            print("INTRADAY: skipped —", _iexc)
+
     return {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         "mode": mode,
@@ -625,8 +646,10 @@ def build_snapshot() -> dict:
             "rsi_period": CONFIG.rsi_period, "risk_per_trade": CONFIG.risk_per_trade,
             "stop_loss_pct": CONFIG.stop_loss_pct, "take_profit_pct": CONFIG.take_profit_pct,
             "rel_volume_window": CONFIG.rel_volume_window,
+            "intraday_timeframe": CONFIG.intraday_timeframe,
         },
         "signals": shown,
+        "intraday": intraday_shown,
         "charts": {k: charts[k] for k in shown_syms if k in charts},
         "news": news,
     }
@@ -2110,6 +2133,7 @@ def render_html(snap: dict) -> str:
         <button data-page="signals" class="on">Signals</button>
         <button data-page="markets">Markets</button>
         <button data-page="momentum">Momentum</button>
+        <button data-page="intraday">Intraday</button>
         <button data-page="portfolio">Portfolio</button>
         <button data-page="allweather">All Weather</button>
         <button data-page="ipos">IPO watch</button>
@@ -2175,6 +2199,11 @@ def render_html(snap: dict) -> str:
   <section class="page" id="page-momentum">
     <h2 style="margin-top:0;">Momentum leaders <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— dual-momentum ranking (our best backtested strategy)</span></h2>
 {momentum_html}
+  </section>
+
+  <section class="page" id="page-intraday">
+    <h2 style="margin-top:0;">Intraday signals <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— the same engine on intraday bars (faster, noisier; daily signals remain the backbone)</span></h2>
+    <div id="intradayCards"></div>
   </section>
 
   <section class="page" id="page-portfolio">
@@ -2885,6 +2914,26 @@ function renderCards() {{
   }});
   renderCards();
 }})();
+
+// --- Intraday tab: render the intraday-bar signals (reuses the same card UI) ---
+function renderIntraday() {{
+  const el = document.getElementById('intradayCards'); if (!el) return;
+  const list = DATA.intraday || [];
+  const tf = (DATA.params && DATA.params.intraday_timeframe) || '5Min';
+  el.innerHTML = `<div class="strat-badge"><span class="k">Layer</span><span class="v">Intraday · ${{tf}} bars — faster &amp; noisier than the daily signals; confirm before acting</span></div>`;
+  const grid = document.createElement('div'); grid.className = 'grid';
+  if (!list.length) {{
+    grid.innerHTML = '<div style="color:var(--muted);font-size:13px;">No intraday signals this build (or intraday data was unavailable — it falls back silently, so the daily view is never affected).</div>';
+  }} else {{
+    list.forEach(s => grid.appendChild(makeCard(s)));
+  }}
+  el.appendChild(grid);
+  document.querySelectorAll('#page-intraday [data-px]').forEach(elp => {{
+    const p = (typeof LIVE !== 'undefined') ? LIVE[elp.dataset.px] : null;
+    if (p != null) elp.textContent = _fmtPx(p);
+  }});
+}}
+renderIntraday();
 
 // --- momentum leaderboard rows open the same rich detail modal as the cards ---
 (function bindMomentumRows() {{
