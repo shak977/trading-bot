@@ -726,13 +726,32 @@ def build_snapshot() -> dict:
     except Exception:  # noqa: BLE001
         track = None
 
+    # No-trade intelligence layer: one unified "should we be trading right now?" read (macro event,
+    # abnormal vol, deteriorating performance, drawdown). Computed before paper so it can gate entries.
+    try:
+        import notrade as _notrade
+        notrade_gate = _notrade.market_gate(CONFIG, macro_posture=macro_posture, macro=macro,
+                                            calendar=calendar, track=track, risk=None, today=today)
+    except Exception:  # noqa: BLE001
+        notrade_gate = {"block_new": False, "reasons": [], "cautions": [], "checks": []}
+
     # Optional REAL paper-trading record (opt-in via PAPER_TRADE) — submits bracket orders for
     # fresh High-conviction signals and reads the live paper account. Disabled -> None.
     try:
         import paper as _paper
-        paper_acct = _paper.run(shown, CONFIG, today, exposure_mult=_exposure_mult, regime=macro_posture)
+        paper_acct = _paper.run(shown, CONFIG, today, exposure_mult=_exposure_mult,
+                                regime=macro_posture, notrade_block=notrade_gate.get("block_new", False))
     except Exception:  # noqa: BLE001
         paper_acct = None
+
+    # Re-evaluate the no-trade gate WITH the risk-engine state (from paper) so the panel unifies it.
+    try:
+        import notrade as _notrade
+        notrade_gate = _notrade.market_gate(CONFIG, macro_posture=macro_posture, macro=macro,
+                                            calendar=calendar, track=track,
+                                            risk=(paper_acct or {}).get("risk"), today=today)
+    except Exception:  # noqa: BLE001
+        pass
 
     # Pairs / mean-reversion diversifier (gated). Market-neutral spread bets on related names —
     # leans in when the tape is trendless. Any failure -> empty list; never breaks the build.
@@ -844,6 +863,7 @@ def build_snapshot() -> dict:
         "concentration": _concentration(shown),
         "macro": macro,
         "macro_posture": macro_posture,
+        "notrade": notrade_gate,
         "price_drops": price_drops,
         "momentum": [dict(m, name=scanner.name_of(
                         m["symbol"], {r["symbol"]: r.get("name", "") for r in shown}.get(m["symbol"], "")))
@@ -1401,6 +1421,30 @@ def _ranked_html(ranked: list | None, top: int = 12) -> str:
         'volatility-adjusted reward, macro fit, liquidity and momentum into one 0–100 score, so capital '
         'goes to the strongest setups first (paper entries are opened in this order). The five bars are '
         'the factor breakdown. Educational; not advice.</p></div>'
+    )
+
+
+def _notrade_html(nt: dict | None) -> str:
+    """Unified no-trade panel: the conditions that pause new entries, each ok / caution / block."""
+    if not nt or not nt.get("checks"):
+        return ""
+    blocked = nt.get("block_new")
+    head_col = "#dc2626" if blocked else ("#d97706" if nt.get("cautions") else "#16a34a")
+    head_txt = ("Standing down — not opening new positions" if blocked
+                else "Caution — trading with reservations" if nt.get("cautions")
+                else "Clear to trade — no blocking conditions")
+    icon = {"ok": "🟢", "caution": "🟡", "block": "🔴"}
+    rows = ""
+    for c in nt.get("checks", []):
+        rows += (f'<tr><td style="white-space:nowrap;">{icon.get(c["status"],"")} {c["name"]}</td>'
+                 f'<td style="color:var(--txt2);font-size:13px;">{c["detail"]}</td></tr>')
+    return (
+        f'<div class="ovbox" style="border-left:4px solid {head_col};margin:0 0 16px;">'
+        f'<div class="ovhead">🚦 No-trade check — <span style="color:{head_col};">{head_txt}</span></div>'
+        f'<table class="tbl" style="margin-top:8px;"><tbody>{rows}</tbody></table>'
+        '<p style="color:var(--muted);font-size:11px;margin:8px 0 0;">The bot sits on its hands when conditions '
+        'are poor, even if a signal fires. A 🔴 pauses <b>new</b> entries this run (open positions keep their '
+        'stops/targets); 🟡 means trade smaller / be selective. It never overrides the risk engine.</p></div>'
     )
 
 
@@ -2016,7 +2060,8 @@ def render_html(snap: dict) -> str:
     portfolio_html = _ranked_html(snap.get("ranked")) + _portfolio_html(snap.get("portfolio"))
     ipo_html = _ipo_html(snap.get("ipos") or [], snap.get("ipo_news") or [])
     sectors_html = _sectors_html(snap.get("sectors"))
-    macro_html = (_macro_posture_html(snap.get("macro_posture"))
+    macro_html = (_notrade_html(snap.get("notrade"))
+                  + _macro_posture_html(snap.get("macro_posture"))
                   + _macro_html(snap.get("macro")) + _calendar_html(snap.get("calendar")))
     dh = snap.get("data_health")
     if not dh:
@@ -2864,9 +2909,11 @@ def render_html(snap: dict) -> str:
       blending conviction quality, volatility-adjusted reward, macro fit, liquidity and momentum — so a high-conviction
       but illiquid or poorly-paying setup is correctly ranked below a cleaner one. And a <b>feedback loop</b> tags every
       logged trade with the macro regime and score at entry, so the Track record tab can show which regimes each
-      strategy actually works in as results accrue. It's all transparent rules today; that logged history is also the
-      foundation for adding machine-learning scoring later — and even then, every decision still passes through the
-      rules-based risk engine, which always has the final say.</p>
+      strategy actually works in as results accrue. There's also a <b>no-trade layer</b> (Markets tab → "🚦 No-trade
+      check") that makes the bot sit on its hands when conditions are poor — a major data release due that day, panic-level
+      volatility, a deteriorating track record, or a drawdown breach — even if a signal fires. It's all transparent rules
+      today; that logged history is also the foundation for adding machine-learning scoring later — and even then, every
+      decision still passes through the rules-based risk engine, which always has the final say.</p>
 
       <h4>Macro sets the exposure dial (not the trades)</h4>
       <p>Macro data — the VIX, the yield curve, credit spreads, the dollar, plus overall market breadth —

@@ -177,7 +177,7 @@ def manage_open_positions(broker, cfg: Config, log: list[dict]) -> list[str]:
 
 
 def run(signals: list[dict], cfg: Config, today: str, exposure_mult: float = 1.0,
-        regime: dict | None = None) -> dict | None:
+        regime: dict | None = None, notrade_block: bool = False) -> dict | None:
     """Reconcile + (optionally) submit paper orders. Returns a dashboard-ready dict, or None
     when the feature is disabled. Never raises.
 
@@ -247,8 +247,11 @@ def run(signals: list[dict], cfg: Config, today: str, exposure_mult: float = 1.0
         notes.append(f"Macro exposure: new positions sized {_em:.2f}× "
                      f"({'leaning in (risk-on)' if _em > 1 else 'pulled back (risk-off)'}).")
 
+    if notrade_block:
+        notes.append("No-trade layer: market conditions are poor — not opening new positions this run.")
+
     # --- submit new brackets for fresh High-conviction signals ---
-    if market_open and risk.get("ok_to_open", True) and len(open_syms) < cfg.paper_max_open:
+    if market_open and risk.get("ok_to_open", True) and not notrade_block and len(open_syms) < cfg.paper_max_open:
         candidates = [s for s in signals
                       if s.get("action") in ("BUY", "SHORT")
                       and (s.get("conviction") or {}).get("label") == "High"]
@@ -271,6 +274,15 @@ def run(signals: list[dict], cfg: Config, today: str, exposure_mult: float = 1.0
             cid = f"sd-{sym}-{today}"
             if cid in existing_ids or cid in by_cid:
                 continue
+            # per-name no-trade veto (earnings imminent, conflicting signals, illiquid)
+            try:
+                import notrade as _notrade
+                _veto = _notrade.symbol_veto(s, cfg)
+                if _veto and _veto.get("status") == "block":
+                    notes.append(f"{sym}: skipped ({_veto['reason']})")
+                    continue
+            except Exception:  # noqa: BLE001
+                pass
             plan = s.get("plan") or {}
             entry, stop, target = plan.get("entry"), plan.get("stop"), plan.get("target")
             if not (entry and stop and target):
