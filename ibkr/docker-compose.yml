@@ -1,0 +1,27 @@
+# IBeam keeps an IBKR Client Portal Web API session authenticated 24/7.
+# Put your gateway-login credentials in a sibling `.env` file (NOT committed to git):
+#   IBEAM_ACCOUNT=your_gateway_username
+#   IBEAM_PASSWORD=your_gateway_password
+#
+# Start:   docker compose up -d
+# Logs:    docker compose logs -f      (approve the 2FA on your IBKR phone app on first login)
+# Health:  curl -k https://localhost:5000/v1/api/iserver/auth/status
+#
+# NB: IBeam's env-var names can change between versions — if login fails, check the current
+# options at github.com/Voyz/ibeam and tell me the log line; we'll adjust.
+
+services:
+  ibeam:
+    image: voyz/ibeam:latest
+    container_name: ibeam
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Optional tuning; defaults are usually fine.
+      IBEAM_GATEWAY_BASE_URL: "https://localhost:5000"
+      IBEAM_MAINTENANCE_INTERVAL: "60"      # seconds between session keep-alive checks
+    ports:
+      # Bind to localhost only — the GitHub build reaches it through an SSH tunnel, never the
+      # open internet. (Format: host:container; 127.0.0.1 keeps it private to the server.)
+      - "127.0.0.1:5000:5000"

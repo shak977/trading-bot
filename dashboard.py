@@ -2930,7 +2930,7 @@ async function refreshLive() {{
     st.innerHTML = '&middot; <span style="color:#8b97a6;">live prices unavailable</span>';
   }}
 }}
-if (LIVE_URL) {{ refreshLive(); setInterval(refreshLive, 30000); }}
+if (LIVE_URL) {{ refreshLive(); setInterval(refreshLive, 15000); }}
 // live ET clock for the terminal header (only present when Terminal layout is active)
 setInterval(() => {{
   const c = document.getElementById('bbclock');

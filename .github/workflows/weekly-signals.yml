@@ -5,15 +5,21 @@ name: Weekly Trading Signals
 # signals/news stay fresh intraday, plus a final run ~2h after the close when the daily bar is
 # settled. Also manual + on push. NB: technical signals use completed DAILY bars, so they don't
 # change pre-market — the pre-market value is the news/idea layer, not new BUY/SHORT calls.
-# Note: GitHub may delay/skip scheduled runs under load — 30 min is the practical floor.
+# Note: GitHub may delay/skip scheduled runs under load — ~10 min is about the practical floor.
 on:
   schedule:
     - cron: "*/30 10-12 * * 1-5"  # PRE-MARKET: every 30 min ~6–8:30am ET (refreshes news + news-driven ideas + alerts before the open)
-    - cron: "*/30 13-21 * * 1-5"  # every 30 min, ~9:30am–5pm ET (handles EDT & EST)
+    - cron: "*/10 13-21 * * 1-5"  # MARKET HOURS: every 10 min, ~9:30am–5pm ET (handles EDT & EST) — fresher news/alerts/prices
     - cron: "0 22 * * 1-5"        # ~final, after close — settled daily bar
   workflow_dispatch:
   push:
     branches: [main]   # redeploy the live site whenever code is updated
+
+# At 10-min cadence a slow build could overlap the next — supersede the in-flight run so the
+# freshest data wins and runs never pile up. (Deploy happens before the track-record commit.)
+concurrency:
+  group: signals-build
+  cancel-in-progress: true
 
 permissions:
   contents: write   # allow committing the updated track_record.json back to the repo
