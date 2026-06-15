@@ -3030,24 +3030,28 @@ function openModal(s) {{
     : '<span style="color:var(--muted);font-size:13px;">No standout chart patterns right now.</span>';
   // research: analysts, fundamentals, news tone
   const rel = document.getElementById('mResearch');
+  const short = s.direction === 'SHORT';
+  // color by whether a signal HELPS this trade's direction, not by raw bullishness:
+  // on a short, bullish news/ratings/upside are headwinds (red), bearish are supportive (green).
+  const dirCls = (bullish) => bullish === null ? '' : ((bullish !== short) ? 'buy' : 'sell');
   const fu = s.fundamentals || {{}}, an = fu.analysts, sen = s.sentiment;
   let rcells = '';
   const statc = (l,v,cls)=>`<div class="stat"><div class="l">${{l}}</div><div class="v ${{cls||''}}" style="font-size:15px;">${{v}}</div></div>`;
   if (an) {{
-    const cc = an.consensus==='Buy'?'buy':an.consensus==='Sell'?'sell':'';
+    const cc = dirCls(an.consensus==='Buy'?true:an.consensus==='Sell'?false:null);
     rcells += statc('Analyst consensus', an.consensus, cc) + statc('Buy / Hold / Sell', `${{an.buy}} / ${{an.hold}} / ${{an.sell}}`);
   }}
   if (fu.target_mean) {{
     const up = ((fu.target_mean/s.price-1)*100);
-    rcells += statc('Avg price target', '$'+fu.target_mean.toLocaleString(), up>=0?'buy':'sell')
-            + statc('Upside to target', (up>=0?'+':'')+up.toFixed(0)+'%', up>=0?'buy':'sell');
+    rcells += statc('Avg price target', '$'+fu.target_mean.toLocaleString(), dirCls(up>=0))
+            + statc('Upside to target', (up>=0?'+':'')+up.toFixed(0)+'%', dirCls(up>=0));
   }}
   if (fu.pe) rcells += statc('P/E ratio', fu.pe);
   if (fu.earnings_date) {{
     const ed = fu.earnings_days;
     rcells += statc('Next earnings', fu.earnings_date + (ed!=null?` (${{ed}}d)`:''), (ed!=null && ed<=7)?'sell':'');
   }}
-  if (sen && sen.label) rcells += statc('News tone', sen.label, sen.label==='Positive'?'buy':sen.label==='Negative'?'sell':'');
+  if (sen && sen.label) rcells += statc('News tone', sen.label, dirCls(sen.label==='Positive'?true:sen.label==='Negative'?false:null));
   rel.innerHTML = rcells || '<div style="color:var(--muted);font-size:13px;">No analyst/fundamental data available'
     + (sen ? '' : ' (add a Finnhub key to enable it)') + '.</div>';
   const eel = document.getElementById('mEdge'), e = s.edge;
