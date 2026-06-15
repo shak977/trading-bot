@@ -2780,6 +2780,12 @@ def render_html(snap: dict) -> str:
     .mkt-side {{ flex-direction:row; flex-wrap:wrap; position:static; }} }}
   /* ---- modal sub-tab layout ---- */
   .modal-wide {{ max-width:880px; }}
+  .mk-top {{ display:flex; gap:4px; flex-wrap:wrap; border-bottom:1px solid var(--line);
+    margin:14px 0 0; padding-bottom:0; }}
+  .mk-top button {{ background:none; border:none; border-bottom:2px solid transparent; color:var(--muted);
+    font-size:14px; font-weight:700; padding:9px 13px; cursor:pointer; margin-bottom:-1px; }}
+  .mk-top button:hover {{ color:var(--txt); }}
+  .mk-top button.on {{ color:var(--accent); border-bottom-color:var(--accent); }}
   .mk {{ display:grid; grid-template-columns:158px minmax(0,1fr); gap:18px; margin-top:14px; align-items:start; }}
   .mk-side {{ display:flex; flex-direction:column; gap:4px; position:sticky; top:0; }}
   .mk-side button {{ text-align:left; background:none; border:none; color:var(--muted); font-size:13.5px;
@@ -3147,14 +3153,27 @@ def render_html(snap: dict) -> str:
     <button class="close" id="modalClose">&times;</button>
     <h3 id="mTitle"></h3>
     <div class="summary" id="mSummary"></div>
+    <nav class="mk-top" id="mkTop">
+      <button data-top="overview" class="on">Overview</button>
+      <button data-top="chart">Chart</button>
+      <button data-top="trade">Trade</button>
+      <button data-top="intel">Intelligence</button>
+      <button data-top="research">Research</button>
+    </nav>
     <div class="mk">
       <nav class="mk-side" id="mkNav">
-        <button data-mkview="overview" class="on">Overview</button>
-        <button data-mkview="chart">Chart</button>
-        <button data-mkview="plan">Trade plan</button>
-        <button data-mkview="strategies">Strategies</button>
-        <button data-mkview="signals">Inputs</button>
-        <button data-mkview="research">Research &amp; news</button>
+        <button data-top="overview" data-mkview="overview" class="on">Summary</button>
+        <button data-top="chart" data-mkview="chart">Chart</button>
+        <button data-top="trade" data-mkview="plan">Plan</button>
+        <button data-top="trade" data-mkview="risk">Risk &amp; sizing</button>
+        <button data-top="trade" data-mkview="exec">Execution</button>
+        <button data-top="intel" data-mkview="meta">Meta verdict</button>
+        <button data-top="intel" data-mkview="regimefit">Regime fit</button>
+        <button data-top="intel" data-mkview="newsread">AI news read</button>
+        <button data-top="intel" data-mkview="rank">Adaptive rank</button>
+        <button data-top="research" data-mkview="strategies">Strategies</button>
+        <button data-top="research" data-mkview="signals">Signal inputs</button>
+        <button data-top="research" data-mkview="research">Fundamentals &amp; news</button>
       </nav>
       <div class="mk-main">
         <div class="mk-view on" id="mkview-overview">
@@ -3193,6 +3212,32 @@ def render_html(snap: dict) -> str:
           <ul class="news" id="mNews"></ul>
           <div class="sech">The details, explained</div>
           <ul class="reasons" id="mReasons"></ul>
+        </div>
+        <div class="mk-view" id="mkview-risk">
+          <div class="sech" style="margin-top:0;">Risk &amp; sizing <span style="text-transform:none;color:var(--muted);">— the structured signal contract</span></div>
+          <div class="plangrid" id="mRisk"></div>
+          <div class="sech">Kill conditions</div>
+          <div id="mKill" style="font-size:13px;color:var(--txt2);"></div>
+        </div>
+        <div class="mk-view" id="mkview-exec">
+          <div class="sech" style="margin-top:0;">Execution quality <span style="text-transform:none;color:var(--muted);">— can this be traded cleanly?</span></div>
+          <div class="plangrid" id="mExec"></div>
+        </div>
+        <div class="mk-view" id="mkview-meta">
+          <div class="sech" style="margin-top:0;">Meta-signal verdict <span style="text-transform:none;color:var(--muted);">— the second opinion on this trade</span></div>
+          <div id="mMeta"></div>
+        </div>
+        <div class="mk-view" id="mkview-regimefit">
+          <div class="sech" style="margin-top:0;">Macro &amp; regime fit</div>
+          <div id="mRegimeFit"></div>
+        </div>
+        <div class="mk-view" id="mkview-newsread">
+          <div class="sech" style="margin-top:0;">AI news read <span style="text-transform:none;color:var(--muted);">— headlines turned into structured scores</span></div>
+          <div id="mNewsRead"></div>
+        </div>
+        <div class="mk-view" id="mkview-rank">
+          <div class="sech" style="margin-top:0;">Adaptive allocation rank</div>
+          <div id="mRank"></div>
         </div>
       </div>
     </div>
@@ -4098,6 +4143,94 @@ function openModal(s) {{
     : '<li class="src">No recent news tagged for this symbol.</li>';
   // ---- Signals sub-tab: every alt-data input in detail, with plain-English reasoning ----
   document.getElementById('mSignals').innerHTML = _signalsDetail(s);
+
+  // ===== Intelligence + Trade sub-views (meta / structured / nlp / rank / liquidity) =====
+  const so = s.structured || {{}};
+  const _rng = so.return_range || {{}};
+  const _fmtPct = v => (v==null?'—':((v>0?'+':'')+v+'%'));
+  // Risk & sizing
+  const mRisk = document.getElementById('mRisk');
+  if (mRisk) mRisk.innerHTML =
+    stat('Confidence', (so.confidence!=null?so.confidence:'—'), '0–100 conviction') +
+    stat('Expected value', _fmtPct(so.expected_value_pct), 'probability-weighted') +
+    stat('Return range', (_rng.upside_pct!=null? (_fmtPct(_rng.upside_pct)+' / '+_fmtPct(_rng.downside_pct)) : '—'), 'target / stop') +
+    stat('Reward : risk', (so.rr!=null?('1 : '+so.rr):'—'), '') +
+    stat('Hold (est.)', (so.expected_hold_days!=null?(so.expected_hold_days+' sessions'):'—'), 'to target at typical move') +
+    stat('Risk score', (so.risk_score!=null?(so.risk_score+'/100'):'—'), 'volatility + illiquidity', (so.risk_score>=66?'sell':'')) +
+    stat('Uncertainty', (so.uncertainty!=null?(so.uncertainty+'/100 · '+(so.uncertainty_band||'')):'—'), 'disagreement / mixed macro / thin liq', (so.uncertainty_band==='high'?'sell':'')) +
+    stat('Size rec.', (so.size_recommendation||'—'), 'after meta + regime', (so.size_recommendation==='Skip'?'sell':so.size_recommendation==='Full'?'buy':''));
+  const kc = so.kill_conditions || {{}};
+  const mKill = document.getElementById('mKill');
+  if (mKill) mKill.innerHTML = 'Exit if the <b>stop</b> ('+(kc.stop_pct!=null?kc.stop_pct+'%':'—')+') is hit. The whole book de-risks at <b>'
+    + (kc.book_drawdown_halt_pct!=null?kc.book_drawdown_halt_pct:'—')+'% drawdown</b> or a <b>'+(kc.daily_loss_limit_pct!=null?kc.daily_loss_limit_pct:'—')
+    + '% daily loss</b>, and the kill switch halts trading after repeated run failures.';
+  // Execution / liquidity
+  const lq = s.liquidity || {{}};
+  const _dv = lq.dollar_volume;
+  const mExec = document.getElementById('mExec');
+  if (mExec) mExec.innerHTML =
+    stat('Liquidity tier', (lq.tier||'—'), 'by daily $ turnover', (lq.tier==='illiquid'||lq.tier==='thin'?'sell':'')) +
+    stat('Avg $ volume', (_dv!=null? ('$'+(_dv>=1e9?(_dv/1e9).toFixed(1)+'B':(_dv/1e6).toFixed(0)+'M')+'/day') : '—'), 'how much trades hands') +
+    stat('Est. spread', (lq.spread_bps!=null?(lq.spread_bps+' bps'):'—'), 'modeled half-spread') +
+    stat('Liquidity score', (so.liquidity_score!=null?(so.liquidity_score+'/100'):'—'), 'execution quality');
+  // Meta verdict
+  const mv = s.meta;
+  const mMeta = document.getElementById('mMeta');
+  if (mMeta) {{
+    if (!mv) mMeta.innerHTML = '<div class="deskread">No meta verdict for this name on this run.</div>';
+    else {{
+      const _dc = ({{accept:'#16a34a',reduce:'#d97706',delay:'#64748b',reject:'#dc2626'}})[mv.decision] || '#64748b';
+      mMeta.innerHTML = '<div class="deskread" style="border-left-color:'+_dc+';"><b style="color:'+_dc+';text-transform:capitalize;">'+mv.decision+'</b>'
+        + ((mv.decision==='reduce'&&mv.size_factor!=null)?(' — size × '+mv.size_factor):'')
+        + '<ul style="margin:8px 0 0;padding-left:18px;line-height:1.7;">'+(mv.reasons||[]).map(r=>'<li>'+r+'</li>').join('')+'</ul></div>';
+    }}
+  }}
+  // Macro & regime fit
+  const mp = DATA.macro_posture || {{}};
+  const _fit = (s.rank_factors||{{}}).macrofit;
+  const mRF = document.getElementById('mRegimeFit');
+  if (mRF) {{
+    let g = '<div class="plangrid">'
+      + stat('Macro regime', (mp.label||'—'), (mp.score!=null?('composite '+mp.score):''))
+      + stat('Exposure dial', (mp.exposure_mult!=null?(mp.exposure_mult+'×'):'—'), 'new-position sizing')
+      + stat('This trade’s fit', (_fit!=null?(_fit+'/100'):'—'), 'direction vs regime', (_fit!=null&&_fit<40?'sell':_fit>=70?'buy':''))
+      + (mp.entry_threshold?stat('Entry bar', mp.entry_threshold+'%', 'raised by regime'):'')
+      + '</div>';
+    const _tags = (mp.tags||[]).map(t=>'<span class="chip" title="'+_esc(t.why||'')+'">'+t.tag+'</span>').join(' ');
+    if (_tags) g += '<div class="sech">Regime tags</div><div class="chips">'+_tags+'</div>';
+    const _sb = mp.strategy_bias || {{}};
+    if (_sb.favored) g += '<div class="sech">Favoured now</div><div style="font-size:13px;color:var(--txt2);">'+_sb.favored.join(' · ')+'</div>';
+    mRF.innerHTML = g;
+  }}
+  // AI news read (LLM structured scores)
+  const nlp = s.nlp;
+  const mNR = document.getElementById('mNewsRead');
+  if (mNR) {{
+    if (!nlp) mNR.innerHTML = '<div class="deskread">No AI news read for this name this run (top actionable names only, live runs).</div>';
+    else {{
+      const dims = [['guidance','Guidance'],['demand_strength','Demand'],['management_confidence','Mgmt confidence'],['margin_pressure','Margin pressure'],['regulatory_risk','Regulatory risk'],['balance_sheet_concern','Balance-sheet'],['earnings_quality_risk','Earnings quality']];
+      const cells = dims.map(d => {{ const v = nlp[d[0]]||0; const c = v>0?'#16a34a':v<0?'#dc2626':'#64748b';
+        return '<div class="stat"><div class="l">'+d[1]+'</div><div class="v" style="color:'+c+';font-size:17px;">'+(v>0?'+':'')+v+'</div></div>'; }}).join('');
+      const net = nlp.net; const nc = net>0.15?'#16a34a':net<-0.15?'#dc2626':'#64748b';
+      mNR.innerHTML = '<div class="deskread">Net read: <b style="color:'+nc+';">'+(net>0?'+':'')+net+'</b>'+(nlp.note?(' — '+_esc(nlp.note)):'')+'</div>'
+        + '<div class="plangrid">'+cells+'</div>'
+        + '<p style="color:var(--muted);font-size:11px;margin:8px 0 0;">+ favourable, − a risk flag. Built from headlines only; it feeds the meta-model, it never places the trade.</p>';
+    }}
+  }}
+  // Adaptive rank
+  const rf = s.rank_factors, rs = s.rank_score;
+  const mRk = document.getElementById('mRank');
+  if (mRk) {{
+    if (rs==null || !rf) mRk.innerHTML = '<div class="deskread">Not ranked (only actionable names get an allocation rank).</div>';
+    else {{
+      const bar = (lab,v) => {{ v=Math.max(0,Math.min(100,Math.round(v||0)));
+        return '<div style="margin:7px 0;"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);"><span>'+lab+'</span><span>'+v+'</span></div>'
+          + '<div style="height:7px;border-radius:4px;background:color-mix(in srgb,var(--accent) 14%,transparent);"><div style="height:100%;width:'+v+'%;border-radius:4px;background:var(--accent);"></div></div></div>'; }};
+      mRk.innerHTML = '<div class="deskread">Allocation rank <b>'+rs+'</b>/100'+(s.rank?(' · #'+s.rank+' today'):'')+'</div>'
+        + bar('Quality',rf.quality)+bar('Vol-adjusted reward',rf.vreward)+bar('Macro fit',rf.macrofit)+bar('Liquidity',rf.liquidity)+bar('Momentum',rf.momentum);
+    }}
+  }}
+
   // load this symbol into the modal's Capital IQ-style chart engine
   if (modalTC) modalTC.setSymbol(s.symbol, s.plan || {{}});
   if (window._mkShow) window._mkShow('overview');   // every open starts on Overview
@@ -4303,14 +4436,39 @@ function _tvInit() {{
 
 // ---- modal sub-views (left rail) ----
 (function setupModalViews() {{
-  const nav = document.getElementById('mkNav'); if (!nav) return;
-  const btns = nav.querySelectorAll('button');
-  window._mkShow = function(v) {{
-    btns.forEach(b => b.classList.toggle('on', b.dataset.mkview === v));
+  const top = document.getElementById('mkTop');
+  const nav = document.getElementById('mkNav');
+  const mk = document.querySelector('.mk');
+  if (!top || !nav) return;
+  const topBtns = top.querySelectorAll('button');
+  const sideBtns = nav.querySelectorAll('button');
+  function showView(v) {{
+    sideBtns.forEach(b => b.classList.toggle('on', b.dataset.mkview === v));
     document.querySelectorAll('.mk-view').forEach(p => p.classList.toggle('on', p.id === 'mkview-' + v));
     if (v === 'chart') setTimeout(() => {{ try {{ if (modalTC) modalTC.resize(); }} catch (e) {{}} }}, 50);
+  }}
+  function showTop(t) {{
+    topBtns.forEach(b => b.classList.toggle('on', b.dataset.top === t));
+    let first = null, count = 0;
+    sideBtns.forEach(b => {{
+      const inGroup = b.dataset.top === t;
+      b.style.display = inGroup ? '' : 'none';
+      if (inGroup) {{ count++; if (!first) first = b; }}
+    }});
+    // single-view top tabs (Overview / Chart) go full width with no side rail
+    if (nav) nav.style.display = count > 1 ? '' : 'none';
+    if (mk) mk.style.gridTemplateColumns = count > 1 ? '' : '1fr';
+    if (first) showView(first.dataset.mkview);
+  }}
+  topBtns.forEach(b => b.addEventListener('click', () => showTop(b.dataset.top)));
+  sideBtns.forEach(b => b.addEventListener('click', () => showView(b.dataset.mkview)));
+  // _mkShow(viewId): jump straight to a sub-view, activating its parent top tab too
+  window._mkShow = function(v) {{
+    const btn = nav.querySelector('[data-mkview="' + v + '"]');
+    const t = btn ? btn.dataset.top : 'overview';
+    showTop(t);
+    showView(v);
   }};
-  btns.forEach(b => b.addEventListener('click', () => window._mkShow(b.dataset.mkview)));
 }})();
 
 // ---- Markets sub-views (left rail) ----
