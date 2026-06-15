@@ -1410,10 +1410,9 @@ def _macro_html(m: dict | None) -> str:
         cells += cell("Unemployment", f'{m["unemployment"]}%')
     if m.get("fed_funds") is not None:
         cells += cell("Fed funds rate", f'{m["fed_funds"]}%')
-    _risk = f' &middot; {m["risk_gauge"]}' if m.get("risk_gauge") else ''
-    return ('<div class="ovbox"><div class="ovhead">🌍 Macro backdrop: '
-            f'{m.get("backdrop","")} <span style="font-weight:400;color:var(--muted);font-size:12px;">'
-            f'— {m.get("note","")}{_risk}</span></div>'
+    return ('<div class="ovbox"><div class="ovhead">🌍 Macro backdrop '
+            '<span style="font-weight:400;color:var(--muted);font-size:12px;">'
+            '— the underlying readings feeding the posture above</span></div>'
             f'<div class="trackstats">{cells}</div></div>')
 
 
