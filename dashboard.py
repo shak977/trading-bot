@@ -988,7 +988,9 @@ def _kpi_html(reg: dict | None, snap: dict) -> str:
 
     tiles = ""
     if reg:
-        tiles += tile("Market regime", reg.get("label", "—"), tone, reg.get("note", "")[:46])
+        tiles += (f'<div class="kpi hero"><div class="kpi-l">Market regime</div>'
+                  f'<div class="kpi-v {tone}">{reg.get("label", "—")}</div>'
+                  f'<div class="kpi-sub">{reg.get("note", "")[:60]}</div></div>')
         tiles += tile("Breadth", f'{reg.get("breadth", "—")}%', "", f'of {reg.get("total","?")} above trend')
         tiles += tile("Avg momentum", f'{reg.get("avg_rsi", "—")}', "", "RSI, 0–100")
     tiles += tile("Fresh buys", str(n_buy), "buy" if n_buy else "", "new long setups")
@@ -2830,8 +2832,12 @@ def render_html(snap: dict) -> str:
   .livepill {{ font-size:12px; color:var(--muted); }}
   .subhead {{ color:var(--muted); font-size:12.5px; margin:0 0 16px; }}
   /* ---- KPI summary strip ---- */
-  .kpis {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(148px,1fr)); gap:12px; margin:0 0 20px; }}
+  .kpis {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:0 0 18px; }}
   .kpi {{ background:var(--card); border:1px solid var(--hud-edge); border-radius:6px; padding:12px 14px; }}
+  .kpi.hero {{ grid-column:span 2; border-top:2px solid var(--accent);
+    display:flex; flex-direction:column; justify-content:center; }}
+  .kpi.hero .kpi-v {{ font-size:34px; }}
+  @media (max-width:600px) {{ .kpi.hero {{ grid-column:span 2; }} .kpi.hero .kpi-v {{ font-size:26px; }} }}
   .kpi-l {{ font-size:10px; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); font-weight:600; }}
   .kpi-v {{ font-size:24px; font-weight:800; margin-top:4px; letter-spacing:-.015em; font-variant-numeric:tabular-nums; }}
   .kpi-v.buy {{ color:var(--buy); }} .kpi-v.sell {{ color:var(--sell); }} .kpi-v.warn {{ color:#b8860b; }}
