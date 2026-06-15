@@ -157,3 +157,51 @@ def insider_activity(symbols: list[str], lookback_days: int = 90,
         if info:
             out[sym] = info
     return out
+
+
+# --------------------------------------------------------------------------
+# Retail / social attention (Reddit + WSB) via ApeWisdom.
+#
+# ApeWisdom (apewisdom.io) aggregates Reddit/StockTwits mention counts per ticker
+# with a 24h-ago baseline, ranked by attention. It is free, keyless and serves a
+# plain JSON API that works from datacenter IPs. We pull the top-attention list and
+# return per-ticker mention counts + 24h change so we can flag names where retail
+# crowds are piling in (extra momentum/volatility, and short-squeeze fuel). This is
+# the noisiest input we use, so downstream it is only ever a *light* conviction
+# nudge — never a primary driver. Returns {} on any failure (fail-silent).
+# --------------------------------------------------------------------------
+def retail_attention(pages: int = 2, timeout: int = 12) -> dict:
+    """Return {SYMBOL: {mentions, rank, change_pct, upvotes}} for the most-discussed
+    retail names. Best-effort; {} if ApeWisdom is unreachable or changes shape."""
+    out: dict[str, dict] = {}
+    base = "https://apewisdom.io/api/v1.0/filter/all-stocks/page/"
+    for p in range(1, max(1, pages) + 1):
+        try:
+            r = requests.get(base + str(p), headers={"User-Agent": "Mozilla/5.0"},
+                             timeout=timeout)
+            if r.status_code != 200:
+                break
+            results = (r.json() or {}).get("results") or []
+        except Exception:
+            break
+        if not results:
+            break
+        for it in results:
+            try:
+                tk = (it.get("ticker") or "").upper().strip()
+                if not tk:
+                    continue
+                m = it.get("mentions")
+                m0 = it.get("mentions_24h_ago")
+                m = int(m) if m is not None else None
+                m0 = int(m0) if m0 is not None else None
+                chg = round((m / m0 - 1) * 100) if (m and m0) else None
+                out[tk] = {
+                    "mentions": m,
+                    "rank": it.get("rank"),
+                    "change_pct": chg,
+                    "upvotes": it.get("upvotes"),
+                }
+            except Exception:
+                continue
+    return out

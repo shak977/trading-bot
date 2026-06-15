@@ -587,7 +587,7 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: st
 
 def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 factors=None, patterns=None, edge=None,
-                sentiment=None, fundamentals=None, price=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None):
+                sentiment=None, fundamentals=None, price=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None, retail=None):
     """Auto-scored pre-entry checklist, direction-aware. Each check is pass/warn/fail.
 
     For a LONG it asks the bullish questions (trending up? room to rise?); for a SHORT it
@@ -954,6 +954,26 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 add("Short-squeeze fuel?", "pass",
                     f"{_si} — heavy shorting can fuel a squeeze higher, a tailwind for this long.", 0.5)
 
+    # Retail / social attention (ApeWisdom: Reddit + WSB mentions). The noisiest input we
+    # use, so it is only ever a *light* nudge (weight 0.3-0.4). A crowd piling into a name
+    # adds momentum AND volatility: for a LONG that's mild fuel (with froth caution); for a
+    # SHORT, crowding into the same name you're fading is a yellow flag (they can squeeze it).
+    if retail:
+        rk = retail.get("rank")
+        chg = retail.get("change_pct")
+        ment = retail.get("mentions")
+        hot = (rk is not None and rk <= 15) or (chg is not None and chg >= 75)
+        if hot and ment:
+            _rt = f"#{rk} on retail boards" if rk is not None else f"{ment} mentions"
+            if chg is not None:
+                _rt += f", {'+' if chg >= 0 else ''}{chg}% vs yesterday"
+            if short:
+                add("Retail crowding in?", "warn",
+                    f"{_rt} — a retail crowd piling into the name you're fading can squeeze it; size carefully.", 0.4)
+            else:
+                add("Retail wind behind it?", "pass",
+                    f"{_rt} — rising retail attention can add momentum (watch for froth at the top).", 0.3)
+
     # Reward:risk — with honest (structural) targets, a cramped target vs the stop is a weak trade.
     # This is the number to judge a small target by: payoff relative to what you risk.
     rr = (plan or {}).get("rr")
@@ -984,7 +1004,7 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             "earnings_days": ed, "earnings_gated": gated}
 
 
-def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None) -> None:
+def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None, retail=None) -> None:
     """Recompute conviction + desk read for a shown row once research is fetched."""
     direction = row.get("direction", "LONG")
     _apply_fundamental_cap(row.get("plan"), fundamentals, cfg)
@@ -992,7 +1012,7 @@ def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, 
                        row.get("factors"), row.get("patterns"), row.get("edge"),
                        sentiment=sentiment, fundamentals=fundamentals, price=row.get("price"), tv=tv,
                        regime=regime, insider=insider, buzz=buzz, news_idea=news_idea, intraday=intraday,
-                       sector_pct=sector_pct, short_interest=short_interest)
+                       sector_pct=sector_pct, short_interest=short_interest, retail=retail)
     row["conviction"] = conv
     row["desk_read"] = _desk_read(row["action"], direction, row["plan"], row["context"], conv,
                                   row.get("patterns"), row.get("edge"),

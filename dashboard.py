@@ -522,6 +522,16 @@ def build_snapshot() -> dict:
         except Exception:  # noqa: BLE001
             short_int = {}
 
+    # Retail / social attention (ApeWisdom: Reddit + WSB mentions). One keyless call returns the
+    # top-attention names globally; we match by symbol. The noisiest input — only a light nudge.
+    retail_map = {}
+    if live:
+        try:
+            import scrape as _scrape
+            retail_map = _scrape.retail_attention()
+        except Exception:  # noqa: BLE001
+            retail_map = {}
+
     _ACTIONABLE = ("BUY", "SHORT", "HOLD LONG", "HOLD SHORT")
     _sector_pct = {s["sector"]: s.get("pct_up") for s in (sectors or [])}   # sector momentum map
     for r in shown:
@@ -530,6 +540,7 @@ def build_snapshot() -> dict:
         r["buzz"] = buzz.get(r["symbol"])
         r["news_idea"] = _idea_map.get(r["symbol"])
         r["short_interest"] = short_int.get(r["symbol"])
+        r["retail"] = retail_map.get(r["symbol"])
         # Lower-timeframe confirmation: does the intraday signal agree with this daily trade?
         _isig = intraday_by_sym.get(r["symbol"])
         if _isig and _isig.get("action") in _ACTIONABLE:
@@ -540,7 +551,8 @@ def build_snapshot() -> dict:
         scanner.rescore(r, CONFIG, sentiment=r.get("sentiment"), fundamentals=r.get("fundamentals"),
                         tv=r.get("tv"), regime=regime, insider=r.get("insider"), buzz=r.get("buzz"),
                         news_idea=r.get("news_idea"), intraday=_isig,
-                        sector_pct=_sector_pct.get(r.get("sector")), short_interest=r.get("short_interest"))
+                        sector_pct=_sector_pct.get(r.get("sector")), short_interest=r.get("short_interest"),
+                        retail=r.get("retail"))
 
     # First-seen dates per signal — powers the "Newest" sort + a date chip on each card.
     # Persisted across runs (like the tracker); a symbol that leaves and returns gets a fresh date.
