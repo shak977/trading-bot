@@ -123,6 +123,13 @@ class Config:
     def llm_enabled(self) -> bool:
         return bool(self.anthropic_api_key)
 
+    # --- Optional IBKR data (Client Portal Web API via an IBeam gateway). OFF by default. ---
+    # Read-only data enrichment; never logs in / trades. See docs/IBKR_INTEGRATION.md.
+    ibkr_enabled: bool = field(default_factory=lambda: os.getenv("IBKR_ENABLED", "").lower() == "true")
+    ibkr_gateway_url: str = field(default_factory=lambda: os.getenv("IBKR_GATEWAY_URL", "").rstrip("/"))
+    ibkr_account_id: str = field(default_factory=lambda: os.getenv("IBKR_ACCOUNT_ID", ""))
+    ibkr_timeout: int = field(default_factory=lambda: int(os.getenv("IBKR_TIMEOUT", "12")))
+
     # --- Optional live-quote proxy (Cloudflare Worker URL). Blank = disabled. ---
     live_quotes_url: str = field(default_factory=lambda: os.getenv("LIVE_QUOTES_URL", "").rstrip("/"))
 
