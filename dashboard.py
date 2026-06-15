@@ -3036,7 +3036,12 @@ function _newsLean(h) {{
                        else if (_NEWS_NEG.indexOf(w)>=0) {{ q++; if (hit.indexOf(w)<0 && hit.length<3) hit.push(w); }} }});
   return {{ lean: p>q ? 'bull' : q>p ? 'bear' : 'flat', hit }};
 }}
-function _newsDot(h) {{ const l=_newsLean(h).lean; return l==='bull'?'var(--buy)':l==='bear'?'var(--sell)':'var(--muted)'; }}
+function _newsSent(h) {{ const l=_newsLean(h).lean;
+  return l==='bull'?{{t:'Bullish',c:'var(--buy)'}}:l==='bear'?{{t:'Bearish',c:'var(--sell)'}}:{{t:'Neutral',c:'var(--muted)'}}; }}
+function _newsImpact(h, s) {{ const l=_newsLean(h).lean, short=s.direction==='SHORT';
+  if (l==='flat') return {{t:'Neutral',c:'var(--muted)',g:'•'}};
+  const helps = (l==='bull') !== short;  // bullish helps a long; bearish helps a short
+  return helps ? {{t:'Tailwind',c:'var(--buy)',g:'▲'}} : {{t:'Headwind',c:'var(--sell)',g:'▼'}}; }}
 function _newsTip(n, s) {{
   const r=_newsLean(n.headline), sym=s.symbol, short=s.direction==='SHORT', dirw=short?'short':'long';
   let lead, rel;
@@ -3181,9 +3186,11 @@ function openModal(s) {{
     ? (s.news||[]).map(n => {{
         const t = n.url ? `<a href="${{n.url}}" target="_blank" rel="noopener">${{n.headline}}</a>`
                         : `<span class="h">${{n.headline}}</span>`;
-        return `<li class="hint" data-tip="${{_esc(_newsTip(n, s))}}">`
-          + `<span style="color:${{_newsDot(n.headline)}};font-size:10px;vertical-align:1px;margin-right:5px;">●</span>`
-          + `${{t}}<div class="src">${{n.source||''}} ${{n.created_at||''}}</div></li>`;
+        const se = _newsSent(n.headline), im = _newsImpact(n.headline, s);
+        return `<li class="hint" data-tip="${{_esc(_newsTip(n, s))}}">${{t}}`
+          + `<div class="src"><span style="color:${{se.c}};font-weight:600;">${{se.t}} for ${{s.symbol}}</span>`
+          + ` &middot; <span style="color:${{im.c}};font-weight:600;">${{im.g}} ${{im.t}} for your ${{s.direction==='SHORT'?'short':'long'}}</span>`
+          + ` &middot; ${{n.source||''}} ${{n.created_at||''}}</div></li>`;
       }}).join('')
     : '<li class="src">No recent news tagged for this symbol.</li>';
   // ---- Signals sub-tab: every alt-data input in detail, with plain-English reasoning ----
