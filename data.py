@@ -101,7 +101,19 @@ def get_bars(symbol: str, cfg: Config) -> pd.DataFrame:
         feed=DataFeed.IEX,
         adjustment=Adjustment.SPLIT,  # split-adjust so reverse splits (e.g. SPCE) don't fabricate huge moves
     )
-    bars = client.get_stock_bars(req).df
+    # Resilience: retry transient failures (rate-limit 429 / timeout / network) with backoff so a
+    # brief Alpaca blip can't thin out or zero a whole scan. Re-raises after the last attempt, so
+    # the scanner still records + skips a genuinely dead symbol.
+    import time as _time
+    bars = None
+    for _attempt in range(3):
+        try:
+            bars = client.get_stock_bars(req).df
+            break
+        except Exception:  # noqa: BLE001
+            if _attempt == 2:
+                raise
+            _time.sleep(0.5 * (2 ** _attempt))   # 0.5s, then 1.0s before retrying
     if bars.empty:
         return bars
     # Multi-index (symbol, timestamp) -> single symbol frame
