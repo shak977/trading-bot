@@ -356,6 +356,7 @@ def build_snapshot() -> dict:
     news_ideas = []
     if live:
         try:
+            import llm
             news_ideas = llm.news_ideas(news, CONFIG, universe={r["symbol"] for r in shown})
         except Exception:  # noqa: BLE001
             news_ideas = []
@@ -1510,7 +1511,7 @@ def render_html(snap: dict) -> str:
 <style>
   /* Light "Capital IQ Pro" palette is the default; dark is a toggle. */
   :root {{ --bg:#f5f7fa; --card:#ffffff; --line:#e4e8ed; --txt:#16202c;
-    --muted:#5b6776; --txt2:#3d4757; --buy:#0f9d58; --sell:#d1242f; --hold:#0b5cad; --flat:#8a96a3;
+    --muted:#5b6776; --txt2:#3d4757; --buy:#0a7d44; --sell:#d1242f; --hold:#0b5cad; --flat:#6b7785;
     --short:#c2410c; --watch:#475569; --exit:#b45309; --avoid:#6b7280;
     --accent:#0b5cad; --grid:rgba(120,130,145,0.16); --cross:rgba(60,70,85,0.4);
     --inset:#f1f4f8; --hover:#eef2f7; --ring:rgba(11,92,173,.40);
@@ -2997,7 +2998,7 @@ function _signalsDetail(s) {{
   if (ni && ni.direction) {{
     const aligns = (ni.direction==='bearish') === short;
     cards.push(card('🗞','News-driven read', ni.direction+' · '+(ni.confidence||'')+' conf',
-      aligns?(short?'good':'good'):'warn',
+      aligns?'good':'warn',
       _esc(ni.reason||'') + (ni.headline?` (from: “${{_esc(ni.headline)}}”)`:'')));
   }}
   // Catalyst (fresh news)

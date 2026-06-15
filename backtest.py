@@ -217,7 +217,7 @@ def _metrics(equity: pd.Series, trades: list, cfg: Config) -> dict:
     rets = eq.pct_change().fillna(0.0)
     total_return = eq.iloc[-1] / cfg.starting_cash - 1
     years = max((eq.index[-1] - eq.index[0]).days / 365.25, 1e-9)
-    cagr = (eq.iloc[-1] / cfg.starting_cash) ** (1 / years) - 1
+    cagr = (max(eq.iloc[-1], 0.0) / cfg.starting_cash) ** (1 / years) - 1
     roll_max = eq.cummax()
     max_dd = ((eq - roll_max) / roll_max).min()
     sharpe = (rets.mean() / rets.std() * np.sqrt(252)) if rets.std() > 0 else 0.0
