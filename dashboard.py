@@ -115,6 +115,19 @@ def build_snapshot() -> dict:
             pin = _nf0.alerted_today(_today0)
         except Exception:  # noqa: BLE001
             pin = set()
+        # News-idea candidates: pull names the LLM flagged from recent news INTO the scan so they
+        # get a real technical read. They only surface as signals if the engine confirms them —
+        # news widens the net, technicals still decide.
+        if getattr(CONFIG, "news_idea_candidates", False):
+            try:
+                import json as _json
+                from datetime import timedelta as _td
+                with open("news_candidates.json") as _f:
+                    _nc = _json.load(_f)
+                _cut = (datetime.now(timezone.utc).date() - _td(days=2)).isoformat()
+                pin |= {k for k, v in _nc.items() if v >= _cut}
+            except Exception:  # noqa: BLE001
+                pass
 
     rows = scanner.scan(CONFIG, live=live, pin=pin)
     for _r in rows:
@@ -381,6 +394,27 @@ def build_snapshot() -> dict:
         except Exception:  # noqa: BLE001
             news_ideas = []
     _idea_map = {i["ticker"]: i for i in news_ideas}
+    # Persist material (high/medium-confidence) news-idea tickers so the NEXT build pulls them into
+    # the scan for a technical read. Pruned after ~5 days. Live-only; never breaks the build.
+    if live and getattr(CONFIG, "news_idea_candidates", False):
+        try:
+            import json as _json
+            from datetime import timedelta as _td
+            try:
+                with open("news_candidates.json") as _f:
+                    _ncw = _json.load(_f)
+            except Exception:  # noqa: BLE001
+                _ncw = {}
+            for _i in news_ideas:
+                _tk = (_i.get("ticker") or "").upper().strip().lstrip("$")
+                if _tk and _i.get("confidence") in ("high", "medium"):
+                    _ncw[_tk] = _today0
+            _old = (datetime.now(timezone.utc).date() - _td(days=5)).isoformat()
+            _ncw = {k: v for k, v in _ncw.items() if v >= _old}
+            with open("news_candidates.json", "w") as _f:
+                _json.dump(_ncw, _f, indent=2)
+        except Exception:  # noqa: BLE001
+            pass
 
     # --- Intraday layer (gated + graceful): run the SAME engine on intraday bars over the same
     # names. Powers the Intraday tab AND a lower-timeframe confirmation that nudges daily
@@ -419,6 +453,7 @@ def build_snapshot() -> dict:
             print("INTRADAY: skipped —", _iexc)
 
     _ACTIONABLE = ("BUY", "SHORT", "HOLD LONG", "HOLD SHORT")
+    _sector_pct = {s["sector"]: s.get("pct_up") for s in (sectors or [])}   # sector momentum map
     for r in shown:
         r["fundamentals"] = fundamentals.get(r["symbol"])
         r["insider"] = insiders.get(r["symbol"])
@@ -430,10 +465,11 @@ def build_snapshot() -> dict:
             r["intraday_confirm"] = "agree" if _isig.get("direction") == r.get("direction") else "disagree"
         else:
             r["intraday_confirm"] = "none"
-        # Re-score conviction + desk read now that research (and intraday) is in hand.
+        # Re-score conviction + desk read now that research (news/sector/intraday) is in hand.
         scanner.rescore(r, CONFIG, sentiment=r.get("sentiment"), fundamentals=r.get("fundamentals"),
                         tv=r.get("tv"), regime=regime, insider=r.get("insider"), buzz=r.get("buzz"),
-                        news_idea=r.get("news_idea"), intraday=_isig)
+                        news_idea=r.get("news_idea"), intraday=_isig,
+                        sector_pct=_sector_pct.get(r.get("sector")))
 
     # First-seen dates per signal — powers the "Newest" sort + a date chip on each card.
     # Persisted across runs (like the tracker); a symbol that leaves and returns gets a fresh date.

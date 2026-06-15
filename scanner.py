@@ -587,7 +587,7 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: st
 
 def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 factors=None, patterns=None, edge=None,
-                sentiment=None, fundamentals=None, price=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None):
+                sentiment=None, fundamentals=None, price=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None):
     """Auto-scored pre-entry checklist, direction-aware. Each check is pass/warn/fail.
 
     For a LONG it asks the bullish questions (trending up? room to rise?); for a SHORT it
@@ -786,16 +786,17 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
 
     if sentiment:
         lbl = sentiment.get("label")
+        _nw = getattr(cfg, "news_conviction_weight", 1.0)
         if lbl == "Positive":
             add("News on side?", "fail" if short else "pass",
                 "Recent headlines lean positive (bullish) — that pushes the price up, which works against your short." if short
-                else "Recent headlines lean positive (bullish) — supports your long.")
+                else "Recent headlines lean positive (bullish) — supports your long.", _nw)
         elif lbl == "Negative":
             add("News on side?", "pass" if short else "fail",
                 "Recent headlines lean negative (bearish) — downward pressure that backs your short." if short
-                else "Recent headlines lean negative (bearish) — a headwind for your long.")
+                else "Recent headlines lean negative (bearish) — a headwind for your long.", _nw)
         elif lbl == "Mixed":
-            add("News on side?", "warn", "Recent headlines are mixed.")
+            add("News on side?", "warn", "Recent headlines are mixed.", _nw)
     if fundamentals:
         an = fundamentals.get("analysts")
         if an:
@@ -888,15 +889,19 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
         conf = news_idea.get("confidence", "medium")
         aligns = (nd == "bearish") if short else (nd == "bullish")
         reason = (news_idea.get("reason") or "").strip()
+        _nw = getattr(cfg, "news_conviction_weight", 1.0)
+        # Fresh, aligned, HIGH-confidence catalyst gets the heaviest news weight (still one check
+        # among ~15, so it lifts a setup but can't carry a technically-weak one on its own).
+        _cw = getattr(cfg, "catalyst_boost_weight", _nw) if (aligns and conf == "high") else _nw
         if aligns and conf in ("high", "medium"):
             add("News catalyst aligns?", "pass",
-                f"A {conf}-confidence news read backs this {'short' if short else 'long'}: {reason}")
+                f"A {conf}-confidence news read backs this {'short' if short else 'long'}: {reason}", _cw)
         elif not aligns and conf in ("high", "medium"):
             add("News catalyst aligns?", "fail",
-                f"Recent news leans the other way ({nd}) — a headwind: {reason}")
+                f"Recent news leans the other way ({nd}) — a headwind: {reason}", _nw)
         else:
             add("News catalyst aligns?", "warn",
-                f"News read is {nd} but low-confidence — weak/ambiguous catalyst: {reason}")
+                f"News read is {nd} but low-confidence — weak/ambiguous catalyst: {reason}", _nw)
 
     # Intraday confirmation — does the lower-timeframe chart agree with this daily trade?
     # A light nudge (weight 0.6), not a dominant factor; only when an intraday signal exists.
@@ -913,6 +918,21 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             add("Intraday on side?", "fail",
                 f"The {tf} chart disagrees — lower-timeframe momentum is currently against this "
                 + ("short." if short else "long."), 0.6)
+
+    # Sector momentum — is the name's sector moving the right way right now (an ongoing market
+    # development, not a single headline)? Long wants a strong sector; short wants a weak one.
+    if sector_pct is not None and getattr(cfg, "sector_conviction_weight", 0) > 0:
+        sw = cfg.sector_conviction_weight
+        strong, weak = sector_pct >= 60, sector_pct <= 40
+        if (strong and not short) or (weak and short):
+            add("Sector trending right?", "pass",
+                f"Its sector has momentum with you — {sector_pct}% of the sector is above trend.", sw)
+        elif (weak and not short) or (strong and short):
+            add("Sector trending right?", "fail",
+                f"Its sector is moving against you — {sector_pct}% of the sector is above trend.", sw)
+        else:
+            add("Sector trending right?", "warn",
+                f"Its sector is mixed ({sector_pct}% above trend) — no clear sector momentum either way.", sw)
 
     # Reward:risk — with honest (structural) targets, a cramped target vs the stop is a weak trade.
     # This is the number to judge a small target by: payoff relative to what you risk.
@@ -944,14 +964,15 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             "earnings_days": ed, "earnings_gated": gated}
 
 
-def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None) -> None:
+def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None) -> None:
     """Recompute conviction + desk read for a shown row once research is fetched."""
     direction = row.get("direction", "LONG")
     _apply_fundamental_cap(row.get("plan"), fundamentals, cfg)
     conv = _conviction(row["action"], direction, row["rsi"], row["rel_volume"], row["plan"], row["context"], cfg,
                        row.get("factors"), row.get("patterns"), row.get("edge"),
                        sentiment=sentiment, fundamentals=fundamentals, price=row.get("price"), tv=tv,
-                       regime=regime, insider=insider, buzz=buzz, news_idea=news_idea, intraday=intraday)
+                       regime=regime, insider=insider, buzz=buzz, news_idea=news_idea, intraday=intraday,
+                       sector_pct=sector_pct)
     row["conviction"] = conv
     row["desk_read"] = _desk_read(row["action"], direction, row["plan"], row["context"], conv,
                                   row.get("patterns"), row.get("edge"),

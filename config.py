@@ -76,6 +76,12 @@ class Config:
     rsi_overbought: float = 70.0
     rsi_oversold: float = 30.0
 
+    # --- News / market-development weighting in conviction (heavier = more news-driven). Tunable. ---
+    news_conviction_weight: float = 1.6    # weight of the news-tone + news-idea checks
+    catalyst_boost_weight: float = 2.0     # weight when a FRESH, aligned, HIGH-confidence catalyst is present
+    sector_conviction_weight: float = 1.0  # weight of the sector-momentum check
+    news_idea_candidates: bool = True      # pin LLM news-idea names into the next scan for a technical read
+
     # --- Refinements (tune / A-B test with backtest_compare.py) ---
     adx_min: float = 20.0           # require ADX >= this for a NEW long (trend-strength gate; 0 = off)
     trail_atr_mult: float = 0.0     # >0 enables a trailing ATR stop in the backtest (e.g. 3.0; 0 = fixed stop)
