@@ -501,6 +501,60 @@ def build_snapshot() -> dict:
     except Exception:  # noqa: BLE001
         alerts = None
 
+    # System status — a live readout of what's actually wired/running (booleans only, no secrets).
+    import os as _os
+    _has_worker = bool(CONFIG.live_quotes_url)
+    _llm_ok = bool((llm_status or {}).get("ok"))
+    system = {
+        "mode": mode,
+        "feeds": [
+            {"name": "Alpaca (prices/quotes)", "on": bool(CONFIG.api_key and CONFIG.secret_key),
+             "note": f"{mode} account · IEX feed"},
+            {"name": "Yahoo Finance (charts/history)", "on": _has_worker, "note": "via Cloudflare Worker proxy"},
+            {"name": "Finnhub (fundamentals/analysts/earnings)", "on": bool(CONFIG.finnhub_api_key), "note": "API key"},
+            {"name": "FRED (macro backdrop)", "on": bool(CONFIG.fred_api_key), "note": "API key"},
+            {"name": "SEC EDGAR (insider Form 4)", "on": True, "note": "keyless, official"},
+            {"name": "StockTwits (retail buzz)", "on": _has_worker, "note": "via Worker"},
+            {"name": "TradingView (TA cross-check)", "on": _has_worker, "note": "via Worker"},
+            {"name": "News RSS + Benzinga", "on": True, "note": "Yahoo/Finnhub/Benzinga headlines"},
+        ],
+        "ai": [
+            {"name": "AI analyst briefs", "on": CONFIG.llm_enabled and _llm_ok, "note": CONFIG.llm_model},
+            {"name": "News-idea engine", "on": CONFIG.llm_enabled and _llm_ok, "note": "headlines → ideas + nudge"},
+        ],
+        "engine": [
+            {"name": "Multi-strategy confluence (7 long + 7 short)", "on": True, "note": "core engine"},
+            {"name": "Relative-strength factor", "on": True, "note": f"conviction weight {CONFIG.rs_conviction_weight}"},
+            {"name": "Post-earnings drift (PEAD)", "on": bool(CONFIG.pead_enabled), "note": "confluence input"},
+            {"name": "Earnings gate", "on": True, "note": "no fresh entry ≤2d to report"},
+            {"name": "Regime-alignment tilt", "on": True, "note": "with/against the tape"},
+            {"name": "Regime block on buys", "on": bool(CONFIG.regime_block_buys), "note": "demote longs in Risk-off"},
+            {"name": "Conviction×vol sizing", "on": True, "note": "backtest + paper"},
+        ],
+        "execution": [
+            {"name": "Auto paper-trading", "on": bool(CONFIG.paper_trade),
+             "note": f"risk {CONFIG.paper_risk_pct:.0%}/trade · max {CONFIG.paper_max_open} open" if CONFIG.paper_trade else "set PAPER_TRADE=true"},
+            {"name": "Live exit manager (partials/trail)", "on": bool(CONFIG.manage_exits), "note": "amends real OCO legs"},
+            {"name": "Wider universe", "on": bool(CONFIG.wide_universe), "note": "expanded scan pool"},
+            {"name": "Time-stop", "on": CONFIG.max_hold_days > 0, "note": f"{CONFIG.max_hold_days}d" if CONFIG.max_hold_days else "off"},
+        ],
+        "scrapers": [
+            {"name": "Insider buys (SEC)", "on": True}, {"name": "Retail buzz (StockTwits)", "on": _has_worker},
+            {"name": "Analyst rating changes (Finnhub)", "on": bool(CONFIG.finnhub_api_key)},
+        ],
+        "delivery": [
+            {"name": "Phone push (ntfy)", "on": bool(_os.getenv("ALERT_NTFY_TOPIC"))},
+            {"name": "Webhook (Discord/Slack)", "on": bool(_os.getenv("ALERT_WEBHOOK_URL"))},
+            {"name": "Email (SMTP)", "on": bool(_os.getenv("ALERT_EMAIL_TO") and _os.getenv("SMTP_HOST"))},
+            {"name": "Morning digest + intraday alerts", "on": True, "note": "scheduled tasks"},
+        ],
+        "infra": [
+            {"name": "Cloudflare Worker proxy", "on": _has_worker, "note": "quotes/charts/TV/StockTwits"},
+            {"name": "GitHub Actions rebuild", "on": True, "note": "every ~30 min, market hours + on push"},
+            {"name": "GitHub Pages hosting", "on": True, "note": "static site"},
+        ],
+    }
+
     return {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         "mode": mode,
@@ -515,6 +569,7 @@ def build_snapshot() -> dict:
         "paper_acct": paper_acct,
         "news_ideas": news_ideas,
         "alerts": alerts,
+        "system": system,
         "regime": regime,
         "sectors": sectors,
         "concentration": _concentration(shown),
@@ -1020,6 +1075,41 @@ def _paper_spark(history: dict | None) -> str:
             f'<polyline points="{coords}" fill="none" stroke="{col}" stroke-width="2"/></svg>')
 
 
+def _system_html(sysd: dict | None) -> str:
+    """Live 'under the hood' status: every feed, AI layer, engine feature, execution toggle,
+    scraper, alert channel and piece of infra — with an ON/OFF state read from the real config."""
+    if not sysd:
+        return ""
+    groups = [
+        ("📡 Data feeds", sysd.get("feeds"), "Where the numbers come from."),
+        ("🤖 AI layers", sysd.get("ai"), "Anthropic LLM passes (need API credits)."),
+        ("⚙️ Signal engine", sysd.get("engine"), "How signals are generated + scored."),
+        ("🎯 Execution", sysd.get("execution"), "What actually places/manages paper orders (mostly opt-in)."),
+        ("🔎 Alt-data scrapers", sysd.get("scrapers"), "Extra inputs feeding conviction."),
+        ("🔔 Alert delivery", sysd.get("delivery"), "How you get notified."),
+        ("🧱 Infrastructure", sysd.get("infra"), "What hosts and rebuilds the site."),
+    ]
+    blocks = ""
+    for title, items, lead in groups:
+        if not items:
+            continue
+        rows = ""
+        for it in items:
+            on = it.get("on")
+            pill = (f'<span class="syspill on">● ON</span>' if on else '<span class="syspill off">○ off</span>')
+            note = f'<span class="sysnote">{it.get("note","")}</span>' if it.get("note") else ""
+            rows += (f'<div class="sysrow"><span class="sysname">{it["name"]}</span>{note}{pill}</div>')
+        blocks += (f'<div class="ovbox" style="margin:0 0 14px;"><div class="ovhead">{title} '
+                   f'<span style="font-weight:400;color:var(--muted);text-transform:none;font-size:12px;">— {lead}</span></div>'
+                   f'<div class="sysgrid">{rows}</div></div>')
+    intro = ('<h2 style="margin-top:0;">System <span style="text-transform:none;font-weight:400;color:var(--muted);'
+             'font-size:12px;">— what\'s wired in and running right now</span></h2>'
+             '<p style="color:var(--muted);font-size:13px;margin:0 0 16px;">A live readout of every integration and '
+             'feature, read straight from the current config each build. <b>● ON</b> = active this run; <b>○ off</b> = '
+             'not configured or deliberately disabled. No secrets shown.</p>')
+    return intro + blocks
+
+
 def _news_ideas_html(ideas: list[dict] | None) -> str:
     """Server-rendered 'News-driven ideas' block: the LLM's read of recent headlines."""
     if not ideas:
@@ -1355,6 +1445,7 @@ def render_html(snap: dict) -> str:
     paper_section = f'<section class="page" id="page-paper">{paper_html}</section>' if _paper_acct else ''
     altdata_html = _altdata_html(snap)
     news_ideas_html = _news_ideas_html(snap.get("news_ideas"))
+    system_html = _system_html(snap.get("system"))
     regime_html = _regime_html(snap.get("regime"))
     _pd = snap.get("price_drops") or []
     pdrop_html = (f' &middot; <span style="color:var(--muted);" title="{(" | ".join(_pd))[:300].replace(chr(34), chr(39))}">'
@@ -1687,6 +1778,16 @@ def render_html(snap: dict) -> str:
   .nidea-conf {{ margin-left:auto; color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.04em; }}
   .nidea-why {{ font-size:12.5px; margin-top:4px; line-height:1.45; }}
   .nidea-src {{ color:var(--muted); font-size:11px; margin-top:4px; font-style:italic; }}
+  /* system status tab */
+  .sysgrid {{ margin-top:8px; }}
+  .sysrow {{ display:flex; align-items:center; gap:10px; padding:7px 2px; border-bottom:1px solid var(--line); }}
+  .sysrow:last-child {{ border-bottom:0; }}
+  .sysname {{ font-size:13px; font-weight:600; }}
+  .sysnote {{ color:var(--muted); font-size:11.5px; margin-left:auto; text-align:right; }}
+  .syspill {{ font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:999px; white-space:nowrap;
+    margin-left:10px; letter-spacing:.03em; }}
+  .syspill.on {{ color:var(--buy); background:color-mix(in srgb, var(--buy) 14%, transparent); }}
+  .syspill.off {{ color:var(--muted); background:var(--inset); }}
   .deskread {{ background:var(--inset); border:1px solid var(--line); border-left:3px solid var(--hold);
     border-radius:10px; padding:12px 14px; font-size:14px; margin:14px 0; }}
   .convbadge {{ font-size:13px; font-weight:700; padding:2px 10px; border-radius:999px; color:#fff; }}
@@ -1945,6 +2046,7 @@ def render_html(snap: dict) -> str:
     <button data-page="altdata">Data signals</button>
     {paper_nav}
     <button data-page="method">How it works</button>
+    <button data-page="system">System</button>
     <button data-page="news">Market news</button>
     <button data-page="livetv">Live TV</button>
   </nav>
@@ -2019,6 +2121,10 @@ def render_html(snap: dict) -> str:
   </section>
 
   {paper_section}
+
+  <section class="page" id="page-system">
+{system_html}
+  </section>
 
   <section class="page" id="page-method">
     <div class="method">
