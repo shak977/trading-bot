@@ -359,6 +359,37 @@ def build_snapshot() -> dict:
         scanner.rescore(r, CONFIG, sentiment=r.get("sentiment"), fundamentals=r.get("fundamentals"),
                         tv=r.get("tv"), regime=regime, insider=r.get("insider"), buzz=r.get("buzz"))
 
+    # First-seen dates per signal — powers the "Newest" sort + a date chip on each card.
+    # Persisted across runs (like the tracker); a symbol that leaves and returns gets a fresh date.
+    try:
+        import json as _json2, datetime as _dt2
+        _spath = "signals_seen.json"
+        try:
+            with open(_spath) as _f:
+                _seen = (_json2.load(_f) or {}).get("seen", {})
+        except Exception:  # noqa: BLE001
+            _seen = {}
+        _today = _dt2.date.today().isoformat()
+        _cur = {}
+        for r in shown:
+            k = f"{r['symbol']}:{r.get('direction', 'LONG')}"
+            first = _seen.get(k) or _today
+            _cur[k] = first
+            r["first_seen"] = first
+            try:
+                r["days_old"] = (_dt2.date.fromisoformat(_today) - _dt2.date.fromisoformat(first)).days
+            except Exception:  # noqa: BLE001
+                r["days_old"] = 0
+            r["is_fresh"] = (first == _today)
+        if live:  # only the live Action persists (synthetic/dev runs never write)
+            try:
+                with open(_spath, "w") as _f:
+                    _json2.dump({"as_of": _today, "seen": _cur}, _f, indent=2)
+            except Exception:  # noqa: BLE001
+                pass
+    except Exception:  # noqa: BLE001
+        pass
+
     # Ray Dalio All Weather allocation + backtest vs SPY (keyless Yahoo history).
     try:
         import allweather as _aw
@@ -1782,6 +1813,8 @@ def render_html(snap: dict) -> str:
   .card-id {{ min-width:0; flex:1 1 auto; }}
   .card-id .s {{ font-size:16px; font-weight:800; line-height:1.15; }}
   .card-id .n {{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+  .card-age {{ font-size:10.5px; color:var(--muted); margin-top:3px; }}
+  .card-age.fresh {{ color:var(--buy); font-weight:700; }}
   .card-px-row {{ display:flex; align-items:baseline; gap:10px; margin:6px 0 4px; }}
   .card-px {{ font-size:24px; font-weight:800; letter-spacing:-.015em; font-variant-numeric:tabular-nums; }}
   .card-day {{ font-size:13px; font-weight:600; font-variant-numeric:tabular-nums; }}
@@ -2192,6 +2225,12 @@ if ((DATA.diagnostics||[]).length) {{
     + DATA.diagnostics.map(e => '&bull; '+e).join('<br>') + '</div>';
 }}
 const cards = document.getElementById('cards');
+// Small "first seen" age chip for a card (powered by the persisted first_seen date).
+function _ageBit(s) {{
+  if (!s.first_seen) return '';
+  const txt = s.is_fresh ? 'New today' : (s.days_old === 1 ? '1 day old' : (s.days_old||0) + ' days old');
+  return `<div class="card-age${{s.is_fresh ? ' fresh' : ''}}" title="First flagged ${{s.first_seen}}">🕒 ${{txt}}</div>`;
+}}
 function makeCard(s) {{
   const el = document.createElement('div'); el.className='card';
   const cls = (s.action||'').replace(' ','');
@@ -2269,7 +2308,7 @@ function makeCard(s) {{
   const nNews = (s.news||[]).length;
   el.innerHTML = `
     <div class="card-top">${{logo}}
-      <div class="card-id"><div class="s">${{s.symbol}}</div><div class="n">${{s.name||s.exchange||''}}</div></div>
+      <div class="card-id"><div class="s">${{s.symbol}}</div><div class="n">${{s.name||s.exchange||''}}</div>${{_ageBit(s)}}</div>
       <span class="act a-${{cls}}">${{s.action}}</span>
       <button class="favbtn ${{FAVS.has(s.symbol)?'on':''}}" title="Save to favorites">${{FAVS.has(s.symbol)?'★':'☆'}}</button></div>
     <div class="card-px-row"><span class="card-px" data-px="${{s.symbol}}">$${{_px.toLocaleString()}}</span>${{dchg}}</div>
@@ -2386,6 +2425,7 @@ function _levelsInline(s) {{
   return `${{p.entry}} · <span style="color:var(--sell);">${{p.stop}}</span> · <span style="color:var(--buy);">${{p.target}}</span>`;
 }}
 function _empty() {{ return '<div style="color:var(--muted);padding:14px;">Nothing matches this view right now.</div>'; }}
+function _seenTs(s) {{ return Date.parse((s.first_seen || s.as_of || '') + 'T00:00:00') || 0; }}
 function _applyView(list, view) {{
   if (view==='favs') list = list.filter(s=>FAVS.has(s.symbol));
   else if (view==='buys') list = list.filter(s=>s.action==='BUY'||s.action==='HOLD LONG');
@@ -2394,6 +2434,7 @@ function _applyView(list, view) {{
   else if (view==='actionable') list = list.filter(s=>['BUY','SHORT','HOLD LONG','HOLD SHORT','EXIT'].includes(s.action));
   if (view==='conviction') list.sort((a,b)=>_conv(b)-_conv(a));
   else if (view==='movers') list.sort((a,b)=>(b.rel_volume||0)-(a.rel_volume||0));
+  else if (view==='newest') list.sort((a,b)=>(_seenTs(b)-_seenTs(a))||(_conv(b)-_conv(a)));
   else list.sort((a,b)=>(_ACT_ORDER[a.action]-_ACT_ORDER[b.action])||(_conv(b)-_conv(a)));
   return list;
 }}
@@ -2548,6 +2589,7 @@ function renderCards(view) {{
     else if (view === 'actionable') list = list.filter(s => ['BUY','SHORT','HOLD LONG','HOLD SHORT','EXIT'].includes(s.action));
     else if (view === 'conviction') list.sort((a,b) => _conv(b) - _conv(a));
     else if (view === 'movers') list.sort((a,b) => (b.rel_volume||0) - (a.rel_volume||0));
+    else if (view === 'newest') list.sort((a,b) => (_seenTs(b)-_seenTs(a)) || (_conv(b)-_conv(a)));
     else if (view === 'order') list.sort((a,b) =>
       (_ACT_ORDER[a.action]-_ACT_ORDER[b.action]) || (_conv(b)-_conv(a)));
     const grid = document.createElement('div'); grid.className='grid';
@@ -2563,7 +2605,7 @@ function renderCards(view) {{
 }}
 (function setupViews() {{
   const bar = document.getElementById('viewBtns');
-  const views = [['sector','By sector'],['order','Actionable first'],['conviction','Highest conviction'],
+  const views = [['sector','By sector'],['order','Actionable first'],['newest','🕒 Newest'],['conviction','Highest conviction'],
                  ['buys','Longs'],['shorts','Shorts'],['watch','Watch'],['actionable','Actionable'],
                  ['movers','Biggest movers'],['favs','★ Favorites']];
   let cur = 'sector';
