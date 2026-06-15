@@ -616,6 +616,16 @@ def build_snapshot() -> dict:
         except Exception:  # noqa: BLE001
             macro = None
 
+    # Macro regime → exposure: blend the macro backdrop + equity breadth into a posture and an
+    # exposure multiplier that scales new-position sizing. Macro controls EXPOSURE, never a direct
+    # buy/sell. Gated + fail-silent; None when disabled or no data.
+    try:
+        import macro_regime as _macro_regime
+        macro_posture = _macro_regime.assess(macro, regime, CONFIG)
+    except Exception:  # noqa: BLE001
+        macro_posture = None
+    _exposure_mult = (macro_posture or {}).get("exposure_mult", 1.0)
+
     # IPO watch: upcoming-IPO calendar + general news mentioning pre-IPO names
     # (e.g. SpaceX). Private names have no ticker, so this is the only way they surface.
     ipos, ipo_news = [], []
@@ -712,7 +722,7 @@ def build_snapshot() -> dict:
     # fresh High-conviction signals and reads the live paper account. Disabled -> None.
     try:
         import paper as _paper
-        paper_acct = _paper.run(shown, CONFIG, today)
+        paper_acct = _paper.run(shown, CONFIG, today, exposure_mult=_exposure_mult)
     except Exception:  # noqa: BLE001
         paper_acct = None
 
@@ -825,6 +835,7 @@ def build_snapshot() -> dict:
         "sectors": sectors,
         "concentration": _concentration(shown),
         "macro": macro,
+        "macro_posture": macro_posture,
         "price_drops": price_drops,
         "momentum": [dict(m, name=scanner.name_of(
                         m["symbol"], {r["symbol"]: r.get("name", "") for r in shown}.get(m["symbol"], "")))
@@ -1345,6 +1356,33 @@ def _sectors_html(secs: list[dict]) -> str:
             f'{rows}</div>')
 
 
+def _macro_posture_html(mp: dict | None) -> str:
+    """Macro regime → exposure panel: composite posture, exposure multiplier, and the drivers."""
+    if not mp:
+        return ""
+    col = {"Risk-on": "#16a34a", "Neutral": "#64748b", "Risk-off": "#dc2626"}.get(mp.get("label"), "#64748b")
+    em = mp.get("exposure_mult", 1.0)
+    tilt = mp.get("cash_tilt_pct", 0)
+    em_txt = (f"{em:.2f}× sizing" + (f" · ~{tilt}% more cash" if tilt else ""))
+    chips = ""
+    for d in mp.get("drivers", []):
+        dc = "#16a34a" if d["score"] > 0.1 else "#dc2626" if d["score"] < -0.1 else "#64748b"
+        chips += (f'<span style="display:inline-block;margin:3px 6px 3px 0;padding:3px 9px;border-radius:999px;'
+                  f'background:color-mix(in srgb,{dc} 14%,transparent);color:{dc};font-size:12px;" '
+                  f'title="{d["read"]}">{d["name"]} {d["score"]:+.1f}</span>')
+    return (
+        f'<div class="ovbox" style="border-left:4px solid {col};margin:0 0 16px;">'
+        f'<div class="ovhead">🧭 Macro regime → exposure: <span style="color:{col};">{mp.get("label")}</span> '
+        f'<span style="font-weight:400;color:var(--muted);font-size:12px;">— composite {mp.get("score"):+.2f}, '
+        f'<b style="color:{col};">{em_txt}</b></span></div>'
+        f'<p style="color:var(--txt2);font-size:13px;margin:6px 0 8px;">{mp.get("posture","")}</p>'
+        f'<div>{chips}</div>'
+        '<p style="color:var(--muted);font-size:11px;margin:8px 0 0;">Macro sets <b>exposure</b>, not direction: '
+        'this multiplier scales how big new positions are sized (smaller in risk-off, larger in risk-on) — it never '
+        'directly buys or sells. Hover a chip for the read behind it.</p></div>'
+    )
+
+
 def _macro_html(m: dict | None) -> str:
     if not m:
         return ""
@@ -1359,6 +1397,9 @@ def _macro_html(m: dict | None) -> str:
         cells += cell("US dollar index", f'{m["dxy"]}')
     if m.get("oil") is not None:
         cells += cell("WTI crude oil", f'${m["oil"]}')
+    if m.get("hy_oas") is not None:
+        _ht = f' ({m["hy_trend"]})' if m.get("hy_trend") else ''
+        cells += cell("Credit spread (HY)", f'{m["hy_oas"]}%{_ht}')
     if m.get("y10") is not None:
         cells += cell("10-yr yield", f'{m["y10"]}%')
     if m.get("curve") is not None:
@@ -1905,7 +1946,8 @@ def render_html(snap: dict) -> str:
     portfolio_html = _portfolio_html(snap.get("portfolio"))
     ipo_html = _ipo_html(snap.get("ipos") or [], snap.get("ipo_news") or [])
     sectors_html = _sectors_html(snap.get("sectors"))
-    macro_html = _macro_html(snap.get("macro")) + _calendar_html(snap.get("calendar"))
+    macro_html = (_macro_posture_html(snap.get("macro_posture"))
+                  + _macro_html(snap.get("macro")) + _calendar_html(snap.get("calendar")))
     dh = snap.get("data_health")
     if not dh:
         health_html = ""
@@ -2695,6 +2737,11 @@ def render_html(snap: dict) -> str:
         (daily + weekly), as a second opinion that's separate from our engine.</li>
         <li><b>News &amp; analysts</b> — recent news tone, the analyst consensus and average price target, plus
         <b>recent rating changes</b> (upgrades/downgrades and the firm behind them).</li>
+        <li><b>Earnings momentum &amp; quality</b> — EPS and revenue growth, margins and leverage. Growing
+        fundamentals back a long (and fight a short); shrinking ones do the reverse.</li>
+        <li><b>Liquidity / execution quality</b> — average dollar turnover and an estimated spread. A name
+        that's too thin to fill cleanly is flagged, and in paper trading its size is capped (or skipped)
+        so the trade is actually practical — microstructure improving <i>execution</i>, not selection.</li>
         <li><b>Insider activity (SEC Form 4)</b> — clusters of open-market insider <i>purchases</i> raise a
         long's conviction (and lower a short's); heavy insider selling leans the other way.</li>
         <li><b>Retail buzz (StockTwits)</b> — crowd chatter and Bull/Bear sentiment, weighted gently since
@@ -2737,6 +2784,15 @@ def render_html(snap: dict) -> str:
       rolling forward. The result is an honest <b>out-of-sample</b> read plus a verdict — <i>holds up</i>,
       <i>marginal</i>, or <i>fragile</i> — and a parameter-sensitivity sweep that shows whether the edge depends on
       one lucky setting. If a strategy only shines in-sample, this is where it gets exposed.</p>
+
+      <h4>Macro sets the exposure dial (not the trades)</h4>
+      <p>Macro data — the VIX, the yield curve, credit spreads, the dollar, plus overall market breadth —
+      never directly buys or sells anything. Instead it's blended into one <b>risk-on / neutral / risk-off</b>
+      posture that sets an <b>exposure multiplier</b>: in a risk-on backdrop new positions are sized a little
+      larger and lean into momentum; in risk-off they're sized smaller, with more cash and a defensive tilt.
+      You can see the posture, the multiplier, and the drivers behind it on the <b>Markets</b> tab. The core
+      principle: macro controls <i>how much</i> you deploy, security-level data controls <i>what</i> you pick,
+      and liquidity controls <i>whether the trade is practical</i>.</p>
 
       <h4>Protecting the whole book — the risk engine &amp; kill switch</h4>
       <p>Stops protect a single trade; the <b>risk engine</b> protects the whole account. Before any new paper order

@@ -152,6 +152,22 @@ class Config:
     walkforward_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("WALKFORWARD_ENABLED"), True))
     walkforward_folds: int = 4
 
+    # --- Macro regime → exposure (macro CONTROLS exposure; it never directly buys/sells) ---
+    # A composite of VIX, yield curve, credit spreads, USD and equity breadth → risk-on/neutral/
+    # risk-off, mapped to an exposure multiplier that scales position sizing. Gated; fail-silent.
+    macro_regime_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("MACRO_REGIME_ENABLED"), True))
+    macro_exposure_min: float = 0.50    # most defensive sizing scalar (deep risk-off)
+    macro_exposure_max: float = 1.20    # most aggressive sizing scalar (strong risk-on)
+    macro_exposure_base: float = 0.95   # scalar at a neutral composite (score 0)
+    macro_exposure_slope: float = 0.30  # how hard the scalar swings with the composite score
+
+    # --- Execution / liquidity gate (microstructure controls EXECUTION) ---
+    # Vets whether a trade is practical: enough dollar volume to fill without moving the price.
+    # Used as a soft conviction flag + a hard cap on paper sizing vs ADV. Gated; fail-silent.
+    liquidity_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("LIQUIDITY_ENABLED"), True))
+    min_dollar_volume: float = 5_000_000.0  # skip paper entries below ~$5M/day average turnover
+    max_pct_of_adv: float = 0.02            # a single position may be at most ~2% of avg daily $ volume
+
     # --- Backtest realism (applied to every backtest so edges are net of costs) ---
     slippage_bps: float = 5.0          # modeled slippage per fill (5 bps = 0.05%); ~0.1% round trip
     commission_per_trade: float = 0.0  # per-fill commission (Alpaca = $0; set for other brokers)

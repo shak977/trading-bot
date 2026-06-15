@@ -188,6 +188,25 @@ def finnhub_snapshot(symbol: str, cfg: Config) -> dict | None:
             out["wk52_high"] = round(float(hi), 2)
         if lo:
             out["wk52_low"] = round(float(lo), 2)
+        # --- security-level micro: earnings momentum + quality (already in this payload, no extra call) ---
+        def _num(*keys):
+            for k in keys:
+                v = met.get(k)
+                if v is not None:
+                    try:
+                        return round(float(v), 1)
+                    except Exception:  # noqa: BLE001
+                        pass
+            return None
+        quality = {
+            "eps_growth": _num("epsGrowthTTMYoy", "epsGrowthQuarterlyYoy"),
+            "rev_growth": _num("revenueGrowthTTMYoy", "revenueGrowthQuarterlyYoy"),
+            "net_margin": _num("netProfitMarginTTM", "netProfitMarginAnnual"),
+            "roe": _num("roeTTM", "roeRfy"),
+            "debt_equity": _num("totalDebt/totalEquityQuarterly", "longTermDebt/equityQuarterly"),
+        }
+        if any(v is not None for v in quality.values()):
+            out["quality"] = quality
     except Exception:  # noqa: BLE001
         pass
     try:
@@ -461,16 +480,24 @@ def fred_macro(cfg: Config) -> dict | None:
         m["cpi_yoy"] = round((cpi[0] / cpi[12] - 1) * 100, 1)
     # --- cross-asset risk gauges (free FRED series) ---
     vix = _fred_latest("VIXCLS", key, limit=6)      # CBOE Volatility Index — the "fear gauge"
-    dxy = _fred_latest("DTWEXBGS", key)             # broad trade-weighted US dollar
+    dxy = _fred_latest("DTWEXBGS", key, limit=23)   # broad trade-weighted US dollar (~1mo trend)
     oil = _fred_latest("DCOILWTICO", key)           # WTI crude
+    hy = _fred_latest("BAMLH0A0HYM2", key, limit=23)  # ICE BofA US High-Yield OAS — credit spreads
     if vix:
         m["vix"] = round(vix[0], 1)
         if len(vix) >= 6 and vix[5]:
             m["vix_trend"] = "rising" if vix[0] > vix[5] else "falling"
-    if dxy is not None:
-        m["dxy"] = round(dxy, 1)
+    if dxy:
+        m["dxy"] = round(dxy[0], 1)
+        if len(dxy) >= 23 and dxy[22]:
+            m["dxy_chg_1mo"] = round((dxy[0] / dxy[22] - 1) * 100, 1)  # % change ~1 month
     if oil is not None:
         m["oil"] = round(oil, 1)
+    if hy:
+        m["hy_oas"] = round(hy[0], 2)               # current high-yield spread (percentage points)
+        if len(hy) >= 23 and hy[22]:
+            m["hy_oas_chg_1mo"] = round(hy[0] - hy[22], 2)  # change in spread over ~1 month
+            m["hy_trend"] = "widening" if hy[0] > hy[22] else "tightening"
     if not m:
         return None
     curve = m.get("curve")

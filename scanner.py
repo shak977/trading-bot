@@ -246,6 +246,12 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
 
     relvol = relative_volume(df, cfg.rel_volume_window)
     rv_rounded = None if np.isnan(relvol) else round(relvol, 2)
+    # Average daily dollar turnover (liquidity / execution-quality input).
+    try:
+        _dv = float((df["close"] * df["volume"]).tail(cfg.rel_volume_window).mean()) if "volume" in df else None
+        dollar_vol = round(_dv) if _dv and not np.isnan(_dv) else None
+    except Exception:  # noqa: BLE001
+        dollar_vol = None
     tail = sig.tail(300)  # ~1+ year of daily bars, sliced client-side by range
     patterns, factors = analytics.detect(df, sig, cfg, rv_rounded)
     edge = analytics.backtest_edge(df, cfg)
@@ -290,6 +296,8 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
         "fast_ma": round(float(last["fast"]), 2),
         "slow_ma": round(float(last["slow"]), 2),
         "rel_volume": rv_rounded,
+        "dollar_volume": dollar_vol,
+        "liquidity": (__import__("liquidity").classify(dollar_vol, price) if dollar_vol else None),
         "stop": plan.get("stop") if actionable else None,
         "target": plan.get("target") if actionable else None,
         "suggested_shares": plan.get("shares") or 0,
@@ -587,7 +595,7 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: st
 
 def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 factors=None, patterns=None, edge=None,
-                sentiment=None, fundamentals=None, price=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None, retail=None):
+                sentiment=None, fundamentals=None, price=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None, retail=None, liquidity=None):
     """Auto-scored pre-entry checklist, direction-aware. Each check is pass/warn/fail.
 
     For a LONG it asks the bullish questions (trending up? room to rise?); for a SHORT it
@@ -857,6 +865,37 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             else:
                 add("Earnings clear?", "pass", f"No earnings for ~{ed} days, so no imminent event risk.")
 
+        # Earnings momentum / quality (security-level micro): growing EPS + revenue and healthy
+        # margins support a long; shrinking/negative growth supports a short. Direction-aware.
+        q = fundamentals.get("quality")
+        if q and (q.get("eps_growth") is not None or q.get("rev_growth") is not None):
+            eg, rg = q.get("eps_growth"), q.get("rev_growth")
+            nm = q.get("net_margin")
+            _bits = []
+            if eg is not None:
+                _bits.append(f"EPS {eg:+.0f}% YoY")
+            if rg is not None:
+                _bits.append(f"revenue {rg:+.0f}% YoY")
+            if nm is not None:
+                _bits.append(f"{nm:.0f}% net margin")
+            _txt = ", ".join(_bits)
+            growing = (eg or 0) > 5 or (rg or 0) > 5
+            shrinking = (eg if eg is not None else 0) < -5 or (rg if rg is not None else 0) < -5
+            if short:
+                if shrinking:
+                    add("Earnings momentum?", "pass", f"{_txt} — deteriorating fundamentals support the short.", 0.6)
+                elif growing:
+                    add("Earnings momentum?", "fail", f"{_txt} — improving fundamentals fight a short here.", 0.6)
+                else:
+                    add("Earnings momentum?", "warn", f"{_txt} — flattish fundamentals, no strong fundamental edge.", 0.4)
+            else:
+                if growing:
+                    add("Earnings momentum?", "pass", f"{_txt} — growing fundamentals back the long.", 0.6)
+                elif shrinking:
+                    add("Earnings momentum?", "fail", f"{_txt} — shrinking fundamentals undercut the long.", 0.6)
+                else:
+                    add("Earnings momentum?", "warn", f"{_txt} — flattish fundamentals, no strong fundamental edge.", 0.4)
+
     # Insider transactions (SEC Form 4) — open-market buys by insiders are a bullish tell;
     # heavy selling leans bearish. Direction-aware, only when we actually scraped data.
     if insider and insider.get("n_filings"):
@@ -974,6 +1013,21 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 add("Retail wind behind it?", "pass",
                     f"{_rt} — rising retail attention can add momentum (watch for froth at the top).", 0.3)
 
+    # Liquidity / execution quality (microstructure): is it practical to trade without paying up?
+    if liquidity:
+        tier = liquidity.get("tier")
+        dv = liquidity.get("dollar_volume")
+        _dvm = f"~${dv/1e6:.0f}M/day" if dv else ""
+        if tier in ("mega", "very high", "high"):
+            add("Liquid enough to trade?", "pass",
+                f"Yes — {tier} liquidity ({_dvm}); tight spreads, easy fills.", 0.4)
+        elif tier == "moderate":
+            add("Liquid enough to trade?", "warn",
+                f"So-so — {tier} liquidity ({_dvm}); wider spreads, mind size and slippage.", 0.4)
+        else:
+            add("Liquid enough to trade?", "fail",
+                f"Thin — {tier} liquidity ({_dvm}); hard to fill cleanly, slippage will bite.", 0.6)
+
     # Reward:risk — with honest (structural) targets, a cramped target vs the stop is a weak trade.
     # This is the number to judge a small target by: payoff relative to what you risk.
     rr = (plan or {}).get("rr")
@@ -1004,7 +1058,7 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             "earnings_days": ed, "earnings_gated": gated}
 
 
-def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None, retail=None) -> None:
+def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None, retail=None, liquidity=None) -> None:
     """Recompute conviction + desk read for a shown row once research is fetched."""
     direction = row.get("direction", "LONG")
     _apply_fundamental_cap(row.get("plan"), fundamentals, cfg)
@@ -1012,7 +1066,8 @@ def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, 
                        row.get("factors"), row.get("patterns"), row.get("edge"),
                        sentiment=sentiment, fundamentals=fundamentals, price=row.get("price"), tv=tv,
                        regime=regime, insider=insider, buzz=buzz, news_idea=news_idea, intraday=intraday,
-                       sector_pct=sector_pct, short_interest=short_interest, retail=retail)
+                       sector_pct=sector_pct, short_interest=short_interest, retail=retail,
+                       liquidity=liquidity if liquidity is not None else row.get("liquidity"))
     row["conviction"] = conv
     row["desk_read"] = _desk_read(row["action"], direction, row["plan"], row["context"], conv,
                                   row.get("patterns"), row.get("edge"),

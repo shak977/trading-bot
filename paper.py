@@ -176,9 +176,12 @@ def manage_open_positions(broker, cfg: Config, log: list[dict]) -> list[str]:
     return notes
 
 
-def run(signals: list[dict], cfg: Config, today: str) -> dict | None:
+def run(signals: list[dict], cfg: Config, today: str, exposure_mult: float = 1.0) -> dict | None:
     """Reconcile + (optionally) submit paper orders. Returns a dashboard-ready dict, or None
-    when the feature is disabled. Never raises."""
+    when the feature is disabled. Never raises.
+
+    ``exposure_mult`` is the macro-regime exposure scalar (<1 in risk-off, >1 in risk-on): it
+    scales every new position's size so the macro backdrop controls how aggressively we deploy."""
     if not cfg.paper_trade:
         return None
     if not cfg.paper:
@@ -238,6 +241,10 @@ def run(signals: list[dict], cfg: Config, today: str) -> dict | None:
         notes.append("Risk: " + " | ".join(risk["reasons"]))
     elif risk.get("warnings"):
         notes.append("Risk: " + " | ".join(risk["warnings"]))
+    if abs(float(exposure_mult or 1.0) - 1.0) >= 0.03:
+        _em = float(exposure_mult)
+        notes.append(f"Macro exposure: new positions sized {_em:.2f}× "
+                     f"({'leaning in (risk-on)' if _em > 1 else 'pulled back (risk-off)'}).")
 
     # --- submit new brackets for fresh High-conviction signals ---
     if market_open and risk.get("ok_to_open", True) and len(open_syms) < cfg.paper_max_open:
@@ -271,6 +278,7 @@ def run(signals: list[dict], cfg: Config, today: str) -> dict | None:
             from risk import risk_multiplier
             mult = risk_multiplier(label, atr_pct, cfg, score_pct=score_pct)
             mult *= float(risk.get("size_scale", 1.0))   # book-level throttle (drawdown de-risk)
+            mult *= float(exposure_mult or 1.0)          # macro-regime exposure scalar (risk-on/off)
             qty = _qty(equity, buying_power, entry, stop, cfg.paper_risk_pct, mult=mult)
             # concentration cap: never let one position exceed max_position_pct of equity
             try:
@@ -279,6 +287,21 @@ def run(signals: list[dict], cfg: Config, today: str) -> dict | None:
                 if capped < qty:
                     notes.append(f"{sym}: trimmed to {capped} sh (concentration cap)")
                 qty = capped
+            except Exception:  # noqa: BLE001
+                pass
+            # liquidity gate: skip names too thin to trade; cap size vs average daily $ volume
+            try:
+                import liquidity as _liq
+                _dv = s.get("dollar_volume")
+                _liq_chk = _liq.practical(qty * entry, _dv, cfg,
+                                          spread_bps=(s.get("liquidity") or {}).get("spread_bps"))
+                if not _liq_chk["ok"] and (not _dv or _dv < cfg.min_dollar_volume):
+                    notes.append(f"{sym}: skipped (too illiquid — {_liq_chk['note']})")
+                    continue
+                lcap = _liq.cap_qty_to_adv(qty, entry, _dv, cfg)
+                if lcap < qty:
+                    notes.append(f"{sym}: trimmed to {lcap} sh (liquidity / market-impact cap)")
+                qty = lcap
             except Exception:  # noqa: BLE001
                 pass
             if qty < 1:
