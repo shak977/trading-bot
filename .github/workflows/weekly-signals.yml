@@ -67,6 +67,8 @@ jobs:
           cp chart_engine.js _site/chart_engine.js
           cp signals.json _site/signals.json
           cp track_record.json _site/track_record.json 2>/dev/null || true
+          cp manifest.webmanifest _site/manifest.webmanifest
+          cp icon-180.png icon-192.png icon-512.png icon-512-maskable.png _site/ 2>/dev/null || true
 
       - name: Data-integrity audit
         if: ${{ github.event_name != 'schedule' || steps.gate.outputs.trading == 'true' }}

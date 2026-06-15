@@ -1492,8 +1492,16 @@ def render_html(snap: dict) -> str:
                            f'title="{dh.get("checks",0)} integrity checks passed">data check ✓</span>')
     return f"""<!DOCTYPE html>
 <html lang="en" data-theme="dark"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Trading Signals Dashboard</title>
+<meta name="theme-color" content="#0d1117">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Signal Desk">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1536,7 +1544,8 @@ def render_html(snap: dict) -> str:
   body {{ margin:0; font:15px/1.5 'Inter',-apple-system,Segoe UI,Roboto,sans-serif;
     background:var(--bg); color:var(--txt);
     -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-rendering:optimizeLegibility; }}
-  .wrap {{ width:100%; max-width:1480px; margin:0 auto; padding:28px 24px 60px; }}
+  .wrap {{ width:100%; max-width:1480px; margin:0 auto;
+    padding:0 max(24px, env(safe-area-inset-right)) calc(60px + env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); }}
   .grid-stack {{ width:100%; }}
   h1 {{ font-size:25px; font-weight:800; letter-spacing:-.015em; margin:0 0 5px; }}
   h2 {{ font-size:13px; margin:30px 0 12px; color:var(--muted); font-weight:700;
@@ -1976,6 +1985,7 @@ def render_html(snap: dict) -> str:
   /* ---- app shell ---- */
   /* unified sticky header: brand + status on top, primary tab nav directly beneath */
   .appbar {{ position:sticky; top:0; z-index:30; margin:0 0 18px;
+    padding-top:env(safe-area-inset-top);
     background:color-mix(in srgb, var(--bg) 86%, transparent);
     backdrop-filter:saturate(1.4) blur(12px); -webkit-backdrop-filter:saturate(1.4) blur(12px);
     border-bottom:1px solid var(--line); }}
