@@ -2293,9 +2293,11 @@ def render_html(snap: dict) -> str:
     --short:#c2410c; --watch:#475569; --exit:#b45309; --avoid:#6b7280; --warn:#b7791f;
     --accent:#0b5cad; --grid:rgba(120,130,145,0.16); --cross:rgba(60,70,85,0.4);
     --inset:#f1f4f8; --hover:#eef2f7; --ring:rgba(11,92,173,.40);
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --hud-edge:color-mix(in srgb,var(--accent) 22%,var(--line));
     --shadow:0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.06);
     --shadow-lg:0 6px 20px rgba(16,24,40,0.10); }}
-  html[data-theme="dark"] {{ --bg:#0d1117; --card:#161b22; --line:#262d36; --txt:#e6edf3;
+  html[data-theme="dark"] {{ --bg:#090d12; --card:#0f151c; --line:#222b35; --txt:#e6edf3;
     --muted:#8b97a6; --txt2:#c2cad4; --buy:#2ea043; --sell:#f85149; --hold:#58a6ff; --flat:#6e7681;
     --short:#fb7185; --watch:#94a3b8; --exit:#d29922; --avoid:#6e7681; --warn:#e0a82e;
     --accent:#58a6ff; --grid:rgba(42,52,65,0.55); --cross:rgba(139,151,166,0.45);
@@ -2311,6 +2313,8 @@ def render_html(snap: dict) -> str:
   a {{ color:var(--accent); text-underline-offset:2px; }}
   .px, .stat .v, .kv span:last-child, .trackrec td, .secpct, .readout .rprice,
   .wl-px, .wl-chg, .convbadge {{ font-variant-numeric:tabular-nums; font-feature-settings:'tnum' 1; }}
+  /* HUD: monospace, tabular data figures */
+  .kpi-v, .stat .v, .px, .wl-px, .convbadge, .num {{ font-family:var(--mono); }}
   ::-webkit-scrollbar {{ width:10px; height:10px; }}
   ::-webkit-scrollbar-thumb {{ background:var(--line); border-radius:6px; border:2px solid transparent;
     background-clip:padding-box; }}
@@ -2338,7 +2342,7 @@ def render_html(snap: dict) -> str:
   .note {{ color:var(--muted); font-size:13px; margin:10px 0 8px; }}
   .grid {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
     gap:14px; }}
-  .card {{ background:var(--card); border:1px solid var(--line); border-radius:12px;
+  .card {{ background:var(--card); border:1px solid var(--hud-edge); border-radius:7px;
     padding:16px; cursor:pointer; box-shadow:var(--shadow); }}
   .card:hover {{ border-color:color-mix(in srgb, var(--accent) 45%, var(--line));
     transform:translateY(-2px); box-shadow:var(--shadow-lg); }}
@@ -2546,7 +2550,7 @@ def render_html(snap: dict) -> str:
   .modal .chartbox {{ margin-top:0; }}
   .plangrid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
     gap:10px; }}
-  .stat {{ background:var(--inset); border:1px solid var(--line); border-radius:10px;
+  .stat {{ background:var(--inset); border:1px solid var(--hud-edge); border-radius:6px;
     padding:10px 12px; }}
   .stat .l {{ color:var(--muted); font-size:11px; text-transform:uppercase;
     letter-spacing:.04em; }}
@@ -2652,9 +2656,9 @@ def render_html(snap: dict) -> str:
   .secthead {{ font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase;
     letter-spacing:.05em; margin:22px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--line); }}
   .secthead:first-child {{ margin-top:4px; }}
-  .ovbox {{ background:var(--card); border:1px solid var(--line); border-radius:12px;
+  .ovbox {{ background:var(--card); border:1px solid var(--hud-edge); border-radius:6px;
     padding:14px 16px; margin-bottom:22px; }}
-  .ovhead {{ font-weight:700; font-size:14px; margin-bottom:8px; }}
+  .ovhead {{ font-weight:600; font-size:13px; margin-bottom:8px; text-transform:uppercase; letter-spacing:.08em; }}
   .ovwrap {{ display:flex; gap:14px; align-items:stretch; }}
   .ovchart {{ flex:1; min-width:0; }}
   .ovboard {{ width:150px; max-height:300px; overflow-y:auto; border-left:1px solid var(--line); padding-left:10px; }}
@@ -2686,8 +2690,8 @@ def render_html(snap: dict) -> str:
   /* shared table style for the intelligence/data panels (was previously unstyled) */
   .tbl {{ width:100%; border-collapse:collapse; font-size:13px; }}
   .tbl th, .tbl td {{ text-align:left; padding:7px 9px; border-bottom:1px solid var(--line); vertical-align:middle; }}
-  .tbl thead th {{ color:var(--muted); font-weight:600; font-size:12px; white-space:nowrap;
-    position:sticky; top:0; background:var(--card); }}
+  .tbl thead th {{ color:var(--muted); font-weight:600; font-size:11px; white-space:nowrap;
+    text-transform:uppercase; letter-spacing:.05em; position:sticky; top:0; background:var(--card); }}
   .tbl tbody tr:hover {{ background:var(--hover); }}
   .tbl tbody tr:last-child td {{ border-bottom:none; }}
   .tbl .buy {{ color:var(--buy); }} .tbl .sell {{ color:var(--sell); }}
@@ -2803,8 +2807,8 @@ def render_html(snap: dict) -> str:
   .subhead {{ color:var(--muted); font-size:12.5px; margin:0 0 16px; }}
   /* ---- KPI summary strip ---- */
   .kpis {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(148px,1fr)); gap:12px; margin:0 0 20px; }}
-  .kpi {{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; box-shadow:var(--shadow); }}
-  .kpi-l {{ font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:700; }}
+  .kpi {{ background:var(--card); border:1px solid var(--hud-edge); border-radius:6px; padding:12px 14px; }}
+  .kpi-l {{ font-size:10px; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); font-weight:600; }}
   .kpi-v {{ font-size:24px; font-weight:800; margin-top:4px; letter-spacing:-.015em; font-variant-numeric:tabular-nums; }}
   .kpi-v.buy {{ color:var(--buy); }} .kpi-v.sell {{ color:var(--sell); }} .kpi-v.warn {{ color:#b8860b; }}
   .kpi-sub {{ font-size:11px; color:var(--muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
