@@ -17,7 +17,7 @@ import strategies
 from config import Config
 from data import get_bars, synthetic_bars
 from indicators import atr
-from risk import position_size, stop_loss_price
+from risk import honest_target, position_size, stop_loss_price
 from strategy import generate_signals
 
 # A small static fallback universe used if the screener is unavailable.
@@ -484,55 +484,6 @@ def _target_scenarios(direction: str, entry: float, stop: float, base_target: fl
             sb = "up toward the period high (~5x+ risk) — lower odds, bigger payoff"
     out.append(mk("Stretch", stretch, sb, "lower odds"))
     return [o for o in out if o]
-
-
-def honest_target(entry: float, df, atr_val, working_stop: float, cfg: Config, short: bool = False):
-    """An evidence-based base target rather than a flat % or an arbitrary risk multiple.
-
-    Anchored to real STRUCTURE — the nearest level where price has actually turned
-    (recent swing high for a long / swing low for a short) — then bounded by VOLATILITY
-    (kept within a realistic ~Nx-ATR swing move) and capped at take_profit_pct. The
-    FUNDAMENTAL bound (analyst mean target) is applied later in rescore() once research
-    is fetched. Returns (price, basis_text) so the UI can show *why* this is the target.
-    """
-    atrm = atr_val if (atr_val and atr_val > 0) else 0.02 * entry
-    lb = getattr(cfg, "target_swing_lookback", 30)
-    reach = getattr(cfg, "target_atr_reach", 8.0)
-    try:
-        if short:
-            swing, ext = float(df["low"].tail(lb).min()), float(df["low"].min())
-        else:
-            swing, ext = float(df["high"].tail(lb).max()), float(df["high"].max())
-    except Exception:  # noqa: BLE001
-        swing = ext = None
-
-    if not short:
-        cands = [x for x in (swing, ext) if x is not None and x > entry + 0.5 * atrm]
-        if cands:
-            tgt, basis = min(cands), "nearest resistance (recent swing high)"
-        else:
-            tgt, basis = entry + reach * atrm, "measured move — at new highs, no overhead resistance"
-        vmax = entry + reach * atrm
-        if tgt > vmax:
-            tgt, basis = vmax, basis + " · trimmed to a volatility-reachable distance"
-        cap = entry * (1 + cfg.take_profit_pct)
-        if tgt > cap:
-            tgt, basis = cap, basis + f" · capped at {round(cfg.take_profit_pct * 100)}%"
-        tgt = max(tgt, entry + 0.5 * atrm)
-    else:
-        cands = [x for x in (swing, ext) if x is not None and x < entry - 0.5 * atrm]
-        if cands:
-            tgt, basis = max(cands), "nearest support (recent swing low)"
-        else:
-            tgt, basis = entry - reach * atrm, "measured move — at new lows, no support below"
-        vmin = entry - reach * atrm
-        if tgt < vmin:
-            tgt, basis = vmin, basis + " · trimmed to a volatility-reachable distance"
-        cap = entry * (1 - cfg.take_profit_pct)
-        if tgt < cap:
-            tgt, basis = cap, basis + f" · capped at {round(cfg.take_profit_pct * 100)}%"
-        tgt = min(tgt, entry - 0.5 * atrm)
-    return tgt, basis
 
 
 def _apply_fundamental_cap(plan: dict, fundamentals, cfg: Config) -> None:
@@ -1061,7 +1012,7 @@ def _rank_key(row: dict) -> tuple:
 LAST_ERRORS: list[str] = []
 
 
-def scan(cfg: Config, live: bool) -> list[dict]:
+def scan(cfg: Config, live: bool, pin: set | None = None) -> list[dict]:
     LAST_ERRORS.clear()
     equity = cfg.starting_cash
     if live and cfg.scan_market:
@@ -1070,6 +1021,8 @@ def scan(cfg: Config, live: bool) -> list[dict]:
         symbols = list(cfg.symbols)
     else:
         symbols = list(_FALLBACK)  # synthetic demo universe
+    if pin:  # always analyse names we alerted today so the dashboard stays in line with alerts
+        symbols = list(dict.fromkeys([*pin, *symbols]))
     rows, empty, errs = [], 0, 0
     for sym in symbols:
         try:

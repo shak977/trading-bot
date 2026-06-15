@@ -33,6 +33,17 @@ def _save(keys: set) -> None:
         pass
 
 
+def alerted_today(today: str) -> set:
+    """Symbols that already fired an alert today, so the dashboard can PIN them and stay
+    in line with what you were notified about (keys are 'SYMBOL:ACTION:YYYY-MM-DD')."""
+    out = set()
+    for k in _load():
+        parts = k.split(":")
+        if len(parts) == 3 and parts[2] == today:
+            out.add(parts[0])
+    return out
+
+
 def _channels() -> dict:
     return {
         "webhook": os.getenv("ALERT_WEBHOOK_URL", "").strip(),
@@ -115,8 +126,11 @@ def run(signals: list[dict], today: str) -> dict | None:
         lines.append(f"{arrow} {s['symbol']} {s['action']} — {cp}% conviction"
                      + (f", entry ${entry:,.2f}" if entry else ""))
     site = os.getenv("SITE_URL", "").strip()
+    from datetime import datetime, timezone
+    stamp = datetime.now(timezone.utc).strftime("%H:%M UTC")
     title = f"{len(fresh)} new high-conviction signal{'s' if len(fresh) != 1 else ''}"
-    body = "\n".join(lines) + (f"\n\n{site}" if site else "")
+    foot = f"\n\nas of {stamp} — these names are pinned on the dashboard"
+    body = "\n".join(lines) + foot + (f"\n{site}" if site else "")
 
     delivered = False
     if ch["webhook"]:

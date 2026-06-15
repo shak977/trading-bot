@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 
 from config import Config
-from risk import position_size, stop_loss_price, take_profit_price
+from risk import honest_target, position_size, stop_loss_price
 from strategy import generate_signals
 
 
@@ -62,10 +62,16 @@ def backtest_positions(df: pd.DataFrame, positions: pd.Series, cfg: Config,
     equity_hist, trades = [], []
     # optional trailing ATR stop ("let winners run")
     from indicators import atr as _atr
+    atr_s = _atr(df, cfg.atr_period)                   # needed for both trailing stop & honest target
     trail = cfg.trail_atr_mult > 0
-    atr_s = _atr(df, cfg.atr_period) if trail else None
     slip = getattr(cfg, "slippage_bps", 0.0) / 1e4     # cost per fill (each side)
     comm = getattr(cfg, "commission_per_trade", 0.0)
+
+    def _atr_at(ts):
+        a = atr_s.loc[ts]
+        if isinstance(a, pd.Series):
+            a = a.iloc[-1]
+        return float(a) if (a is not None and not np.isnan(a)) else None
 
     for ts, row in df.iterrows():
         price = row["close"]
@@ -117,7 +123,7 @@ def backtest_positions(df: pd.DataFrame, positions: pd.Series, cfg: Config,
                 shares = qty
                 entry = price * (1 + slip)              # buy fill incl. slippage
                 stop = stop_loss_price(price, cfg)
-                target = take_profit_price(price, cfg)
+                target, _ = honest_target(price, df.loc[:ts], _atr_at(ts), stop, cfg, short=False)
                 held_bars = 0
                 took_partial = False
                 cash -= shares * entry + comm
@@ -140,10 +146,16 @@ def _backtest_short(df: pd.DataFrame, positions: pd.Series, cfg: Config) -> Back
     took_partial = False
     equity_hist, trades = [], []
     from indicators import atr as _atr
+    atr_s = _atr(df, cfg.atr_period)                   # needed for both trailing stop & honest target
     trail = cfg.trail_atr_mult > 0
-    atr_s = _atr(df, cfg.atr_period) if trail else None
     slip = getattr(cfg, "slippage_bps", 0.0) / 1e4
     comm = getattr(cfg, "commission_per_trade", 0.0)
+
+    def _atr_at(ts):
+        a = atr_s.loc[ts]
+        if isinstance(a, pd.Series):
+            a = a.iloc[-1]
+        return float(a) if (a is not None and not np.isnan(a)) else None
 
     for ts, row in df.iterrows():
         price = row["close"]
@@ -195,7 +207,7 @@ def _backtest_short(df: pd.DataFrame, positions: pd.Series, cfg: Config) -> Back
                 shares = qty
                 entry = price * (1 - slip)            # sell to open incl. slippage
                 stop = entry * (1 + cfg.stop_loss_pct)
-                target = entry * (1 - cfg.take_profit_pct)
+                target, _ = honest_target(entry, df.loc[:ts], _atr_at(ts), stop, cfg, short=True)
                 held_bars = 0
                 took_partial = False
                 cash -= comm

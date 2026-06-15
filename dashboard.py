@@ -105,7 +105,20 @@ def build_snapshot() -> dict:
     mode = _mode()
     live = mode != "SYNTHETIC"
 
-    rows = scanner.scan(CONFIG, live=live)
+    # Pin any symbol we already alerted today so the LATEST dashboard always contains every
+    # name you were notified about (alerts and dashboard stay in line as the universe rotates).
+    _today0 = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    pin = set()
+    if live:
+        try:
+            import notify as _nf0
+            pin = _nf0.alerted_today(_today0)
+        except Exception:  # noqa: BLE001
+            pin = set()
+
+    rows = scanner.scan(CONFIG, live=live, pin=pin)
+    for _r in rows:
+        _r["alerted"] = _r["symbol"] in pin
 
     # split chart data out of each row for compactness
     charts = {r["symbol"]: r.pop("chart") for r in rows}
@@ -152,6 +165,13 @@ def build_snapshot() -> dict:
     sectors = _sector_strength(rows)
 
     shown = rows[: CONFIG.show_top]
+    # force-include any alerted-today name that ranking truncated, so it's never missing
+    if pin:
+        _ss = {r["symbol"] for r in shown}
+        for _r in rows:
+            if _r.get("alerted") and _r["symbol"] not in _ss:
+                shown.append(_r)
+                _ss.add(_r["symbol"])
     shown_syms = [r["symbol"] for r in shown]
 
     # Regime filter: don't initiate against a hostile tape. In Risk-off, demote fresh BUYs to
@@ -2449,6 +2469,9 @@ function _ageBit(s) {{
   const txt = s.is_fresh ? 'New today' : (s.days_old === 1 ? '1 day old' : (s.days_old||0) + ' days old');
   return `<div class="card-age${{s.is_fresh ? ' fresh' : ''}}" title="First flagged ${{s.first_seen}}">🕒 ${{txt}}</div>`;
 }}
+function _alertBit(s) {{
+  return s.alerted ? `<div class="card-age fresh" title="An ntfy alert fired for this name today — pinned here so your alerts and the dashboard stay in line">🔔 Alerted today</div>` : '';
+}}
 function makeCard(s) {{
   const el = document.createElement('div'); el.className='card';
   const cls = (s.action||'').replace(' ','');
@@ -2526,7 +2549,7 @@ function makeCard(s) {{
   const nNews = (s.news||[]).length;
   el.innerHTML = `
     <div class="card-top">${{logo}}
-      <div class="card-id"><div class="s">${{s.symbol}}</div><div class="n">${{s.name||s.exchange||''}}</div>${{_ageBit(s)}}</div>
+      <div class="card-id"><div class="s">${{s.symbol}}</div><div class="n">${{s.name||s.exchange||''}}</div>${{_ageBit(s)}}${{_alertBit(s)}}</div>
       <span class="act a-${{cls}}">${{s.action}}</span>
       <button class="favbtn ${{FAVS.has(s.symbol)?'on':''}}" title="Save to favorites">${{FAVS.has(s.symbol)?'★':'☆'}}</button></div>
     <div class="card-px-row"><span class="card-px" data-px="${{s.symbol}}">$${{_px.toLocaleString()}}</span>${{dchg}}</div>
