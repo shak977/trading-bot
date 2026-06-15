@@ -14,6 +14,63 @@ from config import Config
 _URL = "https://api.anthropic.com/v1/messages"
 
 
+def market_brief(regime, signals, sectors, momentum, news_ideas, macro, cfg: Config, timeout: int = 25):
+    """A plain-English 'what's happening / what to watch' market brief, built ONLY from the data
+    we already computed (no invented facts). Returns text or None — never raises."""
+    if not getattr(cfg, "llm_enabled", False):
+        return None
+    try:
+        sg = signals or []
+        fresh_b = sum(1 for s in sg if s.get("is_fresh") and s.get("action") == "BUY")
+        fresh_s = sum(1 for s in sg if s.get("is_fresh") and s.get("action") == "SHORT")
+        top = sorted([s for s in sg if s.get("action") in ("BUY", "SHORT")],
+                     key=lambda s: -((s.get("conviction") or {}).get("score_pct") or 0))[:6]
+
+        def _sl(s):
+            c = (s.get("conviction") or {}).get("score_pct")
+            return f"{s.get('symbol')} {s.get('action')}" + (f" ({c}%)" if c is not None else "")
+        secs = sorted(sectors or [], key=lambda x: -(x.get("pct_up") or 0))
+        strong = ", ".join(f"{x['sector']} ({x['pct_up']}% up)" for x in secs[:3]) or "n/a"
+        weak = ", ".join(f"{x['sector']} ({x['pct_up']}% up)" for x in secs[-3:]) or "n/a"
+        mom = ", ".join(f"{m['symbol']} +{m.get('score')}%" for m in (momentum or [])[:5]) or "n/a"
+        cats = [i for i in (news_ideas or []) if i.get("confidence") == "high"][:5]
+        cat_txt = "; ".join(f"{i.get('ticker')} {i.get('direction')} — {i.get('reason')}" for i in cats) or "none flagged"
+        reg = regime or {}
+        macro_txt = (f"{macro.get('backdrop')} (10y {macro.get('y10')}%, CPI {macro.get('cpi_yoy')}% YoY, "
+                     f"unemployment {macro.get('unemployment')}%)") if macro else "n/a"
+        data = (
+            f"Regime: {reg.get('label', 'n/a')} — breadth {reg.get('breadth', '?')}% of scanned stocks above trend, "
+            f"avg momentum {reg.get('avg_rsi', '?')}/100.\n"
+            f"Fresh today: {fresh_b} new long signals, {fresh_s} new shorts.\n"
+            f"Top-conviction setups: {', '.join(_sl(s) for s in top) or 'none'}.\n"
+            f"Strongest sectors: {strong}. Weakest: {weak}.\n"
+            f"Momentum leaders (12-1): {mom}.\n"
+            f"Notable news catalysts: {cat_txt}.\n"
+            f"Macro backdrop: {macro_txt}."
+        )
+        prompt = (
+            "You are a markets strategist writing a quick brief for a smart beginner. Using ONLY the "
+            "data below (never invent numbers, names, or events), write 3-4 short, plain-English "
+            "sentences: (1) what the market is doing right now and the mood; (2) what's driving it — "
+            "name the strong/weak sectors and any real news catalysts; (3) what the screen is flagging "
+            "today; (4) one practical 'what to watch'. Briefly define any jargon. No hype, and do not "
+            "tell the reader to buy or sell.\n\nDATA:\n" + data
+        )
+        r = requests.post(
+            _URL,
+            headers={"x-api-key": cfg.anthropic_api_key, "anthropic-version": "2023-06-01",
+                     "content-type": "application/json"},
+            json={"model": cfg.llm_model, "max_tokens": 320,
+                  "messages": [{"role": "user", "content": prompt}]},
+            timeout=timeout,
+        )
+        r.raise_for_status()
+        parts = [b.get("text", "") for b in r.json().get("content", []) if b.get("type") == "text"]
+        return "".join(parts).strip() or None
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def _prompt(sig: dict, regime: dict | None = None, macro: dict | None = None) -> str:
     p, ctx, conv = sig.get("plan", {}), sig.get("context", {}), sig.get("conviction", {})
     f, edge = sig.get("factors", {}) or {}, sig.get("edge") or {}

@@ -564,6 +564,15 @@ def build_snapshot() -> dict:
             except Exception as exc:  # noqa: BLE001
                 llm_status["probe"] = {"ok": False, "error": str(exc)[:200]}
 
+    # AI market brief (worker): a plain-English "what's happening / what to watch" summary at the
+    # top of the dashboard, built only from data we already have. Live + LLM only; never breaks.
+    market_brief = None
+    if live and CONFIG.llm_enabled:
+        try:
+            market_brief = llm.market_brief(regime, shown, sectors, momentum_rows, news_ideas, macro, CONFIG)
+        except Exception:  # noqa: BLE001
+            market_brief = None
+
     # S&P 500 benchmark (SPY) for chart overlay.
     benchmark = None
     try:
@@ -710,6 +719,7 @@ def build_snapshot() -> dict:
         "signals": shown,
         "intraday": intraday_shown,
         "intraday_track": intraday_track,
+        "market_brief": market_brief,
         "charts": {k: charts[k] for k in shown_syms if k in charts},
         "news": news,
     }
@@ -1570,6 +1580,9 @@ def render_html(snap: dict) -> str:
     pdrop_html = (f' &middot; <span style="color:var(--muted);" title="{(" | ".join(_pd))[:300].replace(chr(34), chr(39))}">'
                   f'{len(_pd)} dropped (bad feed price)</span>') if _pd else ""
     kpi_html = _kpi_html(snap.get("regime"), snap)
+    _brief = (snap.get("market_brief") or "").strip()
+    brief_html = (f'<div class="ai-box" style="margin:2px 0 18px;line-height:1.6;">'
+                  f'<span class="ai-h">🧠 Market brief</span> {_brief}</div>') if _brief else ""
     momentum_html = _momentum_bt_html(snap.get("momentum_bt")) + _momentum_html(snap.get("momentum") or [])
     allweather_html = _allweather_html(snap.get("allweather"))
     portfolio_html = _portfolio_html(snap.get("portfolio"))
@@ -2215,6 +2228,7 @@ def render_html(snap: dict) -> str:
   {kpi_html}
   <div class="note" style="margin-top:0;">{mode_note}</div>
   <div id="diag"></div>
+  {brief_html}
 
   <section class="page" id="page-markets">
     <div class="mkt">
