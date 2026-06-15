@@ -730,6 +730,12 @@ def build_snapshot() -> dict:
         alerts = _notify.run(shown, today)
     except Exception:  # noqa: BLE001
         alerts = None
+    # Pairs alerts: ping when a spread stretches to its ±2σ entry band (deduped, once/day/pair).
+    try:
+        import notify as _notify
+        _notify.run_pairs(pairs_data, today)
+    except Exception:  # noqa: BLE001
+        pass
 
     # System status — a live readout of what's actually wired/running (booleans only, no secrets).
     import os as _os

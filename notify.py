@@ -146,3 +146,52 @@ def run(signals: list[dict], today: str) -> dict | None:
         _save(sent)
     return {"configured": True, "new": len(fresh), "delivered": delivered,
             "symbols": [s["symbol"] for s in fresh[:10]]}
+
+
+def run_pairs(pairs_data: dict | None, today: str) -> dict | None:
+    """Fire alerts for FRESH actionable pairs (a spread stretched to its entry band, |z| ≥ 2σ).
+    Deduped via the same log with a 'PAIR:' key so each pair pings once per day. Never raises."""
+    ch = _channels()
+    if not (ch["webhook"] or ch["ntfy"] or ch["email_to"]):
+        return None
+    pairs = (pairs_data or {}).get("pairs") or []
+    actionable = [p for p in pairs if p.get("actionable")]
+    if not actionable:
+        return {"configured": True, "new": 0, "delivered": False}
+
+    sent = _load()
+    fresh = [p for p in actionable
+             if f"PAIR:{p['a']}/{p['b']}:{p['signal']}:{today}" not in sent]
+    if not fresh:
+        return {"configured": True, "new": 0, "delivered": False}
+
+    fresh.sort(key=lambda p: -abs(p.get("z") or 0))
+    lines = []
+    for p in fresh[:8]:
+        # spread rich (z>0) => short the spread; cheap (z<0) => long the spread
+        arrow = "🔴" if p["signal"] == "SHORT_SPREAD" else "🟢"
+        legs = (f"short {p['a']} / long {p['b']}" if p["signal"] == "SHORT_SPREAD"
+                else f"long {p['a']} / short {p['b']}")
+        lines.append(f"{arrow} {p['a']}/{p['b']} {p['z']:+.1f}σ — {legs} (β {p.get('beta')})")
+    site = os.getenv("SITE_URL", "").strip()
+    from datetime import datetime, timezone
+    stamp = datetime.now(timezone.utc).strftime("%H:%M UTC")
+    title = f"{len(fresh)} pair spread{'s' if len(fresh) != 1 else ''} at entry band"
+    foot = (f"\n\nas of {stamp} — mean-reversion: enter at ±2σ, exit toward 0, stop past ±3σ. "
+            "Market-neutral diversifier; paper/educational.")
+    body = "\n".join(lines) + foot + (f"\n{site}" if site else "")
+
+    delivered = False
+    if ch["webhook"]:
+        delivered = _post_webhook(ch["webhook"], title, body) or delivered
+    if ch["ntfy"]:
+        delivered = _post_ntfy(ch["ntfy"], title, body) or delivered
+    if ch["email_to"]:
+        delivered = _send_email(ch["email_to"], title, body) or delivered
+
+    if delivered:
+        for p in fresh:
+            sent.add(f"PAIR:{p['a']}/{p['b']}:{p['signal']}:{today}")
+        _save(sent)
+    return {"configured": True, "new": len(fresh), "delivered": delivered,
+            "pairs": [f"{p['a']}/{p['b']}" for p in fresh[:8]]}
