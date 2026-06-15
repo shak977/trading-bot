@@ -36,8 +36,9 @@ def market_brief(regime, signals, sectors, momentum, news_ideas, macro, cfg: Con
         cats = [i for i in (news_ideas or []) if i.get("confidence") == "high"][:5]
         cat_txt = "; ".join(f"{i.get('ticker')} {i.get('direction')} — {i.get('reason')}" for i in cats) or "none flagged"
         reg = regime or {}
-        macro_txt = (f"{macro.get('backdrop')} (10y {macro.get('y10')}%, CPI {macro.get('cpi_yoy')}% YoY, "
-                     f"unemployment {macro.get('unemployment')}%)") if macro else "n/a"
+        macro_txt = (f"{macro.get('backdrop')} — VIX {macro.get('vix')} ({macro.get('vix_trend', 'flat')}), "
+                     f"10y {macro.get('y10')}%, dollar idx {macro.get('dxy')}, WTI oil ${macro.get('oil')}, "
+                     f"CPI {macro.get('cpi_yoy')}% YoY, unemployment {macro.get('unemployment')}%") if macro else "n/a"
         data = (
             f"Regime: {reg.get('label', 'n/a')} — breadth {reg.get('breadth', '?')}% of scanned stocks above trend, "
             f"avg momentum {reg.get('avg_rsi', '?')}/100.\n"

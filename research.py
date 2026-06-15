@@ -459,6 +459,18 @@ def fred_macro(cfg: Config) -> dict | None:
         m["fed_funds"] = round(fedfunds, 2)
     if cpi and len(cpi) >= 13:
         m["cpi_yoy"] = round((cpi[0] / cpi[12] - 1) * 100, 1)
+    # --- cross-asset risk gauges (free FRED series) ---
+    vix = _fred_latest("VIXCLS", key, limit=6)      # CBOE Volatility Index — the "fear gauge"
+    dxy = _fred_latest("DTWEXBGS", key)             # broad trade-weighted US dollar
+    oil = _fred_latest("DCOILWTICO", key)           # WTI crude
+    if vix:
+        m["vix"] = round(vix[0], 1)
+        if len(vix) >= 6 and vix[5]:
+            m["vix_trend"] = "rising" if vix[0] > vix[5] else "falling"
+    if dxy is not None:
+        m["dxy"] = round(dxy, 1)
+    if oil is not None:
+        m["oil"] = round(oil, 1)
     if not m:
         return None
     curve = m.get("curve")
@@ -471,4 +483,11 @@ def fred_macro(cfg: Config) -> dict | None:
     else:
         m["backdrop"] = "Mixed"
         m["note"] = "A flattish yield curve — no strong macro signal either way."
+    # Volatility read from the VIX — a quick risk-on/off gauge.
+    if m.get("vix") is not None:
+        v = m["vix"]
+        trend = f", {m['vix_trend']}" if m.get("vix_trend") else ""
+        m["risk_gauge"] = (f"Fearful — VIX {v} elevated{trend}" if v >= 25 else
+                           f"Calm — VIX {v} low{trend}" if v < 16 else
+                           f"Normal — VIX {v}{trend}")
     return m

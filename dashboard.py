@@ -1238,6 +1238,13 @@ def _macro_html(m: dict | None) -> str:
         return (f'<div class="stat"><div class="l">{label}</div>'
                 f'<div class="v" style="font-size:15px;">{val}</div></div>')
     cells = ""
+    if m.get("vix") is not None:
+        _vt = f' ({m["vix_trend"]})' if m.get("vix_trend") else ''
+        cells += cell("VIX (fear gauge)", f'{m["vix"]}{_vt}')
+    if m.get("dxy") is not None:
+        cells += cell("US dollar index", f'{m["dxy"]}')
+    if m.get("oil") is not None:
+        cells += cell("WTI crude oil", f'${m["oil"]}')
     if m.get("y10") is not None:
         cells += cell("10-yr yield", f'{m["y10"]}%')
     if m.get("curve") is not None:
@@ -1248,9 +1255,10 @@ def _macro_html(m: dict | None) -> str:
         cells += cell("Unemployment", f'{m["unemployment"]}%')
     if m.get("fed_funds") is not None:
         cells += cell("Fed funds rate", f'{m["fed_funds"]}%')
+    _risk = f' &middot; {m["risk_gauge"]}' if m.get("risk_gauge") else ''
     return ('<div class="ovbox"><div class="ovhead">🌍 Macro backdrop: '
             f'{m.get("backdrop","")} <span style="font-weight:400;color:var(--muted);font-size:12px;">'
-            f'— {m.get("note","")}</span></div>'
+            f'— {m.get("note","")}{_risk}</span></div>'
             f'<div class="trackstats">{cells}</div></div>')
 
 
