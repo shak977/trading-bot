@@ -561,7 +561,7 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: st
 
 def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 factors=None, patterns=None, edge=None,
-                sentiment=None, fundamentals=None, price=None, tv=None, regime=None, insider=None, buzz=None):
+                sentiment=None, fundamentals=None, price=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None):
     """Auto-scored pre-entry checklist, direction-aware. Each check is pass/warn/fail.
 
     For a LONG it asks the bullish questions (trending up? room to rise?); for a SHORT it
@@ -854,6 +854,22 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 f"StockTwits leans {lean}ish ({pct}% bullish of tagged posts)"
                 + (" — crowd is on this side." if with_us else " — crowd leans the other way (often contrarian)."))
 
+    # News-driven idea (LLM read of recent headlines) — does a fresh catalyst back this direction?
+    if news_idea and news_idea.get("direction"):
+        nd = news_idea["direction"]  # 'bullish' | 'bearish'
+        conf = news_idea.get("confidence", "medium")
+        aligns = (nd == "bearish") if short else (nd == "bullish")
+        reason = (news_idea.get("reason") or "").strip()
+        if aligns and conf in ("high", "medium"):
+            add("News catalyst aligns?", "pass",
+                f"A {conf}-confidence news read backs this {'short' if short else 'long'}: {reason}")
+        elif not aligns and conf in ("high", "medium"):
+            add("News catalyst aligns?", "fail",
+                f"Recent news leans the other way ({nd}) — a headwind: {reason}")
+        else:
+            add("News catalyst aligns?", "warn",
+                f"News read is {nd} but low-confidence — weak/ambiguous catalyst: {reason}")
+
     pts = {"pass": 1.0, "warn": 0.5, "fail": 0.0}
     wsum = sum(c.get("weight", 1.0) for c in checks)
     score = sum(pts[c["status"]] * c.get("weight", 1.0) for c in checks) / wsum if wsum else 0.0
@@ -870,13 +886,13 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             "earnings_days": ed, "earnings_gated": gated}
 
 
-def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, regime=None, insider=None, buzz=None) -> None:
+def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None) -> None:
     """Recompute conviction + desk read for a shown row once research is fetched."""
     direction = row.get("direction", "LONG")
     conv = _conviction(row["action"], direction, row["rsi"], row["rel_volume"], row["plan"], row["context"], cfg,
                        row.get("factors"), row.get("patterns"), row.get("edge"),
                        sentiment=sentiment, fundamentals=fundamentals, price=row.get("price"), tv=tv,
-                       regime=regime, insider=insider, buzz=buzz)
+                       regime=regime, insider=insider, buzz=buzz, news_idea=news_idea)
     row["conviction"] = conv
     row["desk_read"] = _desk_read(row["action"], direction, row["plan"], row["context"], conv,
                                   row.get("patterns"), row.get("edge"),

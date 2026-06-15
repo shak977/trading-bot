@@ -351,13 +351,25 @@ def build_snapshot() -> dict:
         except Exception:  # noqa: BLE001
             buzz = {}
 
+    # News-driven ideas: one LLM pass over recent headlines -> actionable single-stock reads.
+    # Feeds a conviction nudge on scanned names + a standalone list (incl. names not in the scan).
+    news_ideas = []
+    if live:
+        try:
+            news_ideas = llm.news_ideas(news, CONFIG, universe={r["symbol"] for r in shown})
+        except Exception:  # noqa: BLE001
+            news_ideas = []
+    _idea_map = {i["ticker"]: i for i in news_ideas}
+
     for r in shown:
         r["fundamentals"] = fundamentals.get(r["symbol"])
         r["insider"] = insiders.get(r["symbol"])
         r["buzz"] = buzz.get(r["symbol"])
+        r["news_idea"] = _idea_map.get(r["symbol"])
         # Re-score conviction + desk read now that research is in hand.
         scanner.rescore(r, CONFIG, sentiment=r.get("sentiment"), fundamentals=r.get("fundamentals"),
-                        tv=r.get("tv"), regime=regime, insider=r.get("insider"), buzz=r.get("buzz"))
+                        tv=r.get("tv"), regime=regime, insider=r.get("insider"), buzz=r.get("buzz"),
+                        news_idea=r.get("news_idea"))
 
     # First-seen dates per signal — powers the "Newest" sort + a date chip on each card.
     # Persisted across runs (like the tracker); a symbol that leaves and returns gets a fresh date.
@@ -501,6 +513,7 @@ def build_snapshot() -> dict:
         "benchmark": benchmark,
         "track": track,
         "paper_acct": paper_acct,
+        "news_ideas": news_ideas,
         "alerts": alerts,
         "regime": regime,
         "sectors": sectors,
@@ -1007,6 +1020,29 @@ def _paper_spark(history: dict | None) -> str:
             f'<polyline points="{coords}" fill="none" stroke="{col}" stroke-width="2"/></svg>')
 
 
+def _news_ideas_html(ideas: list[dict] | None) -> str:
+    """Server-rendered 'News-driven ideas' block: the LLM's read of recent headlines."""
+    if not ideas:
+        return ""
+    rows = ""
+    for i in ideas:
+        d = i.get("direction", "")
+        tone = "buy" if d == "bullish" else "sell"
+        arrow = "↑" if d == "bullish" else "↓"
+        rows += (f'<div class="nidea {tone}"><div class="nidea-top"><b>{i.get("ticker","")}</b> '
+                 f'<span class="{tone}" style="font-weight:700;">{arrow} {d}</span> '
+                 f'<span class="nidea-conf">{i.get("confidence","")} confidence</span></div>'
+                 f'<div class="nidea-why">{i.get("reason","")}</div>'
+                 f'<div class="nidea-src">from: “{i.get("headline","")}”</div></div>')
+    return ('<div class="ovbox" style="margin:0 0 16px;"><div class="ovhead">🗞 News-driven ideas '
+            '<span style="font-weight:400;color:var(--muted);text-transform:none;">— an AI read of recent '
+            'headlines (sentiment, not the confluence engine)</span></div>'
+            f'<div class="nideas">{rows}</div>'
+            '<p style="color:var(--muted);font-size:11.5px;margin:9px 0 0;">Extracted by an LLM from recent '
+            'news text — directional reads, not verified signals. Treat as leads to research. Tickers also in '
+            "today's scan get a small conviction nudge.</p></div>")
+
+
 def _altdata_html(snap: dict) -> str:
     """Aggregate + explain what the alt-data scrapers (SEC insiders, analyst ratings, StockTwits
     buzz) found across today's signals, and how each is meant to be read."""
@@ -1318,6 +1354,7 @@ def render_html(snap: dict) -> str:
     paper_nav = '<button data-page="paper">Paper account</button>' if _paper_acct else ''
     paper_section = f'<section class="page" id="page-paper">{paper_html}</section>' if _paper_acct else ''
     altdata_html = _altdata_html(snap)
+    news_ideas_html = _news_ideas_html(snap.get("news_ideas"))
     regime_html = _regime_html(snap.get("regime"))
     _pd = snap.get("price_drops") or []
     pdrop_html = (f' &middot; <span style="color:var(--muted);" title="{(" | ".join(_pd))[:300].replace(chr(34), chr(39))}">'
@@ -1640,6 +1677,16 @@ def render_html(snap: dict) -> str:
   .sigdet-h {{ display:flex; align-items:baseline; gap:8px; font-size:13.5px; flex-wrap:wrap; }}
   .sigdet-v {{ margin-left:auto; font-weight:700; font-variant-numeric:tabular-nums; font-size:12.5px; }}
   .sigdet-why {{ color:var(--muted); font-size:12px; margin-top:4px; line-height:1.45; }}
+  /* news-driven ideas (Market news tab) */
+  .nideas {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px; margin-top:10px; }}
+  .nidea {{ background:var(--inset); border:1px solid var(--line); border-left:3px solid var(--line);
+    border-radius:9px; padding:10px 12px; }}
+  .nidea.buy {{ border-left-color:var(--buy); }}
+  .nidea.sell {{ border-left-color:var(--sell); }}
+  .nidea-top {{ display:flex; align-items:baseline; gap:8px; font-size:14px; flex-wrap:wrap; }}
+  .nidea-conf {{ margin-left:auto; color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.04em; }}
+  .nidea-why {{ font-size:12.5px; margin-top:4px; line-height:1.45; }}
+  .nidea-src {{ color:var(--muted); font-size:11px; margin-top:4px; font-style:italic; }}
   .deskread {{ background:var(--inset); border:1px solid var(--line); border-left:3px solid var(--hold);
     border-radius:10px; padding:12px 14px; font-size:14px; margin:14px 0; }}
   .convbadge {{ font-size:13px; font-weight:700; padding:2px 10px; border-radius:999px; color:#fff; }}
@@ -2067,6 +2114,7 @@ def render_html(snap: dict) -> str:
 
   <section class="page" id="page-news">
     <h2 style="margin-top:0;">Market news <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— recent headlines across the scanned stocks</span></h2>
+{news_ideas_html}
     <ul class="news" id="news"></ul>
   </section>
 
@@ -2769,6 +2817,14 @@ function _signalsDetail(s) {{
     cards.push(card('💬','Retail buzz (StockTwits)', lean+' · '+(b.sentiment_pct)+'% bullish',
       b.lean==='mixed'?'warn':'',
       (b.n)+' recent posts tagged; '+(b.sentiment_pct)+'% bullish. Crowd sentiment is noisy and often contrarian — weighted gently.'));
+  }}
+  // News-driven idea (LLM read of headlines)
+  const ni = s.news_idea;
+  if (ni && ni.direction) {{
+    const aligns = (ni.direction==='bearish') === short;
+    cards.push(card('🗞','News-driven read', ni.direction+' · '+(ni.confidence||'')+' conf',
+      aligns?(short?'good':'good'):'warn',
+      _esc(ni.reason||'') + (ni.headline?` (from: “${{_esc(ni.headline)}}”)`:'')));
   }}
   // Catalyst (fresh news)
   if (s.catalyst) {{
