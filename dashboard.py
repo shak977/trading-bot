@@ -2155,6 +2155,7 @@ def render_html(snap: dict) -> str:
       <nav class="tabs" id="tabs">
         <button data-page="signals" class="on">Signals</button>
         <button data-page="markets">Markets</button>
+        <button data-page="heatmap">Heatmap</button>
         <button data-page="momentum">Momentum</button>
         <button data-page="intraday">Intraday</button>
         <button data-page="portfolio">Portfolio</button>
@@ -2227,6 +2228,11 @@ def render_html(snap: dict) -> str:
   <section class="page" id="page-intraday">
     <h2 style="margin-top:0;">Intraday signals <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— the same engine on intraday bars (faster, noisier; daily signals remain the backbone)</span></h2>
     <div id="intradayCards"></div>
+  </section>
+
+  <section class="page" id="page-heatmap">
+    <h2 style="margin-top:0;">Market heatmap <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— the whole market by sector, sized by market cap, coloured by today's move (independent of signals). Use the widget's top bar to switch index (S&amp;P 500, Nasdaq 100, TSX…)</span></h2>
+    <div id="heatmapHost" style="height:78vh;min-height:520px;width:100%;"></div>
   </section>
 
   <section class="page" id="page-portfolio">
@@ -3417,6 +3423,34 @@ function _tvSet(key) {{
   try {{ localStorage.setItem('tvch', _tvCur); }} catch (e) {{}}
 }}
 let _tvLoaded = false;
+// Market sector heatmap — official TradingView Stock Heatmap widget, lazy-loaded on first open.
+let _heatmapLoaded = false;
+function _heatmapInit() {{
+  if (_heatmapLoaded) return;
+  const host = document.getElementById('heatmapHost');
+  if (!host) return;
+  _heatmapLoaded = true;
+  const cont = document.createElement('div');
+  cont.className = 'tradingview-widget-container';
+  cont.style.height = '100%';
+  const widget = document.createElement('div');
+  widget.className = 'tradingview-widget-container__widget';
+  widget.style.height = '100%';
+  cont.appendChild(widget);
+  const s = document.createElement('script');
+  s.type = 'text/javascript';
+  s.async = true;
+  s.src = 'https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js';
+  s.innerHTML = JSON.stringify({{
+    dataSource: 'SPX500', exchanges: [], grouping: 'sector',
+    blockSize: 'market_cap_basic', blockColor: 'change', locale: 'en',
+    hasTopBar: true, isDataSetEnabled: true, isZoomEnabled: true, hasSymbolTooltip: true,
+    colorTheme: (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'),
+    width: '100%', height: '100%'
+  }});
+  cont.appendChild(s);
+  host.appendChild(cont);
+}}
 function _tvInit() {{
   const bar = document.getElementById('tvBtns');
   if (!bar || bar.childElementCount) return;
@@ -3445,6 +3479,7 @@ function _tvInit() {{
     }}, 60);
     // Live TV: build the channel buttons + lazy-load the stream on first open.
     if (page === 'livetv') {{ _tvInit(); if (!_tvLoaded) {{ _tvLoaded = true; _tvSet(_tvCur); }} }}
+    if (page === 'heatmap') _heatmapInit();
   }}
   tabs.forEach(b => b.addEventListener('click', () => show(b.dataset.page)));
   // horizontal tab scroller: arrow controls + edge-aware fades so it reads as scrollable
