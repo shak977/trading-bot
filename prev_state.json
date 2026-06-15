@@ -1,15 +1,15 @@
 {
   "signals": {
+    "LIN": {
+      "action": "BUY",
+      "label": "High",
+      "score": 86,
+      "dir": "LONG"
+    },
     "UNH": {
       "action": "BUY",
       "label": "High",
       "score": 90,
-      "dir": "LONG"
-    },
-    "LIN": {
-      "action": "BUY",
-      "label": "High",
-      "score": 84,
       "dir": "LONG"
     },
     "AMAT": {
@@ -24,12 +24,6 @@
       "score": 90,
       "dir": "LONG"
     },
-    "MS": {
-      "action": "BUY",
-      "label": "High",
-      "score": 87,
-      "dir": "LONG"
-    },
     "CAT": {
       "action": "BUY",
       "label": "High",
@@ -39,19 +33,19 @@
     "ROKU": {
       "action": "BUY",
       "label": "High",
-      "score": 84,
+      "score": 87,
       "dir": "LONG"
     },
     "ABNB": {
       "action": "BUY",
       "label": "High",
-      "score": 84,
+      "score": 86,
       "dir": "LONG"
     },
     "TGT": {
       "action": "BUY",
       "label": "High",
-      "score": 77,
+      "score": 79,
       "dir": "LONG"
     },
     "KO": {
@@ -63,7 +57,7 @@
     "MRK": {
       "action": "BUY",
       "label": "Medium",
-      "score": 73,
+      "score": 71,
       "dir": "LONG"
     },
     "JPM": {
@@ -75,7 +69,7 @@
     "CL": {
       "action": "BUY",
       "label": "Medium",
-      "score": 71,
+      "score": 75,
       "dir": "LONG"
     },
     "INTC": {
@@ -102,76 +96,64 @@
       "score": 68,
       "dir": "SHORT"
     },
-    "CMG": {
-      "action": "WATCH SHORT",
-      "label": "Medium",
-      "score": 68,
-      "dir": "SHORT"
-    },
     "META": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 71,
+      "score": 69,
       "dir": "SHORT"
     },
     "SHOP": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 67,
+      "score": 65,
       "dir": "SHORT"
     },
     "PLTR": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 61,
+      "score": 60,
       "dir": "SHORT"
     },
     "PEP": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 64,
-      "dir": "SHORT"
-    },
-    "MCD": {
-      "action": "WATCH SHORT",
-      "label": "Medium",
-      "score": 62,
+      "score": 65,
       "dir": "SHORT"
     },
     "AXP": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 54,
+      "score": 58,
+      "dir": "SHORT"
+    },
+    "MCD": {
+      "action": "WATCH SHORT",
+      "label": "Medium",
+      "score": 61,
       "dir": "SHORT"
     },
     "DIS": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 60,
+      "score": 59,
       "dir": "SHORT"
     },
     "ADBE": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 64,
-      "dir": "SHORT"
-    },
-    "CMCSA": {
-      "action": "WATCH SHORT",
-      "label": "Medium",
-      "score": 64,
+      "score": 59,
       "dir": "SHORT"
     },
     "BLK": {
       "action": "WATCH SHORT",
-      "label": "Medium",
-      "score": 50,
+      "label": "Low",
+      "score": 46,
       "dir": "SHORT"
     },
-    "MRVL": {
+    "MS": {
       "action": "HOLD LONG",
       "label": "High",
-      "score": 84,
+      "score": 81,
       "dir": "LONG"
     },
     "SNOW": {
@@ -186,6 +168,18 @@
       "score": 81,
       "dir": "LONG"
     },
+    "MDLZ": {
+      "action": "HOLD LONG",
+      "label": "Medium",
+      "score": 73,
+      "dir": "LONG"
+    },
+    "MAR": {
+      "action": "HOLD LONG",
+      "label": "High",
+      "score": 76,
+      "dir": "LONG"
+    },
     "C": {
       "action": "HOLD LONG",
       "label": "Medium",
@@ -198,22 +192,10 @@
       "score": 75,
       "dir": "LONG"
     },
-    "MDLZ": {
-      "action": "HOLD LONG",
-      "label": "Medium",
-      "score": 70,
-      "dir": "LONG"
-    },
-    "MAR": {
-      "action": "HOLD LONG",
-      "label": "Medium",
-      "score": 73,
-      "dir": "LONG"
-    },
     "PANW": {
       "action": "HOLD LONG",
       "label": "Medium",
-      "score": 71,
+      "score": 73,
       "dir": "LONG"
     },
     "ABBV": {
@@ -222,10 +204,16 @@
       "score": 65,
       "dir": "LONG"
     },
+    "MRVL": {
+      "action": "HOLD LONG",
+      "label": "Medium",
+      "score": 71,
+      "dir": "LONG"
+    },
     "LLY": {
       "action": "HOLD LONG",
       "label": "Medium",
-      "score": 59,
+      "score": 61,
       "dir": "LONG"
     },
     "GS": {
@@ -237,13 +225,31 @@
     "UBER": {
       "action": "HOLD SHORT",
       "label": "Medium",
-      "score": 71,
+      "score": 69,
+      "dir": "SHORT"
+    },
+    "NFLX": {
+      "action": "HOLD SHORT",
+      "label": "Medium",
+      "score": 65,
+      "dir": "SHORT"
+    },
+    "WFC": {
+      "action": "HOLD SHORT",
+      "label": "Medium",
+      "score": 67,
+      "dir": "SHORT"
+    },
+    "CMCSA": {
+      "action": "HOLD SHORT",
+      "label": "Medium",
+      "score": 60,
       "dir": "SHORT"
     },
     "PG": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 76,
+      "score": 80,
       "dir": "LONG"
     },
     "AMD": {
@@ -255,7 +261,7 @@
     "COP": {
       "action": "FLAT",
       "label": "Medium",
-      "score": 64,
+      "score": 60,
       "dir": "LONG"
     }
   },
@@ -264,16 +270,16 @@
     "Industrials": 100,
     "Other / Movers": 100,
     "Technology": 75,
-    "Financials": 73,
+    "Financials": 60,
     "Healthcare": 56,
     "Consumer": 56,
     "Staples": 56,
-    "Communication": 25,
+    "Communication": 12,
     "Energy": 0
   },
   "catalysts": [
-    "UNH",
-    "CL"
+    "HPE",
+    "ROKU"
   ],
   "generated_at": "2026-06-15"
 }
