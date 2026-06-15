@@ -101,6 +101,66 @@ def _sector_strength(rows: list[dict]) -> list[dict]:
     return out
 
 
+def _compute_changes(shown: list, sectors: list, news_ideas: list, today: str, live: bool) -> list:
+    """Worker: surface the MEANINGFUL diffs vs the previous build — new High-conviction calls,
+    direction flips, conviction upgrades, sector flips, fresh catalysts. Persists prev_state.json.
+    Live-only; never raises. Returns a short list of human-readable change strings."""
+    if not live:
+        return []
+    _rank = {"Low": 0, "Medium": 1, "High": 2}
+    path = "prev_state.json"
+    try:
+        with open(path) as f:
+            prev = json.load(f)
+    except Exception:  # noqa: BLE001
+        prev = {}
+    prev_sig, prev_sec = prev.get("signals", {}), prev.get("sectors", {})
+    prev_cat = set(prev.get("catalysts", []))
+    actionable = ("BUY", "SHORT", "HOLD LONG", "HOLD SHORT")
+    cur_sig = {}
+    for s in shown:
+        c = s.get("conviction") or {}
+        cur_sig[s.get("symbol")] = {"action": s.get("action"), "label": c.get("label"),
+                                    "score": c.get("score_pct"), "dir": s.get("direction")}
+    cur_sec = {x["sector"]: x.get("pct_up") for x in (sectors or [])}
+    cur_cat = [(i.get("ticker"), i.get("direction")) for i in (news_ideas or []) if i.get("confidence") == "high"]
+
+    def _persist():
+        try:
+            with open(path, "w") as f:
+                json.dump({"signals": cur_sig, "sectors": cur_sec,
+                           "catalysts": [t for t, _ in cur_cat if t], "generated_at": today}, f, indent=2)
+        except Exception:  # noqa: BLE001
+            pass
+
+    if not prev_sig:                       # first run: seed state, don't flood with "new"
+        _persist()
+        return []
+    changes = []
+    for sym, c in cur_sig.items():
+        p = prev_sig.get(sym)
+        if c["label"] == "High" and c["action"] in ("BUY", "SHORT") and (not p or p.get("label") != "High"):
+            changes.append(f"🆕 {sym} → {c['action']} (High{', ' + str(c['score']) + '%' if c['score'] else ''})")
+        elif p and p.get("dir") in ("LONG", "SHORT") and c["dir"] in ("LONG", "SHORT") \
+                and p["dir"] != c["dir"] and c["action"] in actionable:
+            changes.append(f"🔄 {sym} flipped to {c['action']}")
+        elif p and p.get("label") and c["label"] and _rank.get(c["label"], 0) > _rank.get(p["label"], 0) \
+                and c["action"] in actionable:
+            changes.append(f"⬆ {sym} conviction now {c['label']} (was {p['label']})")
+    for sec, pct in cur_sec.items():
+        pp = prev_sec.get(sec)
+        if pp is not None and pct is not None:
+            if pp < 60 <= pct:
+                changes.append(f"📈 {sec} sector turned strong ({pct}% above trend)")
+            elif pp > 40 >= pct:
+                changes.append(f"📉 {sec} sector turned weak ({pct}% above trend)")
+    for tk, d in cur_cat:
+        if tk and tk not in prev_cat:
+            changes.append(f"🗞 New catalyst: {tk} ({d})")
+    _persist()
+    return changes[:12]
+
+
 def build_snapshot() -> dict:
     mode = _mode()
     live = mode != "SYNTHETIC"
@@ -573,6 +633,12 @@ def build_snapshot() -> dict:
         except Exception:  # noqa: BLE001
             market_brief = None
 
+    # What-changed worker: meaningful diffs vs the previous build (new High calls, flips, sector shifts).
+    try:
+        changes = _compute_changes(shown, sectors, news_ideas, _today0, live)
+    except Exception:  # noqa: BLE001
+        changes = []
+
     # S&P 500 benchmark (SPY) for chart overlay.
     benchmark = None
     try:
@@ -720,6 +786,7 @@ def build_snapshot() -> dict:
         "intraday": intraday_shown,
         "intraday_track": intraday_track,
         "market_brief": market_brief,
+        "changes": changes,
         "charts": {k: charts[k] for k in shown_syms if k in charts},
         "news": news,
     }
@@ -1583,6 +1650,12 @@ def render_html(snap: dict) -> str:
     _brief = (snap.get("market_brief") or "").strip()
     brief_html = (f'<div class="ai-box" style="margin:2px 0 18px;line-height:1.6;">'
                   f'<span class="ai-h">🧠 Market brief</span> {_brief}</div>') if _brief else ""
+    _changes = snap.get("changes") or []
+    changes_html = ((f'<div class="ai-box" style="margin:0 0 18px;border-color:color-mix(in srgb,#e0a82e 32%,transparent);'
+                     f'background:color-mix(in srgb,#e0a82e 11%,transparent);">'
+                     f'<span class="ai-h" style="color:#e0a82e;">⚡ What changed since last build</span>'
+                     f'<ul style="margin:7px 0 0;padding-left:18px;line-height:1.8;">'
+                     + "".join(f"<li>{_c}</li>" for _c in _changes) + "</ul></div>") if _changes else "")
     momentum_html = _momentum_bt_html(snap.get("momentum_bt")) + _momentum_html(snap.get("momentum") or [])
     allweather_html = _allweather_html(snap.get("allweather"))
     portfolio_html = _portfolio_html(snap.get("portfolio"))
@@ -2229,6 +2302,7 @@ def render_html(snap: dict) -> str:
   <div class="note" style="margin-top:0;">{mode_note}</div>
   <div id="diag"></div>
   {brief_html}
+  {changes_html}
 
   <section class="page" id="page-markets">
     <div class="mkt">
