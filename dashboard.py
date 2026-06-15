@@ -2143,8 +2143,10 @@ def render_html(snap: dict) -> str:
     </details>
     <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Layout:</span>
       <span class="ctlgrp" id="layoutBtns"></span></div>
-    <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Sort &amp; filter:</span>
-      <span class="ctlgrp" id="viewBtns"></span></div>
+    <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Sort:</span>
+      <span class="ctlgrp" id="sortBtns"></span></div>
+    <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Show:</span>
+      <span class="ctlgrp" id="filterBtns"></span></div>
     <div id="cards"></div>
   </section>
 
@@ -2365,7 +2367,10 @@ window.__APP = {{ DATA: DATA, LIVE_URL: LIVE_URL }};
 // read a CSS theme variable (so the overview chart flips with light/dark)
 function _cv(n, f) {{ try {{ const v = getComputedStyle(document.documentElement).getPropertyValue(n).trim(); return v || f; }} catch (e) {{ return f; }} }}
 function _shortDate(s) {{ try {{ return new Date(s + 'T00:00:00').toLocaleDateString([], {{month:'short', day:'numeric'}}); }} catch (e) {{ return s; }} }}
-let _curView = 'sector';
+let _curSort = 'sector';
+try {{ _curSort = localStorage.getItem('sort') || 'sector'; }} catch(e) {{}}
+let _curFilter = 'all';
+try {{ _curFilter = localStorage.getItem('filter') || 'all'; }} catch(e) {{}}
 let FAVS = new Set();
 try {{ FAVS = new Set(JSON.parse(localStorage.getItem('tb-favs') || '[]')); }} catch (e) {{}}
 function _toggleFav(sym) {{
@@ -2537,7 +2542,7 @@ function makeCard(s) {{
   if (_fb) _fb.addEventListener('click', (e) => {{
     e.stopPropagation(); _toggleFav(s.symbol);
     _fb.textContent = FAVS.has(s.symbol) ? '★' : '☆'; _fb.classList.toggle('on', FAVS.has(s.symbol));
-    if (_curView === 'favs') renderCards('favs');
+    if (_curFilter === 'favs') renderCards();
   }});
   el.addEventListener('click', () => openModal(s));
   return el;
@@ -2636,16 +2641,19 @@ function _levelsInline(s) {{
 }}
 function _empty() {{ return '<div style="color:var(--muted);padding:14px;">Nothing matches this view right now.</div>'; }}
 function _seenTs(s) {{ return Date.parse((s.first_seen || s.as_of || '') + 'T00:00:00') || 0; }}
-function _applyView(list, view) {{
-  if (view==='favs') list = list.filter(s=>FAVS.has(s.symbol));
-  else if (view==='buys') list = list.filter(s=>s.action==='BUY'||s.action==='HOLD LONG');
-  else if (view==='shorts') list = list.filter(s=>s.action==='SHORT'||s.action==='HOLD SHORT');
-  else if (view==='watch') list = list.filter(s=>s.action==='WATCH LONG'||s.action==='WATCH SHORT');
-  else if (view==='actionable') list = list.filter(s=>['BUY','SHORT','HOLD LONG','HOLD SHORT','EXIT'].includes(s.action));
-  if (view==='conviction') list.sort((a,b)=>_conv(b)-_conv(a));
-  else if (view==='movers') list.sort((a,b)=>(b.rel_volume||0)-(a.rel_volume||0));
-  else if (view==='newest') list.sort((a,b)=>(_seenTs(b)-_seenTs(a))||(_conv(b)-_conv(a)));
-  else list.sort((a,b)=>(_ACT_ORDER[a.action]-_ACT_ORDER[b.action])||(_conv(b)-_conv(a)));
+function _applyFilter(list, f) {{
+  if (f==='favs') return list.filter(s=>FAVS.has(s.symbol));
+  if (f==='buys') return list.filter(s=>s.action==='BUY'||s.action==='HOLD LONG');
+  if (f==='shorts') return list.filter(s=>s.action==='SHORT'||s.action==='HOLD SHORT');
+  if (f==='watch') return list.filter(s=>s.action==='WATCH LONG'||s.action==='WATCH SHORT');
+  if (f==='actionable') return list.filter(s=>['BUY','SHORT','HOLD LONG','HOLD SHORT','EXIT'].includes(s.action));
+  return list;  // 'all'
+}}
+function _applySort(list, sort) {{
+  if (sort==='conviction') list.sort((a,b)=>_conv(b)-_conv(a));
+  else if (sort==='movers') list.sort((a,b)=>(b.rel_volume||0)-(a.rel_volume||0));
+  else if (sort==='newest') list.sort((a,b)=>(_seenTs(b)-_seenTs(a))||(_conv(b)-_conv(a)));
+  else list.sort((a,b)=>(_ACT_ORDER[a.action]-_ACT_ORDER[b.action])||(_conv(b)-_conv(a)));  // 'order' / 'sector' groups
   return list;
 }}
 function _reapplyLive() {{
@@ -2668,16 +2676,16 @@ function _bbAct(s) {{
   if (['BUY','HOLD LONG','WATCH LONG'].includes(s.action)) return '#33d17a';
   return '#9a9a78';
 }}
-function L_terminal(list) {{
+function L_terminal(list, grouped) {{
   const r = DATA.regime || {{}};
   const buys = list.filter(s=>['BUY','HOLD LONG'].includes(s.action)).length;
   const shorts = list.filter(s=>['SHORT','HOLD SHORT'].includes(s.action)).length;
-  const head = `<div class="bbhead"><span class="bbtitle">SIGNAL DESK ▮</span>`
+  const head = grouped ? '' : (`<div class="bbhead"><span class="bbtitle">SIGNAL DESK ▮</span>`
     + `<span class="bbst">REGIME <b>${{(r.label||'—').toUpperCase()}}</b></span>`
     + `<span class="bbst">BREADTH <b style="color:#fff;">${{r.breadth!=null?r.breadth+'%':'—'}}</b></span>`
     + `<span class="bbst">BUYS <b style="color:#33d17a;">${{buys}}</b></span>`
     + `<span class="bbst">SHORTS <b style="color:#ff5c4d;">${{shorts}}</b></span>`
-    + `<span class="bbclock" id="bbclock"></span></div>`;
+    + `<span class="bbclock" id="bbclock"></span></div>`);
   const tiles = list.map(s=>{{
     const p = s.plan||{{}};
     const dc = (s.quote_price!=null && s.prev_close) ? (s.quote_price/s.prev_close-1)*100 : (s.context&&s.context.day_change_pct);
@@ -2745,14 +2753,15 @@ function L_feed(list) {{
   }}).join('');
   return _bindAll(_wrap('feedwrap', rows), list);
 }}
-function L_ticker(list) {{
+function L_ticker(list, grouped) {{
   const tape = list.map(s=>`<span class="tkitem"><b>${{s.symbol}}</b> <span data-px="${{s.symbol}}" style="color:${{_dirCol(s)}};">$${{_pxOf(s).toLocaleString()}}</span></span>`).join('');
   const rows = list.map(s=>`<div class="tkrow" data-open="${{s.symbol}}">${{_logo2(s.symbol,22)}}`
     + `<span class="tksym">${{s.symbol}}</span><span style="color:${{_dirCol(s)}};font-weight:600;width:80px;">${{s.action}}</span>`
     + `<span class="tkpx" data-px="${{s.symbol}}">$${{_pxOf(s).toLocaleString()}}</span>`
     + `<span class="tkspark">${{_spark2(s.symbol,_dirCol(s),72,22)}}</span>`
     + `<span class="tkfam">${{_famOf(s)}}${{s.tv&&s.tv.d?' · TV '+s.tv.d:''}}</span><span class="tklv">${{_levelsInline(s)}}</span></div>`).join('');
-  return _bindAll(_wrap('', `<div class="tktape"><div class="tktape-in">${{tape}}${{tape}}</div></div><div class="tkbody">${{rows}}</div>`), list);
+  const tapeHtml = grouped ? '' : `<div class="tktape"><div class="tktape-in">${{tape}}${{tape}}</div></div>`;
+  return _bindAll(_wrap('', `${{tapeHtml}}<div class="tkbody">${{rows}}</div>`), list);
 }}
 const LAYOUT_RENDER = {{terminal:L_terminal, lanes:L_lanes, gauges:L_gauges, feed:L_feed, ticker:L_ticker}};
 // ===================================================================================
@@ -2765,47 +2774,36 @@ function _renderConcWarn() {{
     + `⚠ Concentration: ${{c.n}} of ${{c.total}} fresh ${{c.word}} are in <b>${{c.sector}}</b> (${{c.pct}}%). `
     + `These can be the same macro bet in disguise — sizing them as separate trades understates your real risk.</div>`;
 }}
-function renderCards(view) {{
-  _curView = view;
+function renderCards() {{
   _renderConcWarn();
   cards.innerHTML = '';
-  if (_layout && _layout !== 'cards' && LAYOUT_RENDER[_layout]) {{
-    const l = _applyView(DATA.signals.slice(), view);
-    cards.appendChild(LAYOUT_RENDER[_layout](l));
-    _reapplyLive();
-    return;
-  }}
-  let list = DATA.signals.slice();
-  if (view === 'favs') {{
-    list = list.filter(s => FAVS.has(s.symbol));
+  const useLayout = _layout && _layout !== 'cards' && LAYOUT_RENDER[_layout];
+  const base = _applyFilter(DATA.signals.slice(), _curFilter);
+  const emptyMsg = (_curFilter === 'favs')
+    ? 'No favorites yet — tap the ☆ on any card to save it here.'
+    : 'Nothing matches this view right now.';
+  const flatGrid = (list) => {{
     const grid = document.createElement('div'); grid.className = 'grid';
-    if (!list.length) grid.innerHTML = '<div style="color:var(--muted);">No favorites yet — tap the ☆ on any card to save it here.</div>';
+    if (!list.length) grid.innerHTML = '<div style="color:var(--muted);">' + emptyMsg + '</div>';
     list.forEach(s => grid.appendChild(makeCard(s)));
-    cards.appendChild(grid);
-  }} else if (view === 'sector') {{
+    return grid;
+  }};
+  if (_curSort === 'sector') {{
     const by = {{}}, order = [];
-    list.forEach(s => {{ const sec = s.sector || 'Other / Movers';
+    base.forEach(s => {{ const sec = s.sector || 'Other / Movers';
       if (!by[sec]) {{ by[sec] = []; order.push(sec); }} by[sec].push(s); }});
+    if (!order.length) {{
+      cards.appendChild(useLayout ? LAYOUT_RENDER[_layout]([]) : flatGrid([]));
+    }}
     order.forEach(sec => {{
-      const h = document.createElement('div'); h.className='secthead';
-      h.textContent = sec + ' · ' + by[sec].length; cards.appendChild(h);
-      const grid = document.createElement('div'); grid.className='grid';
-      by[sec].forEach(s => grid.appendChild(makeCard(s))); cards.appendChild(grid);
+      const grp = _applySort(by[sec].slice(), 'order');
+      const h = document.createElement('div'); h.className = 'secthead';
+      h.textContent = sec + ' · ' + grp.length; cards.appendChild(h);
+      cards.appendChild(useLayout ? LAYOUT_RENDER[_layout](grp, true) : flatGrid(grp));
     }});
   }} else {{
-    if (view === 'buys') list = list.filter(s => s.action === 'BUY' || s.action === 'HOLD LONG');
-    else if (view === 'shorts') list = list.filter(s => s.action === 'SHORT' || s.action === 'HOLD SHORT');
-    else if (view === 'watch') list = list.filter(s => s.action === 'WATCH LONG' || s.action === 'WATCH SHORT');
-    else if (view === 'actionable') list = list.filter(s => ['BUY','SHORT','HOLD LONG','HOLD SHORT','EXIT'].includes(s.action));
-    else if (view === 'conviction') list.sort((a,b) => _conv(b) - _conv(a));
-    else if (view === 'movers') list.sort((a,b) => (b.rel_volume||0) - (a.rel_volume||0));
-    else if (view === 'newest') list.sort((a,b) => (_seenTs(b)-_seenTs(a)) || (_conv(b)-_conv(a)));
-    else if (view === 'order') list.sort((a,b) =>
-      (_ACT_ORDER[a.action]-_ACT_ORDER[b.action]) || (_conv(b)-_conv(a)));
-    const grid = document.createElement('div'); grid.className='grid';
-    if (!list.length) grid.innerHTML = '<div style="color:var(--muted);">Nothing matches this view right now.</div>';
-    list.forEach(s => grid.appendChild(makeCard(s)));
-    cards.appendChild(grid);
+    const list = _applySort(base, _curSort);
+    cards.appendChild(useLayout ? LAYOUT_RENDER[_layout](list) : flatGrid(list));
   }}
   // re-apply any live prices to the freshly rendered cards
   document.querySelectorAll('[data-px]').forEach(el => {{
@@ -2814,21 +2812,35 @@ function renderCards(view) {{
   }});
 }}
 (function setupViews() {{
-  const bar = document.getElementById('viewBtns');
-  const views = [['sector','By sector'],['order','Actionable first'],['newest','🕒 Newest'],['conviction','Highest conviction'],
-                 ['buys','Longs'],['shorts','Shorts'],['watch','Watch'],['actionable','Actionable'],
-                 ['movers','Biggest movers'],['favs','★ Favorites']];
-  let cur = 'sector';
-  try {{ cur = localStorage.getItem('view') || 'sector'; }} catch(e) {{}}
-  views.forEach(([v,lab]) => {{
-    const b = document.createElement('button'); b.textContent = lab; b.dataset.view = v;
-    if (v === cur) b.className = 'on';
+  // Sort = how the SAME set of cards is ordered (sector grouping, conviction, etc.)
+  const sortBar = document.getElementById('sortBtns');
+  const sorts = [['sector','By sector'],['order','Actionable first'],['newest','🕒 Newest'],
+                 ['conviction','Highest conviction'],['movers','Biggest movers']];
+  sorts.forEach(([v,lab]) => {{
+    const b = document.createElement('button'); b.textContent = lab; b.dataset.sort = v;
+    if (v === _curSort) b.className = 'on';
     b.onclick = () => {{
-      try {{ localStorage.setItem('view', v); }} catch(e) {{}}
-      bar.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.view === v));
-      renderCards(v);
+      _curSort = v;
+      try {{ localStorage.setItem('sort', v); }} catch(e) {{}}
+      sortBar.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.sort === v));
+      renderCards();
     }};
-    bar.appendChild(b);
+    sortBar.appendChild(b);
+  }});
+  // Show = which cards to include (narrows the set); composes with Sort
+  const filterBar = document.getElementById('filterBtns');
+  const filters = [['all','All'],['buys','Longs'],['shorts','Shorts'],['watch','Watch'],
+                   ['actionable','Actionable'],['favs','★ Favorites']];
+  filters.forEach(([v,lab]) => {{
+    const b = document.createElement('button'); b.textContent = lab; b.dataset.filter = v;
+    if (v === _curFilter) b.className = 'on';
+    b.onclick = () => {{
+      _curFilter = v;
+      try {{ localStorage.setItem('filter', v); }} catch(e) {{}}
+      filterBar.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.filter === v));
+      renderCards();
+    }};
+    filterBar.appendChild(b);
   }});
   // --- layout switcher (visual form: cards / terminal / lanes / …) ---
   const lbar = document.getElementById('layoutBtns');
@@ -2841,11 +2853,11 @@ function renderCards(view) {{
       _layout = v;
       try {{ localStorage.setItem('layout', v); }} catch(e) {{}}
       lbar.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.layout === v));
-      renderCards(_curView || cur);
+      renderCards();
     }};
     lbar.appendChild(b);
   }});
-  renderCards(cur);
+  renderCards();
 }})();
 
 // --- momentum leaderboard rows open the same rich detail modal as the cards ---
