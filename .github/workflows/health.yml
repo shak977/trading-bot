@@ -1,0 +1,24 @@
+name: Build health watchdog
+
+# Independent of the main build: every ~15 min during market hours it checks how old the
+# deployed dashboard data is and pings ntfy if a build has gone stale or failed. Because it's
+# its own workflow, it keeps watching even when the main build is the thing that broke.
+on:
+  schedule:
+    - cron: "*/15 13-21 * * 1-5"   # broad UTC window; watchdog.py gates precisely to ET market hours
+  workflow_dispatch:
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check dashboard freshness
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          ALERT_NTFY_TOPIC: ${{ vars.ALERT_NTFY_TOPIC }}
+          STALE_MINUTES: "25"
+        run: python watchdog.py

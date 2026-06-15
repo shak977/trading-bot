@@ -1,0 +1,22 @@
+name: End-of-day recap
+
+# After the US close, push a plain-English daily recap to ntfy (regime, fresh calls, what
+# resolved, running win-rate, open positions). Its own workflow so it's independent of the build.
+on:
+  schedule:
+    - cron: "30 21 * * 1-5"   # ~21:30 UTC — safely after the 16:00 ET close in both EDT and EST
+  workflow_dispatch:
+
+jobs:
+  recap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Send daily recap
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          ALERT_NTFY_TOPIC: ${{ vars.ALERT_NTFY_TOPIC }}
+        run: python recap.py
