@@ -130,7 +130,7 @@ class Config:
     daily_loss_limit_pct: float = 3.0   # halt NEW entries once today's P&L <= -this% of equity
     dd_derisk_pct: float = 8.0          # at this peak-to-now drawdown, halve new-position sizing
     dd_halt_pct: float = 10.0           # at this drawdown, stop opening new positions entirely
-    max_position_pct: float = 15.0      # no single position worth more than this % of equity
+    max_position_pct: float = 25.0      # no single position worth more than this % of equity
     kill_switch_trips: int = 3          # consecutive failed/errored runs before the kill switch flips
     kill_switch_cooldown_runs: int = 3  # clean runs needed to auto-reset the kill switch
 
