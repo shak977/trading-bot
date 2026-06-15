@@ -639,6 +639,21 @@ def build_snapshot() -> dict:
     except Exception:  # noqa: BLE001
         changes = []
 
+    # Event calendar (worker): earnings this week (from fundamentals already fetched) + key macro
+    # releases (FRED). Event-risk awareness; never breaks the build.
+    calendar = {"earnings": [], "econ": []}
+    try:
+        _ew = [{"symbol": r["symbol"], "days": (r.get("fundamentals") or {}).get("earnings_days"),
+                "date": (r.get("fundamentals") or {}).get("earnings_date")}
+               for r in shown
+               if (r.get("fundamentals") or {}).get("earnings_days") is not None
+               and 0 <= (r.get("fundamentals") or {}).get("earnings_days") <= 7]
+        calendar["earnings"] = sorted(_ew, key=lambda x: x["days"])[:12]
+        if live:
+            calendar["econ"] = research.econ_calendar(CONFIG)
+    except Exception:  # noqa: BLE001
+        calendar = {"earnings": [], "econ": []}
+
     # S&P 500 benchmark (SPY) for chart overlay.
     benchmark = None
     try:
@@ -787,6 +802,7 @@ def build_snapshot() -> dict:
         "intraday_track": intraday_track,
         "market_brief": market_brief,
         "changes": changes,
+        "calendar": calendar,
         "charts": {k: charts[k] for k in shown_syms if k in charts},
         "news": news,
     }
@@ -1262,6 +1278,25 @@ def _macro_html(m: dict | None) -> str:
             f'<div class="trackstats">{cells}</div></div>')
 
 
+def _calendar_html(cal: dict | None) -> str:
+    if not cal:
+        return ""
+    ew, ec = cal.get("earnings") or [], cal.get("econ") or []
+    if not ew and not ec:
+        return ""
+
+    def chip(t):
+        return f'<span class="chip mini">{t}</span> '
+    e = "".join(chip(f'{x["symbol"]} · {"today" if x["days"] == 0 else str(x["days"]) + "d"}') for x in ew) \
+        or '<span style="color:var(--muted);font-size:12px;">none in the next week</span>'
+    mm = "".join(chip(f'{x["date"][5:]} · {x["name"][:30]}') for x in ec) \
+        or '<span style="color:var(--muted);font-size:12px;">none flagged</span>'
+    return ('<div class="ovbox" style="margin-top:14px;"><div class="ovhead">📅 Event calendar '
+            '<span style="font-weight:400;color:var(--muted);font-size:12px;">— event risk: avoid fresh entries right before these</span></div>'
+            f'<div style="margin:8px 0 4px;"><div class="l" style="margin-bottom:5px;">Earnings this week</div>{e}</div>'
+            f'<div style="margin:10px 0 2px;"><div class="l" style="margin-bottom:5px;">Key macro releases</div>{mm}</div></div>')
+
+
 def _paper_spark(history: dict | None) -> str:
     """Tiny inline SVG equity curve from the paper account's portfolio history."""
     pts = (history or {}).get("points") or []
@@ -1669,7 +1704,7 @@ def render_html(snap: dict) -> str:
     portfolio_html = _portfolio_html(snap.get("portfolio"))
     ipo_html = _ipo_html(snap.get("ipos") or [], snap.get("ipo_news") or [])
     sectors_html = _sectors_html(snap.get("sectors"))
-    macro_html = _macro_html(snap.get("macro"))
+    macro_html = _macro_html(snap.get("macro")) + _calendar_html(snap.get("calendar"))
     dh = snap.get("data_health")
     if not dh:
         health_html = ""

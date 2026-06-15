@@ -491,3 +491,36 @@ def fred_macro(cfg: Config) -> dict | None:
                            f"Calm — VIX {v} low{trend}" if v < 16 else
                            f"Normal — VIX {v}{trend}")
     return m
+
+
+_KEY_RELEASES = ("consumer price index", "employment situation", "producer price",
+                 "gross domestic product", "personal income", "retail trade")
+
+
+def econ_calendar(cfg: Config, days_ahead: int = 12) -> list:
+    """Upcoming KEY US macro releases (CPI, jobs, PPI, GDP, PCE, retail) from FRED's free release
+    calendar. Returns [{date, name}] within the next ``days_ahead`` days, or [] (never raises)."""
+    key = cfg.fred_api_key
+    if not key:
+        return []
+    try:
+        from datetime import date, timedelta
+        today = date.today().isoformat()
+        end = (date.today() + timedelta(days=days_ahead)).isoformat()
+        r = requests.get("https://api.stlouisfed.org/fred/releases/dates", params={
+            "api_key": key, "file_type": "json", "sort_order": "asc",
+            "include_release_dates_with_no_data": "true", "realtime_start": today,
+            "limit": 200}, timeout=12)
+        if r.status_code != 200:
+            return []
+        out, seen = [], set()
+        for rd in r.json().get("release_dates", []):
+            d, nm = rd.get("date"), (rd.get("release_name") or "")
+            if not d or d < today or d > end:
+                continue
+            if any(k in nm.lower() for k in _KEY_RELEASES) and (d, nm) not in seen:
+                seen.add((d, nm))
+                out.append({"date": d, "name": nm})
+        return sorted(out, key=lambda x: x["date"])[:8]
+    except Exception:  # noqa: BLE001
+        return []
