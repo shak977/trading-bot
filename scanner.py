@@ -914,6 +914,20 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 f"The {tf} chart disagrees — lower-timeframe momentum is currently against this "
                 + ("short." if short else "long."), 0.6)
 
+    # Reward:risk — with honest (structural) targets, a cramped target vs the stop is a weak trade.
+    # This is the number to judge a small target by: payoff relative to what you risk.
+    rr = (plan or {}).get("rr")
+    if rr is not None:
+        if rr >= 2.0:
+            add("Reward:risk worth it?", "pass",
+                f"Target is {rr:.1f}x the risk — a healthy payoff for the stop distance.")
+        elif rr >= 1.0:
+            add("Reward:risk worth it?", "warn",
+                f"Target is only {rr:.1f}x the risk — modest room to the nearest level; size carefully.")
+        else:
+            add("Reward:risk worth it?", "fail",
+                f"Target is just {rr:.1f}x the risk — the nearest level is closer than the stop, a poor payoff.")
+
     pts = {"pass": 1.0, "warn": 0.5, "fail": 0.0}
     wsum = sum(c.get("weight", 1.0) for c in checks)
     score = sum(pts[c["status"]] * c.get("weight", 1.0) for c in checks) / wsum if wsum else 0.0
