@@ -108,7 +108,9 @@ class Config:
     starting_cash: float = 100_000.0
     risk_per_trade: float = 0.02     # fraction of equity risked per position
     stop_loss_pct: float = 0.05      # 5% below entry
-    take_profit_pct: float = 0.15    # 15% above entry
+    take_profit_pct: float = 0.15    # absolute CEILING on the base target (never target more than this)
+    target_swing_lookback: int = 30  # bars used to find the nearest structural resistance/support
+    target_atr_reach: float = 8.0    # volatility cap: a base target should be within ~8x ATR (a realistic swing move)
     max_positions: int = 5
     atr_period: int = 14             # ATR lookback for volatility-based stop
     atr_stop_mult: float = 2.0       # ATR-based stop = entry - mult * ATR

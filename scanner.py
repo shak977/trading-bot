@@ -17,7 +17,7 @@ import strategies
 from config import Config
 from data import get_bars, synthetic_bars
 from indicators import atr
-from risk import position_size, stop_loss_price, take_profit_price
+from risk import position_size, stop_loss_price
 from strategy import generate_signals
 
 # A small static fallback universe used if the screener is unavailable.
@@ -469,7 +469,7 @@ def _target_scenarios(direction: str, entry: float, stop: float, base_target: fl
 
     # --- base: the actual order target ---
     out.append(mk("Base (order target)", base_target,
-                  "the balanced reward:risk target this trade actually uses", "medium"))
+                  "the honest base target — nearest real level price must clear, bounded by fundamentals & volatility", "medium"))
 
     # --- stretch: ~5R, noting the period extreme when it's in that neighbourhood ---
     if short:
@@ -484,6 +484,80 @@ def _target_scenarios(direction: str, entry: float, stop: float, base_target: fl
             sb = "up toward the period high (~5x+ risk) — lower odds, bigger payoff"
     out.append(mk("Stretch", stretch, sb, "lower odds"))
     return [o for o in out if o]
+
+
+def honest_target(entry: float, df, atr_val, working_stop: float, cfg: Config, short: bool = False):
+    """An evidence-based base target rather than a flat % or an arbitrary risk multiple.
+
+    Anchored to real STRUCTURE — the nearest level where price has actually turned
+    (recent swing high for a long / swing low for a short) — then bounded by VOLATILITY
+    (kept within a realistic ~Nx-ATR swing move) and capped at take_profit_pct. The
+    FUNDAMENTAL bound (analyst mean target) is applied later in rescore() once research
+    is fetched. Returns (price, basis_text) so the UI can show *why* this is the target.
+    """
+    atrm = atr_val if (atr_val and atr_val > 0) else 0.02 * entry
+    lb = getattr(cfg, "target_swing_lookback", 30)
+    reach = getattr(cfg, "target_atr_reach", 8.0)
+    try:
+        if short:
+            swing, ext = float(df["low"].tail(lb).min()), float(df["low"].min())
+        else:
+            swing, ext = float(df["high"].tail(lb).max()), float(df["high"].max())
+    except Exception:  # noqa: BLE001
+        swing = ext = None
+
+    if not short:
+        cands = [x for x in (swing, ext) if x is not None and x > entry + 0.5 * atrm]
+        if cands:
+            tgt, basis = min(cands), "nearest resistance (recent swing high)"
+        else:
+            tgt, basis = entry + reach * atrm, "measured move — at new highs, no overhead resistance"
+        vmax = entry + reach * atrm
+        if tgt > vmax:
+            tgt, basis = vmax, basis + " · trimmed to a volatility-reachable distance"
+        cap = entry * (1 + cfg.take_profit_pct)
+        if tgt > cap:
+            tgt, basis = cap, basis + f" · capped at {round(cfg.take_profit_pct * 100)}%"
+        tgt = max(tgt, entry + 0.5 * atrm)
+    else:
+        cands = [x for x in (swing, ext) if x is not None and x < entry - 0.5 * atrm]
+        if cands:
+            tgt, basis = max(cands), "nearest support (recent swing low)"
+        else:
+            tgt, basis = entry - reach * atrm, "measured move — at new lows, no support below"
+        vmin = entry - reach * atrm
+        if tgt < vmin:
+            tgt, basis = vmin, basis + " · trimmed to a volatility-reachable distance"
+        cap = entry * (1 - cfg.take_profit_pct)
+        if tgt < cap:
+            tgt, basis = cap, basis + f" · capped at {round(cfg.take_profit_pct * 100)}%"
+        tgt = min(tgt, entry - 0.5 * atrm)
+    return tgt, basis
+
+
+def _apply_fundamental_cap(plan: dict, fundamentals, cfg: Config) -> None:
+    """Once fundamentals are known, bound the structural target by the analyst mean price
+    target (fundamental fair value). Only ever trims the target closer — never extends it."""
+    if not (plan and fundamentals):
+        return
+    tm = fundamentals.get("target_mean")
+    entry, stop, tgt = plan.get("entry"), plan.get("stop"), plan.get("target")
+    if not (tm and entry and tgt):
+        return
+    short = plan.get("direction") == "SHORT"
+    new = tm if ((not short and entry < tm < tgt) or (short and entry > tm > tgt)) else tgt
+    if new == tgt:
+        return
+    plan["target"] = round(float(new), 2)
+    plan["target_pct"] = round(abs(new - entry) / entry * 100, 1)
+    if stop and abs(entry - stop) > 0:
+        plan["rr"] = round(abs(new - entry) / abs(entry - stop), 2)
+    plan["target_basis"] = "analyst mean price target — fundamentals cap the chart objective"
+    for sc in plan.get("targets", []):
+        if str(sc.get("label", "")).startswith("Base"):
+            sc["price"], sc["pct"] = plan["target"], plan["target_pct"]
+            if stop and abs(entry - stop) > 0:
+                sc["r"] = round(abs(new - entry) / abs(entry - stop), 1)
 
 
 def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: str = "LONG"):
@@ -502,7 +576,7 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: st
         stop_atr = (entry + cfg.atr_stop_mult * atr_val) if atr_val else None
         # tighter stop = the LOWER one (closer to entry) when shorting
         working_stop = min(stop_pct_lvl, stop_atr) if stop_atr else stop_pct_lvl
-        target = entry * (1 - cfg.take_profit_pct)                  # cover below
+        target, target_basis = honest_target(entry, df, atr_val, working_stop, cfg, short=True)
         per_share_risk = working_stop - entry
         reward = entry - target
     else:
@@ -510,7 +584,7 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: st
         stop_atr = (entry - cfg.atr_stop_mult * atr_val) if atr_val else None
         # tighter stop = the HIGHER one (closer to entry) when long
         working_stop = max(stop_pct_lvl, stop_atr) if stop_atr else stop_pct_lvl
-        target = take_profit_price(entry, cfg)
+        target, target_basis = honest_target(entry, df, atr_val, working_stop, cfg, short=False)
         per_share_risk = entry - working_stop
         reward = target - entry
 
@@ -531,6 +605,7 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: st
         "stop_atr": r(stop_atr),
         "target": r(target),
         "target_pct": round(abs(target - entry) / entry * 100, 1),
+        "target_basis": target_basis,
         "rr": None if rr is None else round(rr, 2),
         "shares": shares,
         "dollar_risk": r(dollar_risk),
@@ -891,6 +966,7 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
 def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None) -> None:
     """Recompute conviction + desk read for a shown row once research is fetched."""
     direction = row.get("direction", "LONG")
+    _apply_fundamental_cap(row.get("plan"), fundamentals, cfg)
     conv = _conviction(row["action"], direction, row["rsi"], row["rel_volume"], row["plan"], row["context"], cfg,
                        row.get("factors"), row.get("patterns"), row.get("edge"),
                        sentiment=sentiment, fundamentals=fundamentals, price=row.get("price"), tv=tv,

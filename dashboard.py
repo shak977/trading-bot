@@ -2213,7 +2213,8 @@ def render_html(snap: dict) -> str:
         so they're gated the same way. There are also <span class="pill">Exit</span> (sell a long that
         just rolled over) and <span class="pill">Avoid</span> (weak, stay away) alerts.</li>
         <li><b>Risk first</b> — every setup gets a <b>stop-loss</b> (~{snap['params']['stop_loss_pct']:.0%} the wrong
-        way) and a <b>target</b> (~{snap['params']['take_profit_pct']:.0%} the right way), sized so a stop-out
+        way) and an <b>honest target</b> — the nearest real level price has to clear (recent swing high/low),
+        bounded by the analyst price target and a volatility-reachable distance, and never more than {snap['params']['take_profit_pct']:.0%} — sized so a stop-out
         costs only about {snap['params']['risk_per_trade']:.0%} of the account. For a long the stop sits below entry and
         the target above; for a short it's inverted.</li>
       </ol>
@@ -2295,7 +2296,7 @@ def render_html(snap: dict) -> str:
   <div class="disclaimer">
     Strategy: multi-strategy confluence (7 long + 7 short), trend-gated (200-day) with a
     conviction floor; {snap['params']['fast_ma']}/{snap['params']['slow_ma']} SMA + RSI({snap['params']['rsi_period']}) is one input.
-    Risk {snap['params']['risk_per_trade']:.0%}/trade, stop {snap['params']['stop_loss_pct']:.0%}, target {snap['params']['take_profit_pct']:.0%}.
+    Risk {snap['params']['risk_per_trade']:.0%}/trade, stop {snap['params']['stop_loss_pct']:.0%}, target = nearest structure (bounded by fundamentals &amp; volatility, capped {snap['params']['take_profit_pct']:.0%}).
     Shorts profit if price falls and carry higher risk.
     "Rel vol" = today's volume vs its {snap['params']['rel_volume_window']}-day average — a free
     proxy for unusual activity, NOT real institutional/options order flow.<br>
@@ -2482,7 +2483,7 @@ function makeCard(s) {{
   let ladder = '';
   if (_p.entry!=null && _p.stop!=null && _p.target!=null) {{
     const _m = v => '$'+Number(v).toLocaleString(undefined,{{minimumFractionDigits:2,maximumFractionDigits:2}});
-    const tgt = `<div class="lad-row tgt"><span>Target</span><span>${{_m(_p.target)}}<em>${{_isShort?'−':'+'}}${{_p.target_pct}}%</em></span></div>`;
+    const tgt = `<div class="lad-row tgt hint" data-tip="${{_esc('Target basis: ' + (_p.target_basis || 'nearest structural level, bounded by fundamentals & volatility'))}}"><span>Target</span><span>${{_m(_p.target)}}<em>${{_isShort?'−':'+'}}${{_p.target_pct}}%</em></span></div>`;
     const ent = `<div class="lad-row ent"><span>Entry</span><span>${{_m(_p.entry)}}</span></div>`;
     const stp = `<div class="lad-row stp"><span>Stop</span><span>${{_m(_p.stop)}}<em>${{_isShort?'+':'−'}}${{_p.stop_pct}}%</em></span></div>`;
     const rr = (_p.rr!=null) ? `<div class="lad-rr">Reward : risk &nbsp; 1 : ${{_p.rr}}</div>` : '';
@@ -3166,7 +3167,7 @@ function openModal(s) {{
   document.getElementById('mPlan').innerHTML =
     stat('Entry', money(p.entry), _short ? 'short here' : 'current price') +
     stat('Stop-loss', money(p.stop), `${{_short?'+':'−'}}${{p.stop_pct}}%  ·  ATR-based`, 'sell') +
-    stat(_short ? 'Cover target' : 'Take-profit', money(p.target), `${{_short?'−':'+'}}${{p.target_pct}}%`, 'buy') +
+    stat(_short ? 'Cover target' : 'Take-profit', money(p.target), `${{_short?'−':'+'}}${{p.target_pct}}%  ·  ${{p.target_basis||'base target'}}`, 'buy') +
     stat('Risk : Reward', p.rr!=null ? ('1 : '+p.rr) : '–', 'reward per $1 risked') +
     stat('Position size', (p.shares||0)+' sh', money(p.exposure)+' exposure') +
     stat('$ at risk', money(p.dollar_risk), `${{p.shares||0}} sh to stop`, 'sell') +
