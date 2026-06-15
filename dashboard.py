@@ -635,7 +635,8 @@ def build_snapshot() -> dict:
     }
 
     return {
-        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M GMT"),
+        "generated_ts": int(datetime.now(timezone.utc).timestamp()),
         "mode": mode,
         "scanned": len(rows),
         "diagnostics": list(scanner.LAST_ERRORS),
@@ -2147,6 +2148,7 @@ def render_html(snap: dict) -> str:
       <div class="appbar-right">
         <span class="badge m-{mode}">{mode}</span>
         <span class="livepill" id="liveStatus"></span>
+        <button class="themebtn" title="Reload for the latest published build" onclick="location.reload()">⟳ Refresh</button>
         <button id="themeToggle" class="themebtn">🌙 Dark</button>
       </div>
     </div>
@@ -2172,7 +2174,7 @@ def render_html(snap: dict) -> str:
       <button class="tabscroll right" id="tabNext" type="button" aria-label="Scroll tabs right">›</button>
     </div>
   </header>
-  <div class="subhead">Generated {snap['generated_at']} &middot; scanned {snap['scanned']} symbols{health_html}{pdrop_html}</div>
+  <div class="subhead">Built {snap['generated_at']} <span id="builtAgo" style="opacity:.7;"></span> &middot; scanned {snap['scanned']} symbols{health_html}{pdrop_html}</div>
   {kpi_html}
   <div class="note" style="margin-top:0;">{mode_note}</div>
   <div id="diag"></div>
@@ -3013,13 +3015,24 @@ async function refreshLive() {{
     }});
     if (featTC) featTC.onLive(LIVE);
     if (modalTC) modalTC.onLive(LIVE);
-    const tm = new Date(d.at || Date.now()).toLocaleTimeString();
+    const tm = new Date(d.at || Date.now()).toLocaleTimeString('en-GB', {{timeZone:'GMT', hour12:false}}) + ' GMT';
     st.innerHTML = '&middot; <span style="color:#2ea043;">● Live</span> <span style="color:#8b97a6;">'+tm+'</span>';
   }} catch (e) {{
     st.innerHTML = '&middot; <span style="color:#8b97a6;">live prices unavailable</span>';
   }}
 }}
 if (LIVE_URL) {{ refreshLive(); setInterval(refreshLive, 15000); }}
+// "last built X min ago" ticker for the build time (shown in GMT in the subhead).
+(function builtAgo() {{
+  const el = document.getElementById('builtAgo');
+  const ts = (typeof DATA !== 'undefined' && DATA.generated_ts) ? DATA.generated_ts * 1000 : null;
+  if (!el || !ts) return;
+  function upd() {{
+    const m = Math.max(0, Math.round((Date.now() - ts) / 60000));
+    el.textContent = '· ' + (m < 1 ? 'just now' : (m === 1 ? '1 min ago' : m + ' min ago'));
+  }}
+  upd(); setInterval(upd, 30000);
+}})();
 // live ET clock for the terminal header (only present when Terminal layout is active)
 setInterval(() => {{
   const c = document.getElementById('bbclock');
