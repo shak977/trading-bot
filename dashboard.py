@@ -504,7 +504,20 @@ def build_snapshot() -> dict:
     # System status — a live readout of what's actually wired/running (booleans only, no secrets).
     import os as _os
     _has_worker = bool(CONFIG.live_quotes_url)
-    _llm_ok = bool((llm_status or {}).get("ok"))
+    # AI is "on" when the key is set AND there's no known API error. (llm_status has no top-level
+    # 'ok'; a failed probe — e.g. exhausted credits / bad key — sets probe.ok = False.)
+    _llm = llm_status or {}
+    _llm_probe_failed = isinstance(_llm.get("probe"), dict) and _llm["probe"].get("ok") is False
+    _llm_on = bool(CONFIG.llm_enabled) and not _llm_probe_failed
+    _gen = _llm.get("generated")
+    if not CONFIG.llm_enabled:
+        _ai_note = "ANTHROPIC_API_KEY not set"
+    elif _llm_probe_failed:
+        _ai_note = "API error — check credits/key"
+    elif _gen:
+        _ai_note = f"{CONFIG.llm_model} · {_gen} brief(s) this run"
+    else:
+        _ai_note = f"{CONFIG.llm_model} · no High-conviction names this run"
     system = {
         "mode": mode,
         "feeds": [
@@ -519,8 +532,9 @@ def build_snapshot() -> dict:
             {"name": "News RSS + Benzinga", "on": True, "note": "Yahoo/Finnhub/Benzinga headlines"},
         ],
         "ai": [
-            {"name": "AI analyst briefs", "on": CONFIG.llm_enabled and _llm_ok, "note": CONFIG.llm_model},
-            {"name": "News-idea engine", "on": CONFIG.llm_enabled and _llm_ok, "note": "headlines → ideas + nudge"},
+            {"name": "AI analyst briefs", "on": _llm_on, "note": _ai_note},
+            {"name": "News-idea engine", "on": _llm_on,
+             "note": "headlines → ideas + nudge" if _llm_on else "needs ANTHROPIC_API_KEY + credits"},
         ],
         "engine": [
             {"name": "Multi-strategy confluence (7 long + 7 short)", "on": True, "note": "core engine"},
