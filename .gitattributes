@@ -1,0 +1,11 @@
+# Generated state files are written by BOTH the GitHub Action and local runs, which causes
+# endless rebase/merge conflicts. Tell git to auto-resolve them by keeping the current side
+# (they're regenerated every build, so it never matters who "wins").
+# One-time setup on each machine:  git config merge.ours.driver true
+track_record.json            merge=ours
+track_record_intraday.json   merge=ours
+momentum_history.json        merge=ours
+paper_orders.json            merge=ours
+alerts_sent.json             merge=ours
+signals_seen.json            merge=ours
+news_candidates.json         merge=ours
