@@ -1,11 +1,14 @@
 name: Weekly Trading Signals
 
-# Scans every weekday. Rebuilds every 30 min through the US market window (covers both
-# EDT and EST) so signals/news stay fresh intraday, plus a final run ~2h after the close
-# when the daily bar is settled. Also manual + on push.
+# Scans every weekday. Pre-market runs (~6–8:30am ET) refresh news + news-driven ideas + alerts
+# before the open; then every 30 min through the US market window (covers EDT & EST) so
+# signals/news stay fresh intraday, plus a final run ~2h after the close when the daily bar is
+# settled. Also manual + on push. NB: technical signals use completed DAILY bars, so they don't
+# change pre-market — the pre-market value is the news/idea layer, not new BUY/SHORT calls.
 # Note: GitHub may delay/skip scheduled runs under load — 30 min is the practical floor.
 on:
   schedule:
+    - cron: "*/30 10-12 * * 1-5"  # PRE-MARKET: every 30 min ~6–8:30am ET (refreshes news + news-driven ideas + alerts before the open)
     - cron: "*/30 13-21 * * 1-5"  # every 30 min, ~9:30am–5pm ET (handles EDT & EST)
     - cron: "0 22 * * 1-5"        # ~final, after close — settled daily bar
   workflow_dispatch:
