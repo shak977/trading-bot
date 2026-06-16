@@ -1,15 +1,15 @@
 {
   "signals": {
-    "GE": {
-      "action": "BUY",
-      "label": "High",
-      "score": 94,
-      "dir": "LONG"
-    },
     "PG": {
       "action": "BUY",
       "label": "High",
-      "score": 82,
+      "score": 85,
+      "dir": "LONG"
+    },
+    "GE": {
+      "action": "BUY",
+      "label": "High",
+      "score": 93,
       "dir": "LONG"
     },
     "WFC": {
@@ -21,7 +21,13 @@
     "CAT": {
       "action": "BUY",
       "label": "High",
-      "score": 91,
+      "score": 90,
+      "dir": "LONG"
+    },
+    "LRCX": {
+      "action": "BUY",
+      "label": "High",
+      "score": 86,
       "dir": "LONG"
     },
     "GS": {
@@ -39,7 +45,7 @@
     "ROKU": {
       "action": "BUY",
       "label": "High",
-      "score": 83,
+      "score": 80,
       "dir": "LONG"
     },
     "AXP": {
@@ -48,16 +54,22 @@
       "score": 85,
       "dir": "LONG"
     },
+    "WDC": {
+      "action": "BUY",
+      "label": "High",
+      "score": 88,
+      "dir": "LONG"
+    },
     "KO": {
       "action": "BUY",
       "label": "High",
       "score": 80,
       "dir": "LONG"
     },
-    "LRCX": {
+    "LIN": {
       "action": "BUY",
       "label": "High",
-      "score": 82,
+      "score": 81,
       "dir": "LONG"
     },
     "TGT": {
@@ -69,19 +81,13 @@
     "MRK": {
       "action": "BUY",
       "label": "Medium",
-      "score": 70,
-      "dir": "LONG"
-    },
-    "LIN": {
-      "action": "BUY",
-      "label": "High",
-      "score": 79,
+      "score": 68,
       "dir": "LONG"
     },
     "AMAT": {
       "action": "BUY",
       "label": "High",
-      "score": 79,
+      "score": 77,
       "dir": "LONG"
     },
     "JPM": {
@@ -93,19 +99,19 @@
     "ABNB": {
       "action": "BUY",
       "label": "High",
-      "score": 77,
+      "score": 76,
       "dir": "LONG"
     },
     "CL": {
       "action": "BUY",
       "label": "Medium",
-      "score": 69,
+      "score": 68,
       "dir": "LONG"
     },
     "HON": {
       "action": "BUY",
-      "label": "High",
-      "score": 75,
+      "label": "Medium",
+      "score": 74,
       "dir": "LONG"
     },
     "BAC": {
@@ -117,19 +123,19 @@
     "COIN": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 71,
+      "score": 69,
       "dir": "SHORT"
     },
     "META": {
       "action": "WATCH SHORT",
-      "label": "High",
-      "score": 76,
+      "label": "Medium",
+      "score": 67,
       "dir": "SHORT"
     },
     "PYPL": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 65,
+      "score": 59,
       "dir": "SHORT"
     },
     "PEP": {
@@ -147,7 +153,7 @@
     "MA": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 55,
+      "score": 62,
       "dir": "SHORT"
     },
     "SCHW": {
@@ -159,13 +165,13 @@
     "DIS": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 64,
+      "score": 68,
       "dir": "SHORT"
     },
     "ADBE": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 57,
+      "score": 55,
       "dir": "SHORT"
     },
     "BLK": {
@@ -177,7 +183,7 @@
     "C": {
       "action": "HOLD LONG",
       "label": "High",
-      "score": 87,
+      "score": 85,
       "dir": "LONG"
     },
     "MRVL": {
@@ -219,25 +225,19 @@
     "UNH": {
       "action": "HOLD LONG",
       "label": "Medium",
-      "score": 73,
+      "score": 69,
       "dir": "LONG"
     },
     "PANW": {
       "action": "HOLD LONG",
       "label": "Medium",
-      "score": 69,
+      "score": 70,
       "dir": "LONG"
     },
     "MDLZ": {
       "action": "HOLD LONG",
       "label": "Medium",
       "score": 70,
-      "dir": "LONG"
-    },
-    "ABBV": {
-      "action": "HOLD LONG",
-      "label": "Medium",
-      "score": 67,
       "dir": "LONG"
     },
     "LLY": {
@@ -249,19 +249,13 @@
     "EA": {
       "action": "HOLD LONG",
       "label": "Medium",
-      "score": 63,
+      "score": 61,
       "dir": "LONG"
     },
     "AMD": {
       "action": "WATCH LONG",
       "label": "Medium",
       "score": 64,
-      "dir": "LONG"
-    },
-    "GM": {
-      "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 70,
       "dir": "LONG"
     },
     "NVDA": {
@@ -279,7 +273,13 @@
     "YUM": {
       "action": "FLAT",
       "label": "Medium",
-      "score": 65,
+      "score": 69,
+      "dir": "LONG"
+    },
+    "GM": {
+      "action": "FLAT",
+      "label": "Medium",
+      "score": 62,
       "dir": "LONG"
     }
   },
@@ -297,8 +297,9 @@
   },
   "catalysts": [
     "WDC",
-    "GE",
-    "CL"
+    "CL",
+    "YUM",
+    "ROKU"
   ],
   "generated_at": "2026-06-16"
 }
