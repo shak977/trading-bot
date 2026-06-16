@@ -999,6 +999,58 @@ def _kpi_html(reg: dict | None, snap: dict) -> str:
     return f'<div class="kpis">{tiles}</div>'
 
 
+def _bento_home(snap: dict) -> str:
+    """The Signals home as a true HUD bento — a grid of varied-size tiles: a regime hero, the key
+    metrics, the market brief and what-changed, all as modular boxes."""
+    reg = snap.get("regime") or {}
+    mp = snap.get("macro_posture") or {}
+    sigs = snap.get("signals", [])
+    n_buy = sum(1 for s in sigs if s.get("action") == "BUY")
+    n_short = sum(1 for s in sigs if s.get("action") == "SHORT")
+    tk = snap.get("track") or {}
+    wr = tk.get("win_rate")
+    wr_txt = f'{wr}%' if isinstance(wr, (int, float)) else "—"
+    ranked = snap.get("ranked") or []
+    tone = {"Risk-on": "buy", "Neutral": "warn", "Risk-off": "sell"}.get(reg.get("label"), "")
+
+    def t(label, val, cls="", sub=""):
+        sb = f'<div class="bt-sub">{sub}</div>' if sub else ""
+        return f'<div class="bt"><div class="bt-l">{label}</div><div class="bt-v {cls}">{val}</div>{sb}</div>'
+
+    if not reg and not sigs:
+        return ""
+    expo = mp.get("exposure_mult")
+    tiles = (
+        f'<div class="bt hero"><div class="bt-l">Market regime</div>'
+        f'<div class="bt-v {tone}" style="font-size:38px;">{reg.get("label", "—")}</div>'
+        f'<div class="bt-sub">{reg.get("note", "")[:80]}</div>'
+        + (f'<div class="bt-chip">{expo:.2f}× sizing'
+           + (f' · entry bar {mp.get("entry_threshold")}%' if mp.get("entry_threshold") else '')
+           + '</div>' if expo else '')
+        + '</div>'
+    )
+    tiles += t("Breadth", f'{reg.get("breadth", "—")}%', sub=f'of {reg.get("total","?")} above trend')
+    tiles += t("Avg momentum", f'{reg.get("avg_rsi", "—")}', sub="RSI 0–100")
+    tiles += t("Fresh buys", str(n_buy), "buy" if n_buy else "", "new long setups")
+    tiles += t("Fresh shorts", str(n_short), "sell" if n_short else "", "new short setups")
+    tiles += t("Track record", wr_txt, "", f'{tk.get("resolved", 0)} resolved')
+    # top opportunity tile (the #1 ranked name) — quick glance at where capital goes first
+    if ranked:
+        top = ranked[0]
+        tiles += (f'<div class="bt"><div class="bt-l">Top opportunity</div>'
+                  f'<div class="bt-v" style="font-size:20px;">{top.get("symbol","")}</div>'
+                  f'<div class="bt-sub">rank {top.get("rank_score","—")} · {top.get("action","")}</div></div>')
+    brief = (snap.get("market_brief") or "").strip()
+    if brief:
+        tiles += (f'<div class="bt wide"><div class="bt-l">🧠 Market brief</div>'
+                  f'<div class="bt-body">{brief}</div></div>')
+    changes = snap.get("changes") or []
+    if changes:
+        tiles += ('<div class="bt wide"><div class="bt-l">⚡ What changed since last build</div>'
+                  '<ul class="bt-list">' + "".join(f"<li>{c}</li>" for c in changes) + "</ul></div>")
+    return f'<div class="bento">{tiles}</div>'
+
+
 def _allweather_html(aw: dict | None) -> str:
     intro = (_strat_badge("All-seasons allocation · static, ~yearly rebalance") +
              '<p style="color:var(--muted);font-size:13px;margin:0 0 14px;max-width:760px;">'
@@ -2232,6 +2284,7 @@ def render_html(snap: dict) -> str:
     pdrop_html = (f' &middot; <span style="color:var(--muted);" title="{(" | ".join(_pd))[:300].replace(chr(34), chr(39))}">'
                   f'{len(_pd)} dropped (bad feed price)</span>') if _pd else ""
     kpi_html = _kpi_html(snap.get("regime"), snap)
+    bento_home_html = _bento_home(snap)
     _brief = (snap.get("market_brief") or "").strip()
     brief_html = (f'<div class="ai-box" style="margin:2px 0 18px;line-height:1.6;">'
                   f'<span class="ai-h">🧠 Market brief</span> {_brief}</div>') if _brief else ""
@@ -2838,6 +2891,26 @@ def render_html(snap: dict) -> str:
     display:flex; flex-direction:column; justify-content:center; }}
   .kpi.hero .kpi-v {{ font-size:34px; }}
   @media (max-width:600px) {{ .kpi.hero {{ grid-column:span 2; }} .kpi.hero .kpi-v {{ font-size:26px; }} }}
+  /* ---- bento home grid ---- */
+  .bento {{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); grid-auto-flow:row dense;
+    gap:10px; margin:0 0 18px; }}
+  .bento .bt {{ background:var(--card); border:1px solid var(--hud-edge); border-radius:7px;
+    padding:13px 15px; min-width:0; display:flex; flex-direction:column; }}
+  .bento .bt.hero {{ grid-column:span 2; grid-row:span 2; border-top:2px solid var(--accent); justify-content:center; }}
+  .bento .bt.wide {{ grid-column:span 2; }}
+  .bt-l {{ font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); font-weight:600; margin-bottom:3px; }}
+  .bt-v {{ font-family:var(--mono); font-weight:700; font-size:22px; }}
+  .bt-v.buy {{ color:var(--buy); }} .bt-v.sell {{ color:var(--sell); }} .bt-v.warn {{ color:var(--warn); }}
+  .bt-sub {{ font-size:11px; color:var(--muted); margin-top:3px; }}
+  .bt-chip {{ display:inline-block; margin-top:9px; font-size:11px; padding:3px 10px; border-radius:999px;
+    background:color-mix(in srgb,var(--accent) 16%,transparent); color:var(--accent); align-self:flex-start; }}
+  .bt-body {{ font-size:13px; line-height:1.6; color:var(--txt2); max-height:210px; overflow:auto; }}
+  .bt-list {{ margin:4px 0 0; padding-left:16px; font-size:13px; line-height:1.7; color:var(--txt2); }}
+  @media (max-width:760px) {{
+    .bento {{ grid-template-columns:repeat(2,minmax(0,1fr)); }}
+    .bento .bt.hero {{ grid-column:span 2; grid-row:auto; }}
+    .bento .bt.wide {{ grid-column:span 2; }}
+  }}
   .kpi-l {{ font-size:10px; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); font-weight:600; }}
   .kpi-v {{ font-size:24px; font-weight:800; margin-top:4px; letter-spacing:-.015em; font-variant-numeric:tabular-nums; }}
   .kpi-v.buy {{ color:var(--buy); }} .kpi-v.sell {{ color:var(--sell); }} .kpi-v.warn {{ color:#b8860b; }}
@@ -2986,9 +3059,7 @@ def render_html(snap: dict) -> str:
   </section>
 
   <section class="page on" id="page-signals">
-    {kpi_html}
-    {brief_html}
-    {changes_html}
+    {bento_home_html}
     <div class="strat-badge"><span class="k">Strategy type</span><span class="v">Multi-strategy confluence · 7 long + 7 short, trend-gated</span></div>
     <div id="concWarn"></div>
     <details class="tvwidget" open>
