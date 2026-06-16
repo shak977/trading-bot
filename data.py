@@ -123,3 +123,37 @@ def get_bars(symbol: str, cfg: Config) -> pd.DataFrame:
     # Clean IEX bad prints / OHLC glitches before indicators are computed on them.
     bars, _ = sanitize_bars(bars)
     return bars
+
+
+def get_latest_quotes(symbols, cfg) -> dict:
+    """Latest top-of-book bid/ask for several symbols from Alpaca's FREE IEX feed → spread %.
+
+    Returns {symbol: {bid, ask, mid, spread_pct}} for symbols with a valid quote; others omitted.
+    NOTE: IEX is a thin slice of consolidated volume, so its quote is typically a touch WIDER than
+    the true NBBO — treat the spread as a conservative (pessimistic) estimate, which is the safe
+    direction for an execution-cost filter. Never raises; returns {} on any error."""
+    out = {}
+    try:
+        cfg.validate_for_live()
+        from alpaca.data.enums import DataFeed
+        from alpaca.data.historical import StockHistoricalDataClient
+        from alpaca.data.requests import StockLatestQuoteRequest
+        syms = list(symbols)
+        if not syms:
+            return {}
+        client = StockHistoricalDataClient(cfg.api_key, cfg.secret_key)
+        req = StockLatestQuoteRequest(symbol_or_symbols=syms, feed=DataFeed.IEX)
+        quotes = client.get_stock_latest_quote(req)
+        for sym, q in (quotes or {}).items():
+            try:
+                bid, ask = float(q.bid_price), float(q.ask_price)
+                if bid <= 0 or ask <= bid:
+                    continue
+                mid = (bid + ask) / 2.0
+                out[sym] = {"bid": bid, "ask": ask, "mid": round(mid, 4),
+                            "spread_pct": round((ask - bid) / mid * 100, 3)}
+            except Exception:  # noqa: BLE001
+                continue
+    except Exception:  # noqa: BLE001 — quotes are best-effort; a failure must not break the scan
+        return out
+    return out

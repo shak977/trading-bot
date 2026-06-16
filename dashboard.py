@@ -857,6 +857,16 @@ def build_snapshot() -> dict:
     except Exception:  # noqa: BLE001
         pass
 
+    # Stocks-in-play ORB pass (its own strategy bucket): rank in-play names, score breakouts,
+    # grade + learn, enforce hard caps. Fail-silent; never breaks the build.
+    orb_payload = _run_orb(rows, _idea_map, nlp_scores, regime, CONFIG, live, today,
+                           getattr(CONFIG, "starting_cash", 100_000.0))
+    try:
+        import notify as _notify
+        _notify.run_orb(orb_payload.get("signals"), today)
+    except Exception:  # noqa: BLE001
+        pass
+
     # System status — a live readout of what's actually wired/running (booleans only, no secrets).
     import os as _os
     _has_worker = bool(CONFIG.live_quotes_url)
@@ -934,6 +944,7 @@ def build_snapshot() -> dict:
             "min_n": _mn2,
             "daily": {"weights": daily_learned, "report": _attr2.report(scope="daily")},
             "intraday": {"weights": intraday_learned, "report": _attr2.report(scope="intraday")},
+            "orb": (orb_payload.get("learned") or {"weights": {}, "report": _attr2.report(scope="orb")}),
         }
     except Exception:  # noqa: BLE001 - additive; never break the build
         learned_payload = None
@@ -985,6 +996,7 @@ def build_snapshot() -> dict:
         "pairs": pairs_data,
         "intraday": intraday_shown,
         "intraday_track": intraday_track,
+        "orb": orb_payload,
         "learned": learned_payload,
         "market_brief": market_brief,
         "changes": changes,
@@ -2235,7 +2247,8 @@ def _learned_html(learned: dict | None) -> str:
              'how it has actually separated winners from losers.</span></h3>')
     blocks = ""
     for key, title, sub in (("daily", "Daily / swing signals", "daily bars · longer holds"),
-                            ("intraday", "Intraday signals", "5-min bars · hours, not days")):
+                            ("intraday", "Intraday signals", "5-min bars · hours, not days"),
+                            ("orb", "ORB day-trade signals", "opening-range breakout · flat by 15:45")):
         sect = learned.get(key) or {}
         rep = sect.get("report") or []
         weights = sect.get("weights") or {}
@@ -2370,6 +2383,196 @@ def _track_html(track: dict | None) -> str:
   </div>"""
 
 
+def _run_orb(rows, idea_map, nlp_scores, regime, cfg, live, today, equity):
+    """Stocks-in-play ORB pass (its own bucket). Ranks in-play names, fetches 5-min bars, scores
+    breakouts with the ORB learning weights, grades + logs to the ORB shadow tracker, and enforces
+    the hard day-trading caps. Returns the snap['orb'] payload. Fail-silent — never breaks build."""
+    out = {"enabled": bool(getattr(cfg, "orb_enabled", False)), "signals": [], "inplay": [],
+           "risk_state": {}, "track": {}, "learned": None, "scanned": 0, "note": ""}
+    if not (live and getattr(cfg, "orb_enabled", False)):
+        out["note"] = "ORB runs on live market data only (needs intraday bars + quotes)."
+        return out
+    try:
+        from dataclasses import replace as _replace
+        import attribution as _attr
+        import data as _data
+        import inplay as _inplay
+        import orb as _orb
+        import orb_track as _orbt
+
+        learned = {}
+        if getattr(cfg, "adaptive_weights_enabled", True):
+            try:
+                learned = _attr.learned_weights(scope="orb", min_n=getattr(cfg, "adaptive_min_n", 12))
+            except Exception:  # noqa: BLE001
+                learned = {}
+
+        def _tier(r):
+            liq = r.get("liquidity")
+            return (liq.get("tier") if isinstance(liq, dict) else liq) or ""
+
+        def _catalyst(sym):
+            if sym in (idea_map or {}):
+                return 75.0
+            n = (nlp_scores or {}).get(sym) or {}
+            net = n.get("net")
+            return float(min(90.0, 50.0 + abs(net) * 8.0)) if net is not None else 0.0
+
+        cands = [{"symbol": r.get("symbol"), "rel_volume": r.get("rel_volume"),
+                  "gap_pct": r.get("gap_pct"), "liquidity_tier": _tier(r),
+                  "has_news": (r.get("symbol") in (idea_map or {})) or (r.get("symbol") in (nlp_scores or {})),
+                  "catalyst_score": _catalyst(r.get("symbol"))}
+                 for r in rows if r.get("symbol")]
+        ranked = _inplay.rank(cands, cfg)
+        out["inplay"] = ranked
+        syms = [s["symbol"] for s in ranked][: getattr(cfg, "orb_inplay_top", 40)]
+        out["scanned"] = len(syms)
+        if not syms:
+            out["note"] = "No stocks in play (gap / RVOL / catalyst below threshold today)."
+            return out
+
+        icfg = _replace(cfg, timeframe="5Min",
+                        lookback_days=max(5, getattr(cfg, "intraday_lookback_days", 15)))
+        try:
+            spy_df = _data.get_bars("SPY", icfg)
+        except Exception:  # noqa: BLE001
+            spy_df = None
+        try:
+            quotes = _data.get_latest_quotes(syms, cfg)
+        except Exception:  # noqa: BLE001
+            quotes = {}
+        ip_by = {s["symbol"]: s for s in ranked}
+        bars_by, signals = {}, []
+        for sym in syms:
+            try:
+                df = _data.get_bars(sym, icfg)
+            except Exception:  # noqa: BLE001
+                continue
+            if df is None or getattr(df, "empty", True):
+                continue
+            bars_by[sym] = df
+            ip = ip_by.get(sym) or {}
+            ctx = {"rel_volume": ip.get("rel_volume"), "catalyst_score": _catalyst(sym),
+                   "liquidity_tier": ip.get("liquidity_tier"),
+                   "spread_pct": (quotes.get(sym) or {}).get("spread_pct")}
+            sig = _orb.build(sym, df, spy_df, cfg, equity=equity, ctx=ctx, learned=learned)
+            if sig:
+                sig["in_play"] = ip.get("in_play")
+                sig["name"] = next((r.get("name") for r in rows if r.get("symbol") == sym), sym)
+                signals.append(sig)
+
+        track = _orbt.run(signals, bars_by, today, cfg, regime=regime)
+        rs = track.get("risk_state", {})
+        if rs.get("blocked"):
+            for s in signals:
+                if s.get("recommended_action") == "paper_trade":
+                    s["risk_blocked"] = True
+                    s["risk_block_reason"] = ("daily ORB trade cap reached" if rs.get("trades_capped")
+                                              else "bucket halted after consecutive losses")
+        try:
+            out["learned"] = {"weights": learned, "report": _attr.report(scope="orb")}
+        except Exception:  # noqa: BLE001
+            out["learned"] = None
+        signals.sort(key=lambda s: -(s.get("score") or 0))
+        out["signals"] = signals
+        out["risk_state"] = rs
+        out["track"] = {k: v for k, v in track.items() if k != "risk_state"}
+        out["spy_ok"] = bool(spy_df is not None and not getattr(spy_df, "empty", True))
+        if not signals:
+            out["note"] = f"{len(syms)} in-play names scanned; no qualifying breakouts in the 09:45–10:30 window yet."
+    except Exception as e:  # noqa: BLE001
+        out["note"] = f"ORB pass skipped: {e}"
+    return out
+
+
+def _orb_html(orb: dict | None) -> str:
+    """Server-rendered ORB page: strategy explainer, risk-state, in-play list, scored signals."""
+    head = ('<h2 style="margin-top:0;">Opening Range Breakout '
+            '<span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">'
+            '— stocks-in-play day-trade: break the first 15-min range, confirmed by VWAP + the '
+            'market, scored 0–100, day-traded flat by 15:45. Its own strategy &amp; learning bucket.</span></h2>')
+    if not orb or not orb.get("enabled"):
+        return head + '<p style="color:var(--muted);font-size:13px;">ORB is disabled (set ORB_ENABLED).</p>'
+    note = orb.get("note") or ""
+    rs = orb.get("risk_state") or {}
+    # risk-state banner
+    rb = ""
+    if rs:
+        chips = (f'<span class="pill">{rs.get("trades_today",0)}/{rs.get("max_trades_per_day","–")} trades today</span> '
+                 f'<span class="pill">{rs.get("open_today",0)}/{rs.get("max_concurrent","–")} open</span> '
+                 f'<span class="pill">{rs.get("consec_losses",0)} loss streak</span>')
+        if rs.get("blocked"):
+            why = "daily trade cap reached" if rs.get("trades_capped") else "halted after consecutive losses"
+            chips += f' <span class="pill" style="color:var(--sell);border-color:var(--sell);">⛔ new trades blocked — {why}</span>'
+        rb = f'<div style="margin:6px 0 14px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">{chips}</div>'
+    # signals table
+    sigs = orb.get("signals") or []
+    bandcol = {"eligible": "buy", "alert_only": "", "watch": "muted", "reject": "muted"}
+    rows_html = ""
+    for s in sigs:
+        comp = s.get("score_components") or {}
+        compmini = " · ".join(f'{k[:3]} {int(v)}' for k, v in comp.items())
+        act = s.get("recommended_action")
+        actlbl = ("PAPER" if act == "paper_trade" else "ALERT" if act == "alert" else "—")
+        if s.get("risk_blocked"):
+            actlbl = "BLOCKED"
+        sc = s.get("score")
+        scl = "buy" if (sc or 0) >= 75 else "" if (sc or 0) >= 65 else "muted"
+        sp = s.get("spread_pct")
+        rows_html += (
+            f'<tr><td><b>{s.get("symbol")}</b> <span style="color:var(--muted);font-size:11px;">{(s.get("name") or "")[:20]}</span></td>'
+            f'<td>{s.get("direction")}</td>'
+            f'<td style="text-align:right;" class="{scl}">{sc}</td>'
+            f'<td style="text-align:right;">{s.get("entry")}</td>'
+            f'<td style="text-align:right;">{s.get("stop")}</td>'
+            f'<td style="text-align:right;">{s.get("target")}</td>'
+            f'<td style="text-align:right;">{s.get("rr")}</td>'
+            f'<td style="text-align:right;">{("%.2f%%" % sp) if sp is not None else "—"}</td>'
+            f'<td>{actlbl}</td>'
+            f'<td style="color:var(--muted);font-size:11px;">{compmini}</td></tr>')
+    sig_tbl = ""
+    if rows_html:
+        sig_tbl = ('<table class="trackrec"><thead><tr><th>Name</th><th>Dir</th>'
+                   '<th style="text-align:right;">Score</th><th style="text-align:right;">Entry</th>'
+                   '<th style="text-align:right;">Stop</th><th style="text-align:right;">Target</th>'
+                   '<th style="text-align:right;">RR</th><th style="text-align:right;">Spread</th>'
+                   '<th>Action</th><th>Factors</th></tr></thead><tbody>' + rows_html + '</tbody></table>')
+    else:
+        sig_tbl = f'<p style="color:var(--muted);font-size:13px;">{note or "No ORB signals yet."}</p>'
+    # in-play list
+    ip = orb.get("inplay") or []
+    ip_html = ""
+    if ip:
+        ir = ""
+        for c in ip[:20]:
+            comp = c.get("components") or {}
+            ir += (f'<tr><td><b>{c.get("symbol")}</b></td>'
+                   f'<td style="text-align:right;">{c.get("in_play")}</td>'
+                   f'<td>{c.get("in_play_band")}</td>'
+                   f'<td style="text-align:right;">{c.get("gap_pct")}%</td>'
+                   f'<td style="text-align:right;">{c.get("rel_volume")}x</td>'
+                   f'<td style="text-align:right;">{int(comp.get("catalyst",0))}</td>'
+                   f'<td style="text-align:right;">{int(comp.get("liquid",0))}</td></tr>')
+        ip_html = ('<h3 style="font-size:14px;margin:18px 0 6px;">Stocks in play '
+                   '<span style="text-transform:none;font-weight:400;color:var(--muted);font-size:11px;">'
+                   '— today\'s ranked watchlist (gap · RVOL · catalyst · liquidity)</span></h3>'
+                   '<table class="trackrec"><thead><tr><th>Sym</th>'
+                   '<th style="text-align:right;">In-play</th><th>Band</th>'
+                   '<th style="text-align:right;">Gap</th><th style="text-align:right;">RVOL</th>'
+                   '<th style="text-align:right;">Catalyst</th><th style="text-align:right;">Liq</th>'
+                   '</tr></thead><tbody>' + ir + '</tbody></table>')
+    tk = orb.get("track") or {}
+    tk_html = ""
+    if tk:
+        tk_html = (f'<p style="color:var(--muted);font-size:12px;margin-top:12px;">Shadow record: '
+                   f'{tk.get("advised",0)} logged · {tk.get("resolved",0)} resolved · '
+                   f'{tk.get("open",0)} open · win rate {tk.get("win_rate") if tk.get("win_rate") is not None else "—"}%</p>')
+    cap = ('<p style="color:var(--muted);font-size:11px;margin-top:10px;">Spread is a conservative '
+           'IEX top-of-book estimate (runs a touch wider than the true NBBO). Backtest uses a fixed '
+           'bps cost model. Long-only v1; shadow signals only — no orders.</p>')
+    return head + rb + sig_tbl + ip_html + tk_html + cap
+
+
 def render_html(snap: dict) -> str:
     data_json = json.dumps(snap)
     mode = snap["mode"]
@@ -2390,6 +2593,7 @@ def render_html(snap: dict) -> str:
     paper_section = f'<section class="page" id="page-paper">{paper_html}</section>' if _paper_acct else ''
     _pairs_data = snap.get("pairs") or {}
     pairs_html = _pairs_html(_pairs_data)
+    orb_html = _orb_html(snap.get("orb"))
     pairs_nav = '<button data-page="pairs">Pairs</button>' if _pairs_data.get("pairs") else ''
     altdata_html = _altdata_html(snap)
     news_ideas_html = _news_ideas_html(snap.get("news_ideas"))
@@ -3218,6 +3422,10 @@ def render_html(snap: dict) -> str:
   <section class="page" id="page-intraday">
     <h2 style="margin-top:0;">Intraday signals <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">— the same engine on intraday bars (faster, noisier; daily signals remain the backbone)</span></h2>
     <div id="intradayCards"></div>
+  </section>
+
+  <section class="page" id="page-orb">
+{orb_html}
   </section>
 
   <section class="page" id="page-heatmap">
@@ -4730,7 +4938,7 @@ function _tvInit() {{
 (function setupTabs() {{
   // primary areas (sidebar) -> pages (top tabs). Pages not present in the DOM are filtered out.
   const AREAS = [
-    ['signals', [['signals','Signals'],['intraday','Intraday'],['pairs','Pairs']]],
+    ['signals', [['signals','Signals'],['intraday','Intraday'],['orb','ORB day-trade'],['pairs','Pairs']]],
     ['markets', [['markets','Markets'],['heatmap','Heatmap'],['momentum','Momentum']]],
     ['portfolio', [['portfolio','Portfolio'],['paper','Paper account'],['allweather','All Weather']]],
     ['intel', [['altdata','Data signals'],['track','Track record']]],

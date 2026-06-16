@@ -13,8 +13,9 @@ import os
 
 PATH = os.getenv("TRACK_FILE", "track_record.json")
 INTRADAY_PATH = os.getenv("TRACK_INTRADAY_FILE", "track_record_intraday.json")
+ORB_PATH = os.getenv("TRACK_ORB_FILE", "track_record_orb.json")
 
-_RESOLVED = ("win", "loss", "expired")
+_RESOLVED = ("win", "loss", "expired", "eod")   # "eod" = ORB end-of-day flatten (a resolved timeout)
 
 
 def _win_rate(items: list[dict]) -> float | None:
@@ -84,6 +85,8 @@ def _rows_for(scope: str) -> list[dict]:
         return load(PATH)
     if scope == "intraday":
         return load(INTRADAY_PATH)
+    if scope == "orb":
+        return load(ORB_PATH)
     return load_all()
 
 

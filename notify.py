@@ -195,3 +195,50 @@ def run_pairs(pairs_data: dict | None, today: str) -> dict | None:
         _save(sent)
     return {"configured": True, "new": len(fresh), "delivered": delivered,
             "pairs": [f"{p['a']}/{p['b']}" for p in fresh[:8]]}
+
+
+def run_orb(orb_signals: list[dict] | None, today: str) -> dict | None:
+    """Fire alerts for FRESH ELIGIBLE ORB breakouts (score ≥ threshold, not risk-blocked). Deduped
+    via the same log with an 'ORB:' key so each name pings once per session. Never raises."""
+    ch = _channels()
+    if not (ch["webhook"] or ch["ntfy"] or ch["email_to"]):
+        return None
+    picks = [s for s in (orb_signals or [])
+             if s.get("recommended_action") == "paper_trade" and not s.get("risk_blocked")]
+    if not picks:
+        return {"configured": True, "new": 0, "delivered": False}
+
+    sent = _load()
+    fresh = [s for s in picks if f"ORB:{s.get('symbol')}:{s.get('session', today)}" not in sent]
+    if not fresh:
+        return {"configured": True, "new": 0, "delivered": False}
+
+    fresh.sort(key=lambda s: -(s.get("score") or 0))
+    lines = []
+    for s in fresh[:8]:
+        arrow = "🟢" if s.get("direction") == "LONG" else "🔴"
+        lines.append(f"{arrow} {s.get('symbol')} {s.get('direction')} ORB — score {s.get('score')}, "
+                     f"entry ${s.get('entry'):,.2f}, stop ${s.get('stop'):,.2f}, "
+                     f"target ${s.get('target'):,.2f} (RR {s.get('rr')})")
+    site = os.getenv("SITE_URL", "").strip()
+    from datetime import datetime, timezone
+    stamp = datetime.now(timezone.utc).strftime("%H:%M UTC")
+    title = f"{len(fresh)} ORB breakout{'s' if len(fresh) != 1 else ''} (stocks in play)"
+    foot = (f"\n\nas of {stamp} — opening-range breakout + VWAP, day-trade (flatten by 15:45 ET). "
+            "Paper/shadow signal, not advice.")
+    body = "\n".join(lines) + foot + (f"\n{site}" if site else "")
+
+    delivered = False
+    if ch["webhook"]:
+        delivered = _post_webhook(ch["webhook"], title, body) or delivered
+    if ch["ntfy"]:
+        delivered = _post_ntfy(ch["ntfy"], title, body) or delivered
+    if ch["email_to"]:
+        delivered = _send_email(ch["email_to"], title, body) or delivered
+
+    if delivered:
+        for s in fresh:
+            sent.add(f"ORB:{s.get('symbol')}:{s.get('session', today)}")
+        _save(sent)
+    return {"configured": True, "new": len(fresh), "delivered": delivered,
+            "symbols": [s.get("symbol") for s in fresh[:8]]}

@@ -73,6 +73,33 @@ class Config:
     intraday_fast_ma: int = 9               # MA periods are in BARS at the intraday timeframe
     intraday_slow_ma: int = 20
     intraday_show_top: int = 60             # cap intraday cards shown
+
+    # --- Opening Range Breakout (ORB) + VWAP day-trading strategy (its own learning bucket) ---
+    # Built to the "stocks-in-play ORB + VWAP" brief: long-only v1, a standalone 0-100 signal score
+    # with a hard threshold, a morning trade window, and hard day-trading risk caps. Kept SEPARATE
+    # from the swing/intraday conviction stack — its own scoring, tracker and learning.
+    orb_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("ORB_ENABLED"), True))
+    orb_long_only: bool = True              # v1 is long-only (shorts deferred: borrow/locate realism)
+    orb_primary_window: int = 15            # OR window (mins) used for the live signal
+    orb_windows: tuple = (5, 15, 30)        # windows the backtest compares ("test several")
+    orb_target_r: tuple = (1.0, 2.0)        # profit targets as R multiples (final = min reward:risk)
+    orb_min_rr: float = 2.0                 # hard reward:risk floor (reject below)
+    orb_score_threshold: float = 75.0       # 0-100 signal score needed to be tradable (brief default)
+    orb_alert_threshold: float = 65.0       # 65-75 = alert-only band; <65 reject/watch
+    orb_window_start: str = "09:45"         # primary trade window opens (ET) — after OR forms
+    orb_window_end: str = "10:30"           # primary trade window closes (ET)
+    orb_orw_atr_min: float = 0.3            # OR-width / ATR floor (too narrow = noise)
+    orb_orw_atr_max: float = 3.0            # OR-width / ATR cap (too wide = stop too far, RR collapses)
+    orb_max_spread_pct: float = 0.25        # reject if live bid/ask spread exceeds this % (IEX quote)
+    orb_half_spread_bps: float = 2.0        # backtest transaction-cost model: half-spread (bps)
+    orb_slippage_bps: float = 3.0           # backtest transaction-cost model: slippage per side (bps)
+    # hard day-trading risk caps (brief): final authority, model confidence can't override
+    orb_max_trades_per_day: int = 4         # total ORB trades/day across the book
+    orb_max_concurrent: int = 3             # max simultaneous ORB positions
+    orb_consec_loss_halt: int = 2           # halt the bucket after N consecutive full-stop losses
+    orb_risk_pct: float = 0.005             # risk per ORB trade (fraction of equity to the stop)
+    orb_show_top: int = 40                  # cap ORB cards shown
+    orb_inplay_top: int = 40                # how many stocks-in-play to scan for ORB
     rsi_overbought: float = 70.0
     rsi_oversold: float = 30.0
 
