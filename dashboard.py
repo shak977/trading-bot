@@ -2507,9 +2507,12 @@ def _orb_html(orb: dict | None) -> str:
         rb = f'<div style="margin:6px 0 14px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">{chips}</div>'
     # signals table
     sigs = orb.get("signals") or []
-    bandcol = {"eligible": "buy", "alert_only": "", "watch": "muted", "reject": "muted"}
+    _FAC_LABEL = {"breakout": "Clean breakout candle", "rvol": "Unusual volume",
+                  "vwap": "Confirmed by VWAP", "catalyst": "Real catalyst",
+                  "market": "Market aligned", "liquidity": "Liquid enough",
+                  "volatility": "OR width tradable"}
     rows_html = ""
-    for s in sigs:
+    for i, s in enumerate(sigs):
         comp = s.get("score_components") or {}
         compmini = " · ".join(f'{k[:3]} {int(v)}' for k, v in comp.items())
         act = s.get("recommended_action")
@@ -2520,7 +2523,8 @@ def _orb_html(orb: dict | None) -> str:
         scl = "buy" if (sc or 0) >= 75 else "" if (sc or 0) >= 65 else "muted"
         sp = s.get("spread_pct")
         rows_html += (
-            f'<tr><td><b>{s.get("symbol")}</b> <span style="color:var(--muted);font-size:11px;">{(s.get("name") or "")[:20]}</span></td>'
+            f'<tr class="orb-row" onclick="orbToggle({i})" title="Click for the full factor breakdown">'
+            f'<td><b>{s.get("symbol")}</b> <span style="color:var(--muted);font-size:11px;">{(s.get("name") or "")[:20]}</span></td>'
             f'<td>{s.get("direction")}</td>'
             f'<td style="text-align:right;" class="{scl}">{sc}</td>'
             f'<td style="text-align:right;">{s.get("entry")}</td>'
@@ -2529,7 +2533,28 @@ def _orb_html(orb: dict | None) -> str:
             f'<td style="text-align:right;">{s.get("rr")}</td>'
             f'<td style="text-align:right;">{("%.2f%%" % sp) if sp is not None else "—"}</td>'
             f'<td>{actlbl}</td>'
-            f'<td style="color:var(--muted);font-size:11px;">{compmini}</td></tr>')
+            f'<td style="color:var(--muted);font-size:11px;">{compmini} ▸</td></tr>')
+        # expandable 7-factor breakdown (like the conviction view on other strategies)
+        bars = ""
+        for k, lab in _FAC_LABEL.items():
+            v = int(comp.get(k, 0) or 0)
+            bc = "var(--buy)" if v >= 60 else "var(--sell)" if v < 40 else "var(--accent)"
+            bars += (f'<div style="display:flex;align-items:center;gap:8px;margin:3px 0;font-size:12px;">'
+                     f'<span style="flex:0 0 150px;color:var(--muted);">{lab}</span>'
+                     f'<span style="flex:1;height:7px;background:var(--line);border-radius:4px;overflow:hidden;">'
+                     f'<i style="display:block;height:100%;width:{v}%;background:{bc};"></i></span>'
+                     f'<span style="flex:0 0 28px;text-align:right;font-variant-numeric:tabular-nums;">{v}</span></div>')
+        levels = (f'OR {s.get("or_low")}–{s.get("or_high")} &middot; VWAP {s.get("vwap_at_entry")} &middot; '
+                  f'ATR {s.get("atr")} &middot; {s.get("window_min")}m window &middot; OR/ATR {s.get("or_width_atr")} &middot; '
+                  f'in-play {s.get("in_play")} &middot; risk {s.get("risk_pct")}% &middot; est cost {s.get("est_cost_pct")}%')
+        reasons = " &middot; ".join(s.get("reasons") or [])
+        blk = (f'<div style="color:var(--sell);font-size:12px;margin-top:6px;">⛔ {s.get("risk_block_reason")}</div>'
+               if s.get("risk_blocked") else "")
+        rows_html += (
+            f'<tr id="orb-d-{i}" style="display:none;"><td colspan="10" style="background:var(--card);padding:12px 14px;">'
+            f'<div style="max-width:520px;">{bars}</div>'
+            f'<div style="color:var(--muted);font-size:11px;margin-top:8px;">{levels}</div>'
+            f'<div style="font-size:12px;margin-top:4px;">{reasons}</div>{blk}</td></tr>')
     sig_tbl = ""
     if rows_html:
         sig_tbl = ('<table class="trackrec"><thead><tr><th>Name</th><th>Dir</th>'
@@ -3060,6 +3085,8 @@ def render_html(snap: dict) -> str:
   .trackrec {{ width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }}
   .trackrec th, .trackrec td {{ text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); }}
   .trackrec th {{ color:var(--muted); font-weight:600; }}
+  .orb-row {{ cursor:pointer; }}
+  .orb-row:hover {{ background:color-mix(in srgb, var(--accent) 8%, transparent); }}
   .win {{ color:var(--buy); }} .loss {{ color:var(--sell); }} .exp {{ color:var(--muted); }}
   /* shared table style for the intelligence/data panels (was previously unstyled) */
   .tbl {{ width:100%; border-collapse:collapse; font-size:13px; }}
@@ -3815,6 +3842,11 @@ function _holdTxt(p) {{
     return hi < 90 ? ('~' + lo + '–' + hi + ' min') : ('~' + Math.round(lo/60) + '–' + Math.round(hi/60) + ' hrs');
   }}
   return '~' + p.hold_lo + '–' + p.hold_hi + ' sessions';
+}}
+// ORB signal row -> toggle its 7-factor breakdown
+function orbToggle(i) {{
+  var d = document.getElementById('orb-d-' + i);
+  if (d) d.style.display = (d.style.display === 'none' ? 'table-row' : 'none');
 }}
 
 // Custom tooltip: reliable + instant (native title= is slow and easy to miss). Any element
