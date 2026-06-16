@@ -66,6 +66,8 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           SMTP_PORT: ${{ vars.SMTP_PORT }}
           SITE_URL: ${{ vars.SITE_URL }}
+          PAPER_RESET_DATE: ${{ vars.PAPER_RESET_DATE }}
+          WIDE_UNIVERSE: ${{ vars.WIDE_UNIVERSE }}
         run: |
           python dashboard.py
           mkdir -p _site

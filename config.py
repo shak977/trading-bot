@@ -15,7 +15,7 @@ except ImportError:  # dotenv optional; env vars still work
 
 
 def _as_bool(val: str | None, default: bool = True) -> bool:
-    if val is None:
+    if val is None or not val.strip():   # unset OR empty (an unset GitHub var passes "") -> default
         return default
     return val.strip().lower() in {"1", "true", "yes", "y", "on"}
 
