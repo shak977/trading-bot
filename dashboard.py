@@ -2423,12 +2423,16 @@ def _run_orb(rows, idea_map, nlp_scores, regime, cfg, live, today, equity):
                   "has_news": (r.get("symbol") in (idea_map or {})) or (r.get("symbol") in (nlp_scores or {})),
                   "catalyst_score": _catalyst(r.get("symbol"))}
                  for r in rows if r.get("symbol")]
-        ranked = _inplay.rank(cands, cfg)
-        out["inplay"] = ranked
-        syms = [s["symbol"] for s in ranked][: getattr(cfg, "orb_inplay_top", 40)]
+        # Pick which names to FETCH bars for: top N by a LOOSE pre-score (no min cut). The overnight
+        # gap isn't known until we have bars, so gating on the full in-play score here would starve
+        # the universe — instead take the most active/liquid names and let the real gap re-rank them
+        # afterwards. This widens the backtest sample too.
+        pre = _inplay.rank(cands, cfg, top=getattr(cfg, "orb_inplay_top", 40), min_score=0.0)
+        out["inplay"] = pre
+        syms = [s["symbol"] for s in pre]
         out["scanned"] = len(syms)
         if not syms:
-            out["note"] = "No stocks in play (gap / RVOL / catalyst below threshold today)."
+            out["note"] = "No stocks in play (no liquid, active names today)."
             return out
 
         icfg = _replace(cfg, timeframe="5Min",
@@ -2441,7 +2445,7 @@ def _run_orb(rows, idea_map, nlp_scores, regime, cfg, live, today, equity):
             quotes = _data.get_latest_quotes(syms, cfg)
         except Exception:  # noqa: BLE001
             quotes = {}
-        ip_by = {s["symbol"]: s for s in ranked}
+        ip_by = {s["symbol"]: s for s in pre}
         cand_by = {c["symbol"]: c for c in cands}
         bars_by, signals = {}, []
         bt_by_window = {w: [] for w in getattr(cfg, "orb_windows", (5, 15, 30))}
@@ -2476,9 +2480,10 @@ def _run_orb(rows, idea_map, nlp_scores, regime, cfg, live, today, equity):
                 pass
 
         # re-rank in-play now that real gaps are in, and tag each signal with its in-play score
-        ranked2 = _inplay.rank([cand_by[s] for s in syms if s in cand_by], cfg, top=getattr(cfg, "orb_inplay_top", 40))
-        out["inplay"] = ranked2 or ranked
-        ip2 = {s["symbol"]: s for s in (ranked2 or ranked)}
+        ranked2 = _inplay.rank([cand_by[s] for s in syms if s in cand_by], cfg,
+                               top=getattr(cfg, "orb_inplay_top", 40), min_score=0.0)
+        out["inplay"] = ranked2 or pre
+        ip2 = {s["symbol"]: s for s in (ranked2 or pre)}
         for s in signals:
             s["in_play"] = (ip2.get(s["symbol"]) or {}).get("in_play")
         # aggregate the backtest across all in-play names, per window
@@ -2513,8 +2518,17 @@ def _run_orb(rows, idea_map, nlp_scores, regime, cfg, live, today, equity):
     return out
 
 
+def _orb_details(summary: str, body: str, open_: bool = False) -> str:
+    """A collapsible section so the ORB tab leads with cards, with the tables tucked beneath."""
+    if not body:
+        return ""
+    op = " open" if open_ else ""
+    return (f'<details class="orb-sec"{op}><summary>{summary}</summary>'
+            f'<div style="padding-top:4px;">{body}</div></details>')
+
+
 def _orb_html(orb: dict | None) -> str:
-    """Server-rendered ORB page: strategy explainer, risk-state, in-play list, scored signals."""
+    """Server-rendered ORB page: leads with the signal cards, then collapsible backtest + in-play."""
     head = ('<h2 style="margin-top:0;">Opening Range Breakout '
             '<span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">'
             '— stocks-in-play day-trade: break the first 15-min range, confirmed by VWAP + the '
@@ -2551,14 +2565,15 @@ def _orb_html(orb: dict | None) -> str:
                    f'<td style="text-align:right;">{c.get("rel_volume")}x</td>'
                    f'<td style="text-align:right;">{int(comp.get("catalyst",0))}</td>'
                    f'<td style="text-align:right;">{int(comp.get("liquid",0))}</td></tr>')
-        ip_html = ('<h3 style="font-size:14px;margin:18px 0 6px;">Stocks in play '
-                   '<span style="text-transform:none;font-weight:400;color:var(--muted);font-size:11px;">'
-                   '— today\'s ranked watchlist (gap · RVOL · catalyst · liquidity)</span></h3>'
-                   '<table class="trackrec"><thead><tr><th>Sym</th>'
+        _ip_tbl = ('<table class="trackrec"><thead><tr><th>Sym</th>'
                    '<th style="text-align:right;">In-play</th><th>Band</th>'
                    '<th style="text-align:right;">Gap</th><th style="text-align:right;">RVOL</th>'
                    '<th style="text-align:right;">Catalyst</th><th style="text-align:right;">Liq</th>'
                    '</tr></thead><tbody>' + ir + '</tbody></table>')
+        ip_html = _orb_details(
+            'Stocks in play <span style="text-transform:none;font-weight:400;color:var(--muted);'
+            'font-size:11px;">— today\'s ranked watchlist (gap · RVOL · catalyst · liquidity)</span>',
+            _ip_tbl)
     tk = orb.get("track") or {}
     tk_html = ""
     if tk:
@@ -2585,20 +2600,21 @@ def _orb_html(orb: dict | None) -> str:
                    f'<td style="text-align:right;" class="{ec}">{("+" if (exp or 0) > 0 else "")}{exp}%</td>'
                    f'<td style="text-align:right;">{st.get("avg_r")}R</td>'
                    f'<td style="text-align:right;" class="{pfc}">{pf if pf is not None else "—"}</td></tr>')
-        bt_html = ('<h3 style="font-size:14px;margin:18px 0 6px;">Backtest '
-                   '<span style="text-transform:none;font-weight:400;color:var(--muted);font-size:11px;">'
-                   f'— {bt.get("names",0)} in-play names, last ~{bt.get("lookback_days","?")} days of 5-min bars, '
-                   'net of the cost model. Expectancy &gt; 0 and profit factor &gt; 1.3 is the bar.</span></h3>'
-                   '<table class="trackrec"><thead><tr><th>OR window</th>'
+        _bt_tbl = ('<table class="trackrec"><thead><tr><th>OR window</th>'
                    '<th style="text-align:right;">Trades</th><th style="text-align:right;">Win%</th>'
                    '<th style="text-align:right;">Expectancy</th><th style="text-align:right;">Avg R</th>'
                    '<th style="text-align:right;">Profit factor</th></tr></thead><tbody>' + br + '</tbody></table>'
                    '<p style="color:var(--muted);font-size:11px;margin:4px 0 0;">Small, recent sample — a '
                    'directional read, not proof. Walk-forward validation comes as the shadow record grows.</p>')
+        bt_html = _orb_details(
+            'Backtest <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:11px;">'
+            f'— {bt.get("names",0)} in-play names, ~{bt.get("lookback_days","?")} days of 5-min bars, net of '
+            'costs. Expectancy &gt; 0 &amp; profit factor &gt; 1.3 is the bar.</span>', _bt_tbl)
     cap = ('<p style="color:var(--muted);font-size:11px;margin-top:10px;">Spread is a conservative '
            'IEX top-of-book estimate (runs a touch wider than the true NBBO). Backtest uses a fixed '
            'bps cost model. Long-only v1; shadow signals only — no orders.</p>')
-    return head + rb + sig_tbl + bt_html + ip_html + tk_html + cap
+    # lead with the cards (with risk-state chips), then collapsible backtest + in-play + shadow record
+    return head + rb + sig_tbl + tk_html + bt_html + ip_html + cap
 
 
 def render_html(snap: dict) -> str:
@@ -3088,8 +3104,12 @@ def render_html(snap: dict) -> str:
   .trackrec {{ width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }}
   .trackrec th, .trackrec td {{ text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); }}
   .trackrec th {{ color:var(--muted); font-weight:600; }}
-  .orb-row {{ cursor:pointer; }}
-  .orb-row:hover {{ background:color-mix(in srgb, var(--accent) 8%, transparent); }}
+  .orb-sec {{ margin-top:14px; border-top:1px solid var(--line); }}
+  .orb-sec > summary {{ cursor:pointer; list-style:none; padding:12px 2px 6px; font-size:14px;
+    font-weight:600; color:var(--txt); display:flex; align-items:center; gap:7px; }}
+  .orb-sec > summary::-webkit-details-marker {{ display:none; }}
+  .orb-sec > summary::before {{ content:'▸'; color:var(--accent); font-size:11px; transition:transform .15s; }}
+  .orb-sec[open] > summary::before {{ transform:rotate(90deg); }}
   .win {{ color:var(--buy); }} .loss {{ color:var(--sell); }} .exp {{ color:var(--muted); }}
   /* shared table style for the intelligence/data panels (was previously unstyled) */
   .tbl {{ width:100%; border-collapse:collapse; font-size:13px; }}
@@ -3888,9 +3908,14 @@ function makeOrbCard(s) {{
 function renderOrb() {{
   const host = document.getElementById('orbCards'); if (!host) return;
   const o = (DATA && DATA.orb) || {{}}, list = o.signals || [];
+  if (!list.length) {{
+    const msg = o.note || 'Watching for breakouts in the 09:45–10:30 ET window — none yet today.';
+    host.innerHTML = `<div style="border:1px dashed var(--line);border-radius:12px;padding:26px 18px;text-align:center;color:var(--muted);font-size:13px;">`
+      + `<div style="font-size:22px;margin-bottom:6px;opacity:.6;">◷</div>${{msg}}</div>`;
+    return;
+  }}
   const grid = document.createElement('div'); grid.className = 'grid';
-  if (!list.length) grid.innerHTML = `<div style="color:var(--muted);font-size:13px;">${{o.note || 'No ORB breakouts yet today.'}}</div>`;
-  else list.forEach(s => grid.appendChild(makeOrbCard(s)));
+  list.forEach(s => grid.appendChild(makeOrbCard(s)));
   host.innerHTML = ''; host.appendChild(grid);
 }}
 function openOrbModal(s) {{
