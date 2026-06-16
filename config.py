@@ -122,6 +122,10 @@ class Config:
     paper_max_open: int = 18         # cap total simultaneous open paper positions
     paper_risk_pct: float = 0.005    # risk per position (fraction of equity to the stop) — small so many fit
     paper_allow_shorts: bool = True  # also open shorts (set False for longs-only)
+    # Realized-record cutoff: after a manual cleanup/reset, set PAPER_RESET_DATE=YYYY-MM-DD so the
+    # realized stats only count round-trips closed on/after that date (keeps manual closes + stale
+    # history out of the strategy's record). Empty = count everything (default).
+    paper_reset_date: str = field(default_factory=lambda: os.getenv("PAPER_RESET_DATE", "").strip())
 
     # --- Portfolio risk engine + kill switch (book-level safety overlay) ---
     # The "non-negotiable overlay": per-trade stops protect a single position; THIS protects the

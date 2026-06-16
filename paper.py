@@ -372,8 +372,15 @@ def run(signals: list[dict], cfg: Config, today: str, exposure_mult: float = 1.0
             pass
 
     # --- realized performance from actual fills (closed round-trips) ---
+    # Optional reset cutoff: after a manual cleanup, only count round-trips closed on/after the
+    # reset date, so manual closes + stale history don't pollute the strategy's realized record.
     try:
-        realized = _realized_stats(_round_trips(broker.fills()))
+        _trips = _round_trips(broker.fills())
+        _rd = getattr(cfg, "paper_reset_date", "") or ""
+        if _rd:
+            _trips = [t for t in _trips if (t.get("exit_time") or "") >= _rd]
+        realized = _realized_stats(_trips)
+        realized["since"] = _rd or None
     except Exception:  # noqa: BLE001
         realized = _realized_stats([])
 

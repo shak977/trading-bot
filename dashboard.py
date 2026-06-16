@@ -1786,15 +1786,25 @@ def _paper_spark(history: dict | None) -> str:
     vals = [p["v"] for p in pts if p.get("v")]
     if len(vals) < 2:
         return ""
+    # drop implausible glitch prints (e.g. a near-zero equity tick) that spike the line
+    import statistics as _st
+    med = _st.median(vals)
+    clean = [v for v in vals if med * 0.5 <= v <= med * 2]
+    vals = clean if len(clean) >= 2 else vals
     lo, hi = min(vals), max(vals)
     rng = (hi - lo) or 1
-    w, h = 320, 60
+    w, h = 320, 56
     step = w / (len(vals) - 1)
-    coords = " ".join(f"{i*step:.1f},{h - (v-lo)/rng*(h-6) - 3:.1f}" for i, v in enumerate(vals))
+    coords = [(i * step, h - (v - lo) / rng * (h - 8) - 4) for i, v in enumerate(vals)]
+    line = " ".join(f"{x:.1f},{y:.1f}" for x, y in coords)
+    area = f"0,{h} " + line + f" {w},{h}"
     up = vals[-1] >= vals[0]
     col = "var(--buy)" if up else "var(--sell)"
-    return (f'<svg viewBox="0 0 {w} {h}" preserveAspectRatio="none" style="width:100%;max-width:340px;height:60px;">'
-            f'<polyline points="{coords}" fill="none" stroke="{col}" stroke-width="2"/></svg>')
+    return (f'<svg viewBox="0 0 {w} {h}" preserveAspectRatio="none" '
+            f'style="width:100%;max-width:340px;height:56px;display:block;">'
+            f'<polygon points="{area}" fill="{col}" opacity="0.10"/>'
+            f'<polyline points="{line}" fill="none" stroke="{col}" stroke-width="2" '
+            f'stroke-linejoin="round" stroke-linecap="round"/></svg>')
 
 
 def _system_html(sysd: dict | None) -> str:
@@ -2075,7 +2085,9 @@ def _paper_html(p: dict | None) -> str:
     tiles = (tile("Equity", f"${p.get('equity',0):,.0f}", "", "paper account")
              + tile("Day P&amp;L", f"${dp:+,.0f}", tone, f"{p.get('day_pl_pct',0):+.2f}%")
              + tile("Open positions", str(p.get("n_open", 0)), "", f"of {p.get('tracked_total', 0)} tracked")
-             + tile("Realized win rate", wr_v, "", f"over {rz.get('n_trades', 0)} closed trades"))
+             + tile("Realized win rate", wr_v, "",
+                    (f"{rz.get('n_trades', 0)} closed since {rz.get('since')}" if rz.get('since')
+                     else f"over {rz.get('n_trades', 0)} closed trades")))
     spark = _paper_spark(p.get("history"))
     spark_html = f'<div style="margin:6px 0 16px;">{spark}</div>' if spark else ""
 
@@ -2102,8 +2114,10 @@ def _paper_html(p: dict | None) -> str:
     rstats = ""
     if rz.get("n_trades"):
         tp = rz.get("total_pl", 0) or 0
+        _since = rz.get("since")
         rstats = ('<div class="kpis" style="margin-top:4px;">'
-                  + tile("Closed trades", str(rz.get("n_trades", 0)), "", "matched round-trips")
+                  + tile("Closed trades", str(rz.get("n_trades", 0)), "",
+                         (f"strategy record since {_since}" if _since else "matched round-trips (incl. any manual closes)"))
                   + tile("Avg return / trade", _pct(rz.get("avg_return_pct")),
                          "buy" if (rz.get("avg_return_pct") or 0) > 0 else "sell" if (rz.get("avg_return_pct") or 0) < 0 else "",
                          "per closed trade")
@@ -2186,17 +2200,22 @@ def _track_html(track: dict | None) -> str:
     """Server-rendered track-record block (works without JS)."""
     if not track:
         return ""
-    def stat(label, value, cls=""):
+    def stat(label, value, cls="", sub=""):
+        sb = f'<div style="font-size:11px;color:var(--muted);margin-top:3px;line-height:1.35;">{sub}</div>' if sub else ""
         return (f'<div class="stat"><div class="l">{label}</div>'
-                f'<div class="v {cls}">{value}</div></div>')
+                f'<div class="v {cls}">{value}</div>{sb}</div>')
     def _pct(v):
         return "—" if v is None else f"{'+' if v > 0 else ''}{v}%"
     wr = "—" if track["win_rate"] is None else f"{track['win_rate']}%"
+    _res, _adv = track["resolved"], track["advised"]
+    _wr_sub = (f"{_res} of {_adv} resolved"
+               + (" · still maturing — winners take longer to reach target, so early reads skew low"
+                  if (_adv and _res < _adv * 0.5) else ""))
     stats = (
         stat("Calls advised", track["advised"]) +
         stat("Resolved", track["resolved"]) +
         stat("Still open", track["open"]) +
-        stat("Win rate", wr) +
+        stat("Win rate", wr, "", _wr_sub) +
         stat("Expectancy", _pct(track.get("expectancy")), "buy" if (track.get("expectancy") or 0) > 0 else ("sell" if (track.get("expectancy") or 0) < 0 else "")) +
         stat("Avg win", _pct(track.get("avg_win")), "win") +
         stat("Avg loss", _pct(track.get("avg_loss")), "loss")
