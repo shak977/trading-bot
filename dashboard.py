@@ -3519,6 +3519,16 @@ const FAMILY_INFO = {{
   'Mean-reversion': TYPE_INFO['mean-reversion'], 'Trend filter': TYPE_INFO['trend'],
 }};
 const _esc = t => String(t||'').replace(/"/g, '&quot;');
+// estimated time-to-play-out, labelled for the signal's timeframe (intraday = minutes/hours, daily = sessions)
+function _holdTxt(p) {{
+  if (!p || p.hold_lo == null || p.hold_hi == null) return '—';
+  const mm = ({{'1Min':1,'5Min':5,'15Min':15,'30Min':30,'1Hour':60}})[p.hold_tf || '1Day'];
+  if (mm) {{
+    const lo = p.hold_lo * mm, hi = p.hold_hi * mm;
+    return hi < 90 ? ('~' + lo + '–' + hi + ' min') : ('~' + Math.round(lo/60) + '–' + Math.round(hi/60) + ' hrs');
+  }}
+  return '~' + p.hold_lo + '–' + p.hold_hi + ' sessions';
+}}
 
 // Custom tooltip: reliable + instant (native title= is slow and easy to miss). Any element
 // with a non-empty data-tip shows it on hover, positioned by the cursor.
@@ -4343,7 +4353,7 @@ function openModal(s) {{
     stat('Stop-loss', money(p.stop), `${{_short?'+':'−'}}${{p.stop_pct}}%  ·  ATR-based`, 'sell') +
     stat(_short ? 'Cover target' : 'Take-profit', money(p.target), `${{_short?'−':'+'}}${{p.target_pct}}%  ·  ${{p.target_basis||'base target'}}`, 'buy') +
     stat('Risk : Reward', p.rr!=null ? ('1 : '+p.rr) : '–', 'reward per $1 risked') +
-    stat('Est. time to play out', (p.hold_lo!=null&&p.hold_hi!=null) ? (`~${{p.hold_lo}}–${{p.hold_hi}} sessions`) : '—', 'to reach the target at typical pace') +
+    stat('Est. time to play out', _holdTxt(p), 'to reach the target at typical pace') +
     stat('Position size', (p.shares||0)+' sh', money(p.exposure)+' exposure') +
     stat('$ at risk', money(p.dollar_risk), `${{p.shares||0}} sh to stop`, 'sell') +
     _scen;

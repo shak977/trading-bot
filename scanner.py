@@ -582,6 +582,8 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: st
         _base = _tgtp / _atrp
         plan["hold_lo"] = int(max(1, min(60, round(_base))))
         plan["hold_hi"] = int(max(plan["hold_lo"] + 1, min(90, round(_base * 2.4))))
+        # bars are in the SIGNAL's timeframe — daily = sessions, intraday = 5-min bars, etc.
+        plan["hold_tf"] = getattr(cfg, "timeframe", "1Day")
 
     # --- market context ---
     closes = df["close"]
