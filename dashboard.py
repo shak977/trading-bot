@@ -1038,8 +1038,14 @@ def _bento_home(snap: dict) -> str:
     # top opportunity tile (the #1 ranked name) — quick glance at where capital goes first
     if ranked:
         top = ranked[0]
+        _sym = top.get("symbol", "")
+        _ini = (_sym[:2] or "?").upper()
+        logo = (f'<span class="bt-logo"><span>{_ini}</span>'
+                f'<img src="https://financialmodelingprep.com/image-stock/{_sym}.png" alt="" loading="lazy" '
+                f'onerror="this.remove()"></span>')
         tiles += (f'<div class="bt"><div class="bt-l">Top opportunity</div>'
-                  f'<div class="bt-v" style="font-size:20px;">{top.get("symbol","")}</div>'
+                  f'<div style="display:flex;align-items:center;gap:9px;margin-top:2px;">{logo}'
+                  f'<div class="bt-v" style="font-size:20px;">{_sym}</div></div>'
                   f'<div class="bt-sub">rank {top.get("rank_score","—")} · {top.get("action","")}</div></div>')
     brief = (snap.get("market_brief") or "").strip()
     if brief:
@@ -2350,10 +2356,10 @@ def render_html(snap: dict) -> str:
     --accent:#0b5cad; --grid:rgba(120,130,145,0.16); --cross:rgba(60,70,85,0.4);
     --inset:#f1f4f8; --hover:#eef2f7; --ring:rgba(11,92,173,.40);
     --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
-    --hud-edge:color-mix(in srgb,var(--accent) 22%,var(--line));
+    --hud-edge:color-mix(in srgb,var(--accent) 46%,var(--line));
     --shadow:0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.06);
     --shadow-lg:0 6px 20px rgba(16,24,40,0.10); }}
-  html[data-theme="dark"] {{ --bg:#090d12; --card:#0f151c; --line:#222b35; --txt:#e6edf3;
+  html[data-theme="dark"] {{ --bg:#05080b; --card:#0a1014; --line:#1c2530; --txt:#e6edf3;
     --muted:#8b97a6; --txt2:#c2cad4; --buy:#2ea043; --sell:#f85149; --hold:#58a6ff; --flat:#6e7681;
     --short:#fb7185; --watch:#94a3b8; --exit:#d29922; --avoid:#6e7681; --warn:#e0a82e;
     --accent:#58a6ff; --grid:rgba(42,52,65,0.55); --cross:rgba(139,151,166,0.45);
@@ -2807,9 +2813,19 @@ def render_html(snap: dict) -> str:
   .maincol {{ flex:1; min-width:0; padding-left:16px; border-left:1px solid var(--line); }}
   .toptabs {{ display:flex; gap:3px; flex-wrap:wrap; border-bottom:1px solid var(--line); margin:0 0 14px; }}
   .toptabs button {{ background:none; border:none; border-bottom:2px solid transparent; color:var(--muted);
-    font-size:13px; font-weight:600; padding:8px 13px; margin-bottom:-1px; cursor:pointer; }}
+    font-size:12px; font-weight:600; padding:8px 13px; margin-bottom:-1px; cursor:pointer;
+    text-transform:uppercase; letter-spacing:.07em; }}
   .toptabs button:hover {{ color:var(--txt); }}
   .toptabs button.on {{ color:var(--accent); border-bottom-color:var(--accent); }}
+  .toptabs button.on::before {{ content:"\\25B8  "; }}
+  /* HUD corner ticks on tiles + panels (re-skin with the accent) */
+  .bt, .kpi, .ovbox {{ position:relative; }}
+  .bt::after, .kpi::after, .ovbox::after {{ content:""; position:absolute; top:-1px; right:-1px;
+    width:11px; height:11px; border-top:2px solid var(--accent); border-right:2px solid var(--accent);
+    border-top-right-radius:6px; opacity:.6; pointer-events:none; }}
+  .bt::before, .kpi::before {{ content:""; position:absolute; bottom:-1px; left:-1px;
+    width:11px; height:11px; border-bottom:2px solid var(--accent); border-left:2px solid var(--accent);
+    border-bottom-left-radius:6px; opacity:.35; pointer-events:none; }}
   @media (max-width:760px) {{
     .shell {{ flex-direction:column; }}
     .sidebar {{ flex-direction:row; width:auto; flex:none; position:sticky; top:0; z-index:40;
@@ -2878,7 +2894,8 @@ def render_html(snap: dict) -> str:
     border-bottom:1px solid var(--line); }}
   .appbar-top {{ display:flex; align-items:center; justify-content:space-between; gap:12px;
     padding:13px 2px 9px; }}
-  .brand {{ display:flex; align-items:center; gap:11px; font-weight:800; font-size:18px; letter-spacing:-.02em; }}
+  .brand {{ display:flex; align-items:center; gap:10px; font-family:var(--mono); font-weight:700;
+    font-size:15px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); }}
   .brand-mark {{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px;
     border-radius:9px; color:#fff; font-size:15px; box-shadow:0 2px 8px color-mix(in srgb, var(--accent) 45%, transparent);
     background:linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 50%, #16c98d)); }}
@@ -2907,6 +2924,10 @@ def render_html(snap: dict) -> str:
     background:color-mix(in srgb,var(--accent) 16%,transparent); color:var(--accent); align-self:flex-start; }}
   .bt-body {{ font-size:13px; line-height:1.6; color:var(--txt2); max-height:210px; overflow:auto; }}
   .bt-list {{ margin:4px 0 0; padding-left:16px; font-size:13px; line-height:1.7; color:var(--txt2); }}
+  .bt-logo {{ position:relative; width:26px; height:26px; border-radius:6px; flex:0 0 auto;
+    display:inline-flex; align-items:center; justify-content:center; font-size:10px; font-weight:700;
+    color:#fff; background:var(--accent); border:1px solid var(--hud-edge); overflow:hidden; }}
+  .bt-logo img {{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#fff; }}
   @media (max-width:760px) {{
     .bento {{ grid-template-columns:repeat(2,minmax(0,1fr)); }}
     .bento .bt.hero {{ grid-column:span 2; grid-row:auto; }}
@@ -2998,7 +3019,7 @@ def render_html(snap: dict) -> str:
 <body><div class="wrap">
   <header class="appbar">
     <div class="appbar-top">
-      <div class="brand"><span class="brand-mark">◈</span><span>Signal Desk</span></div>
+      <div class="brand"><span class="brand-mark">◢</span><span>Signal Desk</span></div>
       <div class="appbar-right">
         <span class="badge m-{mode}">{mode}</span>
         <span class="livepill" id="liveStatus"></span>
