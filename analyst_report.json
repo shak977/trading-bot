@@ -1,0 +1,111 @@
+{
+  "generated_at": "2026-06-16 21:56 GMT",
+  "buckets": {
+    "daily": {
+      "label": "Daily / swing",
+      "stats": {
+        "logged": 127,
+        "resolved": 12,
+        "decided": 12,
+        "open": 115,
+        "win_rate": 0.0,
+        "by_regime": {
+          "\u2014": {
+            "n": 12,
+            "win_rate": 0.0
+          }
+        },
+        "streak": {
+          "kind": "loss",
+          "n": 12
+        },
+        "learned_weights": {}
+      }
+    },
+    "intraday": {
+      "label": "Intraday",
+      "stats": {
+        "logged": 247,
+        "resolved": 183,
+        "decided": 183,
+        "open": 64,
+        "win_rate": 39.9,
+        "by_regime": {
+          "\u2014": {
+            "n": 99,
+            "win_rate": 38.4
+          },
+          "Risk-on": {
+            "n": 84,
+            "win_rate": 41.7
+          }
+        },
+        "streak": {
+          "kind": "loss",
+          "n": 3
+        },
+        "learned_weights": {
+          "Worked here before?": 1.07,
+          "Is it trending up?": 1.06,
+          "Is it trending down?": 0.97,
+          "Are people trading it?": 0.89,
+          "Leading the market?": 0.89,
+          "Worth the risk?": 0.5,
+          "Reward:risk worth it?": 0.5
+        }
+      }
+    },
+    "orb": {
+      "label": "ORB day-trade",
+      "stats": {
+        "logged": 0,
+        "resolved": 0,
+        "decided": 0,
+        "open": 0,
+        "win_rate": null,
+        "by_regime": {},
+        "streak": null,
+        "learned_weights": {}
+      }
+    }
+  },
+  "findings": [
+    {
+      "severity": "act",
+      "area": "Intraday: check 'Worth the risk?'",
+      "observation": "Win rate 12.0% when it passes vs 64.6% when it fails (edge -53pts) \u2014 it's not separating winners.",
+      "proposal": "Down-weight or retire 'Worth the risk?' (currently \u00d70.5)."
+    },
+    {
+      "severity": "act",
+      "area": "Intraday: check 'Reward:risk worth it?'",
+      "observation": "Win rate 12.0% when it passes vs 64.6% when it fails (edge -53pts) \u2014 it's not separating winners.",
+      "proposal": "Down-weight or retire 'Reward:risk worth it?' (currently \u00d70.5)."
+    },
+    {
+      "severity": "watch",
+      "area": "Daily / swing: streak",
+      "observation": "12 resolved losses in a row.",
+      "proposal": "Confirm the no-trade / drawdown guards are doing their job; consider a pause."
+    },
+    {
+      "severity": "watch",
+      "area": "Intraday: streak",
+      "observation": "3 resolved losses in a row.",
+      "proposal": "Confirm the no-trade / drawdown guards are doing their job; consider a pause."
+    },
+    {
+      "severity": "watch",
+      "area": "Intraday: overall",
+      "observation": "Win rate 39.9% over 183 decided \u2014 below the 40% floor where R:R has to carry it.",
+      "proposal": "Verify average win \u2265 ~1.5\u00d7 average loss; if not, tighten signal selectivity."
+    },
+    {
+      "severity": "info",
+      "area": "ORB day-trade: maturity",
+      "observation": "Only 0 decided trades so far \u2014 not enough to judge.",
+      "proposal": "Keep accruing; treat current weights as provisional."
+    }
+  ],
+  "n_actions": 2
+}

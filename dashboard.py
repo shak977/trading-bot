@@ -954,6 +954,15 @@ def build_snapshot() -> dict:
     except Exception:  # noqa: BLE001 - additive; never break the build
         learned_payload = None
 
+    # Latest autonomous-analyst report (written nightly by analyst.py in its own cloud job).
+    analyst_payload = None
+    try:
+        import os as _os2
+        with open(_os2.getenv("ANALYST_FILE", "analyst_report.json")) as _af:
+            analyst_payload = json.load(_af)
+    except Exception:  # noqa: BLE001
+        analyst_payload = None
+
     return {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M GMT"),
         "generated_ts": int(datetime.now(timezone.utc).timestamp()),
@@ -1005,6 +1014,7 @@ def build_snapshot() -> dict:
         "intraday_track": intraday_track,
         "orb": orb_payload,
         "learned": learned_payload,
+        "analyst": analyst_payload,
         "market_brief": market_brief,
         "changes": changes,
         "calendar": calendar,
@@ -2240,6 +2250,30 @@ def _attribution_html(rep: list[dict] | None) -> str:
             '</tr></thead><tbody>' + rows + '</tbody></table>')
 
 
+def _analyst_html(analyst: dict | None) -> str:
+    """Panel: the latest autonomous-analyst review — narrative + prioritised proposed changes."""
+    if not analyst or not (analyst.get("findings") or analyst.get("narrative")):
+        return ""
+    sev = {"act": ("var(--sell)", "ACT"), "watch": ("var(--accent)", "WATCH"), "info": ("var(--muted)", "INFO")}
+    intro = ('<h3 style="font-size:15px;margin:22px 0 6px;">🤖 Autonomous analyst '
+             '<span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">'
+             f'— nightly self-review, {analyst.get("generated_at","")}. '
+             f'{analyst.get("n_actions",0)} action item(s). It proposes; you approve.</span></h3>')
+    narr = ""
+    if analyst.get("narrative"):
+        narr = (f'<div class="ai-box" style="margin:2px 0 12px;line-height:1.6;">'
+                f'<span class="ai-h">🧠 Read</span> {analyst["narrative"]}</div>')
+    rows = ""
+    for f in (analyst.get("findings") or [])[:14]:
+        col, lab = sev.get(f.get("severity"), ("var(--muted)", "—"))
+        rows += (f'<tr><td style="white-space:nowrap;color:{col};font-weight:700;font-size:11px;">{lab}</td>'
+                 f'<td><b>{f.get("area","")}</b><div style="color:var(--muted);font-size:12px;margin-top:2px;">'
+                 f'{f.get("observation","")}</div><div style="font-size:12.5px;margin-top:3px;">→ {f.get("proposal","")}</div></td></tr>')
+    tbl = (f'<table class="trackrec"><tbody>{rows}</tbody></table>' if rows else
+           '<p style="color:var(--muted);font-size:13px;">No action items — strategies within tolerance.</p>')
+    return intro + narr + tbl
+
+
 def _learned_html(learned: dict | None) -> str:
     """Panel: what the bot has learned, PER STRATEGY. Daily/swing and intraday learn from their own
     resolved books (they're different strategies), so each gets its own section: the per-check edge
@@ -2649,8 +2683,20 @@ def render_html(snap: dict) -> str:
     if track_html:
         try:
             track_html += _learned_html(snap.get("learned"))
-        except Exception:  # noqa: BLE001 - learning panel is additive; never break the build
+        except Exception:  # noqa: BLE001 - panels are additive; never break the build
             pass
+    # Dedicated Analyst tab — the autonomous nightly self-review.
+    _an_body = ""
+    try:
+        _an_body = _analyst_html(snap.get("analyst"))
+    except Exception:  # noqa: BLE001
+        _an_body = ""
+    if not _an_body:
+        _an_body = ('<h3 style="font-size:15px;margin:0 0 6px;">🤖 Autonomous analyst</h3>'
+                    '<p style="color:var(--muted);font-size:13px;">The analyst runs in the cloud after '
+                    'each close, reviews every strategy bucket, and posts prioritised proposed changes '
+                    'here. Nothing yet — the first report lands after the next nightly run.</p>')
+    analyst_html = _an_body
     _paper_acct = snap.get("paper_acct")
     paper_html = _paper_html(_paper_acct)
     paper_nav = '<button data-page="paper">Paper account</button>' if _paper_acct else ''
@@ -3525,6 +3571,10 @@ def render_html(snap: dict) -> str:
 
   <section class="page" id="page-track">
 {track_html}
+  </section>
+
+  <section class="page" id="page-analyst">
+{analyst_html}
   </section>
 
   <section class="page" id="page-altdata">
@@ -5120,7 +5170,7 @@ function _tvInit() {{
     ['signals', [['signals','Signals'],['intraday','Intraday'],['orb','ORB day-trade'],['pairs','Pairs']]],
     ['markets', [['markets','Markets'],['heatmap','Heatmap'],['momentum','Momentum']]],
     ['portfolio', [['portfolio','Portfolio'],['paper','Paper account'],['allweather','All Weather']]],
-    ['intel', [['altdata','Data signals'],['track','Track record']]],
+    ['intel', [['altdata','Data signals'],['track','Track record'],['analyst','Analyst']]],
     ['news', [['news','Market news'],['ipos','IPO watch'],['livetv','Live TV']]],
     ['about', [['method','How it works'],['system','System']]]
   ];

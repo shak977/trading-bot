@@ -294,6 +294,45 @@ def structured_scores(rows: list[dict], cfg: Config, max_names: int = 6,
     return out
 
 
+def analyst_review(report: dict, cfg: Config, timeout: int = 30) -> str | None:
+    """A concise nightly analyst narrative built ONLY from the computed findings — what's working,
+    what isn't, and the 2-3 highest-priority changes to consider. Advisory; never invents data.
+    Returns text or None (no key / failure)."""
+    if not getattr(cfg, "llm_enabled", False):
+        return None
+    try:
+        bl = []
+        for scope, b in (report.get("buckets") or {}).items():
+            s = b.get("stats") or {}
+            bl.append(f"- {b.get('label', scope)}: {s.get('decided', 0)} decided trades, "
+                      f"win rate {s.get('win_rate')}%, {s.get('open', 0)} open; "
+                      f"learned weights {s.get('learned_weights') or '{}'}; "
+                      f"by-regime {s.get('by_regime') or '{}'}.")
+        fl = [f"- [{f['severity']}] {f['area']}: {f['observation']} -> {f['proposal']}"
+              for f in (report.get("findings") or [])[:14]]
+        prompt = (
+            "You are a quantitative trading systems analyst reviewing a paper-trading bot's own "
+            "performance. Using ONLY the computed findings below (never invent numbers or events), "
+            "write a tight nightly note for the system's owner: (1) one sentence on overall state per "
+            "strategy bucket; (2) the 2-3 highest-priority changes you'd make and why; (3) one risk to "
+            "watch. Be concrete and reference the specific checks/regimes/windows named. Plain English, "
+            "no hype, do not give personal investment advice. Keep under 180 words.\n\n"
+            "BUCKETS:\n" + "\n".join(bl) + "\n\nFINDINGS (already prioritised):\n" + "\n".join(fl))
+        r = requests.post(
+            _URL,
+            headers={"x-api-key": cfg.anthropic_api_key, "anthropic-version": "2023-06-01",
+                     "content-type": "application/json"},
+            json={"model": cfg.llm_model, "max_tokens": 420,
+                  "messages": [{"role": "user", "content": prompt}]},
+            timeout=timeout,
+        )
+        r.raise_for_status()
+        txt = "".join(b.get("text", "") for b in r.json().get("content", []) if b.get("type") == "text").strip()
+        return txt or None
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def diagnose(cfg: Config, timeout: int = 15) -> dict:
     """One tiny probe call so we can see WHY the analyst layer is/ isn't producing notes
     (used to populate a diagnostic field in signals.json). Never raises."""
