@@ -481,17 +481,20 @@ def build_snapshot() -> dict:
     # conviction. Any failure leaves it empty — the daily build is never affected.
     intraday_shown: list = []
     intraday_by_sym: dict = {}
-    # Adaptive learning: per-check weight multipliers from the bot's own resolved wins vs losses
-    # (daily + intraday pooled). Computed BEFORE the intraday scan so intraday signals are scored
-    # with the learning too — the loop both reads from and applies to every timeframe. Empty until
-    # there's enough data, so early on conviction runs on its transparent default weights.
-    learned_weights = {}
+    # Adaptive learning: per-check weight multipliers from the bot's own resolved wins vs losses.
+    # Daily/swing and intraday are DIFFERENT strategies, so each learns from its OWN book — separate
+    # weight sets, applied per timeframe. Computed BEFORE the intraday scan so intraday signals are
+    # scored with their own learning too. Empty until there's enough data, so early on conviction
+    # runs on its transparent default weights.
+    daily_learned, intraday_learned = {}, {}
     if getattr(CONFIG, "adaptive_weights_enabled", True):
         try:
             import attribution as _attr
-            learned_weights = _attr.learned_weights(min_n=CONFIG.adaptive_min_n)
+            _mn = CONFIG.adaptive_min_n
+            daily_learned = _attr.learned_weights(scope="daily", min_n=_mn)
+            intraday_learned = _attr.learned_weights(scope="intraday", min_n=_mn)
         except Exception:  # noqa: BLE001
-            learned_weights = {}
+            daily_learned, intraday_learned = {}, {}
 
     intraday_track: dict = {}
     if live and getattr(CONFIG, "intraday_enabled", False):
@@ -504,10 +507,10 @@ def build_snapshot() -> dict:
             for _ir in _irows:
                 _ir.pop("chart", None)
                 _ir["intraday"] = True
-                # apply the learned weights to intraday conviction too (same engine, both timeframes)
-                if learned_weights:
+                # score intraday conviction with the INTRADAY-only learned weights (its own strategy)
+                if intraday_learned:
                     try:
-                        scanner.rescore(_ir, _icfg, regime=regime, learned=learned_weights)
+                        scanner.rescore(_ir, _icfg, regime=regime, learned=intraday_learned)
                     except Exception:  # noqa: BLE001
                         pass
             intraday_by_sym = {_ir["symbol"]: _ir for _ir in _irows}
@@ -571,7 +574,7 @@ def build_snapshot() -> dict:
                         tv=r.get("tv"), regime=regime, insider=r.get("insider"), buzz=r.get("buzz"),
                         news_idea=r.get("news_idea"), intraday=_isig,
                         sector_pct=_sector_pct.get(r.get("sector")), short_interest=r.get("short_interest"),
-                        retail=r.get("retail"), learned=learned_weights)
+                        retail=r.get("retail"), learned=daily_learned)
 
     # LLM structured news scoring: convert recent per-stock headlines into named structured scores
     # (guidance / margin pressure / demand / regulatory risk / …) for the top actionable names only
@@ -922,6 +925,19 @@ def build_snapshot() -> dict:
         ],
     }
 
+    # What the bot has learned — per strategy (daily/swing vs intraday), for the dashboard panel.
+    learned_payload = None
+    try:
+        import attribution as _attr2
+        _mn2 = CONFIG.adaptive_min_n
+        learned_payload = {
+            "min_n": _mn2,
+            "daily": {"weights": daily_learned, "report": _attr2.report(scope="daily")},
+            "intraday": {"weights": intraday_learned, "report": _attr2.report(scope="intraday")},
+        }
+    except Exception:  # noqa: BLE001 - additive; never break the build
+        learned_payload = None
+
     return {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M GMT"),
         "generated_ts": int(datetime.now(timezone.utc).timestamp()),
@@ -969,6 +985,7 @@ def build_snapshot() -> dict:
         "pairs": pairs_data,
         "intraday": intraday_shown,
         "intraday_track": intraday_track,
+        "learned": learned_payload,
         "market_brief": market_brief,
         "changes": changes,
         "calendar": calendar,
@@ -2204,6 +2221,61 @@ def _attribution_html(rep: list[dict] | None) -> str:
             '</tr></thead><tbody>' + rows + '</tbody></table>')
 
 
+def _learned_html(learned: dict | None) -> str:
+    """Panel: what the bot has learned, PER STRATEGY. Daily/swing and intraday learn from their own
+    resolved books (they're different strategies), so each gets its own section: the per-check edge
+    (win rate when the check passed vs failed) and the weight multiplier the conviction engine now
+    applies as a result. Up-weighted = has predicted winners; down-weighted = hasn't earned its keep."""
+    if not learned:
+        return ""
+    min_n = learned.get("min_n", 12)
+    intro = ('<h3 style="font-size:15px;margin:22px 0 6px;">What the bot has learned '
+             '<span style="text-transform:none;font-weight:400;color:var(--muted);font-size:12px;">'
+             '— each strategy adapts from its own resolved trades. A check is up- or down-weighted by '
+             'how it has actually separated winners from losers.</span></h3>')
+    blocks = ""
+    for key, title, sub in (("daily", "Daily / swing signals", "daily bars · longer holds"),
+                            ("intraday", "Intraday signals", "5-min bars · hours, not days")):
+        sect = learned.get(key) or {}
+        rep = sect.get("report") or []
+        weights = sect.get("weights") or {}
+        nadj = len(weights)
+        head = (f'<div class="sech" style="margin-top:16px;">{title} '
+                f'<span style="text-transform:none;font-weight:400;color:var(--muted);font-size:11px;">'
+                f'— {sub} · {nadj} check{"" if nadj==1 else "s"} adapted</span></div>')
+        if not rep:
+            blocks += head + ('<p style="color:var(--muted);font-size:13px;margin:4px 0;">Still '
+                              f'gathering — a check adapts once it has ≥{min_n} decided trades on both '
+                              'sides. Until then this strategy runs on its default weights.</p>')
+            continue
+        body = ""
+        for r in rep:
+            w = weights.get(r["label"])
+            if w is None:
+                ws, wc = '<span style="color:var(--muted);">default</span>', ""
+            else:
+                ws = f'×{w:.2f}'
+                wc = "buy" if w > 1 else "sell" if w < 1 else ""
+            wp = "—" if r["win_rate_pass"] is None else f'{r["win_rate_pass"]:.0f}%'
+            wf = "—" if r["win_rate_fail"] is None else f'{r["win_rate_fail"]:.0f}%'
+            edge = r["edge"]
+            ec = "buy" if (edge or 0) > 0 else "sell" if (edge or 0) < 0 else ""
+            es = "—" if edge is None else f'{"+" if edge > 0 else ""}{edge:.0f} pts'
+            body += (f'<tr><td>{r["label"]}</td>'
+                     f'<td style="text-align:right;">{r["n_pass"]}/{r["n_fail"]}</td>'
+                     f'<td style="text-align:right;">{wp}</td><td style="text-align:right;">{wf}</td>'
+                     f'<td style="text-align:right;" class="{ec}">{es}</td>'
+                     f'<td style="text-align:right;" class="{wc}">{ws}</td></tr>')
+        blocks += (head + '<table class="trackrec"><thead><tr><th>Check</th>'
+                   '<th style="text-align:right;">Pass/Fail n</th>'
+                   '<th style="text-align:right;">Win% pass</th>'
+                   '<th style="text-align:right;">Win% fail</th>'
+                   '<th style="text-align:right;">Edge</th>'
+                   '<th style="text-align:right;">Weight now</th>'
+                   '</tr></thead><tbody>' + body + '</tbody></table>')
+    return intro + blocks
+
+
 def _track_html(track: dict | None) -> str:
     """Server-rendered track-record block (works without JS)."""
     if not track:
@@ -2309,9 +2381,8 @@ def render_html(snap: dict) -> str:
     track_html = _track_html(snap.get("track"))
     if track_html:
         try:
-            import attribution
-            track_html += _attribution_html(attribution.report())
-        except Exception:  # noqa: BLE001 - attribution is additive; never break the build
+            track_html += _learned_html(snap.get("learned"))
+        except Exception:  # noqa: BLE001 - learning panel is additive; never break the build
             pass
     _paper_acct = snap.get("paper_acct")
     paper_html = _paper_html(_paper_acct)

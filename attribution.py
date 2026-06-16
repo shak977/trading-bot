@@ -77,21 +77,36 @@ def load_all() -> list[dict]:
     return out
 
 
-def report(path: str | None = None) -> list[dict]:
-    return attribute(load(path) if path else load_all())
+def _rows_for(scope: str) -> list[dict]:
+    """Resolved-trade rows for a strategy scope. Daily/swing and intraday are DIFFERENT strategies,
+    so each learns from its own outcomes; 'all' pools them only for a combined view."""
+    if scope == "daily":
+        return load(PATH)
+    if scope == "intraday":
+        return load(INTRADAY_PATH)
+    return load_all()
 
 
-def learned_weights(path: str | None = None, min_n: int = 12, max_adj: float = 0.5) -> dict:
+def report(scope: str = "all", path: str | None = None) -> list[dict]:
+    return attribute(load(path) if path else _rows_for(scope))
+
+
+def learned_weights(scope: str = "all", path: str | None = None,
+                    min_n: int = 12, max_adj: float = 0.5) -> dict:
     """Turn the per-check edge into a {label: weight-multiplier} the conviction engine can use to
     ADAPT — checks that have historically predicted winners get up-weighted, those that haven't get
     down-weighted. This is the bot learning from its own resolved wins vs losses.
+
+    `scope` selects the strategy: "daily" learns only from daily/swing outcomes, "intraday" only
+    from intraday outcomes, "all" pools both. Daily and intraday are different strategies, so they
+    should each learn from their own book — call with the matching scope per timeframe.
 
     Strictly gated: a check only earns an adjustment once it has at least `min_n` *decided* trades on
     BOTH the pass and fail sides (so the edge is real, not noise). Multiplier is bounded to
     1 ± max_adj so no single check can run away. Returns {} until there's enough data — so early on
     the engine runs on its transparent default weights, exactly as it does today."""
     out = {}
-    for r in attribute(load(path) if path else load_all()):
+    for r in attribute(load(path) if path else _rows_for(scope)):
         edge = r.get("edge")
         n = min(r.get("n_pass", 0), r.get("n_fail", 0))
         if edge is None or n < min_n:
