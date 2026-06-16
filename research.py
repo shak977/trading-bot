@@ -297,6 +297,43 @@ def ipo_calendar(cfg: Config, days_ahead: int = 90) -> list[dict]:
         return []
 
 
+def recent_ipos(cfg: Config, days_back: int = 60) -> list[dict]:
+    """RECENTLY-LISTED IPOs (already trading) from Finnhub — the past `days_back` days, status
+    'priced', with a real ticker. These are textbook stocks-in-play: fresh, high-volume, catalyst-
+    driven. Returns [{symbol, name, date, exchange, price}], newest first. [] if no key / none."""
+    key = cfg.finnhub_api_key
+    if not key:
+        return []
+    try:
+        import datetime as _dt
+        today = _dt.date.today()
+        data = _fh_get("/calendar/ipo", key, {
+            "from": (today - _dt.timedelta(days=days_back)).isoformat(),
+            "to": today.isoformat()})
+        rows = (data or {}).get("ipoCalendar", []) or []
+        out = []
+        for r in rows:
+            sym = (r.get("symbol") or "").strip().upper()
+            status = (r.get("status") or "").lower()
+            # listed = priced/completed, on a US exchange, with a plausible ticker
+            if not sym or len(sym) > 6 or status not in ("priced", "completed", ""):
+                continue
+            if status == "" and not r.get("date"):
+                continue
+            out.append({"symbol": sym, "name": r.get("name"), "date": r.get("date"),
+                        "exchange": r.get("exchange"), "price": r.get("price")})
+        out.sort(key=lambda x: x.get("date") or "", reverse=True)
+        # dedupe by symbol, newest first
+        seen, uniq = set(), []
+        for r in out:
+            if r["symbol"] not in seen:
+                seen.add(r["symbol"])
+                uniq.append(r)
+        return uniq
+    except Exception:  # noqa: BLE001
+        return []
+
+
 # Pre-IPO / IPO search queries for the keyless Google News RSS feed.
 _IPO_QUERIES = [
     ("SpaceX", "SpaceX IPO"), ("Starlink", "Starlink IPO"), ("Stripe", "Stripe IPO"),

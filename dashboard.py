@@ -503,7 +503,12 @@ def build_snapshot() -> dict:
             _icfg = _replace(CONFIG, timeframe=CONFIG.intraday_timeframe,
                              lookback_days=CONFIG.intraday_lookback_days,
                              fast_ma=CONFIG.intraday_fast_ma, slow_ma=CONFIG.intraday_slow_ma)
-            _irows = scanner.scan(_icfg, live=live, universe=[r["symbol"] for r in rows])
+            _iuni, _iseen = [], set()
+            for _s in [r["symbol"] for r in rows] + scanner.recent_listings(CONFIG):
+                if _s and _s not in _iseen:
+                    _iseen.add(_s)
+                    _iuni.append(_s)
+            _irows = scanner.scan(_icfg, live=live, universe=_iuni)
             for _ir in _irows:
                 _ir.pop("chart", None)
                 _ir["intraday"] = True
@@ -962,6 +967,8 @@ def build_snapshot() -> dict:
         "benchmark": benchmark,
         "track": track,
         "paper_acct": paper_acct,
+        "paper_held": sorted({p.get("symbol") for p in ((paper_acct or {}).get("positions") or [])
+                              if p.get("symbol")}),
         "news_ideas": news_ideas,
         "alerts": alerts,
         "system": system,
@@ -2423,6 +2430,19 @@ def _run_orb(rows, idea_map, nlp_scores, regime, cfg, live, today, equity):
                   "has_news": (r.get("symbol") in (idea_map or {})) or (r.get("symbol") in (nlp_scores or {})),
                   "catalyst_score": _catalyst(r.get("symbol"))}
                  for r in rows if r.get("symbol")]
+        # Always include fresh IPOs (SpaceX-style) as stocks-in-play. They usually aren't in the
+        # daily scan rows yet (too little history for the swing engine), but ORB only needs a
+        # session or two of intraday bars — and an IPO is a textbook catalyst-driven mover.
+        try:
+            import scanner as _scn
+            _have = {c["symbol"] for c in cands}
+            for _sym in _scn.recent_listings(cfg):
+                if _sym and _sym not in _have:
+                    cands.append({"symbol": _sym, "rel_volume": None, "gap_pct": None,
+                                  "liquidity_tier": "high", "has_news": True, "catalyst_score": 85.0})
+                    _have.add(_sym)
+        except Exception:  # noqa: BLE001
+            pass
         # Pick which names to FETCH bars for: top N by a LOOSE pre-score (no min cut). The overnight
         # gap isn't known until we have bars, so gating on the full in-play score here would starve
         # the universe — instead take the most active/liquid names and let the real gap re-rank them
@@ -3308,6 +3328,7 @@ def render_html(snap: dict) -> str:
   .card-id .n {{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
   .card-age {{ font-size:10.5px; color:var(--muted); margin-top:3px; }}
   .card-age.fresh {{ color:var(--buy); font-weight:700; }}
+  .card-age.held {{ color:var(--accent); font-weight:700; }}
   .card-px-row {{ display:flex; align-items:baseline; gap:10px; margin:6px 0 4px; }}
   .card-px {{ font-size:24px; font-weight:800; letter-spacing:-.015em; font-variant-numeric:tabular-nums; }}
   .card-day {{ font-size:13px; font-weight:600; font-variant-numeric:tabular-nums; }}
@@ -4007,6 +4028,10 @@ function _ageBit(s) {{
 function _alertBit(s) {{
   return s.alerted ? `<div class="card-age fresh" title="An ntfy alert fired for this name today — pinned here so your alerts and the dashboard stay in line">🔔 Alerted today</div>` : '';
 }}
+const HELD = new Set((typeof DATA !== 'undefined' && DATA.paper_held) || []);
+function _heldBit(s) {{
+  return HELD.has(s.symbol) ? `<div class="card-age held" title="You hold this in the paper book — the bot won't open a second position in the same name">💼 In paper book</div>` : '';
+}}
 function _intradayBit(s) {{
   if (!s.intraday_confirm || s.intraday_confirm === 'none') return '';
   const ok = s.intraday_confirm === 'agree';
@@ -4090,7 +4115,7 @@ function makeCard(s) {{
   const nNews = (s.news||[]).length;
   el.innerHTML = `
     <div class="card-top">${{logo}}
-      <div class="card-id"><div class="s">${{s.symbol}}</div><div class="n">${{s.name||s.exchange||''}}</div>${{_ageBit(s)}}${{_alertBit(s)}}${{_intradayBit(s)}}</div>
+      <div class="card-id"><div class="s">${{s.symbol}}</div><div class="n">${{s.name||s.exchange||''}}</div>${{_ageBit(s)}}${{_heldBit(s)}}${{_alertBit(s)}}${{_intradayBit(s)}}</div>
       <span class="act a-${{cls}}">${{s.action}}</span>
       <button class="favbtn ${{FAVS.has(s.symbol)?'on':''}}" title="Save to favorites">${{FAVS.has(s.symbol)?'★':'☆'}}</button></div>
     <div class="card-px-row"><span class="card-px" data-px="${{s.symbol}}">$${{_px.toLocaleString()}}</span>${{dchg}}</div>

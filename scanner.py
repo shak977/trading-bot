@@ -164,6 +164,28 @@ def name_of(symbol: str, fallback: str = "") -> str:
     return NAME_MAP.get(symbol) or fallback or ""
 
 
+# Curated recent listings to always include, even before they have the months of history the
+# daily/swing engine needs (they still get scanned by ORB + intraday, which only need a session
+# or two of intraday bars). Plus auto-pulled recent IPOs from the calendar. IPOs are textbook
+# stocks-in-play — fresh, high-volume, catalyst-driven.
+NEW_LISTINGS = ["SPCX"]   # SpaceX (Nasdaq, IPO'd 2026-06-12)
+
+
+def recent_listings(cfg: Config) -> list[str]:
+    """Curated new listings + auto-pulled recently-listed IPOs (last ~60 days, already trading).
+    Deduped, uppercased. Never raises — falls back to the curated list on any error."""
+    out = list(NEW_LISTINGS)
+    try:
+        import research
+        for r in research.recent_ipos(cfg):
+            s = (r.get("symbol") or "").strip().upper()
+            if s and s not in out:
+                out.append(s)
+    except Exception:  # noqa: BLE001 — calendar is best-effort
+        pass
+    return out
+
+
 def relative_volume(df: pd.DataFrame, window: int) -> float:
     """Latest volume divided by its trailing average. >1.5 ~ unusual activity."""
     if "volume" not in df or len(df) < window + 1:
@@ -183,6 +205,10 @@ def build_universe(cfg: Config) -> list[str]:
         syms += market.most_actives(cfg)
         syms += market.movers(cfg)
     except Exception:  # noqa: BLE001 - screener optional; core list still works
+        pass
+    try:
+        syms += recent_listings(cfg)   # SpaceX-style fresh IPOs (also fed to ORB/intraday directly)
+    except Exception:  # noqa: BLE001
         pass
     if not syms:
         syms = list(_FALLBACK)
