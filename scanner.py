@@ -573,6 +573,16 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: st
     # Three exit scenarios (display only — the order still uses plan["target"] as the base case).
     plan["targets"] = _target_scenarios(direction, entry, working_stop, target, df)
 
+    # Estimated time-to-play-out: how many sessions to reach the target at the stock's typical daily
+    # move (ATR). Presented as a RANGE — the low end if it trends straight there, the high end if it
+    # chops (price rarely moves in a straight line). Bounded to a sane swing-trade window.
+    _atrp = (atr_val / entry * 100) if atr_val else None
+    _tgtp = abs(target - entry) / entry * 100 if (target and entry) else None
+    if _atrp and _atrp > 0 and _tgtp:
+        _base = _tgtp / _atrp
+        plan["hold_lo"] = int(max(1, min(60, round(_base))))
+        plan["hold_hi"] = int(max(plan["hold_lo"] + 1, min(90, round(_base * 2.4))))
+
     # --- market context ---
     closes = df["close"]
     day_change = (float(closes.iloc[-1]) / float(closes.iloc[-2]) - 1) * 100 if len(closes) > 1 else None

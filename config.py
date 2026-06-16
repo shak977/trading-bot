@@ -49,7 +49,7 @@ class Config:
     rel_volume_window: int = 20      # days for the relative-volume (flow proxy) average
     news_per_symbol: int = 4         # headlines pulled per flagged symbol
     show_top: int = 40               # cards shown on the dashboard
-    wide_universe: bool = False      # include the expanded liquid pool (S&P-500-ish) in live scans
+    wide_universe: bool = field(default_factory=lambda: _as_bool(os.getenv("WIDE_UNIVERSE"), True))  # expanded liquid pool — more names = more signals + learning volume
 
     # --- Relative strength (vs benchmark) ---
     benchmark: str = "SPY"                            # name ranked against; fetched once per scan

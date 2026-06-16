@@ -4324,6 +4324,7 @@ function openModal(s) {{
     stat('Stop-loss', money(p.stop), `${{_short?'+':'−'}}${{p.stop_pct}}%  ·  ATR-based`, 'sell') +
     stat(_short ? 'Cover target' : 'Take-profit', money(p.target), `${{_short?'−':'+'}}${{p.target_pct}}%  ·  ${{p.target_basis||'base target'}}`, 'buy') +
     stat('Risk : Reward', p.rr!=null ? ('1 : '+p.rr) : '–', 'reward per $1 risked') +
+    stat('Est. time to play out', (p.hold_lo!=null&&p.hold_hi!=null) ? (`~${{p.hold_lo}}–${{p.hold_hi}} sessions`) : '—', 'to reach the target at typical pace') +
     stat('Position size', (p.shares||0)+' sh', money(p.exposure)+' exposure') +
     stat('$ at risk', money(p.dollar_risk), `${{p.shares||0}} sh to stop`, 'sell') +
     _scen;

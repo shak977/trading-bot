@@ -47,8 +47,10 @@ def build(row: dict, macro_posture: dict | None, cfg) -> dict | None:
         ret_range = {"downside_pct": (-dn if dn is not None else None),
                      "upside_pct": (up if up is not None else None)}
 
-        # expected holding period — sessions to traverse the target at the typical daily move
-        hold = round(_clamp((up / atr) if (up and atr) else 5, 1, 60)) if up else None
+        # expected holding period — a session range from the plan (low if it trends, high if it chops)
+        _hl, _hh = plan.get("hold_lo"), plan.get("hold_hi")
+        hold = (f"{_hl}–{_hh}" if (_hl and _hh)
+                else (round(_clamp((up / atr) if (up and atr) else 5, 1, 60)) if up else None))
 
         # scores
         liq_tier = (row.get("liquidity") or {}).get("tier")
