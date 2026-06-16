@@ -118,9 +118,9 @@ class Config:
     # OFF by default. Set PAPER_TRADE=true (repo var/secret) to let the runner submit bracket
     # orders to your PAPER account for fresh High-conviction signals. Refuses on a live account.
     paper_trade: bool = field(default_factory=lambda: _as_bool(os.getenv("PAPER_TRADE"), False))
-    paper_max_new_per_run: int = 4   # cap new positions opened in a single run
-    paper_max_open: int = 15         # cap total simultaneous open paper positions
-    paper_risk_pct: float = 0.02     # risk per position (fraction of equity to the stop)
+    paper_max_new_per_run: int = 6   # cap new positions opened in a single run
+    paper_max_open: int = 18         # cap total simultaneous open paper positions
+    paper_risk_pct: float = 0.005    # risk per position (fraction of equity to the stop) — small so many fit
     paper_allow_shorts: bool = True  # also open shorts (set False for longs-only)
 
     # --- Portfolio risk engine + kill switch (book-level safety overlay) ---
@@ -130,7 +130,7 @@ class Config:
     daily_loss_limit_pct: float = 3.0   # halt NEW entries once today's P&L <= -this% of equity
     dd_derisk_pct: float = 8.0          # at this peak-to-now drawdown, halve new-position sizing
     dd_halt_pct: float = 10.0           # at this drawdown, stop opening new positions entirely
-    max_position_pct: float = 25.0      # no single position worth more than this % of equity
+    max_position_pct: float = 12.0      # no single position worth more than this % of equity
     kill_switch_trips: int = 3          # consecutive failed/errored runs before the kill switch flips
     kill_switch_cooldown_runs: int = 3  # clean runs needed to auto-reset the kill switch
 
