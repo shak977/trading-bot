@@ -146,8 +146,10 @@ class Config:
     # OFF by default. Set PAPER_TRADE=true (repo var/secret) to let the runner submit bracket
     # orders to your PAPER account for fresh High-conviction signals. Refuses on a live account.
     paper_trade: bool = field(default_factory=lambda: _as_bool(os.getenv("PAPER_TRADE"), False))
-    paper_max_new_per_run: int = 6   # cap new positions opened in a single run
-    paper_max_open: int = 18         # cap total simultaneous open paper positions
+    paper_max_new_per_run: int = 10  # cap new positions opened in a single run
+    paper_max_open: int = 30         # cap total simultaneous open paper positions
+    #   NB: the per-order sizer also caps qty at ~90% of available BUYING POWER, so the book
+    #   self-limits — it stops opening when buying power runs low, even below these caps.
     paper_risk_pct: float = 0.005    # risk per position (fraction of equity to the stop) — small so many fit
     paper_allow_shorts: bool = True  # also open shorts (set False for longs-only)
     # Realized-record cutoff: after a manual cleanup/reset, set PAPER_RESET_DATE=YYYY-MM-DD so the
