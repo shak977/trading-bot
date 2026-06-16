@@ -12,6 +12,7 @@ import json
 import os
 
 PATH = os.getenv("TRACK_FILE", "track_record.json")
+INTRADAY_PATH = os.getenv("TRACK_INTRADAY_FILE", "track_record_intraday.json")
 
 _RESOLVED = ("win", "loss", "expired")
 
@@ -60,8 +61,24 @@ def load(path: str | None = None) -> list[dict]:
         return []
 
 
+def load_all() -> list[dict]:
+    """Daily + intraday resolved trades, pooled. Intraday resolves in hours, so it feeds the
+    learning loop far more outcome volume — and the conviction checks are the same engine for both
+    timeframes, so a check that predicts winners should do so across both. Each is tagged with `tf`
+    so callers can split later if needed."""
+    out = []
+    for t in load(PATH):
+        t.setdefault("tf", "daily")
+        out.append(t)
+    for t in load(INTRADAY_PATH):
+        t = dict(t)
+        t["tf"] = "intraday"
+        out.append(t)
+    return out
+
+
 def report(path: str | None = None) -> list[dict]:
-    return attribute(load(path))
+    return attribute(load(path) if path else load_all())
 
 
 def learned_weights(path: str | None = None, min_n: int = 12, max_adj: float = 0.5) -> dict:
@@ -74,7 +91,7 @@ def learned_weights(path: str | None = None, min_n: int = 12, max_adj: float = 0
     1 ± max_adj so no single check can run away. Returns {} until there's enough data — so early on
     the engine runs on its transparent default weights, exactly as it does today."""
     out = {}
-    for r in attribute(load(path)):
+    for r in attribute(load(path) if path else load_all()):
         edge = r.get("edge")
         n = min(r.get("n_pass", 0), r.get("n_fail", 0))
         if edge is None or n < min_n:

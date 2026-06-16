@@ -481,6 +481,18 @@ def build_snapshot() -> dict:
     # conviction. Any failure leaves it empty — the daily build is never affected.
     intraday_shown: list = []
     intraday_by_sym: dict = {}
+    # Adaptive learning: per-check weight multipliers from the bot's own resolved wins vs losses
+    # (daily + intraday pooled). Computed BEFORE the intraday scan so intraday signals are scored
+    # with the learning too — the loop both reads from and applies to every timeframe. Empty until
+    # there's enough data, so early on conviction runs on its transparent default weights.
+    learned_weights = {}
+    if getattr(CONFIG, "adaptive_weights_enabled", True):
+        try:
+            import attribution as _attr
+            learned_weights = _attr.learned_weights(min_n=CONFIG.adaptive_min_n)
+        except Exception:  # noqa: BLE001
+            learned_weights = {}
+
     intraday_track: dict = {}
     if live and getattr(CONFIG, "intraday_enabled", False):
         try:
@@ -492,6 +504,12 @@ def build_snapshot() -> dict:
             for _ir in _irows:
                 _ir.pop("chart", None)
                 _ir["intraday"] = True
+                # apply the learned weights to intraday conviction too (same engine, both timeframes)
+                if learned_weights:
+                    try:
+                        scanner.rescore(_ir, _icfg, regime=regime, learned=learned_weights)
+                    except Exception:  # noqa: BLE001
+                        pass
             intraday_by_sym = {_ir["symbol"]: _ir for _ir in _irows}
             _irows.sort(key=lambda r: -((r.get("conviction") or {}).get("score_pct") or 0))
             intraday_shown = _irows[: CONFIG.intraday_show_top]
@@ -532,16 +550,6 @@ def build_snapshot() -> dict:
             retail_map = _scrape.retail_attention()
         except Exception:  # noqa: BLE001
             retail_map = {}
-
-    # Adaptive learning: per-check weight multipliers from the bot's own resolved wins vs losses.
-    # Empty until there's enough data, so early on conviction runs on its default weights.
-    learned_weights = {}
-    if getattr(CONFIG, "adaptive_weights_enabled", True):
-        try:
-            import attribution as _attr
-            learned_weights = _attr.learned_weights(min_n=CONFIG.adaptive_min_n)
-        except Exception:  # noqa: BLE001
-            learned_weights = {}
 
     _ACTIONABLE = ("BUY", "SHORT", "HOLD LONG", "HOLD SHORT")
     _sector_pct = {s["sector"]: s.get("pct_up") for s in (sectors or [])}   # sector momentum map
