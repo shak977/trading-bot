@@ -294,6 +294,96 @@ def structured_scores(rows: list[dict], cfg: Config, max_names: int = 6,
     return out
 
 
+def committee(rows: list[dict], cfg: Config, regime: dict | None = None,
+              macro: dict | None = None, max_names: int = 6, timeout: int = 45) -> dict:
+    """Multi-agent 'trade committee': four analyst roles (technicals, fundamentals, news/catalyst,
+    macro/regime) review each top actionable signal and a chair issues a structured verdict. ONE
+    batched LLM call, top names only — cheap. Grounded ONLY in the data we already computed; it never
+    invents numbers or predicts price. Returns {SYMBOL: {verdict, confidence, roles{...}, summary}}.
+    Advisory: the rules risk engine keeps final authority. {} on no key / failure."""
+    if not getattr(cfg, "llm_enabled", False) or not rows:
+        return {}
+    import json as _json
+    cand = [r for r in rows if r.get("action") in ("BUY", "SHORT")]
+    cand.sort(key=lambda r: -((r.get("conviction") or {}).get("score_pct") or 0))
+    cand = cand[:max_names]
+    if not cand:
+        return {}
+    reg_txt = (f"{regime.get('label')} ({regime.get('breadth')}% of stocks above trend)"
+               if regime else "n/a")
+    macro_txt = (f"{macro.get('backdrop')} — VIX {macro.get('vix')}, 10y {macro.get('y10')}%, "
+                 f"CPI {macro.get('cpi_yoy')}% YoY") if macro else "n/a"
+    blocks = []
+    for r in cand:
+        p, ctx, conv = r.get("plan") or {}, r.get("context") or {}, r.get("conviction") or {}
+        fu = r.get("fundamentals") or {}
+        an = fu.get("analysts") or {}
+        heads = "; ".join((n.get("headline") or "").strip() for n in (r.get("news") or [])[:3] if n.get("headline")) or "none"
+        blocks.append(
+            f"{r['symbol']} ({r.get('name','')}): {r.get('action')} @ ${r.get('price')}; "
+            f"conviction {conv.get('label')} {conv.get('score_pct')}%; "
+            f"plan entry {p.get('entry')} stop {p.get('stop')} target {p.get('target')} RR 1:{p.get('rr')}; "
+            f"day move {ctx.get('day_change_pct')}%, ATR {ctx.get('atr_pct')}%, vs trend {ctx.get('vs_slow_ma_pct')}%; "
+            f"analysts {an.get('consensus','n/a')} (target ${fu.get('target_mean','n/a')}, P/E {fu.get('pe','n/a')}); "
+            f"news: {heads}")
+    prompt = (
+        "You are the chair of a trading committee with four analysts: a TECHNICALS analyst, a "
+        "FUNDAMENTALS analyst, a NEWS/CATALYST analyst, and a MACRO/REGIME analyst. For each candidate "
+        "below, each analyst gives a lean ('support', 'neutral', or 'against' the proposed trade "
+        "direction) with a <=14-word reason, using ONLY the data provided (never invent numbers, "
+        "events, or price predictions; if an analyst lacks data, lean 'neutral'). Then you, the chair, "
+        "issue a verdict: 'accept' (take as planned), 'reduce' (take at smaller size — mixed signals), "
+        "or 'reject' (skip — too much disagreement or a clear red flag), plus a confidence 0-100 and a "
+        "<=20-word summary. Do not give personal investment advice.\n"
+        f"Market regime: {reg_txt}. Macro: {macro_txt}.\n"
+        'Return ONLY a JSON object keyed by ticker: {"NVDA":{"verdict":"accept","confidence":78,'
+        '"roles":{"technicals":{"lean":"support","note":"..."},"fundamentals":{"lean":"neutral","note":"..."},'
+        '"news":{"lean":"support","note":"..."},"macro":{"lean":"neutral","note":"..."}},"summary":"..."}}. '
+        "No prose.\n\nCANDIDATES:\n" + "\n".join(blocks))
+    try:
+        r = requests.post(
+            _URL,
+            headers={"x-api-key": cfg.anthropic_api_key, "anthropic-version": "2023-06-01",
+                     "content-type": "application/json"},
+            json={"model": cfg.llm_model, "max_tokens": 1500,
+                  "messages": [{"role": "user", "content": prompt}]},
+            timeout=timeout,
+        )
+        r.raise_for_status()
+        txt = "".join(b.get("text", "") for b in r.json().get("content", []) if b.get("type") == "text").strip()
+        if "```" in txt:
+            parts = txt.split("```")
+            txt = parts[1].lstrip("json").strip() if len(parts) > 1 else txt
+        a, b = txt.find("{"), txt.rfind("}")
+        if a < 0 or b < 0:
+            return {}
+        raw = _json.loads(txt[a:b + 1])
+    except Exception:  # noqa: BLE001
+        return {}
+    _ok = ("support", "neutral", "against")
+    out = {}
+    for sym, d in (raw.items() if isinstance(raw, dict) else []):
+        try:
+            verdict = str(d.get("verdict", "")).lower()
+            if verdict not in ("accept", "reduce", "reject"):
+                verdict = "reduce"
+            roles = {}
+            for rk in ("technicals", "fundamentals", "news", "macro"):
+                rv = d.get("roles", {}).get(rk, {}) or {}
+                lean = str(rv.get("lean", "neutral")).lower()
+                roles[rk] = {"lean": lean if lean in _ok else "neutral",
+                             "note": str(rv.get("note", ""))[:120]}
+            out[str(sym).upper().strip().lstrip("$")] = {
+                "verdict": verdict,
+                "confidence": int(max(0, min(100, int(d.get("confidence", 50) or 50)))),
+                "roles": roles, "summary": str(d.get("summary", ""))[:180],
+                "support": sum(1 for v in roles.values() if v["lean"] == "support"),
+                "against": sum(1 for v in roles.values() if v["lean"] == "against")}
+        except Exception:  # noqa: BLE001
+            continue
+    return out
+
+
 def analyst_review(report: dict, cfg: Config, timeout: int = 30) -> str | None:
     """A concise nightly analyst narrative built ONLY from the computed findings — what's working,
     what isn't, and the 2-3 highest-priority changes to consider. Advisory; never invents data.

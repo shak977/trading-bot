@@ -101,6 +101,10 @@ class Config:
     orb_show_top: int = 40                  # cap ORB cards shown
     orb_inplay_top: int = 40                # how many stocks-in-play to scan for ORB
     orb_lookback_days: int = 45             # 5-min history pulled per name (deep enough to backtest)
+
+    # Multi-agent LLM trade committee (advisory second opinion on the top actionable signals)
+    committee_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("COMMITTEE_ENABLED"), True))
+    committee_max_names: int = 6            # cap names sent to the committee (one batched call)
     rsi_overbought: float = 70.0
     rsi_oversold: float = 30.0
 

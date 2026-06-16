@@ -667,6 +667,21 @@ def build_snapshot() -> dict:
         macro_posture = None
     _exposure_mult = (macro_posture or {}).get("exposure_mult", 1.0)
 
+    # Multi-agent trade committee: 4 LLM analyst roles (technicals / fundamentals / news / macro)
+    # debate the top actionable signals and a chair returns accept/reduce/reject + per-role leans.
+    # Advisory second opinion — the rules risk engine keeps final authority. Gated + fail-silent.
+    committee_verdicts = {}
+    if live and CONFIG.llm_enabled and getattr(CONFIG, "committee_enabled", True):
+        try:
+            import llm as _llm_cm
+            committee_verdicts = _llm_cm.committee(shown, CONFIG, regime=regime, macro=macro,
+                                                   max_names=getattr(CONFIG, "committee_max_names", 6))
+            for r in shown:
+                if r["symbol"] in committee_verdicts:
+                    r["committee"] = committee_verdicts[r["symbol"]]
+        except Exception:  # noqa: BLE001
+            committee_verdicts = {}
+
     # Regime-specific weighting: in a defensive / high-volatility regime, RAISE the conviction bar
     # a fresh entry must clear — so the bot makes fewer, higher-quality trades when the backdrop is
     # hostile. With-tape setups below the regime threshold are demoted to the Watch tier.
@@ -4082,6 +4097,13 @@ const HELD = new Set((typeof DATA !== 'undefined' && DATA.paper_held) || []);
 function _heldBit(s) {{
   return HELD.has(s.symbol) ? `<div class="card-age held" title="You hold this in the paper book — the bot won't open a second position in the same name">💼 In paper book</div>` : '';
 }}
+function _cmteBit(s) {{
+  const cm = s.committee; if (!cm) return '';
+  const ic = cm.verdict === 'accept' ? '✓' : cm.verdict === 'reject' ? '✗' : '⚠';
+  const cls = cm.verdict === 'accept' ? ' fresh' : '';
+  const col = cm.verdict === 'reject' ? ' style="color:var(--sell);"' : cm.verdict === 'reduce' ? ' style="color:var(--warn);"' : '';
+  return `<div class="card-age${{cls}}"${{col}} title="AI trade committee — ${{cm.support}}/4 analysts support: ${{_esc(cm.summary||'')}}">🏛 Committee ${{ic}} ${{cm.verdict}}</div>`;
+}}
 function _intradayBit(s) {{
   if (!s.intraday_confirm || s.intraday_confirm === 'none') return '';
   const ok = s.intraday_confirm === 'agree';
@@ -4165,7 +4187,7 @@ function makeCard(s) {{
   const nNews = (s.news||[]).length;
   el.innerHTML = `
     <div class="card-top">${{logo}}
-      <div class="card-id"><div class="s">${{s.symbol}}</div><div class="n">${{s.name||s.exchange||''}}</div>${{_ageBit(s)}}${{_heldBit(s)}}${{_alertBit(s)}}${{_intradayBit(s)}}</div>
+      <div class="card-id"><div class="s">${{s.symbol}}</div><div class="n">${{s.name||s.exchange||''}}</div>${{_ageBit(s)}}${{_heldBit(s)}}${{_cmteBit(s)}}${{_alertBit(s)}}${{_intradayBit(s)}}</div>
       <span class="act a-${{cls}}">${{s.action}}</span>
       <button class="favbtn ${{FAVS.has(s.symbol)?'on':''}}" title="Save to favorites">${{FAVS.has(s.symbol)?'★':'☆'}}</button></div>
     <div class="card-px-row"><span class="card-px" data-px="${{s.symbol}}">$${{_px.toLocaleString()}}</span>${{dchg}}</div>
@@ -4937,6 +4959,20 @@ function openModal(s) {{
       mMeta.innerHTML = '<div class="deskread" style="border-left-color:'+_dc+';"><b style="color:'+_dc+';text-transform:capitalize;">'+mv.decision+'</b>'
         + ((mv.decision==='reduce'&&mv.size_factor!=null)?(' — size × '+mv.size_factor):'')
         + '<ul style="margin:8px 0 0;padding-left:18px;line-height:1.7;">'+(mv.reasons||[]).map(r=>'<li>'+r+'</li>').join('')+'</ul></div>';
+    }}
+    const cm = s.committee;
+    if (cm) {{
+      const vc = ({{accept:'var(--buy)',reduce:'var(--warn)',reject:'var(--sell)'}})[cm.verdict] || 'var(--muted)';
+      const leanc = l => l==='support' ? 'var(--buy)' : l==='against' ? 'var(--sell)' : 'var(--muted)';
+      const RL = {{technicals:'Technicals',fundamentals:'Fundamentals',news:'News / catalyst',macro:'Macro / regime'}};
+      const rolesH = Object.keys(RL).map(k => {{ const rv = (cm.roles||{{}})[k] || {{lean:'neutral',note:''}};
+        return '<div style="display:flex;gap:8px;margin:3px 0;font-size:12px;"><span style="flex:0 0 120px;color:var(--muted);">'+RL[k]+'</span>'
+          + '<span style="flex:0 0 68px;color:'+leanc(rv.lean)+';text-transform:capitalize;">'+rv.lean+'</span>'
+          + '<span style="flex:1;color:var(--txt2);">'+_esc(rv.note||'')+'</span></div>'; }}).join('');
+      mMeta.innerHTML += '<div class="sech" style="margin-top:14px;">🏛 Trade committee <span style="text-transform:none;color:var(--muted);font-size:12px;">— four AI analysts debate the setup; the chair rules</span></div>'
+        + '<div class="deskread" style="border-left-color:'+vc+';"><b style="color:'+vc+';text-transform:uppercase;">'+cm.verdict+'</b> · confidence '+cm.confidence+'% · '+cm.support+'/4 support, '+cm.against+'/4 against'
+        + (cm.summary ? (' — '+_esc(cm.summary)) : '') + '</div>' + rolesH
+        + '<p style="color:var(--muted);font-size:11px;margin:8px 0 0;">Advisory second opinion. The rules risk engine keeps final authority.</p>';
     }}
   }}
   // Macro & regime fit
