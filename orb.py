@@ -448,6 +448,44 @@ def score_checks(sig: dict, pass_at: float = 60.0) -> list[dict]:
             for k, v in comp.items()]
 
 
+def gap_pct(df: pd.DataFrame):
+    """Overnight gap %: today's regular-session OPEN vs the prior session's last close. This is the
+    real gap the stocks-in-play filter wants (vs the placeholder 0%). None if <2 sessions."""
+    try:
+        sess = list(_sessions(df))
+        if len(sess) < 2:
+            return None
+        prev_close = float(sess[-2][1]["close"].iloc[-1])
+        today_open = float(sess[-1][1]["open"].iloc[0])
+        if prev_close <= 0:
+            return None
+        return round((today_open - prev_close) / prev_close * 100, 2)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def aggregate_backtest(by_window_lists: dict) -> dict:
+    """Pool per-symbol backtests into one per-window read across all stocks-in-play. Input:
+    {window: [per-symbol stats dicts]}. Output per window: n, win_rate, expectancy, net%, avg_r,
+    profit_factor — net of the cost model. The honest 'does this edge survive costs' summary."""
+    out = {}
+    for w, lst in (by_window_lists or {}).items():
+        trades = [t for s in (lst or []) for t in (s.get("trades") or [])]
+        n = len(trades)
+        if not n:
+            out[w] = {"window": w, "n": 0}
+            continue
+        wins = [t for t in trades if t["net_pct"] > 0]
+        gross_w = sum(t["net_pct"] for t in trades if t["net_pct"] > 0)
+        gross_l = -sum(t["net_pct"] for t in trades if t["net_pct"] < 0)
+        out[w] = {"window": w, "n": n, "win_rate": round(len(wins) / n * 100, 1),
+                  "expectancy_pct": round(sum(t["net_pct"] for t in trades) / n, 3),
+                  "net_pct": round(sum(t["net_pct"] for t in trades), 2),
+                  "avg_r": round(sum(t["r"] for t in trades) / n, 2),
+                  "profit_factor": round(gross_w / gross_l, 2) if gross_l > 0 else None}
+    return out
+
+
 def best_window(symbol: str, df: pd.DataFrame, spy_df: pd.DataFrame, cfg,
                 windows=None) -> dict:
     """Run the backtest across the parameterised windows and pick the best by net expectancy.

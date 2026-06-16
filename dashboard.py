@@ -2432,7 +2432,7 @@ def _run_orb(rows, idea_map, nlp_scores, regime, cfg, live, today, equity):
             return out
 
         icfg = _replace(cfg, timeframe="5Min",
-                        lookback_days=max(5, getattr(cfg, "intraday_lookback_days", 15)))
+                        lookback_days=max(15, getattr(cfg, "orb_lookback_days", 45)))
         try:
             spy_df = _data.get_bars("SPY", icfg)
         except Exception:  # noqa: BLE001
@@ -2442,7 +2442,9 @@ def _run_orb(rows, idea_map, nlp_scores, regime, cfg, live, today, equity):
         except Exception:  # noqa: BLE001
             quotes = {}
         ip_by = {s["symbol"]: s for s in ranked}
+        cand_by = {c["symbol"]: c for c in cands}
         bars_by, signals = {}, []
+        bt_by_window = {w: [] for w in getattr(cfg, "orb_windows", (5, 15, 30))}
         for sym in syms:
             try:
                 df = _data.get_bars(sym, icfg)
@@ -2451,15 +2453,41 @@ def _run_orb(rows, idea_map, nlp_scores, regime, cfg, live, today, equity):
             if df is None or getattr(df, "empty", True):
                 continue
             bars_by[sym] = df
+            # real overnight gap from the bars (replaces the 0% placeholder), re-score in-play
+            g = _orb.gap_pct(df)
+            if g is not None and sym in cand_by:
+                cand_by[sym]["gap_pct"] = g
             ip = ip_by.get(sym) or {}
             ctx = {"rel_volume": ip.get("rel_volume"), "catalyst_score": _catalyst(sym),
                    "liquidity_tier": ip.get("liquidity_tier"),
                    "spread_pct": (quotes.get(sym) or {}).get("spread_pct")}
             sig = _orb.build(sym, df, spy_df, cfg, equity=equity, ctx=ctx, learned=learned)
             if sig:
-                sig["in_play"] = ip.get("in_play")
+                sig["gap_pct"] = g
                 sig["name"] = next((r.get("name") for r in rows if r.get("symbol") == sym), sym)
                 signals.append(sig)
+            # cost-modeled backtest across windows on this name's deep history
+            try:
+                bw = _orb.best_window(sym, df, spy_df, cfg)
+                for w, st in (bw.get("by_window") or {}).items():
+                    if w in bt_by_window:
+                        bt_by_window[w].append(st)
+            except Exception:  # noqa: BLE001
+                pass
+
+        # re-rank in-play now that real gaps are in, and tag each signal with its in-play score
+        ranked2 = _inplay.rank([cand_by[s] for s in syms if s in cand_by], cfg, top=getattr(cfg, "orb_inplay_top", 40))
+        out["inplay"] = ranked2 or ranked
+        ip2 = {s["symbol"]: s for s in (ranked2 or ranked)}
+        for s in signals:
+            s["in_play"] = (ip2.get(s["symbol"]) or {}).get("in_play")
+        # aggregate the backtest across all in-play names, per window
+        try:
+            agg = _orb.aggregate_backtest(bt_by_window)
+            out["backtest"] = {"by_window": agg, "lookback_days": getattr(cfg, "orb_lookback_days", 45),
+                               "names": len(bars_by)}
+        except Exception:  # noqa: BLE001
+            out["backtest"] = None
 
         track = _orbt.run(signals, bars_by, today, cfg, regime=regime)
         rs = track.get("risk_state", {})
@@ -2506,64 +2534,9 @@ def _orb_html(orb: dict | None) -> str:
             chips += f' <span class="pill" style="color:var(--sell);border-color:var(--sell);">⛔ new trades blocked — {why}</span>'
         rb = f'<div style="margin:6px 0 14px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">{chips}</div>'
     # signals table
-    sigs = orb.get("signals") or []
-    _FAC_LABEL = {"breakout": "Clean breakout candle", "rvol": "Unusual volume",
-                  "vwap": "Confirmed by VWAP", "catalyst": "Real catalyst",
-                  "market": "Market aligned", "liquidity": "Liquid enough",
-                  "volatility": "OR width tradable"}
-    rows_html = ""
-    for i, s in enumerate(sigs):
-        comp = s.get("score_components") or {}
-        compmini = " · ".join(f'{k[:3]} {int(v)}' for k, v in comp.items())
-        act = s.get("recommended_action")
-        actlbl = ("PAPER" if act == "paper_trade" else "ALERT" if act == "alert" else "—")
-        if s.get("risk_blocked"):
-            actlbl = "BLOCKED"
-        sc = s.get("score")
-        scl = "buy" if (sc or 0) >= 75 else "" if (sc or 0) >= 65 else "muted"
-        sp = s.get("spread_pct")
-        rows_html += (
-            f'<tr class="orb-row" onclick="orbToggle({i})" title="Click for the full factor breakdown">'
-            f'<td><b>{s.get("symbol")}</b> <span style="color:var(--muted);font-size:11px;">{(s.get("name") or "")[:20]}</span></td>'
-            f'<td>{s.get("direction")}</td>'
-            f'<td style="text-align:right;" class="{scl}">{sc}</td>'
-            f'<td style="text-align:right;">{s.get("entry")}</td>'
-            f'<td style="text-align:right;">{s.get("stop")}</td>'
-            f'<td style="text-align:right;">{s.get("target")}</td>'
-            f'<td style="text-align:right;">{s.get("rr")}</td>'
-            f'<td style="text-align:right;">{("%.2f%%" % sp) if sp is not None else "—"}</td>'
-            f'<td>{actlbl}</td>'
-            f'<td style="color:var(--muted);font-size:11px;">{compmini} ▸</td></tr>')
-        # expandable 7-factor breakdown (like the conviction view on other strategies)
-        bars = ""
-        for k, lab in _FAC_LABEL.items():
-            v = int(comp.get(k, 0) or 0)
-            bc = "var(--buy)" if v >= 60 else "var(--sell)" if v < 40 else "var(--accent)"
-            bars += (f'<div style="display:flex;align-items:center;gap:8px;margin:3px 0;font-size:12px;">'
-                     f'<span style="flex:0 0 150px;color:var(--muted);">{lab}</span>'
-                     f'<span style="flex:1;height:7px;background:var(--line);border-radius:4px;overflow:hidden;">'
-                     f'<i style="display:block;height:100%;width:{v}%;background:{bc};"></i></span>'
-                     f'<span style="flex:0 0 28px;text-align:right;font-variant-numeric:tabular-nums;">{v}</span></div>')
-        levels = (f'OR {s.get("or_low")}–{s.get("or_high")} &middot; VWAP {s.get("vwap_at_entry")} &middot; '
-                  f'ATR {s.get("atr")} &middot; {s.get("window_min")}m window &middot; OR/ATR {s.get("or_width_atr")} &middot; '
-                  f'in-play {s.get("in_play")} &middot; risk {s.get("risk_pct")}% &middot; est cost {s.get("est_cost_pct")}%')
-        reasons = " &middot; ".join(s.get("reasons") or [])
-        blk = (f'<div style="color:var(--sell);font-size:12px;margin-top:6px;">⛔ {s.get("risk_block_reason")}</div>'
-               if s.get("risk_blocked") else "")
-        rows_html += (
-            f'<tr id="orb-d-{i}" style="display:none;"><td colspan="10" style="background:var(--card);padding:12px 14px;">'
-            f'<div style="max-width:520px;">{bars}</div>'
-            f'<div style="color:var(--muted);font-size:11px;margin-top:8px;">{levels}</div>'
-            f'<div style="font-size:12px;margin-top:4px;">{reasons}</div>{blk}</td></tr>')
-    sig_tbl = ""
-    if rows_html:
-        sig_tbl = ('<table class="trackrec"><thead><tr><th>Name</th><th>Dir</th>'
-                   '<th style="text-align:right;">Score</th><th style="text-align:right;">Entry</th>'
-                   '<th style="text-align:right;">Stop</th><th style="text-align:right;">Target</th>'
-                   '<th style="text-align:right;">RR</th><th style="text-align:right;">Spread</th>'
-                   '<th>Action</th><th>Factors</th></tr></thead><tbody>' + rows_html + '</tbody></table>')
-    else:
-        sig_tbl = f'<p style="color:var(--muted);font-size:13px;">{note or "No ORB signals yet."}</p>'
+    # signals render as cards (same look as Signals/Intraday) via JS from DATA.orb; this is the
+    # no-JS fallback note only.
+    sig_tbl = f'<div id="orbCards"><p style="color:var(--muted);font-size:13px;">{note or "Loading ORB signals…"}</p></div>'
     # in-play list
     ip = orb.get("inplay") or []
     ip_html = ""
@@ -2592,10 +2565,40 @@ def _orb_html(orb: dict | None) -> str:
         tk_html = (f'<p style="color:var(--muted);font-size:12px;margin-top:12px;">Shadow record: '
                    f'{tk.get("advised",0)} logged · {tk.get("resolved",0)} resolved · '
                    f'{tk.get("open",0)} open · win rate {tk.get("win_rate") if tk.get("win_rate") is not None else "—"}%</p>')
+    # cost-modeled backtest across windows (the real edge test, net of costs)
+    bt = orb.get("backtest") or {}
+    bt_html = ""
+    byw = bt.get("by_window") or {}
+    if byw:
+        br = ""
+        for w in sorted(byw, key=lambda x: int(x)):
+            st = byw[w] or {}
+            if not st.get("n"):
+                br += f'<tr><td>{w}-min</td><td colspan="5" style="color:var(--muted);">no trades in sample</td></tr>'
+                continue
+            exp = st.get("expectancy_pct")
+            ec = "buy" if (exp or 0) > 0 else "sell" if (exp or 0) < 0 else ""
+            pf = st.get("profit_factor")
+            pfc = "buy" if (pf or 0) >= 1.3 else "sell" if (pf is not None and pf < 1) else ""
+            br += (f'<tr><td>{w}-min</td><td style="text-align:right;">{st.get("n")}</td>'
+                   f'<td style="text-align:right;">{st.get("win_rate")}%</td>'
+                   f'<td style="text-align:right;" class="{ec}">{("+" if (exp or 0) > 0 else "")}{exp}%</td>'
+                   f'<td style="text-align:right;">{st.get("avg_r")}R</td>'
+                   f'<td style="text-align:right;" class="{pfc}">{pf if pf is not None else "—"}</td></tr>')
+        bt_html = ('<h3 style="font-size:14px;margin:18px 0 6px;">Backtest '
+                   '<span style="text-transform:none;font-weight:400;color:var(--muted);font-size:11px;">'
+                   f'— {bt.get("names",0)} in-play names, last ~{bt.get("lookback_days","?")} days of 5-min bars, '
+                   'net of the cost model. Expectancy &gt; 0 and profit factor &gt; 1.3 is the bar.</span></h3>'
+                   '<table class="trackrec"><thead><tr><th>OR window</th>'
+                   '<th style="text-align:right;">Trades</th><th style="text-align:right;">Win%</th>'
+                   '<th style="text-align:right;">Expectancy</th><th style="text-align:right;">Avg R</th>'
+                   '<th style="text-align:right;">Profit factor</th></tr></thead><tbody>' + br + '</tbody></table>'
+                   '<p style="color:var(--muted);font-size:11px;margin:4px 0 0;">Small, recent sample — a '
+                   'directional read, not proof. Walk-forward validation comes as the shadow record grows.</p>')
     cap = ('<p style="color:var(--muted);font-size:11px;margin-top:10px;">Spread is a conservative '
            'IEX top-of-book estimate (runs a touch wider than the true NBBO). Backtest uses a fixed '
            'bps cost model. Long-only v1; shadow signals only — no orders.</p>')
-    return head + rb + sig_tbl + ip_html + tk_html + cap
+    return head + rb + sig_tbl + bt_html + ip_html + tk_html + cap
 
 
 def render_html(snap: dict) -> str:
@@ -3843,10 +3846,99 @@ function _holdTxt(p) {{
   }}
   return '~' + p.hold_lo + '–' + p.hold_hi + ' sessions';
 }}
-// ORB signal row -> toggle its 7-factor breakdown
-function orbToggle(i) {{
-  var d = document.getElementById('orb-d-' + i);
-  if (d) d.style.display = (d.style.display === 'none' ? 'table-row' : 'none');
+// --- ORB day-trade: cards (same look as Signals/Intraday) + shared detail modal ---
+const _ORB_FAC = {{breakout:'Clean breakout candle', rvol:'Unusual volume', vwap:'Confirmed by VWAP',
+  catalyst:'Real catalyst', market:'Market aligned', liquidity:'Liquid enough', volatility:'OR width tradable'}};
+function _orbBars(comp) {{
+  comp = comp || {{}};
+  return Object.keys(_ORB_FAC).map(k => {{
+    const v = Math.max(0, Math.min(100, Math.round(comp[k] || 0)));
+    const c = v >= 60 ? 'var(--buy)' : v < 40 ? 'var(--sell)' : 'var(--accent)';
+    return `<div style="display:flex;align-items:center;gap:8px;margin:4px 0;font-size:12px;">`
+      + `<span style="flex:0 0 150px;color:var(--muted);">${{_ORB_FAC[k]}}</span>`
+      + `<span style="flex:1;height:7px;background:var(--line);border-radius:4px;overflow:hidden;"><i style="display:block;height:100%;width:${{v}}%;background:${{c}};"></i></span>`
+      + `<span style="flex:0 0 26px;text-align:right;font-variant-numeric:tabular-nums;">${{v}}</span></div>`;
+  }}).join('');
+}}
+function makeOrbCard(s) {{
+  const el = document.createElement('div'); el.className = 'card';
+  const dir = s.direction, cls = dir === 'LONG' ? 'BUY' : 'SHORT';
+  const sc = s.score || 0, ccol = sc >= 75 ? 'var(--buy)' : sc >= 65 ? 'var(--accent)' : 'var(--muted)';
+  const logo = `<img class="logo" src="https://assets.parqet.com/logos/symbol/${{s.symbol}}?format=png" alt="" onerror="this.style.display='none'">`;
+  const ladder = `<div class="ladder">`
+    + `<div class="lrow"><span>Entry</span><b>$${{(s.entry||0).toLocaleString()}}</b></div>`
+    + `<div class="lrow"><span>Stop</span><b class="sell">$${{(s.stop||0).toLocaleString()}}</b></div>`
+    + `<div class="lrow"><span>Target</span><b class="buy">$${{(s.target||0).toLocaleString()}}</b></div>`
+    + `<div class="lrow"><span>Reward : risk</span><b>${{s.rr}} : 1</b></div></div>`;
+  const blocked = s.risk_blocked ? `<div class="ed-warn">⛔ ${{s.risk_block_reason||'risk-blocked'}}</div>` : '';
+  el.innerHTML = `
+    <div class="card-top">${{logo}}
+      <div class="card-id"><div class="s">${{s.symbol}}</div><div class="n">${{s.name||''}}</div></div>
+      <span class="act a-${{cls}}">ORB ${{dir}}</span></div>
+    <div class="card-px-row"><span class="card-px">$${{(s.entry||0).toLocaleString()}}</span> <span style="color:var(--muted);font-size:12px;">entry · ${{s.window_min}}m OR</span></div>
+    <div class="conv-wrap"><div class="conv-row"><span>Signal score · ${{s.score_band||''}}</span><span style="color:${{ccol}};font-weight:700;">${{sc}}</span></div>
+      <div class="conv-meter"><div class="conv-fill" style="width:${{sc}}%;background:${{ccol}};"></div></div></div>
+    ${{ladder}}
+    <div class="card-why"><div class="why-h">📋 Why this breakout</div><div class="why-txt">${{(s.reasons||[]).join(' · ')}}</div></div>
+    ${{blocked}}
+    <div class="more">click for the full 7-factor breakdown →</div>`;
+  el.addEventListener('click', () => openOrbModal(s));
+  return el;
+}}
+function renderOrb() {{
+  const host = document.getElementById('orbCards'); if (!host) return;
+  const o = (DATA && DATA.orb) || {{}}, list = o.signals || [];
+  const grid = document.createElement('div'); grid.className = 'grid';
+  if (!list.length) grid.innerHTML = `<div style="color:var(--muted);font-size:13px;">${{o.note || 'No ORB breakouts yet today.'}}</div>`;
+  else list.forEach(s => grid.appendChild(makeOrbCard(s)));
+  host.innerHTML = ''; host.appendChild(grid);
+}}
+function openOrbModal(s) {{
+  const top = document.getElementById('mkTop'), nav = document.getElementById('mkNav');
+  if (top) top.style.display = 'none';
+  if (nav) nav.style.display = 'none';
+  document.querySelectorAll('.mk-view').forEach(v => v.classList.remove('on'));
+  let ov = document.getElementById('mkview-orb');
+  if (!ov) {{ ov = document.createElement('div'); ov.className = 'mk-view'; ov.id = 'mkview-orb';
+    const main = document.querySelector('.mk-main'); if (main) main.appendChild(ov); }}
+  ov.classList.add('on');
+  const dir = s.direction, cls = dir === 'LONG' ? 'BUY' : 'SHORT';
+  document.getElementById('mTitle').innerHTML =
+    `<img class="logo" style="width:26px;height:26px;" src="https://assets.parqet.com/logos/symbol/${{s.symbol}}?format=png" alt="" onerror="this.style.display='none'"> ${{s.symbol}} <span class="act a-${{cls}}" style="float:none;font-size:13px;">ORB ${{dir}}</span> &nbsp; <span style="color:var(--muted);font-size:15px;">$${{(s.entry||0).toLocaleString()}}</span>`
+    + (s.name ? `<div class="cname" style="font-size:13px;margin-top:4px;">${{s.name}}</div>` : '');
+  document.getElementById('mSummary').textContent =
+    `Opening-range breakout · ${{s.window_min}}-min range · VWAP + market confirmed · day-trade, flat by 15:45 ET.`;
+  const sc = s.score || 0, ccol = sc >= 75 ? 'var(--buy)' : sc >= 65 ? 'var(--accent)' : 'var(--muted)';
+  const stat = (l, v, c) => `<div class="stat"><div class="l">${{l}}</div><div class="v ${{c||''}}" style="font-size:15px;">${{v}}</div></div>`;
+  const plan = `<div class="plangrid">`
+    + stat('Entry', '$' + (s.entry||0).toLocaleString())
+    + stat('Stop', '$' + (s.stop||0).toLocaleString(), 'sell')
+    + stat('Target', '$' + (s.target||0).toLocaleString(), 'buy')
+    + stat('Reward : risk', s.rr + ' : 1')
+    + stat('Risk / share', s.risk_per_share != null ? ('$' + s.risk_per_share) : '—')
+    + stat('Risk', s.risk_pct != null ? (s.risk_pct + '%') : '—')
+    + stat('Shares', s.qty != null ? s.qty.toLocaleString() : '—')
+    + stat('Est. round-trip cost', s.est_cost_pct != null ? (s.est_cost_pct + '%') : '—') + `</div>`;
+  const ctx = `<div class="plangrid">`
+    + stat('Opening range', `${{s.or_low}} – ${{s.or_high}}`)
+    + stat('VWAP at entry', s.vwap_at_entry)
+    + stat('ATR (5-min)', s.atr != null ? s.atr : '—')
+    + stat('OR width / ATR', s.or_width_atr != null ? s.or_width_atr : '—')
+    + stat('Spread', s.spread_pct != null ? (s.spread_pct + '%') : '—')
+    + stat('In-play score', s.in_play != null ? s.in_play : '—')
+    + stat('Market', s.market_bias_note || '—') + `</div>`;
+  const blocked = s.risk_blocked ? `<div class="ed-warn" style="margin-top:10px;">⛔ ${{s.risk_block_reason||'risk-blocked'}}</div>` : '';
+  ov.innerHTML = `
+    <div class="sech" style="margin-top:0;">Signal score <span style="text-transform:none;color:var(--muted);">— 0–100, ≥75 = eligible · this is ${{sc}} (${{s.score_band}})</span></div>
+    <div class="conv-meter" style="margin:2px 0 4px;"><div class="conv-fill" style="width:${{sc}}%;background:${{ccol}};"></div></div>
+    <div class="sech">The 7 factors</div>${{_orbBars(s.score_components)}}
+    <div class="sech">The trade plan</div>${{plan}}
+    <div class="sech">Levels &amp; context</div>${{ctx}}
+    <div class="sech">Why this breakout</div>
+    <ul class="reasons">${{(s.reasons||[]).map(r => `<li>${{_esc(r)}}</li>`).join('')}}</ul>${{blocked}}
+    <p style="color:var(--muted);font-size:11px;margin-top:10px;">Opening-range breakout, stocks-in-play. Long-only v1, shadow signal (no orders), flat by 15:45 ET. Its own strategy &amp; learning bucket.</p>`;
+  overlay.classList.add('open');
+  try {{ history.replaceState(null, '', '#' + s.symbol); }} catch (e) {{}}
 }}
 
 // Custom tooltip: reliable + instant (native title= is slow and easy to miss). Any element
@@ -4334,6 +4426,7 @@ function renderIntraday() {{
   }});
 }}
 renderIntraday();
+renderOrb();
 
 // --- momentum leaderboard rows open the same rich detail modal as the cards ---
 (function bindMomentumRows() {{
@@ -4558,6 +4651,10 @@ function _newsTip(n, s) {{
   return `${{lead}}${{flags}} ${{rel}} (Heuristic read of the headline text — verify before acting.)`;
 }}
 function openModal(s) {{
+  // restore the standard tabbed modal chrome (an ORB modal may have hidden it)
+  const _t = document.getElementById('mkTop'), _n = document.getElementById('mkNav');
+  if (_t) _t.style.display = ''; if (_n) _n.style.display = '';
+  const _ovOrb = document.getElementById('mkview-orb'); if (_ovOrb) {{ _ovOrb.classList.remove('on'); _ovOrb.innerHTML = ''; }}
   const cls = (s.action||'').replace(' ','');
   document.getElementById('mTitle').innerHTML =
     `<img class="logo" style="width:26px;height:26px;" src="https://assets.parqet.com/logos/symbol/${{s.symbol}}?format=png" alt="" onerror="this.style.display='none'"> ${{s.symbol}} <span class="act a-${{cls}}" style="float:none;font-size:13px;">${{s.action}}</span> &nbsp; <span data-px="${{s.symbol}}" style="color:var(--muted);font-size:15px;">$${{s.price.toLocaleString()}}</span>`

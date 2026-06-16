@@ -100,6 +100,7 @@ class Config:
     orb_risk_pct: float = 0.005             # risk per ORB trade (fraction of equity to the stop)
     orb_show_top: int = 40                  # cap ORB cards shown
     orb_inplay_top: int = 40                # how many stocks-in-play to scan for ORB
+    orb_lookback_days: int = 45             # 5-min history pulled per name (deep enough to backtest)
     rsi_overbought: float = 70.0
     rsi_oversold: float = 30.0
 
