@@ -533,6 +533,16 @@ def build_snapshot() -> dict:
         except Exception:  # noqa: BLE001
             retail_map = {}
 
+    # Adaptive learning: per-check weight multipliers from the bot's own resolved wins vs losses.
+    # Empty until there's enough data, so early on conviction runs on its default weights.
+    learned_weights = {}
+    if getattr(CONFIG, "adaptive_weights_enabled", True):
+        try:
+            import attribution as _attr
+            learned_weights = _attr.learned_weights(min_n=CONFIG.adaptive_min_n)
+        except Exception:  # noqa: BLE001
+            learned_weights = {}
+
     _ACTIONABLE = ("BUY", "SHORT", "HOLD LONG", "HOLD SHORT")
     _sector_pct = {s["sector"]: s.get("pct_up") for s in (sectors or [])}   # sector momentum map
     for r in shown:
@@ -553,7 +563,7 @@ def build_snapshot() -> dict:
                         tv=r.get("tv"), regime=regime, insider=r.get("insider"), buzz=r.get("buzz"),
                         news_idea=r.get("news_idea"), intraday=_isig,
                         sector_pct=_sector_pct.get(r.get("sector")), short_interest=r.get("short_interest"),
-                        retail=r.get("retail"))
+                        retail=r.get("retail"), learned=learned_weights)
 
     # LLM structured news scoring: convert recent per-stock headlines into named structured scores
     # (guidance / margin pressure / demand / regulatory risk / …) for the top actionable names only
@@ -2911,11 +2921,11 @@ def render_html(snap: dict) -> str:
   @media (max-width:600px) {{ .kpi.hero {{ grid-column:span 2; }} .kpi.hero .kpi-v {{ font-size:26px; }} }}
   /* ---- bento home grid ---- */
   .bento {{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); grid-auto-flow:row dense;
-    gap:10px; margin:0 0 18px; }}
+    gap:10px; margin:0 0 18px; align-items:start; }}
   .bento .bt {{ background:var(--card); border:1px solid var(--hud-edge); border-radius:7px;
     padding:13px 15px; min-width:0; display:flex; flex-direction:column; }}
-  .bento .bt.hero {{ grid-column:span 2; grid-row:span 2; border-top:2px solid var(--accent); justify-content:center; }}
-  .bento .bt.wide {{ grid-column:span 2; }}
+  .bento .bt.hero {{ grid-column:span 2; border-top:2px solid var(--accent); }}
+  .bento .bt.wide {{ grid-column:1 / -1; }}
   .bt-l {{ font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); font-weight:600; margin-bottom:3px; }}
   .bt-v {{ font-family:var(--mono); font-weight:700; font-size:22px; }}
   .bt-v.buy {{ color:var(--buy); }} .bt-v.sell {{ color:var(--sell); }} .bt-v.warn {{ color:var(--warn); }}

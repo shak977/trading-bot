@@ -180,6 +180,10 @@ class Config:
     # --- Structured signal output + uncertainty scoring ---
     structured_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("STRUCTURED_ENABLED"), True))
 
+    # --- Adaptive learning: reweight conviction checks by their realised win/loss edge ---
+    adaptive_weights_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("ADAPTIVE_WEIGHTS_ENABLED"), True))
+    adaptive_min_n: int = 12            # min decided trades per side before a check's weight adapts
+
     # --- No-trade intelligence layer (sit on your hands when conditions are poor) ---
     notrade_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("NOTRADE_ENABLED"), True))
     notrade_vix_block: float = 36.0     # VIX above this halts NEW entries (panic tape)

@@ -595,7 +595,7 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: st
 
 def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 factors=None, patterns=None, edge=None,
-                sentiment=None, fundamentals=None, price=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None, retail=None, liquidity=None):
+                sentiment=None, fundamentals=None, price=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None, retail=None, liquidity=None, learned=None):
     """Auto-scored pre-entry checklist, direction-aware. Each check is pass/warn/fail.
 
     For a LONG it asks the bullish questions (trending up? room to rise?); for a SHORT it
@@ -608,6 +608,8 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
     short = direction == "SHORT"
 
     def add(label, status, note, weight=1.0):
+        if learned:                       # adaptive: scale by what this check has historically earned
+            weight = round(weight * learned.get(label, 1.0), 3)
         checks.append({"label": label, "status": status, "note": note, "weight": weight})
 
     vs = context.get("vs_slow_ma_pct")
@@ -1058,7 +1060,7 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             "earnings_days": ed, "earnings_gated": gated}
 
 
-def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None, retail=None, liquidity=None) -> None:
+def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None, retail=None, liquidity=None, learned=None) -> None:
     """Recompute conviction + desk read for a shown row once research is fetched."""
     direction = row.get("direction", "LONG")
     _apply_fundamental_cap(row.get("plan"), fundamentals, cfg)
@@ -1067,7 +1069,7 @@ def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, 
                        sentiment=sentiment, fundamentals=fundamentals, price=row.get("price"), tv=tv,
                        regime=regime, insider=insider, buzz=buzz, news_idea=news_idea, intraday=intraday,
                        sector_pct=sector_pct, short_interest=short_interest, retail=retail,
-                       liquidity=liquidity if liquidity is not None else row.get("liquidity"))
+                       liquidity=liquidity if liquidity is not None else row.get("liquidity"), learned=learned)
     row["conviction"] = conv
     row["desk_read"] = _desk_read(row["action"], direction, row["plan"], row["context"], conv,
                                   row.get("patterns"), row.get("edge"),

@@ -62,3 +62,23 @@ def load(path: str | None = None) -> list[dict]:
 
 def report(path: str | None = None) -> list[dict]:
     return attribute(load(path))
+
+
+def learned_weights(path: str | None = None, min_n: int = 12, max_adj: float = 0.5) -> dict:
+    """Turn the per-check edge into a {label: weight-multiplier} the conviction engine can use to
+    ADAPT — checks that have historically predicted winners get up-weighted, those that haven't get
+    down-weighted. This is the bot learning from its own resolved wins vs losses.
+
+    Strictly gated: a check only earns an adjustment once it has at least `min_n` *decided* trades on
+    BOTH the pass and fail sides (so the edge is real, not noise). Multiplier is bounded to
+    1 ± max_adj so no single check can run away. Returns {} until there's enough data — so early on
+    the engine runs on its transparent default weights, exactly as it does today."""
+    out = {}
+    for r in attribute(load(path)):
+        edge = r.get("edge")
+        n = min(r.get("n_pass", 0), r.get("n_fail", 0))
+        if edge is None or n < min_n:
+            continue
+        mult = 1.0 + max(-max_adj, min(max_adj, edge / 100.0))
+        out[r["label"]] = round(mult, 2)
+    return out
