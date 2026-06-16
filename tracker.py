@@ -23,7 +23,11 @@ from config import Config
 from data import get_bars, synthetic_bars
 
 PATH = os.getenv("TRACK_FILE", "track_record.json")
-HOLD_LIMIT_DAYS = 90
+# Backstop hold limit for daily/swing trades: a trade that never hits its stop or target
+# force-resolves ("expired") after this many sessions, so it feeds the learning loop instead of
+# sitting open indefinitely. Set well above the typical hold (~4-9 sessions) so genuine swing
+# winners still get room to work, but low enough that stalled trades mature in weeks, not months.
+HOLD_LIMIT_DAYS = 35
 
 
 def _load(path: str = PATH) -> list[dict]:
