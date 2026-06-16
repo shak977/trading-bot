@@ -37,7 +37,7 @@ class Config:
     # --- Dynamic market scan ---
     scan_market: bool = True         # live: pull movers + most-active automatically
     scan_top: int = 30               # how many names to pull from each screener
-    max_candidates: int = 90         # cap symbols actually analysed per run
+    max_candidates: int = 210        # cap symbols analysed per run (fits core + wide pool + movers)
     buy_window: int = 5              # a crossover within this many days still counts as a fresh BUY/SELL
     min_price: float = 5.0           # ignore sub-$5 names
     max_atr_pct: float = 18.0        # skip hyper-volatile names (ATR > this % of price/day = penny chaos)
