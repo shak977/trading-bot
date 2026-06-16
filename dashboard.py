@@ -503,7 +503,8 @@ def build_snapshot() -> dict:
                 intraday_track = _tracker.run(
                     list(intraday_by_sym.values()), _icfg, live, _today0,
                     path="track_record_intraday.json", intraday=True,
-                    now_ts=_pd.Timestamp.utcnow().tz_localize(None), hold_days=3)
+                    now_ts=_pd.Timestamp.utcnow().tz_localize(None), hold_days=3,
+                    regime=regime)
             except Exception as _itexc:  # noqa: BLE001
                 intraday_track = {}
                 print("INTRADAY TRACK: skipped —", _itexc)
