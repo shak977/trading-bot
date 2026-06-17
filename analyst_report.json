@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-16 21:56 GMT",
+  "generated_at": "2026-06-17 12:58 GMT",
   "buckets": {
     "daily": {
       "label": "Daily / swing",
@@ -25,10 +25,10 @@
     "intraday": {
       "label": "Intraday",
       "stats": {
-        "logged": 247,
+        "logged": 256,
         "resolved": 183,
         "decided": 183,
-        "open": 64,
+        "open": 73,
         "win_rate": 39.9,
         "by_regime": {
           "\u2014": {
@@ -107,5 +107,6 @@
       "proposal": "Keep accruing; treat current weights as provisional."
     }
   ],
-  "n_actions": 2
+  "n_actions": 2,
+  "narrative": "**NIGHTLY NOTE**\n\n**Bucket states:**\nDaily/swing is broken\u201412 consecutive losses, 0% win rate across 12 decided trades\u2014and needs immediate pause confirmation. Intraday is marginally viable at 39.9% win rate (183 trades) but undershooting the 40% floor; Risk-on regime (41.7% WR) slightly outperforms default (38.4%). ORB day-trade has zero decided trades; too early to assess.\n\n**Top 3 changes:**\n\n1. **Retire or zero out 'Worth the risk?' and 'Reward:risk worth it?' in Intraday.** Both show \u221253pt edges (12% WR when pass vs 64.6% when fail)\u2014they're selecting losers, not winners. Currently weighted at 0.5; remove them entirely.\n\n2. **Pause Daily/swing until drawdown guards confirm re-entry.** Twelve-loss streak signals systematic failure; confirm guards are active before resuming.\n\n3. **Verify Intraday average win \u2265 1.5\u00d7 average loss.** At 39.9% WR, win-rate cushion is thin. If R:R doesn't compensate, tighten signal selectivity or pause until checks improve.\n\n**Risk to watch:**\nIntraday 3-loss streak is active; if drawdown guards are passive, losses may compound before safeguards trigger."
 }
