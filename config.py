@@ -99,10 +99,11 @@ class Config:
     orb_consec_loss_halt: int = 2           # halt the bucket after N consecutive full-stop losses
     orb_risk_pct: float = 0.005             # risk per ORB trade (fraction of equity to the stop)
     orb_show_top: int = 40                  # cap ORB cards shown
-    orb_inplay_top: int = 15                # how many stocks-in-play to fetch+scan for ORB
-    #   Kept modest on purpose: each name pulls deep 5-min history, and the whole build must finish
-    #   inside the 10-min cron window (cancel-in-progress cancels a slow run before it can deploy).
-    orb_lookback_days: int = 20             # 5-min history per name (~14 sessions — enough to backtest)
+    orb_inplay_top: int = 40                # how many stocks-in-play to fetch+scan for ORB
+    orb_signal_lookback_days: int = 6       # SHALLOW 5-min history pulled EVERY build (live signal+gap)
+    #   The deep backtest history is fetched separately, once/day when the market is closed, so the
+    #   10-min market-hours build stays fast regardless of how many names we scan.
+    orb_lookback_days: int = 45             # DEEP 5-min history for the once-daily cached backtest
 
     # Multi-agent LLM trade committee (advisory second opinion on the top actionable signals)
     committee_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("COMMITTEE_ENABLED"), True))

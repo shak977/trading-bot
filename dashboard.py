@@ -2439,6 +2439,64 @@ def _track_html(track: dict | None) -> str:
   </div>"""
 
 
+def _orb_backtest_cached(syms, cfg, _data, _orb, _inplay, _replace, cand_by):
+    """Deep cost-modeled ORB backtest across windows, run AT MOST once per ET day and only when the
+    market is closed (so it never burdens the 10-min market-hours builds). Cached to a json file;
+    intraday builds reuse the latest. Returns the aggregate payload (or None). Fail-silent."""
+    import json as _json
+    import os as _os
+    import pandas as _pd
+    path = _os.getenv("ORB_BACKTEST_FILE", "orb_backtest.json")
+    try:
+        et = _pd.Timestamp.now(tz="America/New_York")
+        today_et = str(et.date())
+        mins = et.hour * 60 + et.minute
+        market_open = et.weekday() < 5 and (9 * 60 + 30) <= mins < 16 * 60
+    except Exception:  # noqa: BLE001
+        today_et, market_open = "", True
+    cache = None
+    try:
+        with open(path) as f:
+            cache = _json.load(f)
+    except Exception:  # noqa: BLE001
+        cache = None
+    # fresh today, or market open (never recompute intraday) -> reuse what we have
+    if cache and (cache.get("date") == today_et or market_open):
+        return cache
+    # recompute (market closed + stale): deep fetch just for the backtest, off the critical path
+    try:
+        deep_lb = max(20, getattr(cfg, "orb_lookback_days", 45))
+        bcfg = _replace(cfg, timeframe="5Min", lookback_days=deep_lb)
+        try:
+            spy = _data.get_bars("SPY", bcfg)
+        except Exception:  # noqa: BLE001
+            spy = None
+        bt_by_window = {w: [] for w in getattr(cfg, "orb_windows", (5, 15, 30))}
+        n = 0
+        for sym in syms:
+            try:
+                df = _data.get_bars(sym, bcfg)
+            except Exception:  # noqa: BLE001
+                continue
+            if df is None or getattr(df, "empty", True):
+                continue
+            n += 1
+            bw = _orb.best_window(sym, df, spy, cfg)
+            for w, st in (bw.get("by_window") or {}).items():
+                if w in bt_by_window:
+                    bt_by_window[w].append(st)
+        agg = _orb.aggregate_backtest(bt_by_window)
+        out = {"date": today_et, "by_window": agg, "lookback_days": deep_lb, "names": n}
+        try:
+            with open(path, "w") as f:
+                _json.dump(out, f, indent=2)
+        except Exception:  # noqa: BLE001
+            pass
+        return out
+    except Exception:  # noqa: BLE001
+        return cache
+
+
 def _run_orb(rows, idea_map, nlp_scores, regime, cfg, live, today, equity):
     """Stocks-in-play ORB pass (its own bucket). Ranks in-play names, fetches 5-min bars, scores
     breakouts with the ORB learning weights, grades + logs to the ORB shadow tracker, and enforces
@@ -2504,8 +2562,10 @@ def _run_orb(rows, idea_map, nlp_scores, regime, cfg, live, today, equity):
             out["note"] = "No stocks in play (no liquid, active names today)."
             return out
 
-        icfg = _replace(cfg, timeframe="5Min",
-                        lookback_days=max(15, getattr(cfg, "orb_lookback_days", 45)))
+        # SHALLOW fetch on EVERY build — the live signal + gap only need the last couple of sessions,
+        # so this stays cheap even at 40 names and the 10-min market-hours build finishes comfortably.
+        sig_lb = max(4, getattr(cfg, "orb_signal_lookback_days", 6))
+        icfg = _replace(cfg, timeframe="5Min", lookback_days=sig_lb)
         try:
             spy_df = _data.get_bars("SPY", icfg)
         except Exception:  # noqa: BLE001
@@ -2517,7 +2577,6 @@ def _run_orb(rows, idea_map, nlp_scores, regime, cfg, live, today, equity):
         ip_by = {s["symbol"]: s for s in pre}
         cand_by = {c["symbol"]: c for c in cands}
         bars_by, signals = {}, []
-        bt_by_window = {w: [] for w in getattr(cfg, "orb_windows", (5, 15, 30))}
         for sym in syms:
             try:
                 df = _data.get_bars(sym, icfg)
@@ -2526,8 +2585,7 @@ def _run_orb(rows, idea_map, nlp_scores, regime, cfg, live, today, equity):
             if df is None or getattr(df, "empty", True):
                 continue
             bars_by[sym] = df
-            # real overnight gap from the bars (replaces the 0% placeholder), re-score in-play
-            g = _orb.gap_pct(df)
+            g = _orb.gap_pct(df)             # real overnight gap (replaces the 0% placeholder)
             if g is not None and sym in cand_by:
                 cand_by[sym]["gap_pct"] = g
             ip = ip_by.get(sym) or {}
@@ -2539,14 +2597,6 @@ def _run_orb(rows, idea_map, nlp_scores, regime, cfg, live, today, equity):
                 sig["gap_pct"] = g
                 sig["name"] = next((r.get("name") for r in rows if r.get("symbol") == sym), sym)
                 signals.append(sig)
-            # cost-modeled backtest across windows on this name's deep history
-            try:
-                bw = _orb.best_window(sym, df, spy_df, cfg)
-                for w, st in (bw.get("by_window") or {}).items():
-                    if w in bt_by_window:
-                        bt_by_window[w].append(st)
-            except Exception:  # noqa: BLE001
-                pass
 
         # re-rank in-play now that real gaps are in, and tag each signal with its in-play score
         ranked2 = _inplay.rank([cand_by[s] for s in syms if s in cand_by], cfg,
@@ -2555,13 +2605,11 @@ def _run_orb(rows, idea_map, nlp_scores, regime, cfg, live, today, equity):
         ip2 = {s["symbol"]: s for s in (ranked2 or pre)}
         for s in signals:
             s["in_play"] = (ip2.get(s["symbol"]) or {}).get("in_play")
-        # aggregate the backtest across all in-play names, per window
-        try:
-            agg = _orb.aggregate_backtest(bt_by_window)
-            out["backtest"] = {"by_window": agg, "lookback_days": getattr(cfg, "orb_lookback_days", 45),
-                               "names": len(bars_by)}
-        except Exception:  # noqa: BLE001
-            out["backtest"] = None
+
+        # DEEP backtest — heavy (deep history per name), so run it at most once per ET day and ONLY
+        # when the market is closed (pre-market / after-close builds run on slow crons, never the
+        # 10-min cadence). Cached to orb_backtest.json; intraday builds just reuse the latest.
+        out["backtest"] = _orb_backtest_cached(syms, cfg, _data, _orb, _inplay, _replace, cand_by)
 
         track = _orbt.run(signals, bars_by, today, cfg, regime=regime)
         rs = track.get("risk_state", {})
