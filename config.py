@@ -108,6 +108,11 @@ class Config:
     # Multi-agent LLM trade committee (advisory second opinion on the top actionable signals)
     committee_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("COMMITTEE_ENABLED"), True))
     committee_max_names: int = 6            # cap names sent to the committee (one batched call)
+
+    # --- Real-time ORB executor (always-on runner; PAPER only by default, DISABLED by default) ---
+    live_executor_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("LIVE_EXECUTOR_ENABLED"), False))
+    executor_allow_real: bool = field(default_factory=lambda: _as_bool(os.getenv("LIVE_EXECUTOR_ALLOW_REAL"), False))
+    executor_poll_secs: int = 45            # how often the runner re-checks the watchlist for breakouts
     rsi_overbought: float = 70.0
     rsi_oversold: float = 30.0
 
