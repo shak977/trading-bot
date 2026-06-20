@@ -152,5 +152,51 @@
         "proposal": "Keep accruing; treat current weights as provisional."
       }
     ]
+  },
+  {
+    "generated_at": "2026-06-20 10:12 GMT",
+    "n_actions": 5,
+    "findings": [
+      {
+        "severity": "act",
+        "area": "Daily / swing: regime '\u2014'",
+        "proposal": "Raise the entry bar (or cut size) in the '\u2014' regime."
+      },
+      {
+        "severity": "act",
+        "area": "Intraday: check 'With the market?'",
+        "proposal": "Down-weight or retire 'With the market?' (currently \u00d70.88)."
+      },
+      {
+        "severity": "act",
+        "area": "Intraday: check 'Is it trending down?'",
+        "proposal": "Down-weight or retire 'Is it trending down?' (currently \u00d70.88)."
+      },
+      {
+        "severity": "act",
+        "area": "Intraday: check 'Worth the risk?'",
+        "proposal": "Down-weight or retire 'Worth the risk?' (currently \u00d70.68)."
+      },
+      {
+        "severity": "act",
+        "area": "Intraday: check 'Reward:risk worth it?'",
+        "proposal": "Down-weight or retire 'Reward:risk worth it?' (currently \u00d70.68)."
+      },
+      {
+        "severity": "watch",
+        "area": "Daily / swing: streak",
+        "proposal": "Confirm the no-trade / drawdown guards are doing their job; consider a pause."
+      },
+      {
+        "severity": "watch",
+        "area": "Daily / swing: overall",
+        "proposal": "Verify average win \u2265 ~1.5\u00d7 average loss; if not, tighten signal selectivity."
+      },
+      {
+        "severity": "info",
+        "area": "ORB day-trade: maturity",
+        "proposal": "Keep accruing; treat current weights as provisional."
+      }
+    ]
   }
 ]
