@@ -1,32 +1,34 @@
 {
-  "generated_at": "2026-06-25 10:22 GMT",
+  "generated_at": "2026-06-26 10:35 GMT",
   "buckets": {
     "daily": {
       "label": "Daily / swing",
       "stats": {
-        "logged": 429,
-        "resolved": 126,
-        "decided": 126,
-        "open": 303,
-        "win_rate": 35.7,
+        "logged": 527,
+        "resolved": 227,
+        "decided": 227,
+        "open": 300,
+        "win_rate": 51.1,
         "by_regime": {
           "\u2014": {
-            "n": 37,
-            "win_rate": 0.0
+            "n": 43,
+            "win_rate": 11.6
           },
           "Risk-on": {
-            "n": 89,
-            "win_rate": 50.6
+            "n": 184,
+            "win_rate": 60.3
           }
         },
         "streak": {
-          "kind": "loss",
-          "n": 2
+          "kind": "win",
+          "n": 4
         },
         "learned_weights": {
-          "Are people trading it?": 0.97,
-          "Earnings momentum?": 0.93,
-          "Intraday on side?": 0.86,
+          "News on side?": 1.06,
+          "Are people trading it?": 0.91,
+          "Earnings momentum?": 0.86,
+          "Sector trending right?": 0.82,
+          "Intraday on side?": 0.73,
           "Worth the risk?": 0.5,
           "Reward:risk worth it?": 0.5
         }
@@ -35,11 +37,11 @@
     "intraday": {
       "label": "Intraday",
       "stats": {
-        "logged": 1160,
-        "resolved": 1128,
-        "decided": 1128,
-        "open": 32,
-        "win_rate": 41.6,
+        "logged": 1397,
+        "resolved": 1272,
+        "decided": 1272,
+        "open": 125,
+        "win_rate": 41.0,
         "by_regime": {
           "\u2014": {
             "n": 104,
@@ -50,23 +52,23 @@
             "win_rate": 46.6
           },
           "Neutral": {
-            "n": 792,
-            "win_rate": 40.2
+            "n": 936,
+            "win_rate": 39.5
           }
         },
         "streak": {
           "kind": "loss",
-          "n": 4
+          "n": 6
         },
         "learned_weights": {
-          "Worked here before?": 0.97,
+          "Worked here before?": 0.99,
           "Are people trading it?": 0.95,
-          "Leading the market?": 0.93,
-          "Is it trending up?": 0.9,
-          "Is it trending down?": 0.89,
+          "Leading the market?": 0.95,
+          "Is it trending up?": 0.91,
+          "Is it trending down?": 0.9,
           "With the market?": 0.88,
-          "Worth the risk?": 0.71,
-          "Reward:risk worth it?": 0.71
+          "Worth the risk?": 0.73,
+          "Reward:risk worth it?": 0.73
         }
       }
     },
@@ -87,26 +89,38 @@
   "findings": [
     {
       "severity": "act",
+      "area": "Daily / swing: check 'Earnings momentum?'",
+      "observation": "Win rate 49.3% when it passes vs 63.2% when it fails (edge -14pts) \u2014 it's not separating winners.",
+      "proposal": "Down-weight or retire 'Earnings momentum?' (currently \u00d70.86)."
+    },
+    {
+      "severity": "act",
+      "area": "Daily / swing: check 'Sector trending right?'",
+      "observation": "Win rate 62.3% when it passes vs 80.0% when it fails (edge -18pts) \u2014 it's not separating winners.",
+      "proposal": "Down-weight or retire 'Sector trending right?' (currently \u00d70.82)."
+    },
+    {
+      "severity": "act",
       "area": "Daily / swing: check 'Intraday on side?'",
-      "observation": "Win rate 37.9% when it passes vs 52.0% when it fails (edge -14pts) \u2014 it's not separating winners.",
-      "proposal": "Down-weight or retire 'Intraday on side?' (currently \u00d70.86)."
+      "observation": "Win rate 42.3% when it passes vs 69.7% when it fails (edge -27pts) \u2014 it's not separating winners.",
+      "proposal": "Down-weight or retire 'Intraday on side?' (currently \u00d70.73)."
     },
     {
       "severity": "act",
       "area": "Daily / swing: check 'Worth the risk?'",
-      "observation": "Win rate 0.0% when it passes vs 75.0% when it fails (edge -75pts) \u2014 it's not separating winners.",
+      "observation": "Win rate 10.7% when it passes vs 82.4% when it fails (edge -72pts) \u2014 it's not separating winners.",
       "proposal": "Down-weight or retire 'Worth the risk?' (currently \u00d70.5)."
     },
     {
       "severity": "act",
       "area": "Daily / swing: check 'Reward:risk worth it?'",
-      "observation": "Win rate 0.0% when it passes vs 75.0% when it fails (edge -75pts) \u2014 it's not separating winners.",
+      "observation": "Win rate 4.8% when it passes vs 82.4% when it fails (edge -78pts) \u2014 it's not separating winners.",
       "proposal": "Down-weight or retire 'Reward:risk worth it?' (currently \u00d70.5)."
     },
     {
       "severity": "act",
       "area": "Daily / swing: regime '\u2014'",
-      "observation": "Win rate 0.0% in '\u2014' vs 35.7% overall (37 trades) \u2014 this regime is hostile.",
+      "observation": "Win rate 11.6% in '\u2014' vs 51.1% overall (43 trades) \u2014 this regime is hostile.",
       "proposal": "Raise the entry bar (or cut size) in the '\u2014' regime."
     },
     {
@@ -118,25 +132,19 @@
     {
       "severity": "act",
       "area": "Intraday: check 'Worth the risk?'",
-      "observation": "Win rate 25.3% when it passes vs 54.4% when it fails (edge -29pts) \u2014 it's not separating winners.",
-      "proposal": "Down-weight or retire 'Worth the risk?' (currently \u00d70.71)."
+      "observation": "Win rate 26.0% when it passes vs 52.7% when it fails (edge -27pts) \u2014 it's not separating winners.",
+      "proposal": "Down-weight or retire 'Worth the risk?' (currently \u00d70.73)."
     },
     {
       "severity": "act",
       "area": "Intraday: check 'Reward:risk worth it?'",
-      "observation": "Win rate 25.3% when it passes vs 54.4% when it fails (edge -29pts) \u2014 it's not separating winners.",
-      "proposal": "Down-weight or retire 'Reward:risk worth it?' (currently \u00d70.71)."
-    },
-    {
-      "severity": "watch",
-      "area": "Daily / swing: overall",
-      "observation": "Win rate 35.7% over 126 decided \u2014 below the 40% floor where R:R has to carry it.",
-      "proposal": "Verify average win \u2265 ~1.5\u00d7 average loss; if not, tighten signal selectivity."
+      "observation": "Win rate 26.0% when it passes vs 52.7% when it fails (edge -27pts) \u2014 it's not separating winners.",
+      "proposal": "Down-weight or retire 'Reward:risk worth it?' (currently \u00d70.73)."
     },
     {
       "severity": "watch",
       "area": "Intraday: streak",
-      "observation": "4 resolved losses in a row.",
+      "observation": "6 resolved losses in a row.",
       "proposal": "Confirm the no-trade / drawdown guards are doing their job; consider a pause."
     },
     {
@@ -146,6 +154,6 @@
       "proposal": "Keep accruing; treat current weights as provisional."
     }
   ],
-  "n_actions": 7,
-  "narrative": "**NIGHTLY NOTE**\n\n**Daily/swing:** 35.7% win rate (126 trades) is below sustainable floor; three risk-scoring checks ('Intraday on side?', 'Worth the risk?', 'Reward:risk worth it?') are inverted (passing when they should fail), and the '\u2014' regime is 0% (37 trades). **Intraday:** 41.6% win rate holds, but 'With the market?', 'Worth the risk?', and 'Reward:risk worth it?' are also inverted; 4 consecutive losses flagged. **ORB:** zero live trades\u2014no signal yet.\n\n**Priority changes:**  \n1. **Daily/swing:** Retire or zero 'Worth the risk?' and 'Reward:risk worth it?' weights (currently \u00d70.5 each)\u2014they're screening *into* losers. Down-weight 'Intraday on side?' (\u00d70.86 \u2192 \u00d70.2).  \n2. **Daily/swing:** Raise entry bar or cut size in '\u2014' regime (0% on 37 trades is a kill zone).  \n3. **Intraday:** Zero 'With the market?' (\u00d70.88) and halve 'Worth the risk?' and 'Reward:risk worth it?' (both \u00d70.71 \u2192 \u00d70.35).\n\n**Risk:** Daily/swing at 35.7% needs avg win \u22651.5\u00d7 avg loss to survive\u2014verify this or tighten signal selectivity further."
+  "n_actions": 9,
+  "narrative": "**NIGHTLY NOTE**\n\n**Daily/Swing:** 51.1% win rate on 227 trades, but heavily skewed\u2014Risk-on regime hits 60.3% while unmapped '\u2014' regime crashes to 11.6%; four major signal checks (Earnings momentum, Sector trending, Intraday on side, Worth/Reward:risk) show zero separation and actively harm entry logic.\n\n**Intraday:** 41.0% win rate on 1,272 trades; three checks (With the market, Worth the risk, Reward:risk) are inversely correlated with wins; currently in a 6-loss streak.\n\n**ORB Day-Trade:** No signal yet; hold.\n\n**Top 3 Changes:**\n1. **Daily/Swing:** Retire or zero-weight 'Worth the risk?' and 'Reward:risk worth it?'\u2014both show \u221272 to \u221278pt edges (passing *hurts* your odds). Audit these definitions.\n2. **Daily/Swing:** Raise entry bar or cut position size in unmapped '\u2014' regime (11.6% vs 51.1% baseline). This state is hostile.\n3. **Intraday:** Down-weight or drop 'With the market?', 'Worth the risk?', and 'Reward:risk worth it?'\u2014all show \u221212 to \u221227pt reversals.\n\n**Risk to Watch:** Intraday 6-loss streak; confirm stop/pause guards are active before next session to prevent compounding drawdown."
 }
