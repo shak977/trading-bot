@@ -54414,5 +54414,98 @@
     "regime_score": 0.24,
     "liquidity_tier": "moderate",
     "status": "open"
+  },
+  {
+    "id": "TSLA:2026-06-29",
+    "symbol": "TSLA",
+    "name": "Tesla, Inc. Common Stock",
+    "direction": "SHORT",
+    "advised_date": "2026-06-29",
+    "advised_ts": "2026-06-29",
+    "entry": 412.66,
+    "stop": 433.29,
+    "target": 368.77,
+    "rr": 2.13,
+    "conviction": "Medium",
+    "conviction_pct": 64,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "warn"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "News on side?",
+        "status": "fail"
+      },
+      {
+        "label": "Intraday on side?",
+        "status": "fail"
+      },
+      {
+        "label": "Sector trending right?",
+        "status": "fail"
+      },
+      {
+        "label": "Retail crowding in?",
+        "status": "warn"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "pass"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": 0.24,
+    "liquidity_tier": "very high",
+    "status": "open"
   }
 ]
