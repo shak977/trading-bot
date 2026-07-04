@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-03 09:47 GMT",
+  "generated_at": "2026-07-04 08:13 GMT",
   "buckets": {
     "daily": {
       "label": "Daily / swing",
@@ -166,5 +166,5 @@
     }
   ],
   "n_actions": 9,
-  "narrative": "**Daily/Swing:** 48.6% win rate across 401 trades, but hostile regimes ('\u2014' at 15.8%, 'Neutral' at 32.4%) and four severely inverted checks ('Worth the risk?', 'Reward:risk worth it?', 'Intraday on side?', 'Are people trading it?') are dragging performance\u2014retire or zero-weight these four immediately. **Intraday:** 40% win rate on 2112 trades; three checks ('Worth the risk?', 'Reward:risk worth it?', 'With the market?') show 12\u201325pt negative edges and warrant down-weighting. **ORB:** No signal yet.\n\n**Top three changes:**  \n1. Daily/Swing: Remove or zero 'Worth the risk?' and 'Reward:risk worth it?'\u2014each shows \u221261pt edge; they are actively filtering out winners.  \n2. Daily/Swing: Reduce position size or tighten entry bar in '\u2014' and 'Neutral' regimes (32\u201333pt win-rate deficit each).  \n3. Intraday: Down-weight 'Worth the risk?' and 'Reward:risk worth it?' (\u221225pt edges each).\n\n**Risk to watch:** Daily/Swing's 365 open positions in a regime-hostile environment; if '\u2014' or 'Neutral' regimes dominate the coming window, drawdown could accelerate before changes take effect."
+  "narrative": "**Daily/Swing:** 48.6% win rate across 401 trades; Risk-on regime performs well (56.5%) but '\u2014' and Neutral regimes are hostile (15.8% and 32.4% respectively). **Intraday:** 40.0% win rate on 2112 trades; consistent across regimes but dragged down by weak signal quality. **ORB:** No trades yet; provisional stage.\n\n**Top three changes:**\n\n1. **Daily/Swing: retire or near-zero 'Worth the risk?' and 'Reward:risk worth it?'** \u2014 both show \u221260pt edges (19.7% pass vs 79.7% fail). They're selecting losers, not winners.\n\n2. **Daily/Swing: cut position size in '\u2014' and Neutral regimes** \u2014 15.8% and 32.4% win rates are unsalvageable; raise entry bar or sit out until Risk-on returns.\n\n3. **Intraday: down-weight 'With the market?', 'Worth the risk?', 'Reward:risk worth it?'** \u2014 all show \u221212 to \u221225pt edges; they're noise masking real edge from trending and volume checks.\n\n**Risk to watch:** Daily/Swing relies heavily on trend and news signals (both +18pt edge). If market becomes choppy or news flow dries, you'll lose your only two reliable separators with 365 open positions."
 }
