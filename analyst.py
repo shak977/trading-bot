@@ -177,6 +177,13 @@ def run(cfg=None, write: bool = True) -> dict:
         report = gather(cfg)
     except Exception as e:  # noqa: BLE001
         return {"error": str(e)[:200], "findings": []}
+    # Self-review: grade this run's proposals against the analyst's own history so it learns whether
+    # past calls actually helped (reinforce what worked, walk back what didn't). Additive; never raises.
+    try:
+        import analyst_memory
+        analyst_memory.review(report, {scope: _load(path) for scope, _label, path in _BUCKETS})
+    except Exception:  # noqa: BLE001
+        pass
     # optional LLM narrative — grounded only in the findings we computed
     try:
         if cfg is not None and getattr(cfg, "llm_enabled", False):
