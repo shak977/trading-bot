@@ -3393,6 +3393,12 @@ def render_html(snap: dict) -> str:
   .appbar-right {{ display:flex; align-items:center; gap:10px; }}
   .livepill {{ font-size:12px; color:var(--muted); }}
   .subhead {{ color:var(--muted); font-size:12.5px; margin:0 0 16px; }}
+  .stale-banner {{ border-radius:10px; padding:10px 14px; margin:0 0 12px; font-size:13px; line-height:1.45;
+    border:1px solid; }}
+  .stale-banner.red {{ background:color-mix(in srgb, var(--sell) 14%, transparent);
+    border-color:var(--sell); color:var(--sell); }}
+  .stale-banner.amber {{ background:color-mix(in srgb, #b8860b 12%, transparent);
+    border-color:color-mix(in srgb, #b8860b 45%, transparent); color:var(--txt); }}
   /* ---- KPI summary strip ---- */
   .kpis {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:0 0 18px; }}
   .kpi {{ background:var(--card); border:1px solid var(--hud-edge); border-radius:6px; padding:12px 14px; }}
@@ -3545,6 +3551,7 @@ def render_html(snap: dict) -> str:
     </aside>
     <div class="maincol">
       <nav class="toptabs" id="topTabs"></nav>
+      <div id="staleBanner" class="stale-banner" style="display:none;"></div>
       <div class="subhead">Built {snap['generated_at']} <span id="builtAgo" style="opacity:.7;"></span> &middot; scanned {snap['scanned']} symbols{health_html}{pdrop_html}</div>
       <div class="subhead" id="marketClock" style="margin-top:-9px;opacity:.85;"></div>
       <div class="note" style="margin-top:0;">{mode_note}</div>
@@ -4648,9 +4655,37 @@ if (LIVE_URL) {{ refreshLive(); setInterval(refreshLive, 15000); }}
   const el = document.getElementById('builtAgo');
   const ts = (typeof DATA !== 'undefined' && DATA.generated_ts) ? DATA.generated_ts * 1000 : null;
   if (!el || !ts) return;
+  const banner = document.getElementById('staleBanner');
+  function mktOpen() {{
+    try {{
+      const et = new Date(new Date().toLocaleString('en-US', {{timeZone:'America/New_York'}}));
+      const d = et.getDay(), m = et.getHours()*60 + et.getMinutes();
+      return d >= 1 && d <= 5 && m >= 540 && m < 990;   // ~9:00–16:30 ET (incl. pre/post buffer)
+    }} catch (e) {{ return false; }}
+  }}
+  function fmtAge(m) {{
+    if (m < 60) return m + ' min';
+    const h = Math.floor(m/60), mm = m%60;
+    return h + 'h' + (mm ? ' ' + mm + 'm' : '');
+  }}
   function upd() {{
     const m = Math.max(0, Math.round((Date.now() - ts) / 60000));
     el.textContent = '· ' + (m < 1 ? 'just now' : (m === 1 ? '1 min ago' : m + ' min ago'));
+    if (!banner) return;
+    // Builds run ~every 30 min on a trading day. >90 min during market hours = scheduler likely
+    // skipped runs → the page is STALE and shouldn't be trusted as live. >12h any time = very stale.
+    const open = mktOpen();
+    if (open && m > 90) {{
+      banner.className = 'stale-banner red';
+      banner.style.display = '';
+      banner.innerHTML = `⚠ <b>Data is ${{fmtAge(m)}} old</b> — the rebuild scheduler looks stuck (it should refresh every ~30 min while the market is open). Prices/signals below may be out of date. Trigger a manual run from the repo's Actions tab to refresh.`;
+    }} else if (m > 720) {{
+      banner.className = 'stale-banner amber';
+      banner.style.display = '';
+      banner.innerHTML = `⚠ Data is ${{fmtAge(m)}} old (last build shown above). The market may be closed; this will refresh on the next scheduled run.`;
+    }} else {{
+      banner.style.display = 'none';
+    }}
   }}
   upd(); setInterval(upd, 30000);
 }})();

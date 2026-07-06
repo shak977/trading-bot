@@ -11,6 +11,28 @@
 //   ALPACA_API_KEY, ALPACA_SECRET_KEY
 
 export default {
+  // Cron Trigger: reliably kick the GitHub rebuild (GitHub's own cron is best-effort and
+  // skips runs under load). Configure the schedule in Cloudflare → Worker → Triggers → Cron,
+  // and set secrets GH_TOKEN (fine-grained PAT, Actions: read+write) + optional GH_REPO /
+  // GH_WORKFLOW. No-ops quietly if GH_TOKEN isn't set.
+  async scheduled(event, env, ctx) {
+    if (!env.GH_TOKEN) return;
+    const repo = env.GH_REPO || "shak977/trading-bot";
+    const wf = env.GH_WORKFLOW || "weekly-signals.yml";
+    const url = `https://api.github.com/repos/${repo}/actions/workflows/${wf}/dispatches`;
+    ctx.waitUntil(fetch(url, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${env.GH_TOKEN}`,
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "trading-bot-cron",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ ref: env.GH_BRANCH || "main" }),
+    }).catch(() => {}));
+  },
+
   async fetch(request, env) {
     const cors = {
       "Access-Control-Allow-Origin": "*",
