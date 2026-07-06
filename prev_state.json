@@ -33,7 +33,7 @@
     "MPC": {
       "action": "BUY",
       "label": "High",
-      "score": 89,
+      "score": 88,
       "dir": "LONG"
     },
     "UPS": {
@@ -54,6 +54,12 @@
       "score": 89,
       "dir": "LONG"
     },
+    "AON": {
+      "action": "BUY",
+      "label": "High",
+      "score": 89,
+      "dir": "LONG"
+    },
     "VRTX": {
       "action": "BUY",
       "label": "High",
@@ -69,13 +75,7 @@
     "ABNB": {
       "action": "BUY",
       "label": "High",
-      "score": 84,
-      "dir": "LONG"
-    },
-    "WFC": {
-      "action": "BUY",
-      "label": "High",
-      "score": 90,
+      "score": 86,
       "dir": "LONG"
     },
     "SNOW": {
@@ -84,7 +84,7 @@
       "score": 89,
       "dir": "LONG"
     },
-    "AON": {
+    "WFC": {
       "action": "BUY",
       "label": "High",
       "score": 90,
@@ -105,7 +105,7 @@
     "CNC": {
       "action": "BUY",
       "label": "High",
-      "score": 85,
+      "score": 83,
       "dir": "LONG"
     },
     "DDOG": {
@@ -123,37 +123,37 @@
     "PRU": {
       "action": "BUY",
       "label": "High",
-      "score": 83,
+      "score": 85,
       "dir": "LONG"
     },
     "CIA": {
       "action": "BUY",
       "label": "High",
-      "score": 85,
+      "score": 84,
       "dir": "LONG"
     },
     "AIG": {
       "action": "BUY",
       "label": "High",
-      "score": 83,
+      "score": 78,
       "dir": "LONG"
     },
     "MET": {
       "action": "BUY",
       "label": "High",
-      "score": 88,
+      "score": 87,
       "dir": "LONG"
     },
     "ELV": {
       "action": "BUY",
-      "label": "High",
-      "score": 76,
+      "label": "Medium",
+      "score": 74,
       "dir": "LONG"
     },
     "RTX": {
       "action": "BUY",
       "label": "High",
-      "score": 81,
+      "score": 83,
       "dir": "LONG"
     },
     "LIN": {
@@ -171,7 +171,7 @@
     "MCO": {
       "action": "BUY",
       "label": "High",
-      "score": 78,
+      "score": 79,
       "dir": "LONG"
     },
     "V": {
@@ -183,7 +183,7 @@
     "PANW": {
       "action": "BUY",
       "label": "High",
-      "score": 78,
+      "score": 80,
       "dir": "LONG"
     },
     "SPY": {
@@ -195,7 +195,7 @@
     "LLY": {
       "action": "BUY",
       "label": "High",
-      "score": 82,
+      "score": 81,
       "dir": "LONG"
     },
     "DUK": {
@@ -213,25 +213,25 @@
     "WMB": {
       "action": "BUY",
       "label": "Medium",
-      "score": 71,
+      "score": 67,
       "dir": "LONG"
-    },
-    "ICE": {
-      "action": "WATCH SHORT",
-      "label": "Medium",
-      "score": 63,
-      "dir": "SHORT"
     },
     "HON": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 71,
+      "score": 73,
       "dir": "SHORT"
     },
     "PLTR": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 71,
+      "score": 73,
+      "dir": "SHORT"
+    },
+    "META": {
+      "action": "WATCH SHORT",
+      "label": "Medium",
+      "score": 67,
       "dir": "SHORT"
     },
     "AMT": {
@@ -240,10 +240,10 @@
       "score": 83,
       "dir": "SHORT"
     },
-    "META": {
+    "MSFT": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 68,
+      "score": 65,
       "dir": "SHORT"
     },
     "PFG": {
@@ -261,13 +261,19 @@
     "TTD": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 67,
+      "score": 62,
       "dir": "SHORT"
+    },
+    "CSCO": {
+      "action": "FLAT",
+      "label": "Medium",
+      "score": 74,
+      "dir": "LONG"
     },
     "MRVL": {
       "action": "FLAT",
-      "label": "Medium",
-      "score": 75,
+      "label": "High",
+      "score": 76,
       "dir": "LONG"
     }
   },
@@ -278,19 +284,20 @@
     "Healthcare": 80,
     "Materials": 67,
     "Utilities": 67,
-    "Other / Movers": 63,
+    "Other / Movers": 62,
     "Technology": 62,
     "Consumer": 56,
     "Staples": 56,
-    "Real Estate": 0,
     "Communication": 0,
+    "Real Estate": 0,
     "Energy": 0
   },
   "catalysts": [
+    "MSFT",
     "FTNT",
     "CSCO",
     "MRVL",
-    "TTD"
+    "TRADE"
   ],
   "generated_at": "2026-07-06"
 }
