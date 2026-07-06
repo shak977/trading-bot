@@ -247,6 +247,22 @@ def build_snapshot() -> dict:
                 _ss.add(_r["symbol"])
     shown_syms = [r["symbol"] for r in shown]
 
+    # Learned directional gate: if the book has PROVEN it can't currently trade a whole side
+    # (e.g. shorts getting run over — a wide, well-sampled realised win-rate deficit), stop
+    # surfacing NEW entries in that direction as actionable until it earns its way back. This
+    # acts on the track record itself, not a hardcoded bias; kill-switch via config.
+    dir_gate = {}
+    if getattr(CONFIG, "adaptive_direction_gate_enabled", True):
+        try:
+            import attribution as _attrd
+            dir_gate = _attrd.suppressed_directions(
+                scope="daily",
+                min_n=getattr(CONFIG, "adaptive_direction_min_n", 25),
+                winrate_max=getattr(CONFIG, "adaptive_direction_winrate", 35.0))
+        except Exception:  # noqa: BLE001
+            dir_gate = {}
+    _act_dir = {"BUY": "LONG", "SHORT": "SHORT"}
+
     # Regime filter: don't initiate against a hostile tape. In Risk-off, demote fresh BUYs to
     # the WATCH tier; symmetrically, in Risk-on demote fresh SHORTs — the tool shouldn't fight
     # a strong market-wide direction with a brand-new entry in the opposite direction.
@@ -265,6 +281,19 @@ def build_snapshot() -> dict:
                 r.setdefault("reasons", []).insert(
                     0, "🛑 Market regime is Risk-on — standing down on new shorts; this setup is "
                        "shown as Watch, not a fresh entry against a rising market.")
+
+    # Apply the learned directional gate (after regime, so it catches whatever slipped through).
+    if dir_gate:
+        for r in shown:
+            _d = _act_dir.get(r.get("action"))
+            if _d and _d in dir_gate:
+                _st = dir_gate[_d]
+                r["action"] = "WATCH LONG" if _d == "LONG" else "WATCH SHORT"
+                r["direction_gated"] = True
+                r.setdefault("reasons", []).insert(
+                    0, f"🧠 Learned gate — {_d.lower()}s have only won {_st['win_rate']}% of "
+                       f"{_st['n']} settled trades, so new {_d.lower()}s are shown as Watch, not "
+                       f"fresh entries, until that win rate recovers.")
 
     # Pull news once for everything shown, from MULTIPLE feeds, then bucket per ticker.
     if live:
@@ -491,8 +520,9 @@ def build_snapshot() -> dict:
         try:
             import attribution as _attr
             _mn = CONFIG.adaptive_min_n
-            daily_learned = _attr.learned_weights(scope="daily", min_n=_mn)
-            intraday_learned = _attr.learned_weights(scope="intraday", min_n=_mn)
+            _re = getattr(CONFIG, "adaptive_retire_edge", -15.0)
+            daily_learned = _attr.learned_weights(scope="daily", min_n=_mn, retire_edge=_re)
+            intraday_learned = _attr.learned_weights(scope="intraday", min_n=_mn, retire_edge=_re)
         except Exception:  # noqa: BLE001
             daily_learned, intraday_learned = {}, {}
 
@@ -965,6 +995,10 @@ def build_snapshot() -> dict:
             "daily": {"weights": daily_learned, "report": _attr2.report(scope="daily")},
             "intraday": {"weights": intraday_learned, "report": _attr2.report(scope="intraday")},
             "orb": (orb_payload.get("learned") or {"weights": {}, "report": _attr2.report(scope="orb")}),
+            # retired checks (weight driven to 0) + any direction the learned gate is suppressing
+            "retired": sorted([lbl for lbl, m in daily_learned.items() if m == 0.0]),
+            "direction_edge": _attr2.direction_edge(scope="daily"),
+            "direction_gated": dir_gate,
         }
     except Exception:  # noqa: BLE001 - additive; never break the build
         learned_payload = None

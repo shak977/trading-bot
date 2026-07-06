@@ -94,26 +94,61 @@ def report(scope: str = "all", path: str | None = None) -> list[dict]:
     return attribute(load(path) if path else _rows_for(scope))
 
 
+def direction_edge(scope: str = "daily", path: str | None = None) -> dict:
+    """Realised outcome per DIRECTION (LONG / SHORT) for a strategy scope.
+
+    Returns {"LONG": {"n": decided, "win_rate": pct|None},
+             "SHORT": {"n": decided, "win_rate": pct|None}}. This is how the bot notices a whole
+    side of the book it can't trade (e.g. shorts getting run over in a bull tape) — the direction
+    analogue of the per-check edge above. Read-only; None win_rate until there are decided trades."""
+    rows = load(path) if path else _rows_for(scope)
+    out = {}
+    for d in ("LONG", "SHORT"):
+        decided = [t for t in rows if (t.get("direction") or "LONG") == d and t.get("status") in ("win", "loss")]
+        n = len(decided)
+        wr = round(sum(1 for t in decided if t["status"] == "win") / n * 100, 1) if n else None
+        out[d] = {"n": n, "win_rate": wr}
+    return out
+
+
+def suppressed_directions(scope: str = "daily", path: str | None = None,
+                          min_n: int = 25, winrate_max: float = 35.0) -> dict:
+    """Directions the book has PROVEN it can't currently trade: decided-n >= min_n AND realised
+    win rate <= winrate_max. Returns {DIRECTION: {"n", "win_rate"}} (empty until the evidence is
+    there). The engine uses this to stop surfacing new entries in that direction as actionable."""
+    out = {}
+    for d, s in direction_edge(scope, path).items():
+        if s["n"] >= min_n and s["win_rate"] is not None and s["win_rate"] <= winrate_max:
+            out[d] = s
+    return out
+
+
 def learned_weights(scope: str = "all", path: str | None = None,
-                    min_n: int = 12, max_adj: float = 0.5) -> dict:
+                    min_n: int = 12, max_adj: float = 0.5, retire_edge: float = -15.0) -> dict:
     """Turn the per-check edge into a {label: weight-multiplier} the conviction engine can use to
     ADAPT — checks that have historically predicted winners get up-weighted, those that haven't get
-    down-weighted. This is the bot learning from its own resolved wins vs losses.
+    down-weighted, and checks that have proven ANTI-predictive get RETIRED (weight -> 0). This is
+    the bot learning from its own resolved wins vs losses.
 
     `scope` selects the strategy: "daily" learns only from daily/swing outcomes, "intraday" only
     from intraday outcomes, "all" pools both. Daily and intraday are different strategies, so they
     should each learn from their own book — call with the matching scope per timeframe.
 
     Strictly gated: a check only earns an adjustment once it has at least `min_n` *decided* trades on
-    BOTH the pass and fail sides (so the edge is real, not noise). Multiplier is bounded to
-    1 ± max_adj so no single check can run away. Returns {} until there's enough data — so early on
-    the engine runs on its transparent default weights, exactly as it does today."""
+    BOTH the pass and fail sides (so the edge is real, not noise). Graded multipliers are bounded to
+    1 ± max_adj so no single check can run away. A check whose edge is <= `retire_edge` (i.e. it wins
+    LESS when it passes than when it fails, by a wide, well-sampled margin) is dropped to weight 0 —
+    acting on the analyst's own 'down-weight or retire' finding instead of only reporting it. Returns
+    {} until there's enough data — so early on the engine runs on its transparent default weights."""
     out = {}
     for r in attribute(load(path) if path else _rows_for(scope)):
         edge = r.get("edge")
         n = min(r.get("n_pass", 0), r.get("n_fail", 0))
         if edge is None or n < min_n:
             continue
-        mult = 1.0 + max(-max_adj, min(max_adj, edge / 100.0))
-        out[r["label"]] = round(mult, 2)
+        if edge <= retire_edge:
+            out[r["label"]] = 0.0          # proven anti-predictive -> retire it
+        else:
+            mult = 1.0 + max(-max_adj, min(max_adj, edge / 100.0))
+            out[r["label"]] = round(mult, 2)
     return out

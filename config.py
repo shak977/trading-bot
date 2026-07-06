@@ -229,6 +229,16 @@ class Config:
     # --- Adaptive learning: reweight conviction checks by their realised win/loss edge ---
     adaptive_weights_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("ADAPTIVE_WEIGHTS_ENABLED"), True))
     adaptive_min_n: int = 12            # min decided trades per side before a check's weight adapts
+    adaptive_retire_edge: float = -15.0  # a check whose pass-vs-fail edge is <= this (pp) and is well-sampled
+                                         # is RETIRED (weight->0): it has proven anti-predictive, so it should
+                                         # stop inflating conviction. Set to a large negative to disable retirement.
+
+    # --- Adaptive learning: gate a whole DIRECTION the book has proven it can't trade ---
+    # If, say, the short book's realised win rate is provably poor, stop surfacing NEW shorts as
+    # actionable (demote to Watch) until they earn their way back. Strictly gated + kill-switch.
+    adaptive_direction_gate_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("ADAPTIVE_DIRECTION_GATE"), True))
+    adaptive_direction_min_n: int = 25       # min decided trades in a direction before it can be gated
+    adaptive_direction_winrate: float = 35.0  # realised win% at/below which that direction is suppressed
 
     # --- No-trade intelligence layer (sit on your hands when conditions are poor) ---
     notrade_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("NOTRADE_ENABLED"), True))
