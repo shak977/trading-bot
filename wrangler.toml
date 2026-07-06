@@ -3,3 +3,9 @@
 name = "trading-bot"
 main = "worker.js"
 compatibility_date = "2024-11-01"
+
+# Cron Trigger: every 30 min, Mon–Fri, ~pre-market through the US close (UTC).
+# Fires the Worker's scheduled() handler, which kicks a GitHub rebuild via
+# workflow_dispatch — reliable backup for GitHub's own best-effort cron.
+[triggers]
+crons = ["*/30 10-21 * * 1-5"]
