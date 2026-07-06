@@ -4133,10 +4133,22 @@ document.addEventListener('mouseout', e => {{
 
 const diag = document.getElementById('diag');
 if ((DATA.diagnostics||[]).length) {{
-  diag.innerHTML = '<div style="background:#3a1e1e;border:1px solid #5a1e1e;color:#ff9b9b;'
-    + 'border-radius:10px;padding:14px;margin:8px 0 18px;font-size:13px;">'
-    + '<b>No signals to show.</b> Diagnostic:<br>'
-    + DATA.diagnostics.map(e => '&bull; '+e).join('<br>') + '</div>';
+  const _hasSignals = (DATA.signals||[]).length > 0;
+  if (_hasSignals) {{
+    // Signals exist — a few symbols just failed to fetch (e.g. delisted/units). Show a
+    // muted, collapsible note instead of a scary "no signals" banner.
+    const n = DATA.diagnostics.length;
+    diag.innerHTML = '<details style="background:var(--card,#1a1a1a);border:1px solid var(--bd,#333);'
+      + 'color:var(--muted,#9aa);border-radius:10px;padding:10px 14px;margin:8px 0 14px;font-size:12px;">'
+      + '<summary style="cursor:pointer;">&#9888; ' + n + ' symbol' + (n>1?'s':'')
+      + ' skipped this run (data unavailable)</summary><div style="margin-top:8px;">'
+      + DATA.diagnostics.map(e => '&bull; '+e).join('<br>') + '</div></details>';
+  }} else {{
+    diag.innerHTML = '<div style="background:#3a1e1e;border:1px solid #5a1e1e;color:#ff9b9b;'
+      + 'border-radius:10px;padding:14px;margin:8px 0 18px;font-size:13px;">'
+      + '<b>No signals to show.</b> Diagnostic:<br>'
+      + DATA.diagnostics.map(e => '&bull; '+e).join('<br>') + '</div>';
+  }}
 }}
 const cards = document.getElementById('cards');
 // Small "first seen" age chip for a card (powered by the persisted first_seen date).

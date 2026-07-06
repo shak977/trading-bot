@@ -196,6 +196,20 @@ def relative_volume(df: pd.DataFrame, window: int) -> float:
     return float(df["volume"].iloc[-1] / avg)
 
 
+import re as _re
+
+# A tradable US-equity symbol is uppercase letters, optionally with a dot class/unit
+# suffix (BRK.B, AAC.U). Screeners occasionally emit junk like "AAC'U" (units/warrants
+# with a stray apostrophe) that the market-data API rejects as "invalid symbol" — filter
+# those out here so one bad ticker can't pollute the run's diagnostics.
+_SYM_RE = _re.compile(r"^[A-Z]{1,5}(?:\.[A-Z]{1,2})?$")
+
+
+def _clean_symbol(s: str) -> str:
+    s = (s or "").strip().upper()
+    return s if _SYM_RE.match(s) else ""
+
+
 def build_universe(cfg: Config) -> list[str]:
     # Core quality names first (so they always get analysed), then the day's movers.
     syms: list[str] = list(CORE_WATCHLIST)
@@ -212,10 +226,11 @@ def build_universe(cfg: Config) -> list[str]:
         pass
     if not syms:
         syms = list(_FALLBACK)
-    # dedupe preserving order, cap
+    # dedupe preserving order, drop malformed tickers, cap
     seen, uniq = set(), []
     for s in syms:
-        if s not in seen:
+        s = _clean_symbol(s)
+        if s and s not in seen:
             seen.add(s)
             uniq.append(s)
     return uniq[: cfg.max_candidates]
