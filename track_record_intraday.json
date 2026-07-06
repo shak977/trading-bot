@@ -190945,7 +190945,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "loss",
+    "exit": 299.31,
+    "exit_date": "2026-07-06",
+    "return_pct": -0.15,
+    "days_held": -1
   },
   {
     "id": "FISN:2026-07-06",
@@ -191174,6 +191178,87 @@
       {
         "label": "Reward:risk worth it?",
         "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "CRNX:2026-07-06",
+    "symbol": "CRNX",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-06",
+    "advised_ts": "2026-07-06T21:03:54.915196",
+    "entry": 83.88,
+    "stop": 79.69,
+    "target": 96.46,
+    "rr": 3.0,
+    "conviction": "High",
+    "conviction_pct": 76,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "warn"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
       }
     ],
     "tv_align": null,
