@@ -18,7 +18,9 @@ _site/
 # Scratch / tooling (never commit)
 _check.js
 _check*.js
-.claude/
+# ignore local Claude settings, but DO version installed skills (sync across machines)
+.claude/*
+!.claude/skills/
 .wrangler/
 # cloned third-party sources (e.g. tradermonty/claude-trading-skills)
 vendor/

@@ -302,6 +302,13 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
     factors["short_confluence"] = bear["count"]
     factors["short_total"] = bear["total"]
     factors["strategies_short"] = bear["short"]
+    # Minervini VCP (ported from the vcp-screener skill): a long-only quality confirmation, stored
+    # on factors so it survives re-scoring and flows into the self-adapting conviction checklist.
+    try:
+        import screens
+        factors["vcp"] = screens.vcp_setup(df)
+    except Exception:  # noqa: BLE001 - additive; never fail a scan on the screen
+        factors["vcp"] = None
 
     plan, context = _trade_plan(df, sig, cfg, price, equity, direction)
     conviction = _conviction(action, direction, float(last["rsi"]), rv_rounded, plan, context, cfg,
@@ -1096,6 +1103,20 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
         else:
             add("Reward:risk worth it?", "fail",
                 f"Target is just {rr:.1f}x the risk — the nearest level is closer than the stop, a poor payoff.")
+
+    # Minervini VCP confirmation (long only). Only fires for names already in a Stage-2 uptrend, so
+    # it REWARDS a tight breakout-ready base rather than penalising every non-VCP long. Like every
+    # check it's subject to the learned-weight loop, so if it doesn't predict winners it self-retires.
+    vcpd = (factors or {}).get("vcp")
+    if not short and isinstance(vcpd, dict) and vcpd.get("stage2"):
+        if vcpd.get("status") == "pass":
+            add("VCP base setup?", "pass",
+                f"Yes — a Minervini VCP in a Stage-2 uptrend, {str(vcpd.get('state','')).lower()} under "
+                f"the ${vcpd.get('pivot')} pivot across {vcpd.get('num_contractions')} contractions.")
+        else:
+            add("VCP base setup?", "warn",
+                f"Building — Stage-2 uptrend (trend score {vcpd.get('trend_score')}) but not yet a tight, "
+                "breakout-ready VCP base.")
 
     pts = {"pass": 1.0, "warn": 0.5, "fail": 0.0}
     wsum = sum(c.get("weight", 1.0) for c in checks)
