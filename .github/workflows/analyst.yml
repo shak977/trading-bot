@@ -29,6 +29,11 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python analyst.py | tee analyst_out.txt
+      - name: Run the alpha benchmark (long book vs SPY)
+        continue-on-error: true
+        env:
+          LIVE_QUOTES_URL: ${{ secrets.LIVE_QUOTES_URL }}
+        run: python benchmark.py | tee -a analyst_out.txt
       - name: Publish to the job summary
         run: |
           echo "### Nightly analyst" >> "$GITHUB_STEP_SUMMARY"
@@ -40,7 +45,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add analyst_report.json analyst_history.json analyst_memory.json
+          git add analyst_report.json analyst_history.json analyst_memory.json benchmark.json benchmark_history.json
           git diff --staged --quiet && exit 0
           git commit -m "nightly analyst report [skip ci]"
           git pull --rebase --autostash origin main || true
