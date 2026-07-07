@@ -147,7 +147,8 @@ def _setup_check_weights(study: dict | None) -> dict:
     out = {}
     if not study:
         return out
-    for key, label in (("burst", "Momentum burst?"), ("ep", "Episodic pivot?")):
+    for key, label in (("burst", "Momentum burst?"), ("ep", "Episodic pivot?"),
+                       ("vcp", "VCP base setup?")):
         s = (study.get("setups") or {}).get(key) or {}
         edge, n = s.get("edge_pct"), s.get("n", 0)
         if edge is None or n < 40:            # not enough fires yet to trust the edge
@@ -2085,7 +2086,7 @@ def _setup_study_html(st: dict | None) -> str:
     H = st.get("primary_horizon", 10)
     base = (st.get("baseline") or {}).get(str(H)) or {}
     rows = ""
-    for key in ("burst", "ep"):
+    for key in ("burst", "ep", "vcp"):
         s = (st.get("setups") or {}).get(key)
         if not s:
             continue

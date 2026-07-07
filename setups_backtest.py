@@ -48,7 +48,8 @@ def walk_symbol(df, horizons=(5, 10, 20), warmup: int = WARMUP) -> dict:
     hmax = max(horizons)
     buckets = {"baseline": {h: [] for h in horizons},
                "burst": {h: [] for h in horizons},
-               "ep": {h: [] for h in horizons}}
+               "ep": {h: [] for h in horizons},
+               "vcp": {h: [] for h in horizons}}
     for i in range(warmup, n - hmax):
         if not c[i]:
             continue
@@ -68,13 +69,20 @@ def walk_symbol(df, horizons=(5, 10, 20), warmup: int = WARMUP) -> dict:
                     buckets["ep"][h].append(fwd[h])
         except Exception:  # noqa: BLE001
             pass
+        try:
+            # VCP "pass" = a Stage-2 name at a tight, breakout-ready base (the actionable read)
+            if screens.vcp_setup(window).get("status") == "pass":
+                for h in horizons:
+                    buckets["vcp"][h].append(fwd[h])
+        except Exception:  # noqa: BLE001
+            pass
     return buckets
 
 
 def _pool(a: dict, b: dict, horizons) -> dict:
     """Concatenate two per-symbol bucket dicts."""
     out = {k: {h: list(a.get(k, {}).get(h, [])) + list(b.get(k, {}).get(h, [])) for h in horizons}
-           for k in ("baseline", "burst", "ep")}
+           for k in ("baseline", "burst", "ep", "vcp")}
     return out
 
 
@@ -91,7 +99,8 @@ def summarize(buckets, horizons=HORIZONS) -> dict:
     H = horizons[1] if len(horizons) > 1 else horizons[0]
     base = {str(h): _agg(buckets["baseline"][h]) for h in horizons}
     out = {"baseline": base, "horizons": list(horizons), "primary_horizon": H, "setups": {}}
-    for key, label in (("burst", "Momentum Burst"), ("ep", "Episodic Pivot (technical)")):
+    for key, label in (("burst", "Momentum Burst"), ("ep", "Episodic Pivot (technical)"),
+                       ("vcp", "VCP (Minervini)")):
         stats = {str(h): _agg(buckets[key][h]) for h in horizons}
         setu = stats[str(H)].get("mean_pct")
         basu = base[str(H)].get("mean_pct")
