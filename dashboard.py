@@ -896,6 +896,17 @@ def build_snapshot() -> dict:
             for r in shown:
                 if r["symbol"] in committee_verdicts:
                     r["committee"] = committee_verdicts[r["symbol"]]
+                    # Re-score so the AI committee's vote actually COUNTS toward conviction (it's
+                    # computed after the main scoring pass). The check is then graded by attribution
+                    # like any other, so the AI earns its influence from real outcomes.
+                    if getattr(CONFIG, "committee_conviction_enabled", True):
+                        try:
+                            scanner.rescore(r, CONFIG, sentiment=r.get("sentiment"),
+                                            fundamentals=r.get("fundamentals"), tv=r.get("tv"),
+                                            regime=regime, intraday=r.get("intraday_sig"),
+                                            learned=daily_learned, committee=r["committee"])
+                        except Exception:  # noqa: BLE001
+                            pass
         except Exception:  # noqa: BLE001
             committee_verdicts = {}
 

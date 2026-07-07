@@ -768,6 +768,54 @@ def test_regime_confluence():
         ("Right setups for this tape?" in labels) or (len((row.get("factors") or {}).get("confluence_kinds") or []) < 2))
 
 
+def test_wyckoff_vsa():
+    print("Wyckoff VSA (smart-money footprint):")
+    import numpy as np, pandas as pd
+    import screens
+    def b(o, h, l, c, v): return pd.DataFrame({"open": o, "high": h, "low": l, "close": c, "volume": v})
+    n = 30
+    base = [50 + np.sin(i) * 0.4 for i in range(n)]
+    # absorption / stopping volume: last bar huge volume, NARROW range, closes strong, down day
+    o = list(base); h = [x + 0.4 for x in base]; l = [x - 0.4 for x in base]; c = list(base); v = [1e6] * n
+    c[-1] = base[-2] * 0.999                    # tiny down close
+    h[-1] = c[-1] + 0.05; l[-1] = c[-1] - 0.05  # very narrow range
+    v[-1] = 3.5e6                               # 3.5x volume
+    w = screens.wyckoff_vsa(b(o, h, l, c, v))
+    _ok("absorption flagged as accumulation", w["signal"] == "accumulation" and w["score"] > 0)
+    # upthrust: huge volume, WIDE up-bar, closes weak (near low) = distribution
+    o2 = list(base); c2 = list(base); v2 = [1e6] * n
+    c2[-1] = base[-2] * 1.002
+    h2 = [x + 0.4 for x in base]; h2[-1] = c2[-1] + 2.0        # wide range
+    l2 = [x - 0.4 for x in base]; l2[-1] = c2[-1] - 0.1        # closes near the low
+    v2[-1] = 3.0e6
+    _ok("upthrust flagged as distribution", screens.wyckoff_vsa(b(o2, h2, l2, c2, v2))["signal"] == "distribution")
+    # calm name: no footprint
+    q = [50 + i * 0.05 for i in range(n)]
+    _ok("quiet tape shows no footprint", screens.wyckoff_vsa(b(q, q, q, q, [1e6] * n))["signal"] is None)
+
+
+def test_committee_vote():
+    print("AI committee vote (counted + tracked):")
+    import scanner
+    from data import synthetic_bars
+    from config import CONFIG
+    row = scanner._analyse("MSFT", synthetic_bars("MSFT", n=CONFIG.lookback_days), CONFIG, CONFIG.starting_cash)
+    row["direction"] = "LONG"; row["action"] = "BUY"
+    # accept + 4/4 support -> a 'pass' check the tracker will grade
+    scanner.rescore(row, CONFIG, committee={"verdict": "accept", "support": 4, "against": 0,
+                                            "confidence": 80, "summary": "clean setup"})
+    checks = {c["label"]: c for c in row["conviction"]["checks"]}
+    _ok("committee check present + counted", "AI committee agrees?" in checks)
+    _ok("accept + high support => pass", checks["AI committee agrees?"]["status"] == "pass")
+    scanner.rescore(row, CONFIG, committee={"verdict": "reject", "support": 0, "against": 3,
+                                            "confidence": 70, "summary": "red flags"})
+    _ok("reject => fail", {c["label"]: c for c in row["conviction"]["checks"]}["AI committee agrees?"]["status"] == "fail")
+    import dataclasses
+    off = dataclasses.replace(CONFIG, committee_conviction_enabled=False)
+    scanner.rescore(row, off, committee={"verdict": "accept", "support": 4})
+    _ok("disabled => no committee check", "AI committee agrees?" not in [c["label"] for c in row["conviction"]["checks"]])
+
+
 def test_performance_metrics():
     print("performance & risk metrics:")
     import metrics
@@ -844,6 +892,8 @@ def main():
     test_setup_weighting_and_findings()
     test_loss_streak_cooldown()
     test_regime_confluence()
+    test_wyckoff_vsa()
+    test_committee_vote()
     test_performance_metrics()
     print("\nALL TESTS PASSED")
 

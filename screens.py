@@ -425,6 +425,58 @@ def parabolic_short(df: pd.DataFrame) -> dict:
         return out
 
 
+def wyckoff_vsa(df: pd.DataFrame) -> dict:
+    """Wyckoff Volume-Spread Analysis (adapted from Scientia, re-derived thresholds): read
+    institutional accumulation/distribution footprints from the relationship between volume, the
+    bar's spread (high−low), and where it closed. The tell is effort-vs-result — e.g. huge volume
+    with a narrow range that closes strong means big buyers are absorbing all the supply. Returns
+    {signal: accumulation|distribution, event, score} or a neutral dict. Pure; never raises."""
+    out = {"signal": None, "event": None, "score": 0}
+    try:
+        if df is None or len(df) < 25:
+            return out
+        h = df["high"].to_numpy(float)
+        lo = df["low"].to_numpy(float)
+        c = df["close"].to_numpy(float)
+        v = df["volume"].to_numpy(float)
+        rng = h - lo
+        vol_sma20 = float(np.mean(v[-21:-1]))
+        rng_sma20 = float(np.mean(rng[-21:-1]))
+        rng_sma10 = float(np.mean(rng[-11:-1]))
+        prev2_v = float(np.mean(v[-3:-1]))
+        cv, cr = v[-1], rng[-1]
+        if not (vol_sma20 and rng_sma20):
+            return out
+        up = c[-1] > c[-2]
+        down = c[-1] < c[-2]
+        close_loc = (c[-1] - lo[-1]) / cr if cr > 0 else 0.5   # 1 = closed at high, 0 = at low
+        events = []   # (signal, event, score)
+        # Stopping volume / absorption: heavy volume, narrow spread, closes strong = demand soaking supply
+        if cv > 2 * vol_sma20 and cr < 0.5 * rng_sma20 and close_loc >= 0.5:
+            events.append(("accumulation", "stopping volume / absorption", 72))
+        # Selling climax: very heavy volume, wide down-bar that closes well off its low
+        if cv > 2.5 * vol_sma20 and down and cr > 1.5 * rng_sma20 and close_loc >= 0.5:
+            events.append(("accumulation", "selling climax", 66))
+        # No-supply: down-bar on light volume + narrow spread = sellers exhausted (bullish)
+        if down and cv < prev2_v and cr < 0.7 * rng_sma10:
+            events.append(("accumulation", "no-supply", 55))
+        # Upthrust: heavy volume, wide up-bar that closes weak (off its high) = supply hitting bids
+        if cv > 2 * vol_sma20 and up and cr > 1.5 * rng_sma20 and close_loc < 0.4:
+            events.append(("distribution", "upthrust (weak close)", 66))
+        # No-demand: up-bar on light volume + narrow spread = no buying interest (bearish)
+        if up and cv < prev2_v and cr < 0.7 * rng_sma10:
+            events.append(("distribution", "no-demand", 55))
+        if not events:
+            return out
+        best = max(events, key=lambda e: e[2])
+        return {"signal": best[0], "event": best[1], "score": best[2],
+                "vol_x": float(round(cv / vol_sma20, 2)) if vol_sma20 else None,
+                "range_x": float(round(cr / rng_sma20, 2)) if rng_sma20 else None,
+                "close_loc": float(round(close_loc * 100, 1))}
+    except Exception:  # noqa: BLE001
+        return out
+
+
 def reclassify_ep(ep: dict, has_news: bool, headline: str | None) -> dict:
     """Re-score a stored (technical-only) Episodic Pivot with a real catalyst once the news pipeline
     has a headline for the name. Reuses the technical base_score; only the catalyst component and

@@ -321,8 +321,9 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
         factors["burst"] = screens.momentum_burst(df)
         factors["ep"] = screens.episodic_pivot(df, has_news=False)
         factors["pshort"] = screens.parabolic_short(df)      # short-only exhaustion candidate
+        factors["wyckoff"] = screens.wyckoff_vsa(df)         # accumulation/distribution VSA footprint
     except Exception:  # noqa: BLE001
-        factors["burst"] = factors["ep"] = factors["pshort"] = None
+        factors["burst"] = factors["ep"] = factors["pshort"] = factors["wyckoff"] = None
 
     plan, context = _trade_plan(df, sig, cfg, price, equity, direction)
     conviction = _conviction(action, direction, float(last["rsi"]), rv_rounded, plan, context, cfg,
@@ -669,7 +670,7 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: st
 
 def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 factors=None, patterns=None, edge=None,
-                sentiment=None, fundamentals=None, price=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None, retail=None, liquidity=None, learned=None):
+                sentiment=None, fundamentals=None, price=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None, retail=None, liquidity=None, learned=None, committee=None):
     """Auto-scored pre-entry checklist, direction-aware. Each check is pass/warn/fail.
 
     For a LONG it asks the bullish questions (trending up? room to rise?); for a SHORT it
@@ -769,6 +770,28 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 add("Right setups for this tape?", "fail",
                     f"No — the firing strategies suit a different regime than this {reg_lbl} tape (regime-fit {int(fit*100)}%); "
                     "the setups may whipsaw here.")
+
+    # AI trade committee vote (counted + tracked): four LLM analyst roles + a chair debate the setup.
+    # This makes the AI vote actually COUNT toward conviction — and because it's a normal check, the
+    # attribution loop grades it against real outcomes, so its influence is earned: if the committee
+    # stops predicting winners it self-retires; if it predicts, it earns weight. Advisory, not a veto
+    # — the rules risk engine keeps final say.
+    if getattr(cfg, "committee_conviction_enabled", True) and isinstance(committee, dict) and committee.get("verdict"):
+        _v = committee.get("verdict")
+        _sup = committee.get("support", 0)
+        _conf = committee.get("confidence", 50)
+        _w = float(getattr(cfg, "committee_conviction_weight", 1.0))
+        if _v == "accept" and _sup >= 3:
+            add("AI committee agrees?", "pass",
+                f"Yes — the trade committee accepts ({_sup}/4 analysts support, {_conf}% confidence): "
+                f"{committee.get('summary','')}", _w)
+        elif _v == "reject" or committee.get("against", 0) >= 2:
+            add("AI committee agrees?", "fail",
+                f"No — the committee rejects ({committee.get('against',0)}/4 against): {committee.get('summary','')}", _w)
+        else:
+            add("AI committee agrees?", "warn",
+                f"Mixed — the committee is split ({_sup}/4 for, {committee.get('against',0)}/4 against): "
+                f"{committee.get('summary','')}", _w)
 
     if short:
         if rsi <= cfg.rsi_oversold:
@@ -1170,6 +1193,21 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 f"Extended (+{psh.get('ret5_pct')}% in 5d, {psh.get('atr_ext')} ATR stretched) but still in "
                 "markup — wait for the first crack before shorting a climbing parabola.")
 
+    # Wyckoff VSA (both directions): a smart-money footprint in the volume/spread. Accumulation
+    # events (absorption, no-supply, selling climax) confirm a long; distribution events (upthrust,
+    # no-demand) confirm a short. Self-retires via the learned loop if it doesn't predict.
+    wy = (factors or {}).get("wyckoff")
+    if isinstance(wy, dict) and wy.get("signal"):
+        _want = "accumulation" if not short else "distribution"
+        if wy["signal"] == _want:
+            add("Smart-money footprint?", "pass",
+                f"Yes — {wy.get('event')} on {wy.get('vol_x')}x volume (Wyckoff {wy['signal']}) — "
+                f"institutional {'buying' if not short else 'selling'} showing in the tape.")
+        else:
+            add("Smart-money footprint?", "warn",
+                f"Against — the tape shows {wy.get('event')} ({wy['signal']}), the opposite of what this "
+                f"{'long' if not short else 'short'} wants.")
+
     # Stockbee Momentum Burst (long only): a sharp 3-5 day expansion out of a tight base. Rewards a
     # clean A/B breakout on volume; self-retires via the learned-weight loop if it stops predicting.
     burst = (factors or {}).get("burst")
@@ -1205,7 +1243,7 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             "earnings_days": ed, "earnings_gated": gated}
 
 
-def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None, retail=None, liquidity=None, learned=None) -> None:
+def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None, retail=None, liquidity=None, learned=None, committee=None) -> None:
     """Recompute conviction + desk read for a shown row once research is fetched."""
     direction = row.get("direction", "LONG")
     _apply_fundamental_cap(row.get("plan"), fundamentals, cfg)
@@ -1214,7 +1252,8 @@ def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, 
                        sentiment=sentiment, fundamentals=fundamentals, price=row.get("price"), tv=tv,
                        regime=regime, insider=insider, buzz=buzz, news_idea=news_idea, intraday=intraday,
                        sector_pct=sector_pct, short_interest=short_interest, retail=retail,
-                       liquidity=liquidity if liquidity is not None else row.get("liquidity"), learned=learned)
+                       liquidity=liquidity if liquidity is not None else row.get("liquidity"), learned=learned,
+                       committee=committee if committee is not None else row.get("committee"))
     row["conviction"] = conv
     row["desk_read"] = _desk_read(row["action"], direction, row["plan"], row["context"], conv,
                                   row.get("patterns"), row.get("edge"),

@@ -108,6 +108,8 @@ class Config:
     # Multi-agent LLM trade committee (advisory second opinion on the top actionable signals)
     committee_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("COMMITTEE_ENABLED"), True))
     committee_max_names: int = 6            # cap names sent to the committee (one batched call)
+    committee_conviction_enabled: bool = True   # the AI committee's vote counts toward conviction (and is graded by attribution)
+    committee_conviction_weight: float = 1.0    # base weight of the committee check (the learned loop re-weights it from outcomes)
 
     # --- Real-time ORB executor (always-on runner; PAPER only by default, DISABLED by default) ---
     live_executor_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("LIVE_EXECUTOR_ENABLED"), False))
