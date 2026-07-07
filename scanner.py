@@ -316,8 +316,9 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
         import screens
         factors["burst"] = screens.momentum_burst(df)
         factors["ep"] = screens.episodic_pivot(df, has_news=False)
+        factors["pshort"] = screens.parabolic_short(df)      # short-only exhaustion candidate
     except Exception:  # noqa: BLE001
-        factors["burst"] = factors["ep"] = None
+        factors["burst"] = factors["ep"] = factors["pshort"] = None
 
     plan, context = _trade_plan(df, sig, cfg, price, equity, direction)
     conviction = _conviction(action, direction, float(last["rsi"]), rv_rounded, plan, context, cfg,
@@ -1126,6 +1127,21 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             add("VCP base setup?", "warn",
                 f"Building — Stage-2 uptrend (trend score {vcpd.get('trend_score')}) but not yet a tight, "
                 "breakout-ready VCP base.")
+
+    # Parabolic exhaustion (short only): a blow-off that's cracking. Only rewards conviction once the
+    # move actually breaks (state=actionable) — while it's still in markup it's a WARN, never a green
+    # light, because shorting a still-climbing parabola is the fastest way to lose. Self-retires via
+    # the learned-weight loop if it doesn't predict.
+    psh = (factors or {}).get("pshort")
+    if short and isinstance(psh, dict) and psh.get("state"):
+        if psh.get("state") == "actionable":
+            add("Parabolic exhaustion?", "pass",
+                f"Yes — a parabolic blow-off (+{psh.get('ret5_pct')}% in 5d, {psh.get('atr_ext')} ATR above "
+                f"its 20-day line) is cracking on {psh.get('vol_ratio')}x volume — textbook exhaustion short.")
+        else:
+            add("Parabolic exhaustion?", "warn",
+                f"Extended (+{psh.get('ret5_pct')}% in 5d, {psh.get('atr_ext')} ATR stretched) but still in "
+                "markup — wait for the first crack before shorting a climbing parabola.")
 
     # Stockbee Momentum Burst (long only): a sharp 3-5 day expansion out of a tight base. Rewards a
     # clean A/B breakout on volume; self-retires via the learned-weight loop if it stops predicting.

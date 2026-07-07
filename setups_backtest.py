@@ -49,7 +49,8 @@ def walk_symbol(df, horizons=(5, 10, 20), warmup: int = WARMUP) -> dict:
     buckets = {"baseline": {h: [] for h in horizons},
                "burst": {h: [] for h in horizons},
                "ep": {h: [] for h in horizons},
-               "vcp": {h: [] for h in horizons}}
+               "vcp": {h: [] for h in horizons},
+               "pshort": {h: [] for h in horizons}}
     for i in range(warmup, n - hmax):
         if not c[i]:
             continue
@@ -76,22 +77,32 @@ def walk_symbol(df, horizons=(5, 10, 20), warmup: int = WARMUP) -> dict:
                     buckets["vcp"][h].append(fwd[h])
         except Exception:  # noqa: BLE001
             pass
+        try:
+            # Parabolic exhaustion SHORT: record the forward return; profit for a short = it falls
+            if screens.parabolic_short(window).get("valid"):
+                for h in horizons:
+                    buckets["pshort"][h].append(fwd[h])
+        except Exception:  # noqa: BLE001
+            pass
     return buckets
 
 
 def _pool(a: dict, b: dict, horizons) -> dict:
     """Concatenate two per-symbol bucket dicts."""
     out = {k: {h: list(a.get(k, {}).get(h, [])) + list(b.get(k, {}).get(h, [])) for h in horizons}
-           for k in ("baseline", "burst", "ep", "vcp")}
+           for k in ("baseline", "burst", "ep", "vcp", "pshort")}
     return out
 
 
-def _agg(vals):
+def _agg(vals, short: bool = False):
+    """Aggregate forward returns. `hit_rate` is the fraction that went the setup's way — up for a
+    long, down for a short."""
     if not vals:
         return {"n": 0, "mean_pct": None, "hit_rate": None}
     x = np.array(vals, float)
+    hits = (x < 0).mean() if short else (x > 0).mean()
     return {"n": len(x), "mean_pct": round(float(x.mean()) * 100, 3),
-            "hit_rate": round(float((x > 0).mean()) * 100, 1)}
+            "hit_rate": round(float(hits) * 100, 1)}
 
 
 def summarize(buckets, horizons=HORIZONS) -> dict:
@@ -99,22 +110,29 @@ def summarize(buckets, horizons=HORIZONS) -> dict:
     H = horizons[1] if len(horizons) > 1 else horizons[0]
     base = {str(h): _agg(buckets["baseline"][h]) for h in horizons}
     out = {"baseline": base, "horizons": list(horizons), "primary_horizon": H, "setups": {}}
-    for key, label in (("burst", "Momentum Burst"), ("ep", "Episodic Pivot (technical)"),
-                       ("vcp", "VCP (Minervini)")):
-        stats = {str(h): _agg(buckets[key][h]) for h in horizons}
+    specs = (("burst", "Momentum Burst", "long"), ("ep", "Episodic Pivot (technical)", "long"),
+             ("vcp", "VCP (Minervini)", "long"), ("pshort", "Parabolic Short", "short"))
+    for key, label, direction in specs:
+        stats = {str(h): _agg(buckets[key][h], short=(direction == "short")) for h in horizons}
         setu = stats[str(H)].get("mean_pct")
         basu = base[str(H)].get("mean_pct")
-        edge = round(setu - basu, 3) if (setu is not None and basu is not None) else None
-        out["setups"][key] = {"label": label, "stats": stats, "edge_pct": edge,
-                              "n": stats[str(H)].get("n", 0)}
+        # directional edge: a short profits when its forward return is BELOW baseline.
+        if setu is None or basu is None:
+            edge = None
+        else:
+            edge = round((basu - setu) if direction == "short" else (setu - basu), 3)
+        out["setups"][key] = {"label": label, "direction": direction, "stats": stats,
+                              "edge_pct": edge, "n": stats[str(H)].get("n", 0)}
     out["verdict"] = _verdict(out, H)
     return out
 
 
 def _verdict(summary: dict, H: int) -> str:
     parts = []
-    for key in ("burst", "ep"):
+    for key in ("burst", "ep", "vcp", "pshort"):
         s = summary["setups"].get(key, {})
+        if not s:
+            continue
         edge = s.get("edge_pct")
         n = s.get("n", 0)
         if edge is None or n < 20:

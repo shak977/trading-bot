@@ -148,7 +148,7 @@ def _setup_check_weights(study: dict | None) -> dict:
     if not study:
         return out
     for key, label in (("burst", "Momentum burst?"), ("ep", "Episodic pivot?"),
-                       ("vcp", "VCP base setup?")):
+                       ("vcp", "VCP base setup?"), ("pshort", "Parabolic exhaustion?")):
         s = (study.get("setups") or {}).get(key) or {}
         edge, n = s.get("edge_pct"), s.get("n", 0)
         if edge is None or n < 40:            # not enough fires yet to trust the edge
@@ -2086,21 +2086,23 @@ def _setup_study_html(st: dict | None) -> str:
     H = st.get("primary_horizon", 10)
     base = (st.get("baseline") or {}).get(str(H)) or {}
     rows = ""
-    for key in ("burst", "ep", "vcp"):
+    for key in ("burst", "ep", "vcp", "pshort"):
         s = (st.get("setups") or {}).get(key)
         if not s:
             continue
         cell = (s.get("stats") or {}).get(str(H)) or {}
         mp, edge, nn = cell.get("mean_pct"), s.get("edge_pct"), s.get("n", 0)
+        _dir = "↓ short" if s.get("direction") == "short" else ""
+        _lbl = f'{s.get("label")} <span style="color:var(--muted);font-size:10px;">{_dir}</span>' if _dir else s.get("label")
         if mp is None:
-            rows += (f'<tr><td style="padding:2px 10px 2px 0;color:var(--txt2);">{s.get("label")}</td>'
+            rows += (f'<tr><td style="padding:2px 10px 2px 0;color:var(--txt2);">{_lbl}</td>'
                      f'<td colspan="3" style="color:var(--muted);">gathering samples (n={nn})</td></tr>')
             continue
         ec = "var(--buy)" if (edge or 0) > 0 else "var(--sell)" if (edge or 0) < 0 else "var(--muted)"
-        rows += (f'<tr><td style="padding:2px 10px 2px 0;color:var(--txt2);">{s.get("label")}</td>'
+        rows += (f'<tr><td style="padding:2px 10px 2px 0;color:var(--txt2);">{_lbl}</td>'
                  f'<td style="text-align:right;font-family:var(--mono,monospace);">{mp:+.2f}%</td>'
                  f'<td style="text-align:right;padding-left:10px;color:{ec};font-family:var(--mono,monospace);">'
-                 f'{edge:+.2f}% vs base</td>'
+                 f'{edge:+.2f}% edge</td>'
                  f'<td style="text-align:right;padding-left:10px;color:var(--muted);">hit {cell.get("hit_rate")}% · n={nn}</td></tr>')
     basetxt = f'{base.get("mean_pct"):+.2f}%' if base.get("mean_pct") is not None else "—"
     return (

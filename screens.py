@@ -336,6 +336,95 @@ def _ep_family(has_news: bool, headline: str | None) -> tuple[str, int]:
     return "TECHNICAL_EP", 8
 
 
+# ---------------------------------------------------------------------------------------------------
+# Parabolic Exhaustion Short  (ported from parabolic-short-trade-planner, Qullamaggie-style)
+# ---------------------------------------------------------------------------------------------------
+def parabolic_short(df: pd.DataFrame) -> dict:
+    """Flag a parabolic blow-off that's an exhaustion SHORT candidate. The whole discipline here is
+    to NOT short while the move is still climbing — the daily preconditions build a watchlist, and
+    we only mark it actionable once the first sign of a crack shows. Preconditions (all required):
+    5-day return >=+30%, close >=+25% AND >=4 ATR above the 20-SMA, >=3 consecutive green candles
+    with an acceleration ratio (3d/10d mean return) >1.0, and volume >=1.5x its 20-day average.
+    State: `watch_only` while still in markup (closed near the high at a fresh high, no crack);
+    `actionable` once today prints a crack (red bar / close in the lower half / lower close).
+    Short-only; pure; never raises."""
+    out = {"valid": False, "state": None, "score": 0}
+    try:
+        if df is None or len(df) < 25:
+            return out
+        o = df["open"].to_numpy(float)
+        h = df["high"].to_numpy(float)
+        lo = df["low"].to_numpy(float)
+        c = df["close"].to_numpy(float)
+        v = df["volume"].to_numpy(float)
+        atr = _atr(h, lo, c, 14)
+        if not atr:
+            return out
+
+        def _parabolic_at(j: int):
+            """Do the daily preconditions hold with the blow-off peak at bar j? Returns a metrics
+            dict or None."""
+            if j < 20 or j - 5 < 0:
+                return None
+            sma20 = float(np.mean(c[j - 19:j + 1]))
+            if not sma20:
+                return None
+            ret5 = c[j] / c[j - 5] - 1.0 if c[j - 5] else 0.0
+            ext_pct = c[j] / sma20 - 1.0
+            atr_ext = (c[j] - sma20) / atr
+            green = 0
+            for i in range(j, 0, -1):
+                if c[i] > c[i - 1]:
+                    green += 1
+                else:
+                    break
+            rets = np.diff(c[:j + 1]) / c[:j]
+            m10 = float(np.mean(rets[-10:])) if len(rets) >= 10 else 0.0
+            accel = (float(np.mean(rets[-3:])) / m10) if m10 else 0.0
+            vol_ratio = v[j] / float(np.mean(v[j - 19:j + 1])) if np.mean(v[j - 19:j + 1]) else 0.0
+            ok = (ret5 >= 0.30 and ext_pct >= 0.25 and atr_ext >= 4.0
+                  and vol_ratio >= 1.5 and green >= 3 and accel > 1.0)
+            if not ok:
+                return None
+            return {"ret5": ret5, "ext_pct": ext_pct, "atr_ext": atr_ext, "vol_ratio": vol_ratio}
+
+        last = len(c) - 1
+        # Case A: the run is still extending into today → still in markup, don't short yet.
+        m = _parabolic_at(last)
+        if m is not None:
+            state, crack, peak = "watch_only", False, last
+        else:
+            # Case B: yesterday was the parabolic top and today cracked off it → actionable.
+            m = _parabolic_at(last - 1)
+            if m is None:
+                return out
+            rng = h[-1] - lo[-1]
+            close_loc = (c[-1] - lo[-1]) / rng if rng > 0 else 1.0
+            crack = (c[-1] < o[-1]) or close_loc < 0.4 or c[-1] < c[-2]
+            if not crack:                       # gapped up again / no crack → still effectively markup
+                state, peak = "watch_only", last - 1
+            else:
+                state, peak = "actionable", last - 1
+
+        rng = h[-1] - lo[-1]
+        close_loc = (c[-1] - lo[-1]) / rng if rng > 0 else 1.0
+        score = 0
+        score += min(30, m["ret5"] * 100)                  # how parabolic the 5-day run is
+        score += min(25, (m["atr_ext"] - 4) * 6 + 10)      # extension above the mean in ATR units
+        score += min(20, (m["vol_ratio"] - 1.5) * 20 + 8)  # volume climax
+        score += 25 if crack else 0                        # a visible crack is the trigger
+        score = int(max(0, min(100, score)))
+        return {
+            "valid": state == "actionable", "state": state, "score": score,
+            "ret5_pct": float(round(m["ret5"] * 100, 1)), "ext_pct": float(round(m["ext_pct"] * 100, 1)),
+            "atr_ext": float(round(m["atr_ext"], 1)), "vol_ratio": float(round(m["vol_ratio"], 2)),
+            "close_loc": float(round(close_loc * 100, 1)), "crack": bool(crack),
+            "entry": float(round(c[-1], 2)), "stop": float(round(h[peak] + 0.25 * atr, 2)),
+        }
+    except Exception:  # noqa: BLE001 - advisory screen must never break the scan
+        return out
+
+
 def reclassify_ep(ep: dict, has_news: bool, headline: str | None) -> dict:
     """Re-score a stored (technical-only) Episodic Pivot with a real catalyst once the news pipeline
     has a headline for the name. Reuses the technical base_score; only the catalyst component and
