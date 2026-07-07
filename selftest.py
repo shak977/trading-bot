@@ -736,6 +736,28 @@ def test_loss_streak_cooldown():
     _ok("missing file => no streak", pr._recent_loss_streak("/no/such/file.json") == 0)
 
 
+def test_performance_metrics():
+    print("performance & risk metrics:")
+    import metrics
+    trades = ([{"status": "win", "rr": 2, "advised_date": f"2026-01-{i:02d}"} for i in range(1, 4)]
+              + [{"status": "loss", "advised_date": f"2026-02-{i:02d}"} for i in range(1, 3)]
+              + [{"status": "open"}])   # open trade excluded
+    p = metrics.performance(trades, min_n=5)
+    _ok("open trades excluded from n", p["n"] == 5)
+    _ok("win rate correct", p["win_rate"] == 60.0)
+    _ok("expectancy = (3*2 - 2)/5 = 0.8R", p["expectancy_r"] == 0.8)
+    _ok("profit factor = 6/2 = 3.0", p["profit_factor"] == 3.0)
+    _ok("payoff = 2/1 = 2.0", p["payoff"] == 2.0)
+    _ok("SQN positive for a winning system", p["sqn"] > 0)
+    _ok("Sortino computes despite constant -1R stops", p["sortino"] is not None and p["sortino"] > 0)
+    _ok("VaR 95% is a losing trade", p["var95_r"] <= 0)
+    _ok("too few trades => None", metrics.performance(trades[:3], min_n=10) is None)
+    import dashboard
+    html = dashboard._performance_html(p)
+    _ok("panel renders SQN + expectancy", "System Quality" in html and "Expectancy" in html)
+    _ok("empty perf yields no panel", dashboard._performance_html(None) == "")
+
+
 def main():
     test_tradingview()
     test_audit_direction_aware()
@@ -774,6 +796,7 @@ def main():
     test_setups_walkforward()
     test_setup_weighting_and_findings()
     test_loss_streak_cooldown()
+    test_performance_metrics()
     print("\nALL TESTS PASSED")
 
 

@@ -1226,6 +1226,7 @@ def build_snapshot() -> dict:
         "macro_posture": macro_posture,
         "timing": timing_posture,
         "setups_study": _load_json_safe("setups_study.json"),
+        "performance": _perf_metrics(),
         "notrade": notrade_gate,
         "price_drops": price_drops,
         "momentum": [dict(m, name=scanner.name_of(
@@ -2091,6 +2092,65 @@ def _timing_html(tp: dict | None) -> str:
         '&ge;1.25% index gain in the day 4-10 rally window) confirms a new uptrend; a cluster of '
         '<b>distribution days</b> (index down on rising volume) warns of institutional selling. This tilts '
         'exposure alongside the macro backdrop — it never buys or sells directly.</p></div>'
+    )
+
+
+def _perf_metrics():
+    """Risk-adjusted performance of the traded book (metrics.py). Best-effort; None on too little data."""
+    try:
+        import metrics
+        return metrics.from_file("track_record.json", min_n=20)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _performance_html(p: dict | None) -> str:
+    """Institutional performance & risk panel: expectancy, SQN, profit factor, drawdown, tail risk —
+    computed from how each thesis actually resolved (R-multiples). Pulled from finance-skills."""
+    if not p:
+        return ""
+    sqn = p.get("sqn")
+    # SQN quality bands (Van Tharp): <1.6 below-avg, 1.6-2.0 avg, 2.0-2.5 good, 2.5+ excellent
+    if sqn is None:
+        sc, sq = "var(--muted)", "—"
+    elif sqn >= 2.5:
+        sc, sq = "var(--buy)", "excellent"
+    elif sqn >= 1.6:
+        sc, sq = "var(--buy)", "tradeable"
+    elif sqn >= 1.0:
+        sc, sq = "#e0a82e", "marginal"
+    else:
+        sc, sq = "var(--sell)", "no clear edge"
+    exp = p.get("expectancy_r")
+    ec = "var(--buy)" if (exp or 0) > 0 else "var(--sell)" if (exp or 0) < 0 else "var(--muted)"
+
+    def tile(label, val, color="var(--txt)", sub=""):
+        subhtml = f'<div style="font-size:10px;color:var(--muted);margin-top:1px;">{sub}</div>' if sub else ""
+        return (f'<div style="min-width:0;"><div style="font-size:11px;color:var(--muted);">{label}</div>'
+                f'<div style="font-size:17px;font-weight:700;color:{color};font-family:var(--mono,monospace);">{val}</div>'
+                f'{subhtml}</div>')
+    pf = p.get("profit_factor")
+    grid = "".join([
+        tile("Expectancy", f'{exp:+.3f}R' if exp is not None else "—", ec, "avg per trade"),
+        tile("System Quality", f'{sqn:.2f}' if sqn is not None else "—", sc, sq),
+        tile("Profit factor", f'{pf:.2f}' if pf is not None else "—",
+             "var(--buy)" if (pf or 0) >= 1 else "var(--sell)"),
+        tile("Payoff", f'{p.get("payoff")}×' if p.get("payoff") else "—", "var(--txt)", "avg win / avg loss"),
+        tile("Sortino", f'{p.get("sortino")}' if p.get("sortino") is not None else "—"),
+        tile("Max drawdown", f'{p.get("max_drawdown_r")}R', "var(--sell)", "peak-to-trough"),
+        tile("VaR 95%", f'{p.get("var95_r")}R', "var(--sell)", "typical bad trade"),
+        tile("CVaR 95%", f'{p.get("cvar95_r")}R', "var(--sell)", "mean worst 5%"),
+    ])
+    return (
+        '<div class="ovbox glass" style="border-left:4px solid var(--accent,#eaa62b);margin:0 0 16px;">'
+        f'<div class="ovhead">{_svg("target",14)} Performance &amp; risk '
+        f'<span style="font-weight:400;color:var(--muted);font-size:12px;">— {p.get("n")} resolved theses, '
+        f'in R (units of risk)</span></div>'
+        f'<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 16px;margin-top:8px;">{grid}</div>'
+        '<p style="color:var(--muted);font-size:10px;margin:10px 0 0;">Each thesis resolves as an R-multiple '
+        '(target hit = +reward:risk, stop hit = −1R). <b>SQN</b> = expectancy ÷ std × √N (Van Tharp): the '
+        'trade-native quality score. Not annualized — a high-throughput, many-concurrent book makes annualized '
+        'Sharpe misleading. <b>VaR/CVaR</b> are historical per-trade tail risk.</p></div>'
     )
 
 
@@ -3084,6 +3144,7 @@ def render_html(snap: dict) -> str:
     track_html = _track_html(snap.get("track"))
     if track_html:
         try:
+            track_html = _performance_html(snap.get("performance")) + track_html
             track_html += _learned_html(snap.get("learned"))
         except Exception:  # noqa: BLE001 - panels are additive; never break the build
             pass
