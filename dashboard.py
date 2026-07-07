@@ -5580,7 +5580,7 @@ const _NEWS_NEG = ['miss','misses','plunge','plunges','fall','falls','drop','dro
   'layoff','layoffs','bankruptcy','default','concern','concerns','fears','plummet','tumble','selloff','sue','sued',
   'delay','delays','disappoint','disappoints','crash','slows','slowing','cuts','subpoena','dispute'];
 function _newsLean(h) {{
-  const words = (h||'').toLowerCase().replace(/[^a-z0-9\s-]/g,' ').split(/\s+/);
+  const words = (h||'').toLowerCase().replace(/[^a-z0-9\\s-]/g,' ').split(/\\s+/);
   let p=0,q=0; const hit=[];
   words.forEach(w => {{ if (_NEWS_POS.indexOf(w)>=0) {{ p++; if (hit.indexOf(w)<0 && hit.length<3) hit.push(w); }}
                        else if (_NEWS_NEG.indexOf(w)>=0) {{ q++; if (hit.indexOf(w)<0 && hit.length<3) hit.push(w); }} }});
