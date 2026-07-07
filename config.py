@@ -250,6 +250,7 @@ class Config:
     notrade_vix_block: float = 36.0     # VIX above this halts NEW entries (panic tape)
     notrade_perf_min_n: int = 25        # min resolved trades before model-performance can veto
     notrade_perf_winrate: float = 35.0  # below this recent win% -> stand down (deteriorating edge)
+    timing_gate_enabled: bool = True    # O'Neil timing: a confirmed correction blocks new longs (FTD needed to re-arm)
 
     # --- Backtest realism (applied to every backtest so edges are net of costs) ---
     slippage_bps: float = 5.0          # modeled slippage per fill (5 bps = 0.05%); ~0.1% round trip

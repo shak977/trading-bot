@@ -799,6 +799,19 @@ def build_snapshot() -> dict:
         _exposure_mult = round(max(0.4, min(1.25, min(_exposure_mult, _tm) if _tm < 1.0 else (_exposure_mult + _tm) / 2.0)), 3)
         timing_posture["exposure_mult_blended"] = _exposure_mult
 
+    # Timing gate (O'Neil): in a confirmed correction the tape is in institutional distribution, so
+    # demote fresh BUYs to the WATCH tier — same teeth as the Risk-off regime block, but driven by
+    # the FTD/distribution engine. Runs before ranking so blocked names can't top the board.
+    if timing_posture and getattr(CONFIG, "timing_gate_enabled", True) and timing_posture.get("state") == "correction":
+        for r in shown:
+            if r.get("action") == "BUY":
+                r["action"] = "WATCH LONG"
+                r["timing_blocked"] = True
+                r.setdefault("reasons", []).insert(
+                    0, f"{_svg('octagon',13)} Indexes are in a correction ({timing_posture.get('dd_total', 0)} "
+                       "distribution days) — standing down on new buys until a Follow-Through Day confirms a new "
+                       "uptrend; shown as Watch, not a fresh entry.")
+
     # Multi-agent trade committee: 4 LLM analyst roles (technicals / fundamentals / news / macro)
     # debate the top actionable signals and a chair returns accept/reduce/reject + per-role leans.
     # Advisory second opinion — the rules risk engine keeps final authority. Gated + fail-silent.
@@ -966,7 +979,8 @@ def build_snapshot() -> dict:
     try:
         import notrade as _notrade
         notrade_gate = _notrade.market_gate(CONFIG, macro_posture=macro_posture, macro=macro,
-                                            calendar=calendar, track=track, risk=None, today=today)
+                                            calendar=calendar, track=track, risk=None,
+                                            timing=timing_posture, today=today)
     except Exception:  # noqa: BLE001
         notrade_gate = {"block_new": False, "reasons": [], "cautions": [], "checks": []}
 
@@ -984,7 +998,8 @@ def build_snapshot() -> dict:
         import notrade as _notrade
         notrade_gate = _notrade.market_gate(CONFIG, macro_posture=macro_posture, macro=macro,
                                             calendar=calendar, track=track,
-                                            risk=(paper_acct or {}).get("risk"), today=today)
+                                            risk=(paper_acct or {}).get("risk"),
+                                            timing=timing_posture, today=today)
     except Exception:  # noqa: BLE001
         pass
 

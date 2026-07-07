@@ -46,7 +46,7 @@ def _event_soon(calendar: dict | None, today: str):
 
 
 def market_gate(cfg, *, macro_posture=None, macro=None, calendar=None,
-                track=None, risk=None, today: str = "") -> dict:
+                track=None, risk=None, timing=None, today: str = "") -> dict:
     """Book-wide no-trade read. Returns {block_new, reasons, cautions, checks}."""
     out = {"block_new": False, "reasons": [], "cautions": [], "checks": []}
     if not getattr(cfg, "notrade_enabled", True):
@@ -106,6 +106,24 @@ def market_gate(cfg, *, macro_posture=None, macro=None, calendar=None,
             add("Portfolio risk engine", "caution", "Drawdown elevated — new positions at reduced size.")
         else:
             add("Portfolio risk engine", "ok", "Within all book-level risk limits.")
+
+    # 5) Market timing (O'Neil FTD / distribution) — a confirmed correction BLOCKS new longs
+    #    (the tape is in institutional distribution; wait for a Follow-Through Day). A pressure
+    #    reading is a caution only, since exposure is already tilted down. Gated + fail-silent.
+    if timing and getattr(cfg, "timing_gate_enabled", True):
+        tstate = timing.get("state")
+        if tstate == "correction":
+            add("Market timing", "block",
+                f"Indexes in a correction ({timing.get('dd_total', 0)} distribution days) — no new longs "
+                "until a Follow-Through Day confirms a new uptrend.")
+        elif tstate == "pressure":
+            add("Market timing", "caution",
+                "Distribution building on the indexes — new longs at reduced size; watch for a Follow-Through Day.")
+        elif tstate == "confirmed":
+            add("Market timing", "ok",
+                f"Follow-Through Day confirmed the uptrend (quality {timing.get('ftd_quality', 0)}/100) — clear to add.")
+        else:
+            add("Market timing", "ok", "No distribution cluster — timing is not blocking new entries.")
 
     return out
 
