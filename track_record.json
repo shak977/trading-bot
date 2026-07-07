@@ -81504,5 +81504,122 @@
     "regime_score": 0.67,
     "liquidity_tier": "high",
     "status": "open"
+  },
+  {
+    "id": "AAL:2026-07-07",
+    "symbol": "AAL",
+    "name": "American Airlines Group Inc. Common Stock",
+    "direction": "LONG",
+    "advised_date": "2026-07-07",
+    "advised_ts": "2026-07-07",
+    "entry": 17.35,
+    "stop": 16.48,
+    "target": 18.79,
+    "rr": 1.65,
+    "conviction": "High",
+    "conviction_pct": 86,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "warn"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "TradingView agrees?",
+        "status": "pass"
+      },
+      {
+        "label": "News on side?",
+        "status": "pass"
+      },
+      {
+        "label": "Analysts on side?",
+        "status": "pass"
+      },
+      {
+        "label": "Earnings clear?",
+        "status": "pass"
+      },
+      {
+        "label": "Earnings momentum?",
+        "status": "fail"
+      },
+      {
+        "label": "Insiders buying?",
+        "status": "warn"
+      },
+      {
+        "label": "Retail buzz?",
+        "status": "warn"
+      },
+      {
+        "label": "Intraday on side?",
+        "status": "fail"
+      },
+      {
+        "label": "Sector trending right?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "warn"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": "agree",
+    "regime": "Risk-on",
+    "regime_score": 0.67,
+    "liquidity_tier": "moderate",
+    "status": "open"
   }
 ]
