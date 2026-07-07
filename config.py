@@ -126,6 +126,16 @@ class Config:
     adx_min: float = 20.0           # require ADX >= this for a NEW long (trend-strength gate; 0 = off)
     trail_atr_mult: float = 0.0     # >0 enables a trailing ATR stop in the backtest (e.g. 3.0; 0 = fixed stop)
     regime_block_buys: bool = True  # demote fresh BUYs to HOLD when the market regime is Risk-off
+    # Regime-weighted confluence (adapted from Scientia's REGIME_WEIGHTS): instead of counting
+    # agreeing strategies flat, weight each by how well its KIND fits the tape — breakouts earn
+    # full credit in a trending Risk-on tape but little in a chop/Neutral tape where they whipsaw;
+    # mean-reversion is the mirror. Config-driven so the weights can be re-fit on our own results.
+    regime_confluence_enabled: bool = True
+    regime_kind_weights: dict = field(default_factory=lambda: {
+        "Risk-on": {"trend": 1.0, "breakout": 1.0, "breakdown": 1.0, "momentum": 1.0, "mean-reversion": 0.4, "event": 0.8},
+        "Neutral": {"trend": 0.6, "breakout": 0.5, "breakdown": 0.5, "momentum": 0.6, "mean-reversion": 1.0, "event": 0.8},
+        "Risk-off": {"trend": 0.5, "breakout": 0.3, "breakdown": 0.3, "momentum": 0.5, "mean-reversion": 0.8, "event": 0.7},
+    })
 
     # --- Post-earnings drift (PEAD) setup ---
     pead_enabled: bool = True       # include the post-earnings-drift strategy in confluence/backtests

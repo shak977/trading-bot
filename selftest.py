@@ -736,6 +736,38 @@ def test_loss_streak_cooldown():
     _ok("missing file => no streak", pr._recent_loss_streak("/no/such/file.json") == 0)
 
 
+def test_regime_confluence():
+    print("regime-weighted confluence (Scientia):")
+    import strategies
+    from config import CONFIG
+    # trending breakouts fit a Risk-on tape better than a Neutral one
+    kinds = ["breakout", "momentum", "trend"]
+    on = strategies.regime_confluence(kinds, "Risk-on", CONFIG)
+    neu = strategies.regime_confluence(kinds, "Neutral", CONFIG)
+    _ok("breakout/momentum fit Risk-on strongly", on["fit"] >= 0.95)
+    _ok("same setups fit Neutral worse", neu["fit"] < on["fit"])
+    # mean-reversion is the mirror: better in Neutral than Risk-on
+    mr = ["mean-reversion", "mean-reversion"]
+    _ok("mean-reversion fits Neutral > Risk-on",
+        strategies.regime_confluence(mr, "Neutral", CONFIG)["fit"] > strategies.regime_confluence(mr, "Risk-on", CONFIG)["fit"])
+    # a short reads the regime mirror-image: short breakdowns fit Risk-off like longs fit Risk-on
+    sh = strategies.regime_confluence(["breakdown", "momentum"], "Risk-off", CONFIG, short=True)
+    _ok("short in Risk-off reads the Risk-on mirror", sh["regime"] == "Risk-on" and sh["fit"] >= 0.95)
+    _ok("no signals => None", strategies.regime_confluence([], "Risk-on", CONFIG) is None)
+    import dataclasses
+    off = dataclasses.replace(CONFIG, regime_confluence_enabled=False)
+    _ok("disabled => None", strategies.regime_confluence(kinds, "Risk-on", off) is None)
+    # end-to-end: the conviction check appears for a firing name in a known regime
+    import scanner
+    from data import synthetic_bars
+    row = scanner._analyse("MSFT", synthetic_bars("MSFT", n=CONFIG.lookback_days), CONFIG, CONFIG.starting_cash)
+    row["direction"] = "LONG"; row["action"] = "BUY"
+    scanner.rescore(row, CONFIG, regime={"label": "Risk-on", "breadth": 64})
+    labels = [c["label"] for c in row["conviction"]["checks"]]
+    _ok("regime-fit check present when strategies fire",
+        ("Right setups for this tape?" in labels) or (len((row.get("factors") or {}).get("confluence_kinds") or []) < 2))
+
+
 def test_performance_metrics():
     print("performance & risk metrics:")
     import metrics
@@ -811,6 +843,7 @@ def main():
     test_setups_walkforward()
     test_setup_weighting_and_findings()
     test_loss_streak_cooldown()
+    test_regime_confluence()
     test_performance_metrics()
     print("\nALL TESTS PASSED")
 

@@ -302,6 +302,10 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
     factors["short_confluence"] = bear["count"]
     factors["short_total"] = bear["total"]
     factors["strategies_short"] = bear["short"]
+    # Kinds of the strategies firing now (trend/breakout/momentum/mean-reversion/event) — feeds the
+    # regime-weighted confluence check, which scores how well the firing setups fit the tape.
+    factors["confluence_kinds"] = [r["kind"] for r in bull["results"].values() if r.get("long")]
+    factors["short_confluence_kinds"] = [r["kind"] for r in bear["results"].values() if r.get("short")]
     # Minervini VCP (ported from the vcp-screener skill): a long-only quality confirmation, stored
     # on factors so it survives re-scoring and flows into the self-adapting conviction checklist.
     try:
@@ -742,6 +746,29 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 add("With the market?", "fail", f"No — the tape is Risk-off ({brtxt}); a long fights a falling market.")
             else:
                 add("With the market?", "warn", f"Mixed — neutral tape ({brtxt}); no market tailwind for a long.")
+
+    # Regime-fit confluence (Scientia-style regime-weighted fusion): are the strategies firing here
+    # the RIGHT KIND for this tape? Breakouts in a trending tape earn full credit; the same breakouts
+    # in a chop/Neutral tape are down-weighted (they whipsaw). Rewards setups that fit the regime.
+    if reg_lbl and action in ("BUY", "SHORT"):
+        _kinds = (factors or {}).get("short_confluence_kinds" if short else "confluence_kinds") or []
+        try:
+            import strategies as _strat
+            rc = _strat.regime_confluence(_kinds, reg_lbl, cfg, short=short)
+        except Exception:  # noqa: BLE001
+            rc = None
+        if rc and rc.get("n", 0) >= 2:
+            fit = rc["fit"]
+            if fit >= 0.75:
+                add("Right setups for this tape?", "pass",
+                    f"Yes — the {rc['n']} strategies firing are well-suited to a {reg_lbl} tape (regime-fit {int(fit*100)}%).")
+            elif fit >= 0.5:
+                add("Right setups for this tape?", "warn",
+                    f"Partly — the {rc['n']} firing strategies are a mixed fit for a {reg_lbl} tape (regime-fit {int(fit*100)}%).")
+            else:
+                add("Right setups for this tape?", "fail",
+                    f"No — the firing strategies suit a different regime than this {reg_lbl} tape (regime-fit {int(fit*100)}%); "
+                    "the setups may whipsaw here.")
 
     if short:
         if rsi <= cfg.rsi_oversold:

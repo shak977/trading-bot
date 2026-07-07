@@ -270,6 +270,28 @@ SHORT_STRATEGIES: dict[str, tuple] = {
 }
 
 
+def regime_confluence(kinds: list[str], regime_label: str | None, cfg: Config,
+                      short: bool = False) -> dict | None:
+    """Regime-weighted confluence 'fit' (adapted from Scientia REGIME_WEIGHTS): given the KINDS of
+    the strategies firing right now, how well-suited are they to the current tape? Returns a 0-1
+    fit score (average regime-weight of the firing strategies, normalized to the best possible),
+    plus the raw weighted sum. A short reads the regime mirror-image (a short in Risk-off is 'with
+    the tape' like a long in Risk-on). None when disabled / no signals / no weights configured."""
+    if not getattr(cfg, "regime_confluence_enabled", True) or not kinds or not regime_label:
+        return None
+    weights = getattr(cfg, "regime_kind_weights", {}) or {}
+    eff = regime_label
+    if short:
+        eff = {"Risk-on": "Risk-off", "Risk-off": "Risk-on"}.get(regime_label, regime_label)
+    table = weights.get(eff) or weights.get("Neutral") or {}
+    if not table:
+        return None
+    raw = sum(table.get(k, 0.5) for k in kinds)
+    best = max(table.values()) or 1.0
+    fit = raw / (len(kinds) * best)                     # average fit of the firing strategies, 0-1
+    return {"fit": round(fit, 3), "raw": round(raw, 2), "n": len(kinds), "regime": eff}
+
+
 def positions(df: pd.DataFrame, cfg: Config, key: str) -> pd.Series:
     return STRATEGIES[key][1](df, cfg)
 
