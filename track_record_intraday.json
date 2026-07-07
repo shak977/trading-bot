@@ -178999,7 +178999,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 441.29,
+    "exit_date": "2026-07-07",
+    "return_pct": -0.35,
+    "days_held": 0
   },
   {
     "id": "AIG:2026-07-06",
@@ -202057,7 +202061,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "loss",
+    "exit": 76.27,
+    "exit_date": "2026-07-07",
+    "return_pct": -0.77,
+    "days_held": -1
   },
   {
     "id": "NEE:2026-07-07",
@@ -208301,7 +208309,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 159.65,
+    "exit_date": "2026-07-07",
+    "return_pct": -0.75,
+    "days_held": -1
   },
   {
     "id": "AAPL:2026-07-07",
@@ -208544,7 +208556,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 48.55,
+    "exit_date": "2026-07-07",
+    "return_pct": -0.43,
+    "days_held": -1
   },
   {
     "id": "MPC:2026-07-07",
@@ -209585,7 +209601,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 13.82,
+    "exit_date": "2026-07-07",
+    "return_pct": -1.84,
+    "days_held": -1
   },
   {
     "id": "PCAR:2026-07-07",
@@ -209666,7 +209686,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 124.3,
+    "exit_date": "2026-07-07",
+    "return_pct": 0.1,
+    "days_held": -1
   },
   {
     "id": "VRTX:2026-07-07",
@@ -209743,7 +209767,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 523.73,
+    "exit_date": "2026-07-07",
+    "return_pct": -0.33,
+    "days_held": -1
   },
   {
     "id": "EROC:2026-07-07",
@@ -209968,6 +209996,83 @@
       {
         "label": "Reward:risk worth it?",
         "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "RIVN:2026-07-07",
+    "symbol": "RIVN",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-07-07",
+    "advised_ts": "2026-07-07T19:53:13.166176",
+    "entry": 16.67,
+    "stop": 16.82,
+    "target": 16.09,
+    "rr": 4.0,
+    "conviction": "High",
+    "conviction_pct": 77,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "fail"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
       }
     ],
     "tv_align": null,
