@@ -138,6 +138,24 @@ def _load_json_safe(path: str):
         return None
 
 
+def _setup_check_weights(study: dict | None) -> dict:
+    """Map the walk-forward setup study (setups_backtest) into conviction-check weight multipliers,
+    keyed by check label. A setup that beats baseline on real data earns a >1 multiplier; one that
+    lags earns <1 (toward retirement). Gated on sample size and clamped so it nudges, never dominates.
+    These compose multiplicatively with attribution's realized-outcome weights via the same `learned`
+    map, so the two learning signals stack rather than fight."""
+    out = {}
+    if not study:
+        return out
+    for key, label in (("burst", "Momentum burst?"), ("ep", "Episodic pivot?")):
+        s = (study.get("setups") or {}).get(key) or {}
+        edge, n = s.get("edge_pct"), s.get("n", 0)
+        if edge is None or n < 40:            # not enough fires yet to trust the edge
+            continue
+        out[label] = round(max(0.5, min(1.5, 1.0 + edge * 0.2)), 3)   # +1% edge ≈ 1.2×, −1% ≈ 0.8×
+    return out
+
+
 def _market_regime(rows: list[dict]) -> dict | None:
     """Read the overall tape: breadth (% above trend), average momentum, # buys."""
     if not rows:
@@ -618,6 +636,14 @@ def build_snapshot() -> dict:
             intraday_learned = _attr.learned_weights(scope="intraday", min_n=_mn, retire_edge=_re)
         except Exception:  # noqa: BLE001
             daily_learned, intraday_learned = {}, {}
+    # Fold the walk-forward setup-edge study into the daily learned weights (multiplicatively, so it
+    # composes with attribution rather than overriding it): a setup that's proven edge over baseline
+    # counts more in conviction, one that lags counts less. No-ops until setups_study.json exists.
+    try:
+        for _lbl, _mult in _setup_check_weights(_load_json_safe("setups_study.json")).items():
+            daily_learned[_lbl] = round(daily_learned.get(_lbl, 1.0) * _mult, 3)
+    except Exception:  # noqa: BLE001
+        pass
 
     intraday_track: dict = {}
     if live and getattr(CONFIG, "intraday_enabled", False):
