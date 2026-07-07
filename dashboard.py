@@ -394,11 +394,27 @@ def build_snapshot() -> dict:
                     0, f"{_svg('octagon',13)} Market regime is Risk-on — standing down on new shorts; this setup is "
                        "shown as Watch, not a fresh entry against a rising market.")
 
+    # A brand-new, independently-validated setup shouldn't be strangled by the OLD blanket
+    # short-loss record before it ever gets to prove itself. An actionable parabolic-exhaustion
+    # short is put on PROBATION: exempt from the blanket directional gate (only) so it can build its
+    # own track record — provided its own walk-forward edge isn't negative. It still faces the
+    # regime filter, no-trade gate, risk engine and the High-conviction bar, and only trades paper.
+    _psh_edge = (((_load_json_safe("setups_study.json") or {}).get("setups") or {})
+                 .get("pshort") or {}).get("edge_pct")
+    _probation_ok = (getattr(CONFIG, "dir_gate_probation_new_setups", True)
+                     and (_psh_edge is None or _psh_edge >= 0))
     # Apply the learned directional gate (after regime, so it catches whatever slipped through).
     if dir_gate:
         for r in shown:
             _d = _act_dir.get(r.get("action"))
             if _d and _d in dir_gate:
+                if (_d == "SHORT" and _probation_ok
+                        and ((r.get("factors") or {}).get("pshort") or {}).get("state") == "actionable"):
+                    r["dir_gate_probation"] = True
+                    r.setdefault("reasons", []).insert(
+                        0, f"{_svg('ai',13)} On probation — a validated parabolic-exhaustion short is exempt "
+                           f"from the blanket short gate so it can build its own track record (paper only).")
+                    continue
                 _st = dir_gate[_d]
                 r["action"] = "WATCH LONG" if _d == "LONG" else "WATCH SHORT"
                 r["direction_gated"] = True
