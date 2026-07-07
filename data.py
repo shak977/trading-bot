@@ -69,6 +69,22 @@ def sanitize_bars(df: pd.DataFrame, spike: float = 0.5) -> tuple[pd.DataFrame, i
             h[i], lo_[i] = mx, mn
             repairs += 1
     df["open"], df["high"], df["low"], df["close"] = o, h, lo_, c
+    # 3) Persistent split/spinoff gaps the split-adjustment missed (e.g. a spinoff
+    #    distribution is not a split, so the feed leaves a >50% one-day step that never
+    #    reverts). Indicators computed across it span two different price bases and are
+    #    garbage. Truncate to the bars AFTER the most-recent such gap so technicals run on
+    #    one consistent series. If too little history survives, drop the symbol (caller
+    #    skips it) rather than emit a signal on corrupt data.
+    if len(c) >= 3:
+        cut = 0
+        for i in range(1, len(c)):
+            if c[i - 1] and c[i] and abs(c[i] / c[i - 1] - 1.0) > 0.50:
+                cut = i  # keep the most-recent gap
+        if cut:
+            repairs += 1
+            df = df.iloc[cut:].copy()
+            if len(df) < 40:   # not enough clean post-gap history to analyse
+                return df.iloc[0:0], repairs
     return df, repairs
 
 

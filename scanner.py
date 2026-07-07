@@ -1246,7 +1246,11 @@ def scan(cfg: Config, live: bool, pin: set | None = None, universe: list | None 
     else:
         symbols = list(_FALLBACK)  # synthetic demo universe
     if pin:  # always analyse names we alerted today so the dashboard stays in line with alerts
-        symbols = list(dict.fromkeys([*pin, *symbols]))
+        symbols = [*pin, *symbols]
+    # Sanitize every path (movers, pins, intraday reuse): drop malformed tickers such as
+    # SPAC units like "AAC'U" that the data API rejects, then de-dupe. Runs after the pin
+    # merge so alerted names can't bypass the universe cleaner.
+    symbols = list(dict.fromkeys(c for s in symbols if (c := _clean_symbol(s))))
     rows, empty, errs = [], 0, 0
     for sym in symbols:
         try:
