@@ -798,6 +798,13 @@ def build_snapshot() -> dict:
         _tm = timing_posture.get("exposure_mult", 1.0)
         _exposure_mult = round(max(0.4, min(1.25, min(_exposure_mult, _tm) if _tm < 1.0 else (_exposure_mult + _tm) / 2.0)), 3)
         timing_posture["exposure_mult_blended"] = _exposure_mult
+        # Attach the latest self-validation study (written by timing_backtest in the post-close CI
+        # job) so the panel can show whether the timing signal has actually predicted forward returns.
+        try:
+            with open("timing_study.json") as _tf:
+                timing_posture["study"] = json.load(_tf)
+        except Exception:  # noqa: BLE001
+            pass
 
     # Timing gate (O'Neil): in a confirmed correction the tape is in institutional distribution, so
     # demote fresh BUYs to the WATCH tier — same teeth as the Risk-off regime block, but driven by
@@ -1976,6 +1983,36 @@ def _timing_html(tp: dict | None) -> str:
         ftd_note = f' · FTD quality {tp.get("ftd_quality")}/100 (day {tp.get("ftd_day")})'
     elif tp.get("dd_total"):
         ftd_note = f' · {tp.get("dd_total")} distribution days across indexes'
+    # Self-validation study (from timing_backtest, refreshed each post-close CI run): does the
+    # signal actually precede the returns it claims? Show the verdict + a compact per-state table.
+    study_html = ""
+    study = tp.get("study") or {}
+    if study.get("verdict"):
+        hz = (study.get("horizons") or [5, 10, 20])
+        hcol = hz[1] if len(hz) > 1 else hz[0]
+        order = [("confirmed", "Confirmed FTD", "var(--buy)"), ("neutral", "Neutral", "var(--muted)"),
+                 ("pressure", "Pressure", "#e0a82e"), ("correction", "Correction", "var(--sell)")]
+        rows = ""
+        for key, lbl, rc in order:
+            cell = (study.get("states") or {}).get(key, {}).get(str(hcol))
+            if not cell or cell.get("mean_pct") is None:
+                continue
+            mp = cell["mean_pct"]
+            mc = "var(--buy)" if mp > 0 else "var(--sell)" if mp < 0 else "var(--muted)"
+            rows += (f'<tr><td style="color:{rc};padding:2px 10px 2px 0;">{lbl}</td>'
+                     f'<td style="text-align:right;color:{mc};font-family:var(--mono,monospace);">{mp:+.2f}%</td>'
+                     f'<td style="text-align:right;color:var(--muted);padding-left:10px;">{cell.get("hit_rate")}% up</td>'
+                     f'<td style="text-align:right;color:var(--muted);padding-left:10px;">n={cell.get("n")}</td></tr>')
+        gen = study.get("generated_at", "")
+        study_html = (
+            f'<p style="color:var(--txt2);font-size:12px;margin:10px 0 4px;"><b>Signal check:</b> {study.get("verdict")}</p>'
+            f'<table style="font-size:12px;border-collapse:collapse;margin:2px 0 0;"><thead><tr>'
+            f'<td style="color:var(--muted);padding-right:10px;">State</td>'
+            f'<td style="color:var(--muted);text-align:right;">avg {hcol}d fwd</td>'
+            f'<td style="color:var(--muted);text-align:right;padding-left:10px;">hit</td>'
+            f'<td style="color:var(--muted);text-align:right;padding-left:10px;">samples</td></tr></thead>'
+            f'<tbody>{rows}</tbody></table>'
+            f'<p style="color:var(--muted);font-size:10px;margin:4px 0 0;">Walk-forward on SPY+QQQ history, no look-ahead · {gen}</p>')
     return (
         f'<div class="ovbox" style="border-left:4px solid {col};margin:0 0 16px;">'
         f'<div class="ovhead">{_svg("regime",14)} Market timing (O\'Neil): '
@@ -1983,6 +2020,7 @@ def _timing_html(tp: dict | None) -> str:
         f'<span style="font-weight:400;color:var(--muted);font-size:12px;">— <b style="color:{col};">{em:.2f}× exposure</b>{ftd_note}</span></div>'
         f'<p style="color:var(--txt2);font-size:13px;margin:6px 0 8px;">{tp.get("note","")}</p>'
         f'<div>{chips}</div>'
+        f'{study_html}'
         '<p style="color:var(--muted);font-size:11px;margin:8px 0 0;">A <b>Follow-Through Day</b> (high-volume '
         '&ge;1.25% index gain in the day 4-10 rally window) confirms a new uptrend; a cluster of '
         '<b>distribution days</b> (index down on rising volume) warns of institutional selling. This tilts '

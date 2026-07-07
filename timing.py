@@ -150,6 +150,23 @@ def _ftd_state(df, look: int = 60) -> dict:
 _STATE_RANK = {"correction": 0, "rally_attempt": 1, "neutral": 2, "confirmed": 3}
 
 
+def _single_state(ftd_state: str, dist_risk: str) -> str:
+    """Fold one index's FTD state + its distribution risk into a single posture state. A decisive
+    distribution cluster overrides a stale 'confirmed' — institutions selling trumps a past FTD."""
+    state = ftd_state
+    if dist_risk == "correction":
+        state = "correction"
+    elif dist_risk == "pressure" and state in ("neutral", "rally_attempt"):
+        state = "pressure"
+    return state
+
+
+def state_at(df) -> str:
+    """Combined timing state for a SINGLE index series ending at its last bar. Used by the historical
+    validation harness (timing_backtest.py) to label every day in a price path."""
+    return _single_state(_ftd_state(df)["state"], _distribution_days(df)["risk"])
+
+
 def assess(cfg) -> dict | None:
     """Run FTD + distribution on SPY and QQQ, combine into one market-timing posture.
     Returns None if neither index could be fetched (build proceeds unaffected)."""
@@ -169,12 +186,8 @@ def assess(cfg) -> dict | None:
     best_ftd = max(idx.values(), key=lambda x: _STATE_RANK[x["ftd"]["state"]])["ftd"]
     dd_total = sum(x["dist"]["count"] for x in idx.values())
 
-    state = best_ftd["state"]
     # A fresh, decisive distribution cluster overrides a stale "confirmed" — institutions are selling.
-    if worst_dist["risk"] == "correction":
-        state = "correction"
-    elif worst_dist["risk"] == "pressure" and state in ("neutral", "rally_attempt"):
-        state = "pressure"
+    state = _single_state(best_ftd["state"], worst_dist["risk"])
 
     posture = {
         "correction":    ("In correction",     0.5, "Indexes are in a correction / heavy distribution — defense first; new longs fight the tape."),
