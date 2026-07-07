@@ -1082,8 +1082,23 @@ def build_snapshot() -> dict:
     try:
         import portfolio_risk as _pr
         _open_theses = [t for t in (_load_json_safe("track_record.json") or []) if t.get("status") == "open"]
-        book_risk = _pr.book_risk((paper_acct or {}).get("positions"), _open_theses,
-                                  (paper_acct or {}).get("equity"), CONFIG)
+        _positions = (paper_acct or {}).get("positions") or []
+        book_risk = _pr.book_risk(_positions, _open_theses, (paper_acct or {}).get("equity"), CONFIG)
+        # Correlation clustering: which held names actually move together (>0.75)? Build daily returns
+        # from the chart closes already in memory for the open positions, then cluster. A cluster of
+        # 2+ is really ONE bet — surfaced so the book can't fake diversification.
+        if book_risk:
+            _held = {p.get("symbol") for p in _positions if p.get("symbol")}
+            _ret = {}
+            for r in shown:
+                if r.get("symbol") in _held:
+                    _cl = ((r.get("chart") or {}).get("close")) or []
+                    if len(_cl) >= 45:
+                        _c = [float(x) for x in _cl]
+                        _ret[r["symbol"]] = [_c[i] / _c[i - 1] - 1.0 for i in range(1, len(_c)) if _c[i - 1]]
+            _clusters = _pr.correlation_clusters(_ret, threshold=getattr(CONFIG, "corr_cluster_threshold", 0.75))
+            book_risk["correlated_clusters"] = _clusters
+            book_risk["effective_bets"] = len(_positions) - sum(len(c) - 1 for c in _clusters)
     except Exception:  # noqa: BLE001
         book_risk = None
 
@@ -2132,19 +2147,33 @@ def _book_risk_html(br: dict | None) -> str:
         s = f'<div style="font-size:10px;color:var(--muted);margin-top:1px;">{sub}</div>' if sub else ""
         return (f'<div style="min-width:0;"><div style="font-size:11px;color:var(--muted);">{label}</div>'
                 f'<div style="font-size:17px;font-weight:700;color:{color};font-family:var(--mono,monospace);">{val}</div>{s}</div>')
+    clusters = br.get("correlated_clusters") or []
+    eff = br.get("effective_bets")
+    eff_tile = (tile("Effective bets", f'{eff}', "#e0a82e" if clusters else "var(--buy)",
+                     f'{br.get("n")} names, {len(clusters)} cluster{"s" if len(clusters) != 1 else ""}')
+                if eff is not None else
+                tile("Gross exposure", f'{br.get("gross_exposure_pct")}%', "var(--txt)", f'{br.get("n")} positions'))
     grid = "".join([
         tile("Portfolio heat", f'{heat:.1f}%', hc, f'total risk-to-stop · cap {cap:.0f}%'),
-        tile("Gross exposure", f'{br.get("gross_exposure_pct")}%', "var(--txt)", f'{br.get("n")} positions'),
+        eff_tile,
         tile("VaR 95% (1d)", f'${br.get("var95_usd"):,}', "var(--sell)", f'{br.get("var95_pct")}% of equity'),
         tile("CVaR 95%", f'${br.get("cvar95_usd"):,}', "var(--sell)", "mean worst 5% day"),
     ])
+    cluster_html = ""
+    if clusters:
+        rows = "".join(f'<div style="font-size:12px;color:var(--txt2);margin:2px 0;">{_svg("octagon",11)} '
+                       f'<b>{" + ".join(c)}</b> move together — count as one bet</div>' for c in clusters)
+        cluster_html = (f'<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--glass-bd,rgba(255,255,255,.08));">'
+                        f'{rows}</div>')
     return (
         '<div class="ovbox glass" style="border-left:4px solid var(--accent,#eaa62b);margin:0 0 16px;">'
         f'<div class="ovhead">{_svg("octagon",14)} Open-book risk '
         f'<span style="font-weight:400;color:var(--muted);font-size:12px;">— the book you’re holding right now</span></div>'
         f'<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 16px;margin-top:8px;">{grid}</div>'
+        f'{cluster_html}'
         f'<p style="color:var(--muted);font-size:10px;margin:10px 0 0;"><b>Heat</b> sums every open position’s risk to '
-        f'its stop — caps total risk-on, not just per-trade size. <b>VaR/CVaR</b> are a parametric estimate '
+        f'its stop — caps total risk-on, not just per-trade size. <b>Effective bets</b> collapses names that move '
+        f'together into one. <b>VaR/CVaR</b> are a parametric estimate '
         f'(assumes ~{sig}%/name daily vol with a correlation haircut) of a rough day’s loss on the current book — '
         f'an estimate, not a promise.</p></div>'
     )

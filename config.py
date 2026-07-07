@@ -160,6 +160,8 @@ class Config:
     tilt_max: float = 1.60            # size mult at a top (~100%) conviction score
     max_size_mult: float = 1.60       # hard cap on the combined size multiplier
     vol_guard_mult: float = 1.5       # only throttle when ATR% exceeds this x vol_target_atr_pct
+    kelly_sizing_enabled: bool = True # scale sizing by the book's own half-Kelly fraction (clamped 0.5-1.5x)
+    kelly_min_n: int = 30             # resolved trades required before Kelly influences sizing
 
     # --- Exit management ---
     partial_take_r: float = 1.0       # scale out half the position at this R multiple (0 = off)
@@ -193,6 +195,7 @@ class Config:
     portfolio_heat_cap_pct: float = 6.0     # flag/throttle when TOTAL open risk-to-stop exceeds this % of equity
     book_var_daily_sigma: float = 0.02      # assumed per-name 1-day volatility for the parametric open-book VaR
     book_var_diversification: float = 0.8   # correlation haircut on undiversified book VaR (1.0 = no benefit)
+    corr_cluster_threshold: float = 0.75    # held names whose returns correlate above this = one bet, not many
     kill_switch_trips: int = 3          # consecutive failed/errored runs before the kill switch flips
     kill_switch_cooldown_runs: int = 3  # clean runs needed to auto-reset the kill switch
     # Losing-trade cooldown (ported from drawdown-circuit-breaker): after a run of consecutive

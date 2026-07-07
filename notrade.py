@@ -138,6 +138,13 @@ def market_gate(cfg, *, macro_posture=None, macro=None, calendar=None,
                 f"Book risk {heat:.1f}% of equity is at the {cap:.0f}% heat cap — new positions add real aggregate risk; be selective.")
         else:
             add("Portfolio heat", "ok", f"Book risk {heat:.1f}% of equity — within the {cap:.0f}% heat cap.")
+        # correlation clusters: holdings that move together are one bet, not many
+        clusters = book_risk.get("correlated_clusters") or []
+        if clusters:
+            biggest = max(clusters, key=len)
+            add("Correlated holdings", "caution",
+                f"{' + '.join(biggest)} move together (>0.75 correlation) — that's really one bet, not "
+                f"{len(biggest)}; adding more of the same theme concentrates risk you can't see in per-trade sizing.")
 
     return out
 

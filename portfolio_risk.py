@@ -279,6 +279,45 @@ def book_risk(positions: list[dict] | None, open_theses: list[dict] | None,
         return None
 
 
+def correlation_clusters(returns_by_symbol: dict, threshold: float = 0.75,
+                         min_overlap: int = 40) -> list[list[str]]:
+    """Group symbols whose DAILY RETURNS move together (pairwise Pearson correlation > threshold)
+    into clusters — each cluster is really ONE bet, however many tickers it holds. Prevents the book
+    fooling itself into thinking 5 names that trade in lockstep are 5 independent positions.
+    `returns_by_symbol`: {symbol: [daily returns]}. Returns clusters of size >= 2. Pure; never raises."""
+    try:
+        import numpy as np
+        syms = [s for s, r in returns_by_symbol.items() if r is not None and len(r) >= min_overlap]
+        if len(syms) < 2:
+            return []
+        parent = {s: s for s in syms}
+
+        def find(x):
+            while parent[x] != x:
+                parent[x] = parent[parent[x]]
+                x = parent[x]
+            return x
+
+        for i in range(len(syms)):
+            for j in range(i + 1, len(syms)):
+                a = np.asarray(returns_by_symbol[syms[i]], float)
+                b = np.asarray(returns_by_symbol[syms[j]], float)
+                m = min(len(a), len(b))
+                if m < min_overlap:
+                    continue
+                a, b = a[-m:], b[-m:]
+                if a.std() == 0 or b.std() == 0:
+                    continue
+                if float(np.corrcoef(a, b)[0, 1]) > threshold:
+                    parent[find(syms[i])] = find(syms[j])
+        clusters: dict = {}
+        for s in syms:
+            clusters.setdefault(find(s), []).append(s)
+        return [sorted(v) for v in clusters.values() if len(v) >= 2]
+    except Exception:  # noqa: BLE001
+        return []
+
+
 def cap_qty_to_concentration(qty: int, entry: float, max_position_value: float | None) -> int:
     """Trim a position's share count so its notional never exceeds the concentration cap."""
     if not max_position_value or not entry or entry <= 0:

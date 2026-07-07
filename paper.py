@@ -247,6 +247,12 @@ def run(signals: list[dict], cfg: Config, today: str, exposure_mult: float = 1.0
         notes.append(f"Macro exposure: new positions sized {_em:.2f}× "
                      f"({'leaning in (risk-on)' if _em > 1 else 'pulled back (risk-off)'}).")
 
+    # Half-Kelly sizing scalar from the book's own realised edge (computed once for the run).
+    _kelly_mult = risk.kelly_multiplier(cfg)
+    if abs(_kelly_mult - 1.0) >= 0.03:
+        notes.append(f"Kelly sizing: {_kelly_mult:.2f}× base risk from the book's measured edge "
+                     f"({'leaning in' if _kelly_mult > 1 else 'sized down — edge unproven'}).")
+
     if notrade_block:
         notes.append("No-trade layer: market conditions are poor — not opening new positions this run.")
 
@@ -306,6 +312,7 @@ def run(signals: list[dict], cfg: Config, today: str, exposure_mult: float = 1.0
             mult *= float(risk.get("size_scale", 1.0))   # book-level throttle (drawdown de-risk)
             mult *= float(exposure_mult or 1.0)          # macro-regime exposure scalar (risk-on/off)
             mult *= _meta_size                           # meta-signal verdict (reduce → half size)
+            mult *= _kelly_mult                          # half-Kelly scalar from the book's own edge
             qty = _qty(equity, buying_power, entry, stop, cfg.paper_risk_pct, mult=mult)
             # concentration cap: never let one position exceed max_position_pct of equity
             try:

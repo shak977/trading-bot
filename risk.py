@@ -55,6 +55,30 @@ def risk_multiplier(conviction_label: str | None, atr_pct: float | None, cfg: Co
     return max(cfg.min_size_mult, min(conv * vol, 1.0))
 
 
+def kelly_multiplier(cfg: Config) -> float:
+    """Size multiplier from the book's own half-Kelly fraction (metrics.py). Kelly is the growth-
+    optimal risk-per-trade given the realised win rate + payoff; we use HALF-Kelly (lower variance),
+    expressed as a multiple of the base risk budget, and CLAMP it to [0.5, 1.5] so it nudges sizing
+    toward measured edge without ever running away. A break-even book (Kelly≈0) sizes DOWN; a book
+    with proven edge sizes UP. Gated on enough resolved trades. Returns 1.0 when off / insufficient."""
+    if not getattr(cfg, "kelly_sizing_enabled", True):
+        return 1.0
+    try:
+        import json
+        import metrics
+        with open("track_record.json") as f:
+            trades = json.load(f)
+        p = metrics.performance(trades if isinstance(trades, list) else [],
+                                min_n=int(getattr(cfg, "kelly_min_n", 30)))
+        hk = (p or {}).get("half_kelly_pct")
+        base = float(getattr(cfg, "paper_risk_pct", 0.005)) * 100.0     # base risk-per-trade, in %
+        if hk is None or base <= 0:
+            return 1.0
+        return round(max(0.5, min(1.5, hk / base)), 3)
+    except Exception:  # noqa: BLE001
+        return 1.0
+
+
 def stop_loss_price(entry: float, cfg: Config) -> float:
     return entry * (1 - cfg.stop_loss_pct)
 

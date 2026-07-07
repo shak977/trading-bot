@@ -863,6 +863,66 @@ def test_recovery_ladder():
     _ok("evaluate exposes recovery_step", "recovery_step" in g)
 
 
+def test_kelly_sizing():
+    print("half-Kelly sizing scalar:")
+    import json, tempfile, os
+    import risk, metrics
+    from config import CONFIG
+    import dataclasses
+    tf = tempfile.mktemp(suffix=".json")
+    # a strong-edge book (70% win, 2:1) -> half-Kelly > base risk -> scale UP (capped 1.5)
+    strong = ([{"status": "win", "rr": 2, "advised_date": f"2026-01-{i:02d}"} for i in range(1, 22)]
+              + [{"status": "loss", "advised_date": f"2026-03-{i:02d}"} for i in range(1, 10)])
+    orig = os.getcwd()
+    d = tempfile.mkdtemp(); os.chdir(d)
+    try:
+        json.dump(strong, open("track_record.json", "w"))
+        m = risk.kelly_multiplier(CONFIG)
+        _ok("real edge scales sizing up (clamped)", 1.0 < m <= 1.5)
+        # break-even coin-flip -> Kelly ~0 -> scale DOWN (floored at 0.5)
+        flat = ([{"status": "win", "rr": 1, "advised_date": f"2026-0{1 + i % 6}-01"} for i in range(15)]
+                + [{"status": "loss", "advised_date": f"2026-0{1 + i % 6}-02"} for i in range(15)])
+        json.dump(flat, open("track_record.json", "w"))
+        _ok("break-even book sizes down (floored)", risk.kelly_multiplier(CONFIG) == 0.5)
+        # too few trades -> neutral 1.0
+        json.dump(strong[:5], open("track_record.json", "w"))
+        _ok("too few trades => neutral 1.0", risk.kelly_multiplier(CONFIG) == 1.0)
+        # disabled -> 1.0
+        _ok("disabled => 1.0", risk.kelly_multiplier(dataclasses.replace(CONFIG, kelly_sizing_enabled=False)) == 1.0)
+    finally:
+        os.chdir(orig)
+
+
+def test_correlation_clusters():
+    print("correlation-as-one-bet:")
+    import numpy as np
+    import portfolio_risk as pr
+    rng = np.random.default_rng(1)
+    factor = rng.normal(0, 0.01, 120)
+    ret = {
+        "AAA": list(factor + rng.normal(0, 0.001, 120)),   # AAA + BBB ride the same factor
+        "BBB": list(factor + rng.normal(0, 0.001, 120)),
+        "CCC": list(rng.normal(0, 0.01, 120)),             # independent
+    }
+    cl = pr.correlation_clusters(ret, threshold=0.75)
+    _ok("correlated pair is clustered", ["AAA", "BBB"] in cl)
+    _ok("independent name is not clustered", not any("CCC" in c for c in cl))
+    _ok("single name => no cluster", pr.correlation_clusters({"AAA": ret["AAA"]}) == [])
+    _ok("too-short series excluded", pr.correlation_clusters({"AAA": ret["AAA"][:10], "BBB": ret["BBB"][:10]}) == [])
+    # the no-trade gate raises a caution when the book holds a cluster
+    import notrade
+    from config import CONFIG
+    g = notrade.market_gate(CONFIG, book_risk={"heat_pct": 1.0, "heat_cap_pct": 6.0,
+                                               "correlated_clusters": [["AAA", "BBB"]]})
+    _ok("gate flags correlated holdings", any(c["name"] == "Correlated holdings" for c in g["checks"]))
+    # panel renders the cluster line
+    import dashboard
+    br = {"n": 3, "heat_pct": 1.0, "heat_cap_pct": 6.0, "gross_exposure_pct": 20.0,
+          "var95_usd": 100, "var95_pct": 0.1, "cvar95_usd": 130, "cvar95_pct": 0.13, "sigma_assumed": 0.02,
+          "correlated_clusters": [["AAA", "BBB"]], "effective_bets": 2}
+    _ok("panel shows effective bets + cluster", "Effective bets" in dashboard._book_risk_html(br) and "move together" in dashboard._book_risk_html(br))
+
+
 def test_telegram_alerts():
     print("alert channels (incl. Telegram):")
     import os, notify
@@ -998,6 +1058,8 @@ def main():
     test_bonferroni_guard()
     test_recovery_ladder()
     test_book_risk()
+    test_kelly_sizing()
+    test_correlation_clusters()
     test_telegram_alerts()
     test_performance_metrics()
     print("\nALL TESTS PASSED")
