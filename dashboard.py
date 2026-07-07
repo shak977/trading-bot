@@ -697,6 +697,19 @@ def build_snapshot() -> dict:
             r["intraday_confirm"] = "agree" if _isig.get("direction") == r.get("direction") else "disagree"
         else:
             r["intraday_confirm"] = "none"
+        # Episodic Pivot catalyst enrichment: the scanner computes EP technical-only (no news yet);
+        # now that headlines are attached, re-classify it with the real catalyst so EARNINGS/FDA/
+        # M&A families and the catalyst score flow into the (about-to-run) conviction re-score.
+        _ep = (r.get("factors") or {}).get("ep")
+        if isinstance(_ep, dict) and _ep.get("base_score") is not None:
+            _hl = ((r.get("catalyst") or {}).get("headline")
+                   or (r["news"][0]["headline"] if r.get("news") else None))
+            _has_news = bool(r.get("catalyst")) or bool(r.get("news"))
+            try:
+                import screens as _screens
+                r["factors"]["ep"] = _screens.reclassify_ep(_ep, _has_news, _hl)
+            except Exception:  # noqa: BLE001
+                pass
         # Re-score conviction + desk read now that research (news/sector/intraday) is in hand.
         scanner.rescore(r, CONFIG, sentiment=r.get("sentiment"), fundamentals=r.get("fundamentals"),
                         tv=r.get("tv"), regime=regime, insider=r.get("insider"), buzz=r.get("buzz"),

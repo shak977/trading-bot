@@ -297,37 +297,52 @@ def episodic_pivot(df: pd.DataFrame, has_news: bool = False, headline: str | Non
         # an EP needs a real move + a real volume shock; news makes it a *catalyst* EP
         if move < 0.04 or vol_x < 1.8:
             return out
-        # infer family from the headline text (best-effort; falls back to TECHNICAL_EP)
-        family = "TECHNICAL_EP"
-        cat_pts = 8
-        htxt = (headline or "").lower()
-        if has_news and htxt:
-            if any(k in htxt for k in ("earnings", "beat", "guidance", "raise", "revenue", "profit")):
-                family, cat_pts = "EARNINGS_EP", 35
-            elif any(k in htxt for k in ("fda", "approval", "phase 3", "pdufa", "trial")):
-                family, cat_pts = "FDA_EP", 30
-            elif any(k in htxt for k in ("acqui", "merger", "buyout", "takeover", "deal")):
-                family, cat_pts = "M_AND_A_EP", 22
-            elif any(k in htxt for k in ("contract", "order", "award", "partnership", "customer")):
-                family, cat_pts = "CONTRACT_EP", 24
-            elif any(k in htxt for k in ("upgrade", "price target", "initiat")):
-                family, cat_pts = "ANALYST_EP", 15
-            else:
-                family, cat_pts = "NEWS_EP", 18
-        elif has_news:
-            family, cat_pts = "NEWS_EP", 16
-
-        score = 0
-        score += min(30, move * 100 * 3)                    # gap/move size
-        score += min(25, (vol_x - 1.0) * 12)                # volume shock
-        score += 20 if neglected else 5                     # revaluation from neglect
-        score += cat_pts                                    # catalyst quality (max 35)
-        score = int(max(0, min(100, score)))
+        family, cat_pts = _ep_family(has_news, headline)
+        base = 0
+        base += min(30, move * 100 * 3)                     # gap/move size
+        base += min(25, (vol_x - 1.0) * 12)                 # volume shock
+        base += 20 if neglected else 5                      # revaluation from neglect
+        base = int(base)
+        score = int(max(0, min(100, base + cat_pts)))       # + catalyst quality (max 35)
         return {
             "valid": score >= 55 and (has_news or move >= 0.06), "score": score, "family": family,
-            "gap_pct": float(round(move * 100, 2)), "vol_x": float(round(vol_x, 2)),
+            "base_score": base, "gap_pct": float(round(move * 100, 2)), "vol_x": float(round(vol_x, 2)),
             "catalyst": bool(has_news), "neglected": neglected,
             "entry": float(round(c[-1], 2)), "stop": float(round(df["low"].to_numpy(float)[-1], 2)),
         }
     except Exception:  # noqa: BLE001
         return out
+
+
+def _ep_family(has_news: bool, headline: str | None) -> tuple[str, int]:
+    """Infer the EP catalyst family + its point contribution from a headline. Falls back to a
+    technical (no-news) read. Kept separate so live signals can be re-classified once the news
+    pipeline attaches a headline (the scanner computes EP technical-only)."""
+    htxt = (headline or "").lower()
+    if has_news and htxt:
+        if any(k in htxt for k in ("earnings", "beat", "guidance", "raise", "revenue", "profit")):
+            return "EARNINGS_EP", 35
+        if any(k in htxt for k in ("fda", "approval", "phase 3", "pdufa", "trial")):
+            return "FDA_EP", 30
+        if any(k in htxt for k in ("acqui", "merger", "buyout", "takeover", "deal")):
+            return "M_AND_A_EP", 22
+        if any(k in htxt for k in ("contract", "order", "award", "partnership", "customer")):
+            return "CONTRACT_EP", 24
+        if any(k in htxt for k in ("upgrade", "price target", "initiat")):
+            return "ANALYST_EP", 15
+        return "NEWS_EP", 18
+    if has_news:
+        return "NEWS_EP", 16
+    return "TECHNICAL_EP", 8
+
+
+def reclassify_ep(ep: dict, has_news: bool, headline: str | None) -> dict:
+    """Re-score a stored (technical-only) Episodic Pivot with a real catalyst once the news pipeline
+    has a headline for the name. Reuses the technical base_score; only the catalyst component and
+    validity change. Returns a new dict; a malformed input is returned untouched."""
+    if not isinstance(ep, dict) or ep.get("base_score") is None:
+        return ep
+    family, cat_pts = _ep_family(has_news, headline)
+    score = int(max(0, min(100, ep["base_score"] + cat_pts)))
+    return dict(ep, family=family, catalyst=bool(has_news), score=score,
+                valid=(score >= 55 and (has_news or (ep.get("gap_pct") or 0) >= 6)))
