@@ -610,6 +610,132 @@ def test_pead_in_pipeline():
     _ok("PEAD edge tagged with a side", se["by"]["pead"]["side"] == "long" and se["by"]["pead_dn"]["side"] == "short")
 
 
+def test_timing_engine():
+    print("market timing (FTD + distribution):")
+    import numpy as np, pandas as pd
+    import timing
+    def bars(c, v=None):
+        c = np.asarray(c, float); v = np.asarray(v if v is not None else [1e6] * len(c), float)
+        return pd.DataFrame({"open": c, "high": c * 1.005, "low": c * 0.995, "close": c, "volume": v})
+    # correction (>=3% drop, >=3 down days) then a day-4 FTD (+>=1.25% on higher volume)
+    up = [100 + i for i in range(20)]
+    corr = [119, 116, 113, 110, 108, 106]
+    rally = [107, 108, 109, 111.5]
+    v = [1e6] * len(up) + [1.1e6] * (len(corr) - 1) + [1e6, 1e6, 1e6, 2e6]
+    ftd = timing._ftd_state(bars(up + corr[1:] + rally, v))
+    _ok("FTD confirmed on a valid follow-through", ftd["state"] == "confirmed" and ftd["quality"] > 0)
+    # a run of down-on-higher-volume days is a distribution cluster
+    c = [100.0]; vv = [1e6]
+    for _ in range(10):
+        c.append(c[-1] * 0.995); vv.append(vv[-1] * 1.05)
+    dd = timing._distribution_days(bars(c, vv))
+    _ok("distribution cluster flagged as correction risk", dd["risk"] == "correction" and dd["count"] >= 6)
+    _ok("state_at combines FTD + distribution", timing._single_state("confirmed", "correction") == "correction")
+    quiet = [100 + i * 0.3 for i in range(60)]
+    _ok("quiet uptrend is neutral", timing._ftd_state(bars(quiet))["state"] == "neutral")
+
+
+def test_setups_screens():
+    print("ported setups (burst / EP / parabolic short):")
+    import numpy as np, pandas as pd
+    import screens
+    def b(o, h, l, c, v): return pd.DataFrame({"open": o, "high": h, "low": l, "close": c, "volume": v})
+    n = 30
+    # momentum burst: tight base then +5% breakout on 2.4x volume closing near high
+    c = [100 + np.sin(i) * 0.5 for i in range(n - 1)] + [105.0]
+    o = [x for x in c[:-1]] + [100.2]; h = [x + 0.3 for x in c[:-1]] + [105.2]
+    l = [x - 0.3 for x in c[:-1]] + [100.0]; v = [1e6] * (n - 1) + [2.4e6]
+    burst = screens.momentum_burst(b(o, h, l, c, v))
+    _ok("momentum burst fires on a valid breakout", burst["valid"] and burst["score"] >= 55)
+    _q = [50 + i * .05 for i in range(n)]
+    _ok("burst quiet name stays silent",
+        not screens.momentum_burst(b(_q, _q, _q, _q, [1e6] * n))["valid"])
+    # episodic pivot: quiet base then +8% gap on 4x volume; catalyst enrichment lifts the family
+    c2 = [50 + np.sin(i) * .3 for i in range(n - 1)] + [54.0]
+    o2 = [x for x in c2[:-1]] + [53.8]; h2 = [x + .2 for x in c2[:-1]] + [54.2]
+    l2 = [x - .2 for x in c2[:-1]] + [53.6]; v2 = [8e5] * (n - 1) + [3.4e6]
+    ep = screens.episodic_pivot(b(o2, h2, l2, c2, v2), has_news=False)
+    _ok("EP fires technical-only", ep["valid"] and ep["family"] == "TECHNICAL_EP")
+    enr = screens.reclassify_ep(ep, True, "Q3 earnings beat and guidance raise")
+    _ok("EP reclassify lifts catalyst family + score",
+        enr["family"] == "EARNINGS_EP" and enr["score"] >= ep["score"] and enr["base_score"] == ep["base_score"])
+    _ok("EP reclassify leaves malformed input untouched", screens.reclassify_ep({"x": 1}, True, "y") == {"x": 1})
+    # parabolic short: watch_only while climbing, actionable once it cracks
+    cp = [20.0] * 20
+    for g in (0.06, 0.07, 0.09, 0.12, 0.16):
+        cp.append(cp[-1] * (1 + g))
+    op = [x * .995 for x in cp]; hp = [x * 1.01 for x in cp]; lp = [x * .99 for x in cp]
+    vp = [1e6] * 20 + [2e6, 2.4e6, 2.9e6, 3.5e6, 4.2e6]
+    hp[-1] = cp[-1] * 1.005; lp[-1] = cp[-2]
+    _ok("parabolic short is watch_only while still in markup",
+        screens.parabolic_short(b(op, hp, lp, cp, vp))["state"] == "watch_only")
+    peak = cp[-1]
+    crack = screens.parabolic_short(b(op + [peak * 1.0], hp + [peak * 1.005], lp + [peak * .925],
+                                      cp + [peak * .93], vp + [6e6]))
+    _ok("parabolic short is actionable once it cracks", crack["valid"] and crack["state"] == "actionable")
+
+
+def test_setups_walkforward():
+    print("setup self-validation (direction-aware):")
+    import numpy as np
+    import setups_backtest as sb
+    _ok("short agg counts down-moves as hits",
+        sb._agg([-0.05, -0.03, 0.02, -0.04], short=True)["hit_rate"] == 75.0)
+    _ok("long agg counts up-moves as hits",
+        sb._agg([0.05, 0.03, -0.02, 0.04], short=False)["hit_rate"] == 75.0)
+    bk = {k: {5: [], 10: [], 20: []} for k in ("baseline", "burst", "ep", "vcp", "pshort")}
+    bk["baseline"][10] = [0.01] * 100
+    bk["pshort"][10] = [-0.03, -0.02, -0.05, -0.04, -0.01, 0.01, -0.03] * 8   # mostly down = good short
+    s = sb.summarize(bk, horizons=(5, 10, 20))
+    ps = s["setups"]["pshort"]
+    _ok("short setup tagged with direction", ps["direction"] == "short")
+    _ok("short that falls > baseline shows a positive edge", ps["edge_pct"] > 0)
+
+
+def test_setup_weighting_and_findings():
+    print("setup self-weighting + analyst edge findings:")
+    import dashboard
+    w = dashboard._setup_check_weights({"setups": {
+        "burst": {"edge_pct": 1.2, "n": 340}, "pshort": {"edge_pct": -0.9, "n": 80},
+        "ep": {"edge_pct": 3.0, "n": 12}}})   # ep under-sampled -> excluded
+    _ok("proven-edge setup weighted up", w["Momentum burst?"] > 1.0)
+    _ok("lagging setup weighted down", w["Parabolic exhaustion?"] < 1.0)
+    _ok("under-sampled setup excluded", "Episodic pivot?" not in w)
+    _ok("weight clamps at 1.5", dashboard._setup_check_weights(
+        {"setups": {"burst": {"edge_pct": 9.0, "n": 100}}})["Momentum burst?"] == 1.5)
+    _ok("no study => no weights", dashboard._setup_check_weights(None) == {})
+    import analyst
+    orig = analyst._load_json
+    analyst._load_json = lambda p: {
+        "setups_study.json": {"primary_horizon": 10, "setups": {
+            "burst": {"label": "Momentum Burst", "edge_pct": 1.4, "n": 300, "stats": {"10": {"hit_rate": 61}}},
+            "pshort": {"label": "Parabolic Short", "edge_pct": -1.1, "n": 80, "stats": {"10": {"hit_rate": 40}}}}},
+        "timing_study.json": {"horizons": [5, 10, 20], "states": {
+            "confirmed": {"10": {"mean_pct": 2.1}}, "correction": {"10": {"mean_pct": -1.2}}}},
+    }.get(p)
+    try:
+        f = {x["area"]: x["severity"] for x in analyst._edge_findings()}
+    finally:
+        analyst._load_json = orig
+    _ok("analyst keeps a proven setup (info)", f["setup:burst"] == "info")
+    _ok("analyst flags a lagging setup to act", f["setup:pshort"] == "act")
+    _ok("analyst confirms a predictive timing gate", f["timing"] == "info")
+
+
+def test_loss_streak_cooldown():
+    print("losing-streak cooldown (risk engine):")
+    import tempfile, json
+    import portfolio_risk as pr
+    tf = tempfile.mktemp(suffix=".json")
+    json.dump([{"status": "loss", "advised_ts": f"2026-01-{i:02d}"} for i in range(1, 6)], open(tf, "w"))
+    _ok("counts a trailing losing streak", pr._recent_loss_streak(tf) == 5)
+    json.dump([{"status": "loss", "advised_ts": "2026-01-01"},
+               {"status": "win", "advised_ts": "2026-01-02"},
+               {"status": "loss", "advised_ts": "2026-01-03"}], open(tf, "w"))
+    _ok("streak resets after a win", pr._recent_loss_streak(tf) == 1)
+    _ok("missing file => no streak", pr._recent_loss_streak("/no/such/file.json") == 0)
+
+
 def main():
     test_tradingview()
     test_audit_direction_aware()
@@ -643,6 +769,11 @@ def main():
     test_tracker_checks_snapshot()
     test_attribution()
     test_attribution_panel()
+    test_timing_engine()
+    test_setups_screens()
+    test_setups_walkforward()
+    test_setup_weighting_and_findings()
+    test_loss_streak_cooldown()
     print("\nALL TESTS PASSED")
 
 
