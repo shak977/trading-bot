@@ -2141,16 +2141,43 @@ def _performance_html(p: dict | None) -> str:
         tile("VaR 95%", f'{p.get("var95_r")}R', "var(--sell)", "typical bad trade"),
         tile("CVaR 95%", f'{p.get("cvar95_r")}R', "var(--sell)", "mean worst 5%"),
     ])
+    # Kelly advisory + Monte Carlo forward-risk read
+    k = p.get("kelly_pct")
+    hk = p.get("half_kelly_pct")
+    if k is None:
+        kelly_html = ""
+    elif k <= 0:
+        kelly_html = ('<div style="font-size:12px;color:var(--txt2);margin-top:12px;">'
+                      f'<b style="color:var(--sell);">Kelly: 0%</b> — no measured edge, so the math says '
+                      "don't size up; work on selection before adding risk.</div>")
+    else:
+        kelly_html = ('<div style="font-size:12px;color:var(--txt2);margin-top:12px;">'
+                      f'<b style="color:var(--buy);">Kelly: risk {k}%</b> of equity per trade for full growth · '
+                      f'<b>half-Kelly {hk}%</b> (the practical, lower-variance choice).</div>')
+    mc = p.get("montecarlo") or {}
+    mc_html = ""
+    if mc:
+        pl = mc.get("prob_losing_r_pct")
+        plc = "var(--sell)" if (pl or 0) >= 40 else "#e0a82e" if (pl or 0) >= 20 else "var(--buy)"
+        mc_html = (
+            '<div style="font-size:12px;color:var(--txt2);margin-top:8px;border-top:1px solid var(--glass-bd,rgba(255,255,255,.08));padding-top:8px;">'
+            f'{_svg("regime",12)} <b>Monte Carlo</b> — {mc.get("sims"):,} bootstrapped paths of the next '
+            f'{mc.get("horizon")} trades: typical drawdown <b>{mc.get("median_maxdd_r")}R</b>, bad-case (95th) '
+            f'<b style="color:var(--sell);">{mc.get("p95_maxdd_r")}R</b>; ending equity median '
+            f'<b>{mc.get("median_terminal_r")}R</b> (5th pct {mc.get("p05_terminal_r")}R); '
+            f'chance of a net-losing run <b style="color:{plc};">{pl}%</b>.</div>')
     return (
         '<div class="ovbox glass" style="border-left:4px solid var(--accent,#eaa62b);margin:0 0 16px;">'
         f'<div class="ovhead">{_svg("target",14)} Performance &amp; risk '
         f'<span style="font-weight:400;color:var(--muted);font-size:12px;">— {p.get("n")} resolved theses, '
         f'in R (units of risk)</span></div>'
         f'<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 16px;margin-top:8px;">{grid}</div>'
+        f'{kelly_html}{mc_html}'
         '<p style="color:var(--muted);font-size:10px;margin:10px 0 0;">Each thesis resolves as an R-multiple '
         '(target hit = +reward:risk, stop hit = −1R). <b>SQN</b> = expectancy ÷ std × √N (Van Tharp): the '
-        'trade-native quality score. Not annualized — a high-throughput, many-concurrent book makes annualized '
-        'Sharpe misleading. <b>VaR/CVaR</b> are historical per-trade tail risk.</p></div>'
+        'trade-native quality score. <b>Kelly</b> is the growth-optimal risk fraction from win rate + payoff. '
+        '<b>Monte Carlo</b> bootstraps your own trade distribution forward. Not annualized — a high-throughput, '
+        'many-concurrent book makes annualized Sharpe misleading.</p></div>'
     )
 
 

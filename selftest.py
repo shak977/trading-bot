@@ -752,9 +752,24 @@ def test_performance_metrics():
     _ok("Sortino computes despite constant -1R stops", p["sortino"] is not None and p["sortino"] > 0)
     _ok("VaR 95% is a losing trade", p["var95_r"] <= 0)
     _ok("too few trades => None", metrics.performance(trades[:3], min_n=10) is None)
+    # Kelly: a strong 70%/2:1 system has positive Kelly; a break-even one is 0
+    big = ([{"status": "win", "rr": 2, "advised_date": f"2026-01-{i:02d}"} for i in range(1, 22)]
+           + [{"status": "loss", "advised_date": f"2026-03-{i:02d}"} for i in range(1, 10)])
+    pk = metrics.performance(big, min_n=20)
+    _ok("Kelly positive for a real-edge system", pk["kelly_pct"] > 0 and pk["half_kelly_pct"] == round(pk["kelly_pct"] / 2, 1))
+    _ok("Kelly 0 for a break-even coin-flip",
+        metrics.performance([{"status": "win", "rr": 1, "advised_date": f"2026-0{1 + i % 6}-01"} for i in range(15)]
+                            + [{"status": "loss", "advised_date": f"2026-0{1 + i % 6}-02"} for i in range(15)], min_n=20)["kelly_pct"] == 0.0)
+    # Monte Carlo: deterministic (seeded), sane bounds, worse edge => bigger drawdown
+    mc = metrics.monte_carlo(big, sims=2000)
+    _ok("MC is deterministic under a fixed seed", metrics.monte_carlo(big, sims=2000) == mc)
+    _ok("MC p95 drawdown >= median drawdown", mc["p95_maxdd_r"] >= mc["median_maxdd_r"])
+    _ok("MC reports probability of a losing run", 0 <= mc["prob_losing_r_pct"] <= 100)
+    _ok("MC needs enough trades", metrics.monte_carlo(big[:5]) is None)
     import dashboard
     html = dashboard._performance_html(p)
     _ok("panel renders SQN + expectancy", "System Quality" in html and "Expectancy" in html)
+    _ok("panel shows Kelly + Monte Carlo", "Kelly" in html and "Monte Carlo" in html)
     _ok("empty perf yields no panel", dashboard._performance_html(None) == "")
 
 
