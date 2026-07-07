@@ -2892,6 +2892,16 @@ def render_html(snap: dict) -> str:
     news_ideas_html = _news_ideas_html(snap.get("news_ideas"))
     system_html = _system_html(snap.get("system"))
     regime_html = _regime_html(snap.get("regime"))
+    # Compact regime pill for the top app bar (colour-coded dot + label).
+    _reg = snap.get("regime") or {}
+    _reg_lab = _reg.get("label")
+    _reg_col = {"Risk-on": "var(--buy)", "Neutral": "var(--muted)",
+                "Risk-off": "var(--sell)"}.get(_reg_lab, "var(--muted)")
+    regime_pill = (f'<span class="regime-pill" title="Market regime — {_reg.get("breadth","")}% of '
+                   f'{_reg.get("total","")} scanned above trend" style="color:{_reg_col};">'
+                   f'<svg width="9" height="9" viewBox="0 0 9 9" aria-hidden="true">'
+                   f'<circle cx="4.5" cy="4.5" r="4.5" fill="currentColor"/></svg>{_reg_lab}</span>'
+                   ) if _reg_lab else ""
     _pd = snap.get("price_drops") or []
     pdrop_html = (f' &middot; <span style="color:var(--muted);" title="{(" | ".join(_pd))[:300].replace(chr(34), chr(39))}">'
                   f'{len(_pd)} dropped (bad feed price)</span>') if _pd else ""
@@ -3575,7 +3585,32 @@ def render_html(snap: dict) -> str:
   .shell {{ display:flex; gap:0; align-items:flex-start; }}
   .sidebar {{ width:162px; flex:0 0 162px; position:sticky; top:8px; display:flex; flex-direction:column;
     gap:3px; padding:8px; background:var(--glass-bg); backdrop-filter:blur(var(--glass-blur)); -webkit-backdrop-filter:blur(var(--glass-blur));
-    border:1px solid var(--glass-bd); border-radius:14px; box-shadow:var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,.06); }}
+    border:1px solid var(--glass-bd); border-radius:14px; box-shadow:var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,.06);
+    max-height:calc(100vh - 16px); overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; }}
+  .sidebar::-webkit-scrollbar {{ width:6px; }}
+  .sidebar::-webkit-scrollbar-thumb {{ background:var(--line); border-radius:3px; }}
+  /* ---- sidebar active-signals list ---- */
+  .side-sig {{ margin-top:9px; padding-top:9px; border-top:1px solid var(--line); }}
+  .side-h {{ display:flex; align-items:center; gap:6px; font-size:10px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.06em; color:var(--muted); padding:2px 4px 6px; }}
+  .side-h svg {{ width:12px; height:12px; flex:0 0 auto; }}
+  .side-sig-list {{ display:flex; flex-direction:column; gap:1px; }}
+  .side-sig-row {{ display:flex; align-items:center; gap:7px; padding:5px 5px; border-radius:8px;
+    cursor:pointer; }}
+  .side-sig-row:hover {{ background:var(--hover); }}
+  .side-sig-row .ss-sym {{ font-size:11.5px; font-weight:700; color:var(--txt); font-family:var(--mono);
+    letter-spacing:.02em; flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; }}
+  .side-sig-row .ss-conv {{ font-size:11.5px; font-weight:800; font-variant-numeric:tabular-nums;
+    flex:0 0 auto; }}
+  .side-sig-row .ss-dir {{ display:inline-flex; flex:0 0 auto; }}
+  .side-sig-row .ss-dir svg {{ width:12px; height:12px; }}
+  /* ---- sidebar alpha / status footer ---- */
+  .side-foot {{ margin-top:9px; padding:9px 10px; border-radius:11px; background:var(--inset);
+    border:1px solid var(--line); box-shadow:inset 0 1px 0 rgba(255,255,255,.05); }}
+  .side-foot .sf-l {{ font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--muted); margin-bottom:2px; }}
+  .side-foot .sf-v {{ font-size:17px; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.1; }}
+  .side-foot .sf-sub {{ font-size:10.5px; color:var(--muted); margin-top:3px; font-variant-numeric:tabular-nums; }}
   .sidebar button {{ display:flex; align-items:center; gap:10px; text-align:left; background:none;
     border:none; border-left:2px solid transparent; color:var(--muted); font-size:12px; font-weight:600; padding:9px 11px; border-radius:9px;
     cursor:pointer; text-transform:uppercase; letter-spacing:.06em; }}
@@ -3602,8 +3637,9 @@ def render_html(snap: dict) -> str:
   @media (max-width:760px) {{
     .shell {{ flex-direction:column; }}
     .sidebar {{ flex-direction:row; width:auto; flex:none; position:sticky; top:0; z-index:40;
-      overflow-x:auto; background:var(--bg); border-bottom:1px solid var(--line); padding:6px 0; gap:2px; }}
+      overflow-x:auto; overflow-y:visible; max-height:none; background:var(--bg); border-bottom:1px solid var(--line); padding:6px 0; gap:2px; }}
     .sidebar button {{ white-space:nowrap; padding:8px 12px; }}
+    .side-sig, .side-foot {{ display:none; }}
     .maincol {{ padding-left:0; border-left:none; width:100%; }}
   }}
   /* ---- featured chart panel + watchlist ---- */
@@ -3674,6 +3710,29 @@ def render_html(snap: dict) -> str:
     background:linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 50%, #16c98d)); }}
   .appbar-right {{ display:flex; align-items:center; gap:10px; }}
   .livepill {{ font-size:12px; color:var(--muted); }}
+  /* ---- app-bar centre cluster: search + clock + regime ---- */
+  .appbar-mid {{ display:flex; align-items:center; gap:12px; flex:1 1 auto; min-width:0;
+    justify-content:flex-start; margin:0 6px; }}
+  .appsearch {{ display:flex; align-items:center; gap:6px; background:var(--glass-bg);
+    backdrop-filter:blur(var(--glass-blur)); -webkit-backdrop-filter:blur(var(--glass-blur));
+    border:1px solid var(--glass-bd); border-radius:9px; padding:5px 10px; color:var(--muted);
+    box-shadow:var(--shadow); min-width:0; max-width:220px; }}
+  .appsearch:focus-within {{ border-color:color-mix(in srgb,var(--accent) 55%,transparent);
+    color:var(--txt); box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 18%,transparent); }}
+  .appsearch svg {{ width:14px; height:14px; flex:0 0 auto; }}
+  .appsearch input {{ background:none; border:none; outline:none; color:var(--txt); font-size:12.5px;
+    font-family:var(--mono); letter-spacing:.03em; width:118px; min-width:0; padding:0; }}
+  .appsearch input::placeholder {{ color:var(--muted); text-transform:none; letter-spacing:0; }}
+  .appclock {{ font-family:var(--mono); font-size:12.5px; font-variant-numeric:tabular-nums;
+    color:var(--muted); white-space:nowrap; flex:0 0 auto; }}
+  .regime-pill {{ display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.05em; white-space:nowrap; flex:0 0 auto;
+    padding:4px 10px; border-radius:999px; border:1px solid var(--glass-bd); background:var(--glass-bg);
+    backdrop-filter:blur(var(--glass-blur)); -webkit-backdrop-filter:blur(var(--glass-blur)); }}
+  .regime-pill svg {{ flex:0 0 auto; }}
+  @media (max-width:1080px) {{ .appclock {{ display:none; }} }}
+  @media (max-width:920px) {{ .appsearch {{ display:none; }} }}
+  @media (max-width:640px) {{ .appbar-mid {{ display:none; }} }}
   .subhead {{ color:var(--muted); font-size:12.5px; margin:0 0 16px; }}
   .stale-banner {{ border-radius:10px; padding:10px 14px; margin:0 0 12px; font-size:13px; line-height:1.45;
     border:1px solid; }}
@@ -4001,6 +4060,15 @@ def render_html(snap: dict) -> str:
   <header class="appbar">
     <div class="appbar-top">
       <div class="brand"><span class="brand-mark">◢</span><span>Signal Desk</span></div>
+      <div class="appbar-mid">
+        <div class="appsearch">
+          {_svg('search',14)}
+          <input id="tickerSearch" type="text" autocomplete="off" spellcheck="false"
+                 placeholder="Search ticker…" aria-label="Search ticker">
+        </div>
+        <span class="appclock" id="barClock" aria-label="Market clock"></span>
+        {regime_pill}
+      </div>
       <div class="appbar-right">
         <span class="badge m-{mode}">{mode}</span>
         <span class="livepill" id="liveStatus"></span>
@@ -4030,7 +4098,16 @@ def render_html(snap: dict) -> str:
       <button data-area="portfolio"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.8" y="5" width="12.4" height="8.5" rx="1.2"/><path d="M5.5 5V3.7a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1V5"/></svg> Portfolio</button>
       <button data-area="intel"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="4.5" y="4.5" width="7" height="7" rx="1"/><path d="M6.5 1.8v2.7M9.5 1.8v2.7M6.5 11.5v2.7M9.5 11.5v2.7M1.8 6.5h2.7M1.8 9.5h2.7M11.5 6.5h2.7M11.5 9.5h2.7"/></svg> Intel</button>
       <button data-area="news"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.8" y="3" width="12.4" height="10" rx="1.2"/><path d="M4.3 6h7.4M4.3 8.3h7.4M4.3 10.6h4.5"/></svg> News</button>
+      <button data-area="track"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 14V2M1.5 14h13"/><path d="M4 11l3-3 2.4 2L14 4.5"/><path d="M11 4.5h3v3"/></svg> Track record</button>
+      <button data-area="analyst"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4.3"/><path d="M10.1 10.1 14 14"/></svg> Analyst</button>
+      <button data-area="livetv"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.8" y="4.3" width="12.4" height="8.4" rx="1.4"/><path d="M6 1.6 8 4l2-2.4"/></svg> Live TV</button>
       <button data-area="about"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6.3"/><path d="M8 7.3v4"/><path d="M8 4.9h.01"/></svg> About</button>
+      <button data-area="system"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.3"/><path d="M8 1.4v2M8 12.6v2M1.4 8h2M12.6 8h2M3.3 3.3l1.4 1.4M11.3 11.3l1.4 1.4M12.7 3.3l-1.4 1.4M4.7 11.3l-1.4 1.4"/></svg> System</button>
+      <div class="side-sig" id="sideSignals" hidden>
+        <div class="side-h">{_svg('bolt',12)} Active signals</div>
+        <div class="side-sig-list" id="sideSigList"></div>
+      </div>
+      <div class="side-foot" id="sideFoot" hidden></div>
     </aside>
     <div class="maincol">
       <nav class="toptabs" id="topTabs"></nav>
@@ -4470,6 +4547,7 @@ let _curSort = 'sector';
 try {{ _curSort = localStorage.getItem('sort') || 'sector'; }} catch(e) {{}}
 let _curFilter = 'all';
 try {{ _curFilter = localStorage.getItem('filter') || 'all'; }} catch(e) {{}}
+let _searchTerm = '';  // live ticker-search term from the app-bar search box
 let FAVS = new Set();
 try {{ FAVS = new Set(JSON.parse(localStorage.getItem('tb-favs') || '[]')); }} catch (e) {{}}
 function _toggleFav(sym) {{
@@ -5060,7 +5138,12 @@ function renderCards() {{
   _renderConcWarn();
   cards.innerHTML = '';
   const useLayout = _layout && _layout !== 'cards' && LAYOUT_RENDER[_layout];
-  const base = _applyFilter(DATA.signals.slice(), _curFilter);
+  let base = _applyFilter(DATA.signals.slice(), _curFilter);
+  if (_searchTerm) {{
+    const q = _searchTerm.toLowerCase();
+    base = base.filter(s => (s.symbol||'').toLowerCase().includes(q)
+      || (s.name||'').toLowerCase().includes(q));
+  }}
   const _cc = document.getElementById('cardsCount');
   if (_cc) _cc.textContent = base.length + (base.length === 1 ? ' signal' : ' signals');
   const emptyMsg = (_curFilter === 'favs')
@@ -5291,8 +5374,11 @@ renderTape();
 }})();
 // Live clock: current time in GMT and GMT+4, plus the US market window + open/closed status.
 (function marketClock() {{
-  const el = document.getElementById('marketClock'); if (!el) return;
+  const el = document.getElementById('marketClock');
+  const bar = document.getElementById('barClock');
+  if (!el && !bar) return;
   const t = (tz) => new Date().toLocaleTimeString('en-GB', {{timeZone:tz, hour12:false, hour:'2-digit', minute:'2-digit'}});
+  const ts = (tz) => new Date().toLocaleTimeString('en-GB', {{timeZone:tz, hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'}});
   function isOpen() {{
     try {{
       const et = new Date(new Date().toLocaleString('en-US', {{timeZone:'America/New_York'}}));
@@ -5302,10 +5388,13 @@ renderTape();
   }}
   function upd() {{
     const open = isOpen();
-    el.innerHTML = _ico('clock',13) + ' ' + t('GMT') + ' GMT &middot; ' + t('Asia/Dubai') + ' GMT+4'
+    if (el) el.innerHTML = _ico('clock',13) + ' ' + t('GMT') + ' GMT &middot; ' + t('Asia/Dubai') + ' GMT+4'
       + ' &middot; NYSE 09:30–16:00 ET ('
       + (open ? '<span style="color:var(--buy);font-weight:600;">open</span>'
               : '<span style="color:var(--muted);font-weight:600;">closed</span>') + ')';
+    if (bar) bar.innerHTML = _ico('clock',12) + ' ' + ts('America/New_York') + ' ET '
+      + (open ? '<span style="color:var(--buy);font-weight:700;">•</span>'
+              : '<span style="color:var(--muted);font-weight:700;">•</span>');
   }}
   upd(); setInterval(upd, 1000);
 }})();
@@ -5906,9 +5995,13 @@ function _tvInit() {{
     ['signals', [['signals','Signals'],['intraday','Intraday'],['orb','ORB day-trade'],['pairs','Pairs']]],
     ['markets', [['markets','Markets'],['heatmap','Heatmap'],['momentum','Momentum']]],
     ['portfolio', [['portfolio','Portfolio'],['paper','Paper account'],['allweather','All Weather']]],
-    ['intel', [['altdata','Data signals'],['track','Track record'],['analyst','Analyst']]],
-    ['news', [['news','Market news'],['ipos','IPO watch'],['livetv','Live TV']]],
-    ['about', [['method','How it works'],['system','System']]]
+    ['intel', [['altdata','Data signals']]],
+    ['track', [['track','Track record']]],
+    ['analyst', [['analyst','Analyst']]],
+    ['news', [['news','Market news'],['ipos','IPO watch']]],
+    ['livetv', [['livetv','Live TV']]],
+    ['about', [['method','How it works']]],
+    ['system', [['system','System']]]
   ];
   AREAS.forEach(a => a[1] = a[1].filter(p => document.getElementById('page-' + p[0])));
   const sideNav = document.getElementById('sideNav');
@@ -5942,6 +6035,90 @@ function _tvInit() {{
   if (!document.getElementById('page-' + saved)) saved = 'signals';
   renderTop(areaOf(saved));
   show(saved);
+}})();
+
+// ---- sidebar: live "Active signals" list + alpha/status footer ----
+(function sidebarExtras() {{
+  const list = document.getElementById('sideSigList');
+  const wrap = document.getElementById('sideSignals');
+  const foot = document.getElementById('sideFoot');
+  const sigs = (DATA.signals || []).slice();
+  // Top ~5 by conviction; direction marker from action/direction.
+  if (list && wrap && sigs.length) {{
+    const conv = s => ((s.conviction || {{}}).score_pct) || 0;
+    const top = sigs.sort((a, b) => conv(b) - conv(a)).slice(0, 5);
+    top.forEach(s => {{
+      const cp = conv(s);
+      const isShort = (s.direction === 'SHORT')
+        || /SHORT/.test(s.action || '') || (s.action === 'SELL') || (s.action === 'EXIT');
+      const dirIco = isShort
+        ? `<span class="ss-dir" style="color:var(--sell);">${{_ico('trend-dn', 12)}}</span>`
+        : `<span class="ss-dir" style="color:var(--buy);">${{_ico('trend-up', 12)}}</span>`;
+      const row = document.createElement('div');
+      row.className = 'side-sig-row';
+      row.title = (s.name || s.symbol) + ' · ' + ((s.conviction || {{}}).label || '') + ' conviction';
+      row.innerHTML = _logo2(s.symbol, 20)
+        + `<span class="ss-sym">${{s.symbol}}</span>`
+        + `<span class="ss-conv" style="color:${{_rag(cp)}};">${{cp}}</span>`
+        + dirIco;
+      row.addEventListener('click', () => openModal(s));
+      list.appendChild(row);
+    }});
+    wrap.hidden = false;
+  }}
+  // Alpha / status footer: benchmark excess if present, else win rate + signal count.
+  if (foot) {{
+    const tk = DATA.track || {{}};
+    const wr = (typeof tk.win_rate === 'number') ? tk.win_rate : null;
+    const ex = (DATA.benchmark && typeof DATA.benchmark.avg_excess === 'number') ? DATA.benchmark.avg_excess : null;
+    let mainLab, mainVal, mainCol, sub;
+    if (ex != null) {{
+      mainLab = 'Long α vs SPY';
+      mainVal = (ex >= 0 ? '+' : '') + ex.toFixed(1) + '%';
+      mainCol = ex >= 0 ? 'var(--buy)' : 'var(--sell)';
+      sub = (wr != null ? wr.toFixed(0) + '% win rate' : '') + ' · ' + sigs.length + ' live';
+    }} else if (wr != null) {{
+      mainLab = 'Win rate vs SPY';
+      mainVal = wr.toFixed(0) + '%';
+      mainCol = wr >= 50 ? 'var(--buy)' : 'var(--sell)';
+      const ar = (typeof tk.avg_return === 'number') ? ((tk.avg_return >= 0 ? '+' : '') + tk.avg_return.toFixed(1) + '% avg') : '';
+      sub = (ar ? ar + ' · ' : '') + sigs.length + ' live signals';
+    }} else {{
+      mainLab = 'Active';
+      mainVal = sigs.length;
+      mainCol = 'var(--accent)';
+      sub = 'live signals';
+    }}
+    foot.innerHTML = `<div class="sf-l">${{mainLab}}</div>`
+      + `<div class="sf-v" style="color:${{mainCol}};">${{mainVal}}</div>`
+      + `<div class="sf-sub">${{sub}}</div>`;
+    foot.hidden = false;
+  }}
+}})();
+
+// ---- app-bar ticker search: live-filter the signal cards; Enter opens an exact match ----
+(function tickerSearch() {{
+  const inp = document.getElementById('tickerSearch');
+  if (!inp) return;
+  const findExact = q => (DATA.signals || []).find(s => (s.symbol || '').toLowerCase() === q);
+  inp.addEventListener('input', () => {{
+    _searchTerm = inp.value.trim();
+    // Only re-render the cards grid; if not on the signals page, jump there so the filter is visible.
+    if (_searchTerm && window._showPage) {{
+      const active = document.querySelector('.page.on');
+      if (!active || active.id !== 'page-signals') window._showPage('signals');
+    }}
+    try {{ renderCards(); }} catch (e) {{}}
+  }});
+  inp.addEventListener('keydown', e => {{
+    if (e.key === 'Enter') {{
+      const q = inp.value.trim().toLowerCase();
+      const hit = q && (findExact(q) || (DATA.signals || []).find(s => (s.symbol || '').toLowerCase().startsWith(q)));
+      if (hit) {{ openModal(hit); }}
+    }} else if (e.key === 'Escape') {{
+      inp.value = ''; _searchTerm = ''; try {{ renderCards(); }} catch (err) {{}} inp.blur();
+    }}
+  }});
 }})();
 
 // ---- modal sub-views (left rail) ----
