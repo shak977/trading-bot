@@ -9,7 +9,7 @@
     "FTNT": {
       "action": "BUY",
       "label": "High",
-      "score": 83,
+      "score": 86,
       "dir": "LONG"
     },
     "MPC": {
@@ -63,7 +63,7 @@
     "NET": {
       "action": "BUY",
       "label": "High",
-      "score": 91,
+      "score": 92,
       "dir": "LONG"
     },
     "UPS": {
@@ -84,16 +84,16 @@
       "score": 91,
       "dir": "LONG"
     },
-    "GLW": {
-      "action": "BUY",
-      "label": "High",
-      "score": 86,
-      "dir": "LONG"
-    },
     "CIA": {
       "action": "BUY",
       "label": "High",
       "score": 88,
+      "dir": "LONG"
+    },
+    "GLW": {
+      "action": "BUY",
+      "label": "High",
+      "score": 86,
       "dir": "LONG"
     },
     "CRWD": {
@@ -111,7 +111,7 @@
     "WM": {
       "action": "BUY",
       "label": "High",
-      "score": 95,
+      "score": 96,
       "dir": "LONG"
     },
     "WFC": {
@@ -126,10 +126,10 @@
       "score": 93,
       "dir": "LONG"
     },
-    "ELV": {
+    "CRNC": {
       "action": "BUY",
       "label": "High",
-      "score": 82,
+      "score": 90,
       "dir": "LONG"
     },
     "RTX": {
@@ -150,16 +150,16 @@
       "score": 93,
       "dir": "LONG"
     },
+    "ELV": {
+      "action": "BUY",
+      "label": "High",
+      "score": 90,
+      "dir": "LONG"
+    },
     "PANW": {
       "action": "BUY",
       "label": "High",
       "score": 85,
-      "dir": "LONG"
-    },
-    "DUK": {
-      "action": "BUY",
-      "label": "High",
-      "score": 93,
       "dir": "LONG"
     },
     "AIG": {
@@ -198,6 +198,12 @@
       "score": 90,
       "dir": "LONG"
     },
+    "DUK": {
+      "action": "BUY",
+      "label": "High",
+      "score": 93,
+      "dir": "LONG"
+    },
     "SPY": {
       "action": "BUY",
       "label": "High",
@@ -231,31 +237,25 @@
     "CRNX": {
       "action": "BUY",
       "label": "High",
-      "score": 78,
+      "score": 81,
       "dir": "LONG"
-    },
-    "PLTR": {
-      "action": "WATCH SHORT",
-      "label": "Medium",
-      "score": 72,
-      "dir": "SHORT"
     },
     "META": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 69,
+      "score": 68,
       "dir": "SHORT"
     },
     "MSFT": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 64,
+      "score": 72,
       "dir": "SHORT"
     },
     "PFG": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 80,
+      "score": 76,
       "dir": "LONG"
     },
     "RGA": {
@@ -267,7 +267,7 @@
     "TTD": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 60,
+      "score": 67,
       "dir": "SHORT"
     },
     "CSCO": {
@@ -278,8 +278,8 @@
     },
     "MRVL": {
       "action": "FLAT",
-      "label": "Medium",
-      "score": 73,
+      "label": "High",
+      "score": 77,
       "dir": "LONG"
     }
   },
@@ -288,9 +288,9 @@
     "Industrials": 90,
     "Healthcare": 87,
     "Financials": 83,
-    "Utilities": 67,
     "Materials": 67,
-    "Other / Movers": 65,
+    "Utilities": 67,
+    "Other / Movers": 66,
     "Technology": 62,
     "Staples": 56,
     "Consumer": 56,
@@ -299,8 +299,12 @@
     "Energy": 0
   },
   "catalysts": [
+    "NET",
     "MET",
-    "CRNC"
+    "MRVL",
+    "WM",
+    "META",
+    "TTD"
   ],
-  "generated_at": "2026-07-06"
+  "generated_at": "2026-07-07"
 }
