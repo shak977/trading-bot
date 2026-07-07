@@ -229,6 +229,56 @@ def evaluate(cfg: Config, equity: float, last_equity: float,
                 "warnings": [f"risk engine skipped: {str(e)[:80]}"]}
 
 
+def book_risk(positions: list[dict] | None, open_theses: list[dict] | None,
+              equity: float, cfg: Config) -> dict | None:
+    """Aggregate, forward-looking risk on the CURRENTLY-HELD book (finance-skills risk recipe steps
+    3 + 4). Two reads the per-trade sizing can't give you:
+
+      * **Portfolio heat** — total open risk-to-stop across ALL positions, as a % of equity. Sizing
+        caps a single trade; this catches death-by-a-thousand-small-bets. Joins each position to its
+        logged stop; falls back to the intended per-trade risk when a stop isn't found.
+      * **Open-book VaR / CVaR (95%, 1-day)** — a parametric estimate of what a rough day could cost
+        the current book: 1.645·σ·gross for VaR, 2.063·σ·gross for Expected Shortfall, with a
+        correlation haircut. σ is an assumed per-name daily vol (config) — this is an ESTIMATE, not
+        a promise, and is labelled as such.
+
+    Pure; returns None if there's no book or equity. Never raises."""
+    try:
+        if not positions or not equity or equity <= 0:
+            return None
+        stops = {t.get("symbol"): t.get("stop") for t in (open_theses or [])
+                 if t.get("status") == "open" and t.get("stop")}
+        risk_pct = float(getattr(cfg, "paper_risk_pct", 0.005))
+        sigma = float(getattr(cfg, "book_var_daily_sigma", 0.02))
+        div = float(getattr(cfg, "book_var_diversification", 0.8))
+        gross = 0.0
+        heat_dollars = 0.0
+        for p in positions:
+            qty = abs(float(p.get("qty") or 0))
+            px = float(p.get("price") or 0)
+            ent = float(p.get("avg_entry") or px)
+            gross += qty * px
+            stop = stops.get(p.get("symbol"))
+            if stop and ent:
+                heat_dollars += qty * abs(ent - float(stop))
+            else:
+                heat_dollars += risk_pct * equity          # fallback: the position's intended risk
+        heat_pct = round(heat_dollars / equity * 100, 2)
+        cap = float(getattr(cfg, "portfolio_heat_cap_pct", 6.0))
+        var95 = 1.645 * sigma * gross * div                # 1-day parametric 95% VaR
+        cvar95 = 2.063 * sigma * gross * div               # Expected Shortfall (mean of the worst 5%)
+        return {
+            "n": len(positions),
+            "heat_pct": heat_pct, "heat_cap_pct": cap, "over_heat": heat_pct > cap,
+            "gross_exposure_pct": round(gross / equity * 100, 1),
+            "var95_usd": round(var95), "var95_pct": round(var95 / equity * 100, 2),
+            "cvar95_usd": round(cvar95), "cvar95_pct": round(cvar95 / equity * 100, 2),
+            "sigma_assumed": sigma,
+        }
+    except Exception:  # noqa: BLE001 - advisory; never break the build
+        return None
+
+
 def cap_qty_to_concentration(qty: int, entry: float, max_position_value: float | None) -> int:
     """Trim a position's share count so its notional never exceeds the concentration cap."""
     if not max_position_value or not entry or entry <= 0:

@@ -190,6 +190,9 @@ class Config:
     dd_halt_pct: float = 10.0           # at this drawdown, stop opening new positions entirely
     dd_recovery_ladder_enabled: bool = True  # after a drawdown, ease size back 25->50->75->100% on clean profitable runs
     max_position_pct: float = 12.0      # no single position worth more than this % of equity
+    portfolio_heat_cap_pct: float = 6.0     # flag/throttle when TOTAL open risk-to-stop exceeds this % of equity
+    book_var_daily_sigma: float = 0.02      # assumed per-name 1-day volatility for the parametric open-book VaR
+    book_var_diversification: float = 0.8   # correlation haircut on undiversified book VaR (1.0 = no benefit)
     kill_switch_trips: int = 3          # consecutive failed/errored runs before the kill switch flips
     kill_switch_cooldown_runs: int = 3  # clean runs needed to auto-reset the kill switch
     # Losing-trade cooldown (ported from drawdown-circuit-breaker): after a run of consecutive

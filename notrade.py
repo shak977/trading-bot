@@ -46,7 +46,7 @@ def _event_soon(calendar: dict | None, today: str):
 
 
 def market_gate(cfg, *, macro_posture=None, macro=None, calendar=None,
-                track=None, risk=None, timing=None, today: str = "") -> dict:
+                track=None, risk=None, timing=None, book_risk=None, today: str = "") -> dict:
     """Book-wide no-trade read. Returns {block_new, reasons, cautions, checks}."""
     out = {"block_new": False, "reasons": [], "cautions": [], "checks": []}
     if not getattr(cfg, "notrade_enabled", True):
@@ -124,6 +124,20 @@ def market_gate(cfg, *, macro_posture=None, macro=None, calendar=None,
                 f"Follow-Through Day confirmed the uptrend (quality {timing.get('ftd_quality', 0)}/100) — clear to add.")
         else:
             add("Market timing", "ok", "No distribution cluster — timing is not blocking new entries.")
+
+    # 6) Portfolio heat — total open risk-to-stop across the whole book. One trade can look fine while
+    #    the book as a whole is over-committed; this catches death-by-a-thousand-bets.
+    if isinstance(book_risk, dict) and book_risk.get("heat_pct") is not None:
+        heat = book_risk["heat_pct"]
+        cap = book_risk.get("heat_cap_pct", 6.0)
+        if heat >= cap * 1.5:
+            add("Portfolio heat", "block",
+                f"Book risk {heat:.1f}% of equity is well over the {cap:.0f}% heat cap — stop adding until open risk comes down.")
+        elif heat >= cap:
+            add("Portfolio heat", "caution",
+                f"Book risk {heat:.1f}% of equity is at the {cap:.0f}% heat cap — new positions add real aggregate risk; be selective.")
+        else:
+            add("Portfolio heat", "ok", f"Book risk {heat:.1f}% of equity — within the {cap:.0f}% heat cap.")
 
     return out
 

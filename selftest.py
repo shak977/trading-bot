@@ -863,6 +863,35 @@ def test_recovery_ladder():
     _ok("evaluate exposes recovery_step", "recovery_step" in g)
 
 
+def test_book_risk():
+    print("open-book risk (heat + VaR):")
+    import portfolio_risk as pr
+    from config import CONFIG
+    # two positions, joined to their stops -> heat = summed risk-to-stop / equity
+    positions = [{"symbol": "AAA", "qty": 100, "price": 50.0, "avg_entry": 50.0},
+                 {"symbol": "BBB", "qty": 200, "price": 30.0, "avg_entry": 30.0}]
+    theses = [{"symbol": "AAA", "status": "open", "stop": 48.0},   # risk 100*2 = 200
+              {"symbol": "BBB", "status": "open", "stop": 28.5}]   # risk 200*1.5 = 300
+    br = pr.book_risk(positions, theses, 100_000, CONFIG)
+    _ok("heat = total risk-to-stop / equity", br["heat_pct"] == 0.5)   # (200+300)/100000 = 0.5%
+    _ok("gross exposure computed", br["gross_exposure_pct"] == 11.0)   # (5000+6000)/100000
+    _ok("VaR 95% is positive and < gross", 0 < br["var95_usd"] < 11000)
+    _ok("CVaR >= VaR", br["cvar95_usd"] >= br["var95_usd"])
+    _ok("over_heat False when under cap", br["over_heat"] is False)
+    # no stop found -> falls back to intended per-trade risk (paper_risk_pct)
+    br2 = pr.book_risk(positions, [], 100_000, CONFIG)
+    _ok("missing stops fall back to intended risk", br2["heat_pct"] > 0)
+    _ok("flat book => None", pr.book_risk([], [], 100_000, CONFIG) is None)
+    # the heat gate flags when over cap
+    import notrade
+    hot = {"heat_pct": 10.0, "heat_cap_pct": 6.0}
+    g = notrade.market_gate(CONFIG, book_risk=hot)
+    _ok("heat over 1.5x cap blocks new entries", g["block_new"] is True)
+    import dashboard
+    _ok("panel renders heat + VaR", "Portfolio heat" in dashboard._book_risk_html(br) and "VaR 95%" in dashboard._book_risk_html(br))
+    _ok("flat book => no panel", dashboard._book_risk_html(None) == "")
+
+
 def test_performance_metrics():
     print("performance & risk metrics:")
     import metrics
@@ -943,6 +972,7 @@ def main():
     test_committee_vote()
     test_bonferroni_guard()
     test_recovery_ladder()
+    test_book_risk()
     test_performance_metrics()
     print("\nALL TESTS PASSED")
 

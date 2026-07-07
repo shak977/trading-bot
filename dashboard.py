@@ -1076,13 +1076,24 @@ def build_snapshot() -> dict:
     except Exception:  # noqa: BLE001
         paper_acct = None
 
+    # Aggregate open-book risk (finance-skills recipe): portfolio heat (total open risk-to-stop) +
+    # a parametric 95% VaR/CVaR on the positions held right now. Advisory; None when the book is flat.
+    book_risk = None
+    try:
+        import portfolio_risk as _pr
+        _open_theses = [t for t in (_load_json_safe("track_record.json") or []) if t.get("status") == "open"]
+        book_risk = _pr.book_risk((paper_acct or {}).get("positions"), _open_theses,
+                                  (paper_acct or {}).get("equity"), CONFIG)
+    except Exception:  # noqa: BLE001
+        book_risk = None
+
     # Re-evaluate the no-trade gate WITH the risk-engine state (from paper) so the panel unifies it.
     try:
         import notrade as _notrade
         notrade_gate = _notrade.market_gate(CONFIG, macro_posture=macro_posture, macro=macro,
                                             calendar=calendar, track=track,
                                             risk=(paper_acct or {}).get("risk"),
-                                            timing=timing_posture, today=today)
+                                            timing=timing_posture, book_risk=book_risk, today=today)
     except Exception:  # noqa: BLE001
         pass
 
@@ -1238,6 +1249,7 @@ def build_snapshot() -> dict:
         "timing": timing_posture,
         "setups_study": _load_json_safe("setups_study.json"),
         "performance": _perf_metrics(),
+        "book_risk": book_risk,
         "notrade": notrade_gate,
         "price_drops": price_drops,
         "momentum": [dict(m, name=scanner.name_of(
@@ -2103,6 +2115,38 @@ def _timing_html(tp: dict | None) -> str:
         '&ge;1.25% index gain in the day 4-10 rally window) confirms a new uptrend; a cluster of '
         '<b>distribution days</b> (index down on rising volume) warns of institutional selling. This tilts '
         'exposure alongside the macro backdrop — it never buys or sells directly.</p></div>'
+    )
+
+
+def _book_risk_html(br: dict | None) -> str:
+    """Open-book risk panel: portfolio heat (total open risk-to-stop) + parametric 95% VaR/CVaR on
+    the positions held right now. Pulled from the finance-skills risk recipe (steps 3 + 4)."""
+    if not br or not br.get("n"):
+        return ""
+    heat = br.get("heat_pct")
+    cap = br.get("heat_cap_pct", 6.0)
+    hc = "var(--sell)" if heat >= cap * 1.5 else "#e0a82e" if heat >= cap else "var(--buy)"
+    sig = int(round(br.get("sigma_assumed", 0.02) * 100))
+
+    def tile(label, val, color="var(--txt)", sub=""):
+        s = f'<div style="font-size:10px;color:var(--muted);margin-top:1px;">{sub}</div>' if sub else ""
+        return (f'<div style="min-width:0;"><div style="font-size:11px;color:var(--muted);">{label}</div>'
+                f'<div style="font-size:17px;font-weight:700;color:{color};font-family:var(--mono,monospace);">{val}</div>{s}</div>')
+    grid = "".join([
+        tile("Portfolio heat", f'{heat:.1f}%', hc, f'total risk-to-stop · cap {cap:.0f}%'),
+        tile("Gross exposure", f'{br.get("gross_exposure_pct")}%', "var(--txt)", f'{br.get("n")} positions'),
+        tile("VaR 95% (1d)", f'${br.get("var95_usd"):,}', "var(--sell)", f'{br.get("var95_pct")}% of equity'),
+        tile("CVaR 95%", f'${br.get("cvar95_usd"):,}', "var(--sell)", "mean worst 5% day"),
+    ])
+    return (
+        '<div class="ovbox glass" style="border-left:4px solid var(--accent,#eaa62b);margin:0 0 16px;">'
+        f'<div class="ovhead">{_svg("octagon",14)} Open-book risk '
+        f'<span style="font-weight:400;color:var(--muted);font-size:12px;">— the book you’re holding right now</span></div>'
+        f'<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 16px;margin-top:8px;">{grid}</div>'
+        f'<p style="color:var(--muted);font-size:10px;margin:10px 0 0;"><b>Heat</b> sums every open position’s risk to '
+        f'its stop — caps total risk-on, not just per-trade size. <b>VaR/CVaR</b> are a parametric estimate '
+        f'(assumes ~{sig}%/name daily vol with a correlation haircut) of a rough day’s loss on the current book — '
+        f'an estimate, not a promise.</p></div>'
     )
 
 
@@ -3182,7 +3226,7 @@ def render_html(snap: dict) -> str:
     track_html = _track_html(snap.get("track"))
     if track_html:
         try:
-            track_html = _performance_html(snap.get("performance")) + track_html
+            track_html = _book_risk_html(snap.get("book_risk")) + _performance_html(snap.get("performance")) + track_html
             track_html += _learned_html(snap.get("learned"))
         except Exception:  # noqa: BLE001 - panels are additive; never break the build
             pass
