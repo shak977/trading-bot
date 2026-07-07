@@ -4,6 +4,8 @@ Opt-in and multi-channel; nothing fires unless you set at least one of these env
   ALERT_WEBHOOK_URL   a Discord / Slack / ntfy webhook (payload shape auto-detected)
   ALERT_NTFY_TOPIC    an ntfy.sh topic name (free phone push: install the ntfy app, subscribe)
   ALERT_EMAIL_TO      + SMTP_HOST, SMTP_USER, SMTP_PASS [, SMTP_PORT]  for email
+  TELEGRAM_BOT_TOKEN  + TELEGRAM_CHAT_ID  — Telegram push (create a bot with @BotFather, then get
+                      your chat id from https://api.telegram.org/bot<token>/getUpdates after messaging it)
 Optional: SITE_URL    link included in the alert (e.g. https://shak977.github.io/trading-bot)
 
 Only NEW High-conviction BUY/SHORT calls are alerted (the same bar the dashboard/digest use),
@@ -49,7 +51,28 @@ def _channels() -> dict:
         "webhook": os.getenv("ALERT_WEBHOOK_URL", "").strip(),
         "ntfy": os.getenv("ALERT_NTFY_TOPIC", "").strip(),
         "email_to": os.getenv("ALERT_EMAIL_TO", "").strip(),
+        "tg_token": os.getenv("TELEGRAM_BOT_TOKEN", "").strip(),
+        "tg_chat": os.getenv("TELEGRAM_CHAT_ID", "").strip(),
     }
+
+
+def _any(ch: dict) -> bool:
+    """True if at least one alert channel is configured."""
+    return bool(ch["webhook"] or ch["ntfy"] or ch["email_to"] or (ch["tg_token"] and ch["tg_chat"]))
+
+
+def _deliver(ch: dict, title: str, body: str) -> bool:
+    """Send one alert to every configured channel; True if any delivered. Never raises."""
+    delivered = False
+    if ch["webhook"]:
+        delivered = _post_webhook(ch["webhook"], title, body) or delivered
+    if ch["ntfy"]:
+        delivered = _post_ntfy(ch["ntfy"], title, body) or delivered
+    if ch["email_to"]:
+        delivered = _send_email(ch["email_to"], title, body) or delivered
+    if ch["tg_token"] and ch["tg_chat"]:
+        delivered = _post_telegram(ch["tg_token"], ch["tg_chat"], title, body) or delivered
+    return delivered
 
 
 def _post_webhook(url: str, title: str, body: str) -> bool:
@@ -82,6 +105,21 @@ def _post_ntfy(topic: str, title: str, body: str) -> bool:
         return False
 
 
+def _post_telegram(token: str, chat_id: str, title: str, body: str) -> bool:
+    """Send via the Telegram Bot API. Set TELEGRAM_BOT_TOKEN (from @BotFather) + TELEGRAM_CHAT_ID
+    (your chat/channel id). Plain text (no Markdown) so tickers, $ and / never break formatting."""
+    import requests
+    try:
+        r = requests.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={"chat_id": chat_id, "text": f"{title}\n\n{body}", "disable_web_page_preview": True},
+            timeout=12,
+        )
+        return r.ok
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _send_email(to: str, title: str, body: str) -> bool:
     host, user, pw = os.getenv("SMTP_HOST", ""), os.getenv("SMTP_USER", ""), os.getenv("SMTP_PASS", "")
     if not (host and user and pw):
@@ -106,7 +144,7 @@ def run(signals: list[dict], today: str) -> dict | None:
     """Fire alerts for NEW High-conviction BUY/SHORT signals. Returns a small status dict, or
     None when no channels are configured. Never raises."""
     ch = _channels()
-    if not (ch["webhook"] or ch["ntfy"] or ch["email_to"]):
+    if not _any(ch):
         return None
 
     picks = [s for s in signals
@@ -132,13 +170,7 @@ def run(signals: list[dict], today: str) -> dict | None:
     foot = f"\n\nas of {stamp} — these names are pinned on the dashboard"
     body = "\n".join(lines) + foot + (f"\n{site}" if site else "")
 
-    delivered = False
-    if ch["webhook"]:
-        delivered = _post_webhook(ch["webhook"], title, body) or delivered
-    if ch["ntfy"]:
-        delivered = _post_ntfy(ch["ntfy"], title, body) or delivered
-    if ch["email_to"]:
-        delivered = _send_email(ch["email_to"], title, body) or delivered
+    delivered = _deliver(ch, title, body)
 
     if delivered:
         for s in fresh:
@@ -152,7 +184,7 @@ def run_pairs(pairs_data: dict | None, today: str) -> dict | None:
     """Fire alerts for FRESH actionable pairs (a spread stretched to its entry band, |z| ≥ 2σ).
     Deduped via the same log with a 'PAIR:' key so each pair pings once per day. Never raises."""
     ch = _channels()
-    if not (ch["webhook"] or ch["ntfy"] or ch["email_to"]):
+    if not _any(ch):
         return None
     pairs = (pairs_data or {}).get("pairs") or []
     actionable = [p for p in pairs if p.get("actionable")]
@@ -181,13 +213,7 @@ def run_pairs(pairs_data: dict | None, today: str) -> dict | None:
             "Market-neutral diversifier; paper/educational.")
     body = "\n".join(lines) + foot + (f"\n{site}" if site else "")
 
-    delivered = False
-    if ch["webhook"]:
-        delivered = _post_webhook(ch["webhook"], title, body) or delivered
-    if ch["ntfy"]:
-        delivered = _post_ntfy(ch["ntfy"], title, body) or delivered
-    if ch["email_to"]:
-        delivered = _send_email(ch["email_to"], title, body) or delivered
+    delivered = _deliver(ch, title, body)
 
     if delivered:
         for p in fresh:
@@ -201,7 +227,7 @@ def run_orb(orb_signals: list[dict] | None, today: str) -> dict | None:
     """Fire alerts for FRESH ELIGIBLE ORB breakouts (score ≥ threshold, not risk-blocked). Deduped
     via the same log with an 'ORB:' key so each name pings once per session. Never raises."""
     ch = _channels()
-    if not (ch["webhook"] or ch["ntfy"] or ch["email_to"]):
+    if not _any(ch):
         return None
     picks = [s for s in (orb_signals or [])
              if s.get("recommended_action") == "paper_trade" and not s.get("risk_blocked")]
@@ -228,13 +254,7 @@ def run_orb(orb_signals: list[dict] | None, today: str) -> dict | None:
             "Paper/shadow signal, not advice.")
     body = "\n".join(lines) + foot + (f"\n{site}" if site else "")
 
-    delivered = False
-    if ch["webhook"]:
-        delivered = _post_webhook(ch["webhook"], title, body) or delivered
-    if ch["ntfy"]:
-        delivered = _post_ntfy(ch["ntfy"], title, body) or delivered
-    if ch["email_to"]:
-        delivered = _send_email(ch["email_to"], title, body) or delivered
+    delivered = _deliver(ch, title, body)
 
     if delivered:
         for s in fresh:

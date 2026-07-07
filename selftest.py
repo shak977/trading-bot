@@ -863,6 +863,31 @@ def test_recovery_ladder():
     _ok("evaluate exposes recovery_step", "recovery_step" in g)
 
 
+def test_telegram_alerts():
+    print("alert channels (incl. Telegram):")
+    import os, notify
+    for k in ("ALERT_WEBHOOK_URL", "ALERT_NTFY_TOPIC", "ALERT_EMAIL_TO", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"):
+        os.environ.pop(k, None)
+    _ok("no channels => _any False", notify._any(notify._channels()) is False)
+    os.environ["TELEGRAM_BOT_TOKEN"] = "123:abc"; os.environ["TELEGRAM_CHAT_ID"] = "42"
+    ch = notify._channels()
+    _ok("telegram token+chat picked up", ch["tg_token"] == "123:abc" and ch["tg_chat"] == "42")
+    _ok("telegram alone enables alerts", notify._any(ch) is True)
+    os.environ.pop("TELEGRAM_CHAT_ID")   # token without chat id shouldn't count
+    _ok("token without chat id => not enabled", notify._any(notify._channels()) is False)
+    # _deliver routes to telegram — monkeypatch the sender so no real network call in the test
+    orig = notify._post_telegram
+    notify._post_telegram = lambda *a, **k: True
+    try:
+        _ok("_deliver routes to a configured telegram channel",
+            notify._deliver({"webhook": "", "ntfy": "", "email_to": "", "tg_token": "t", "tg_chat": "c"}, "x", "y") is True)
+        _ok("_deliver with no channels delivers nothing",
+            notify._deliver({"webhook": "", "ntfy": "", "email_to": "", "tg_token": "", "tg_chat": ""}, "x", "y") is False)
+    finally:
+        notify._post_telegram = orig
+    os.environ.pop("TELEGRAM_BOT_TOKEN", None)
+
+
 def test_book_risk():
     print("open-book risk (heat + VaR):")
     import portfolio_risk as pr
@@ -973,6 +998,7 @@ def main():
     test_bonferroni_guard()
     test_recovery_ladder()
     test_book_risk()
+    test_telegram_alerts()
     test_performance_metrics()
     print("\nALL TESTS PASSED")
 
