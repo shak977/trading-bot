@@ -129,6 +129,15 @@ def _synthetic_news(symbols: list[str]) -> list[dict]:
     return out
 
 
+def _load_json_safe(path: str):
+    """Read a small committed JSON artifact (study/benchmark files) or None. Never raises."""
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def _market_regime(rows: list[dict]) -> dict | None:
     """Read the overall tape: breadth (% above trend), average momentum, # buys."""
     if not rows:
@@ -1160,6 +1169,7 @@ def build_snapshot() -> dict:
         "macro": macro,
         "macro_posture": macro_posture,
         "timing": timing_posture,
+        "setups_study": _load_json_safe("setups_study.json"),
         "notrade": notrade_gate,
         "price_drops": price_drops,
         "momentum": [dict(m, name=scanner.name_of(
@@ -2025,6 +2035,46 @@ def _timing_html(tp: dict | None) -> str:
         '&ge;1.25% index gain in the day 4-10 rally window) confirms a new uptrend; a cluster of '
         '<b>distribution days</b> (index down on rising volume) warns of institutional selling. This tilts '
         'exposure alongside the macro backdrop — it never buys or sells directly.</p></div>'
+    )
+
+
+def _setup_study_html(st: dict | None) -> str:
+    """Setup edge-validation panel: walk-forward hit rate + edge-over-baseline for the ported
+    entry setups (Momentum Burst, Episodic Pivot), refreshed each post-close CI run."""
+    if not st or not st.get("setups"):
+        return ""
+    H = st.get("primary_horizon", 10)
+    base = (st.get("baseline") or {}).get(str(H)) or {}
+    rows = ""
+    for key in ("burst", "ep"):
+        s = (st.get("setups") or {}).get(key)
+        if not s:
+            continue
+        cell = (s.get("stats") or {}).get(str(H)) or {}
+        mp, edge, nn = cell.get("mean_pct"), s.get("edge_pct"), s.get("n", 0)
+        if mp is None:
+            rows += (f'<tr><td style="padding:2px 10px 2px 0;color:var(--txt2);">{s.get("label")}</td>'
+                     f'<td colspan="3" style="color:var(--muted);">gathering samples (n={nn})</td></tr>')
+            continue
+        ec = "var(--buy)" if (edge or 0) > 0 else "var(--sell)" if (edge or 0) < 0 else "var(--muted)"
+        rows += (f'<tr><td style="padding:2px 10px 2px 0;color:var(--txt2);">{s.get("label")}</td>'
+                 f'<td style="text-align:right;font-family:var(--mono,monospace);">{mp:+.2f}%</td>'
+                 f'<td style="text-align:right;padding-left:10px;color:{ec};font-family:var(--mono,monospace);">'
+                 f'{edge:+.2f}% vs base</td>'
+                 f'<td style="text-align:right;padding-left:10px;color:var(--muted);">hit {cell.get("hit_rate")}% · n={nn}</td></tr>')
+    basetxt = f'{base.get("mean_pct"):+.2f}%' if base.get("mean_pct") is not None else "—"
+    return (
+        '<div class="ovbox" style="border-left:4px solid var(--accent,#eaa62b);margin:0 0 16px;">'
+        f'<div class="ovhead">{_svg("target",14)} Setup edge check '
+        f'<span style="font-weight:400;color:var(--muted);font-size:12px;">— forward {H}-day return, walk-forward on '
+        f'{st.get("names", 0)} liquid names</span></div>'
+        f'<p style="color:var(--txt2);font-size:12px;margin:6px 0 6px;">{st.get("verdict","")}</p>'
+        f'<table style="font-size:12px;border-collapse:collapse;"><tbody>{rows}'
+        f'<tr><td style="padding-top:4px;color:var(--muted);">Baseline (all days)</td>'
+        f'<td style="text-align:right;color:var(--muted);font-family:var(--mono,monospace);padding-top:4px;">{basetxt}</td>'
+        f'<td colspan="2"></td></tr></tbody></table>'
+        f'<p style="color:var(--muted);font-size:10px;margin:5px 0 0;">Edge = setup mean − baseline mean; positive means '
+        f'the setup selects better-than-average windows. EP validated technical-only (no historical news) · {st.get("generated_at","")}</p></div>'
     )
 
 
@@ -3038,6 +3088,7 @@ def render_html(snap: dict) -> str:
     macro_html = (_notrade_html(snap.get("notrade"))
                   + _macro_posture_html(snap.get("macro_posture"))
                   + _timing_html(snap.get("timing"))
+                  + _setup_study_html(snap.get("setups_study"))
                   + _macro_html(snap.get("macro")) + _calendar_html(snap.get("calendar")))
     dh = snap.get("data_health")
     if not dh:
