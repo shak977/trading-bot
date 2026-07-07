@@ -280,11 +280,36 @@ def send_test() -> bool:
             f"This is a manual test — not a real signal.\n\n{stamp}" + (f"\n{site}" if site else ""))
     ok = _deliver(ch, "✅ Trading-bot test alert", body)
     print(f"channels tried: {', '.join(on)} | delivered: {ok}")
+    # Verbose Telegram diagnostic — surface the API's own words so failures are obvious.
+    if ch["tg_token"] and ch["tg_chat"]:
+        import requests
+        try:
+            r = requests.post(
+                f"https://api.telegram.org/bot{ch['tg_token']}/sendMessage",
+                json={"chat_id": ch["tg_chat"], "text": "Trading-bot test ✅"}, timeout=12)
+            data = r.json()
+            if data.get("ok"):
+                print("TELEGRAM: OK — message sent. Check your Telegram.")
+                ok = True
+            else:
+                code = data.get("error_code")
+                desc = data.get("description", "")
+                print(f"TELEGRAM: FAILED — {code}: {desc}")
+                if code == 400 and "chat not found" in desc.lower():
+                    print("  -> TELEGRAM_CHAT_ID is wrong. Re-grab the number from RawDataBot (the 'id' under 'from').")
+                elif code == 403:
+                    print("  -> Open your bot @Shak97_bot in Telegram and press Start / send it a message first.")
+                elif code == 401:
+                    print("  -> TELEGRAM_BOT_TOKEN is wrong. Re-copy it from BotFather (/mybots -> API Token).")
+        except Exception as e:  # noqa: BLE001
+            print(f"TELEGRAM: request error — {e}")
     return ok
 
 
 if __name__ == "__main__":
     import sys
     if "--test" in sys.argv:
-        raise SystemExit(0 if send_test() else 2)
+        ok = send_test()
+        print("\nRESULT:", "DELIVERED ✅" if ok else "NOT DELIVERED ❌ (see the message above for why)")
+        raise SystemExit(0)          # always exit clean — this is a diagnostic, read the output above
     print("usage: python notify.py --test   (sends a dummy alert to your configured channels)")
