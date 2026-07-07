@@ -185,6 +185,31 @@ def evaluate(cfg: Config, equity: float, last_equity: float,
             size_scale = min(size_scale, 0.5)
             warnings.append(f"{loss_streak} losing trades in a row — new positions sized at half until the streak breaks.")
 
+        # --- drawdown-recovery ladder: after a drawdown, don't snap back to full size — ease in.
+        # Halt drops the size step to 0; once drawdown clears we start at quarter size, then ratchet
+        # 0.25 -> 0.5 -> 0.75 -> 1.0, stepping up ONLY after a clean (no losing-streak) and profitable
+        # run. Stateful (recovery_step in risk_state.json); the step caps whatever size the gates allow.
+        if getattr(cfg, "dd_recovery_ladder_enabled", True):
+            step = float(st.get("recovery_step", 1.0))
+            if dd_pct >= dd_halt:
+                step = 0.0                                   # halted -> floor
+            elif dd_pct >= dd_derisk:
+                step = min(step, 0.5)
+            else:                                            # recovered below the de-risk line
+                if step < 0.25:
+                    step = 0.25                              # first run out of a halt: quarter size
+                elif step < 1.0 and loss_streak == 0 and day_pl_pct > 0:
+                    step = min(1.0, round(step + 0.25, 2))   # ratchet up on a clean, green run
+            st["recovery_step"] = step
+            if 0.0 < step < 1.0:
+                size_scale = min(size_scale, step)
+                if state == "normal":
+                    state = "recovering"
+                warnings.append(f"Recovering from drawdown — easing size back in at {int(step*100)}% "
+                                "(steps up after a clean, profitable run).")
+        else:
+            step = 1.0
+
         # --- concentration cap (per single new position) ---
         max_pos_pct = float(getattr(cfg, "max_position_pct", 15.0))
         max_position_value = round(equity * max_pos_pct / 100, 2) if equity else None
@@ -194,6 +219,7 @@ def evaluate(cfg: Config, equity: float, last_equity: float,
             "enabled": True, "state": state, "ok_to_open": ok_to_open, "size_scale": size_scale,
             "max_position_value": max_position_value, "max_position_pct": max_pos_pct,
             "drawdown_pct": dd_pct, "peak_equity": round(peak, 2), "loss_streak": loss_streak,
+            "recovery_step": step,
             "day_pl_pct": day_pl_pct, "reasons": reasons, "warnings": warnings,
         }
     except Exception as e:  # noqa: BLE001 — evaluation error must fail OPEN, never wedge the runner

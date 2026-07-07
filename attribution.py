@@ -9,7 +9,22 @@ honest. Read-only; accumulates from the first run after the snapshot ships.
 from __future__ import annotations
 
 import json
+import math
 import os
+
+
+def _two_proportion_p(w1: int, n1: int, w2: int, n2: int) -> float | None:
+    """Two-sided p-value for 'do these two win rates differ?' (pooled two-proportion z-test).
+    Used to tell a real edge from a lucky one. Pure stdlib (no scipy). None if a side is empty."""
+    if n1 <= 0 or n2 <= 0:
+        return None
+    p1, p2 = w1 / n1, w2 / n2
+    p = (w1 + w2) / (n1 + n2)
+    se = math.sqrt(p * (1 - p) * (1 / n1 + 1 / n2))
+    if se == 0:
+        return 1.0
+    z = (p1 - p2) / se
+    return math.erfc(abs(z) / math.sqrt(2))          # two-sided p-value
 
 PATH = os.getenv("TRACK_FILE", "track_record.json")
 INTRADAY_PATH = os.getenv("TRACK_INTRADAY_FILE", "track_record_intraday.json")
@@ -47,8 +62,14 @@ def attribute(log: list[dict]) -> list[dict]:
         failed = [t for t in resolved if any(c.get("label") == lbl and c.get("status") == "fail" for c in t["checks"])]
         wp, wf = _win_rate(passed), _win_rate(failed)
         edge = round(wp - wf, 1) if (wp is not None and wf is not None) else None
+        # decided-only counts (win/loss) for the significance test
+        dp = [t for t in passed if t["status"] in ("win", "loss")]
+        dfl = [t for t in failed if t["status"] in ("win", "loss")]
+        p_value = _two_proportion_p(sum(t["status"] == "win" for t in dp), len(dp),
+                                    sum(t["status"] == "win" for t in dfl), len(dfl))
         out.append({"label": lbl, "n_pass": len(passed), "n_fail": len(failed),
-                    "win_rate_pass": wp, "win_rate_fail": wf, "edge": edge})
+                    "n_dec_pass": len(dp), "n_dec_fail": len(dfl),
+                    "win_rate_pass": wp, "win_rate_fail": wf, "edge": edge, "p_value": p_value})
     out.sort(key=lambda r: -(r["edge"] if r["edge"] is not None else -999))
     return out
 
@@ -124,7 +145,8 @@ def suppressed_directions(scope: str = "daily", path: str | None = None,
 
 
 def learned_weights(scope: str = "all", path: str | None = None,
-                    min_n: int = 12, max_adj: float = 0.5, retire_edge: float = -15.0) -> dict:
+                    min_n: int = 12, max_adj: float = 0.5, retire_edge: float = -15.0,
+                    bonferroni: bool = True, alpha: float = 0.05) -> dict:
     """Turn the per-check edge into a {label: weight-multiplier} the conviction engine can use to
     ADAPT — checks that have historically predicted winners get up-weighted, those that haven't get
     down-weighted, and checks that have proven ANTI-predictive get RETIRED (weight -> 0). This is
@@ -140,12 +162,21 @@ def learned_weights(scope: str = "all", path: str | None = None,
     LESS when it passes than when it fails, by a wide, well-sampled margin) is dropped to weight 0 —
     acting on the analyst's own 'down-weight or retire' finding instead of only reporting it. Returns
     {} until there's enough data — so early on the engine runs on its transparent default weights."""
+    rows = attribute(load(path) if path else _rows_for(scope))
+    # Bonferroni p-hack guard: we test many checks at once, so some will look predictive by pure
+    # chance. Correct the significance bar for how many checks are eligible (alpha / m) — a check
+    # only earns a weight change / retirement if its pass-vs-fail edge clears that stricter bar.
+    # Without this, a lucky check gets rewarded and the engine chases noise.
+    eligible = [r for r in rows if r.get("edge") is not None and min(r.get("n_pass", 0), r.get("n_fail", 0)) >= min_n]
+    m = max(1, len(eligible))
+    alpha_corr = alpha / m
     out = {}
-    for r in attribute(load(path) if path else _rows_for(scope)):
-        edge = r.get("edge")
-        n = min(r.get("n_pass", 0), r.get("n_fail", 0))
-        if edge is None or n < min_n:
-            continue
+    for r in eligible:
+        if bonferroni:
+            p = r.get("p_value")
+            if p is None or p >= alpha_corr:
+                continue                    # not significant after correction -> treat as noise, leave at default
+        edge = r["edge"]
         if edge <= retire_edge:
             out[r["label"]] = 0.0          # proven anti-predictive -> retire it
         else:

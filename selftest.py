@@ -816,6 +816,53 @@ def test_committee_vote():
     _ok("disabled => no committee check", "AI committee agrees?" not in [c["label"] for c in row["conviction"]["checks"]])
 
 
+def test_bonferroni_guard():
+    print("Bonferroni p-hack guard (attribution):")
+    import attribution
+    # a big, decisive edge (80% vs 20% over 40+40) is significant even after correction
+    strong = ([{"status": "win", "checks": [{"label": "X", "status": "pass"}]}] * 32
+              + [{"status": "loss", "checks": [{"label": "X", "status": "pass"}]}] * 8
+              + [{"status": "win", "checks": [{"label": "X", "status": "fail"}]}] * 8
+              + [{"status": "loss", "checks": [{"label": "X", "status": "fail"}]}] * 32)
+    rep = {r["label"]: r for r in attribution.attribute(strong)}
+    _ok("attribute reports a p-value", rep["X"].get("p_value") is not None)
+    _ok("strong edge is highly significant", rep["X"]["p_value"] < 0.001)
+    # a tiny, noisy edge (11 vs 10 wins out of 20 each) must NOT earn a weight — it's not significant
+    noisy = ([{"status": "win", "checks": [{"label": "Y", "status": "pass"}]}] * 11
+             + [{"status": "loss", "checks": [{"label": "Y", "status": "pass"}]}] * 9
+             + [{"status": "win", "checks": [{"label": "Y", "status": "fail"}]}] * 10
+             + [{"status": "loss", "checks": [{"label": "Y", "status": "fail"}]}] * 10)
+    ry = {r["label"]: r for r in attribution.attribute(noisy)}["Y"]
+    _ok("noisy edge is NOT significant", ry["p_value"] > 0.05)
+    _ok("two-proportion p in [0,1]", 0 <= attribution._two_proportion_p(30, 40, 10, 40) <= 1)
+
+
+def test_recovery_ladder():
+    print("drawdown-recovery ladder (risk engine):")
+    import portfolio_risk as pr
+    st = {"recovery_step": 0.0}   # just came off a halt
+    # recovered below de-risk, clean+green run -> steps off the floor to 0.25
+    def step_after(prev, dd, streak, pnl):
+        s = prev
+        halt, derisk = 10.0, 8.0
+        if dd >= halt: s = 0.0
+        elif dd >= derisk: s = min(s, 0.5)
+        else:
+            if s < 0.25: s = 0.25
+            elif s < 1.0 and streak == 0 and pnl > 0: s = min(1.0, round(s + 0.25, 2))
+        return s
+    _ok("halt floors the step to 0", step_after(0.5, 12.0, 0, 1.0) == 0.0)
+    _ok("out of halt starts at quarter size", step_after(0.0, 2.0, 0, 1.0) == 0.25)
+    _ok("clean green run ratchets up", step_after(0.25, 2.0, 0, 1.0) == 0.5)
+    _ok("a losing streak does NOT step up", step_after(0.5, 2.0, 2, 1.0) == 0.5)
+    _ok("a red run does NOT step up", step_after(0.5, 2.0, 0, -0.5) == 0.5)
+    _ok("caps at full size", step_after(1.0, 2.0, 0, 1.0) == 1.0)
+    # end-to-end: evaluate returns a recovery_step and never raises
+    import config
+    g = pr.evaluate(config.Config(), 100000, 100500, [], history=None)
+    _ok("evaluate exposes recovery_step", "recovery_step" in g)
+
+
 def test_performance_metrics():
     print("performance & risk metrics:")
     import metrics
@@ -894,6 +941,8 @@ def main():
     test_regime_confluence()
     test_wyckoff_vsa()
     test_committee_vote()
+    test_bonferroni_guard()
+    test_recovery_ladder()
     test_performance_metrics()
     print("\nALL TESTS PASSED")
 
