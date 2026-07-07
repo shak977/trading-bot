@@ -262,3 +262,29 @@ def run_orb(orb_signals: list[dict] | None, today: str) -> dict | None:
         _save(sent)
     return {"configured": True, "new": len(fresh), "delivered": delivered,
             "symbols": [s.get("symbol") for s in fresh[:8]]}
+
+
+def send_test() -> bool:
+    """Fire a one-off dummy alert to every configured channel, to confirm the wiring end-to-end.
+    Returns True if at least one channel delivered. Run via: python notify.py --test"""
+    ch = _channels()
+    on = [k for k in ("webhook", "ntfy", "email_to") if ch[k]] + (["telegram"] if ch["tg_token"] and ch["tg_chat"] else [])
+    if not on:
+        print("No alert channels configured. Set TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID "
+              "(or ALERT_WEBHOOK_URL / ALERT_NTFY_TOPIC / ALERT_EMAIL_TO) first.")
+        return False
+    site = os.getenv("SITE_URL", "").strip()
+    from datetime import datetime, timezone
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    body = (f"If you're reading this, your trading-bot alerts are wired up correctly. "
+            f"This is a manual test — not a real signal.\n\n{stamp}" + (f"\n{site}" if site else ""))
+    ok = _deliver(ch, "✅ Trading-bot test alert", body)
+    print(f"channels tried: {', '.join(on)} | delivered: {ok}")
+    return ok
+
+
+if __name__ == "__main__":
+    import sys
+    if "--test" in sys.argv:
+        raise SystemExit(0 if send_test() else 2)
+    print("usage: python notify.py --test   (sends a dummy alert to your configured channels)")
