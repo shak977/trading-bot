@@ -66,6 +66,29 @@ def note_failure(cfg: Config) -> None:
     _save_state(st)
 
 
+def _recent_loss_streak(path: str = "track_record.json") -> int:
+    """Trailing count of consecutive *losing* closed theses in the track record. Read-only (the
+    Action owns this file). Ordered by entry date as a best-available proxy — this is an advisory
+    throttle, not accounting. Any error -> 0 (no cooldown). Resets to 0 the moment a win lands."""
+    try:
+        import json
+        with open(path) as f:
+            rows = json.load(f)
+        if not isinstance(rows, list):
+            return 0
+        resolved = [t for t in rows if t.get("status") in ("win", "loss")]
+        resolved.sort(key=lambda t: str(t.get("advised_ts") or t.get("advised_date") or ""))
+        streak = 0
+        for t in reversed(resolved):
+            if t.get("status") == "loss":
+                streak += 1
+            else:
+                break
+        return streak
+    except Exception:  # noqa: BLE001 - advisory; never break the risk engine
+        return 0
+
+
 def evaluate(cfg: Config, equity: float, last_equity: float,
              positions: list[dict] | None, history=None, errored: bool = False) -> dict:
     """Assess book-level risk and return a gate dict the caller uses to throttle new entries:
@@ -147,6 +170,21 @@ def evaluate(cfg: Config, equity: float, last_equity: float,
         elif day_pl_pct <= -dll * 0.66:
             warnings.append(f"Daily P&L {day_pl_pct:.1f}% nearing the -{dll:.0f}% loss limit.")
 
+        # --- losing-trade cooldown (consecutive losing closed theses) ---
+        loss_streak = _recent_loss_streak()
+        halt_n = int(getattr(cfg, "loss_streak_halt", 4))
+        derisk_n = int(getattr(cfg, "loss_streak_derisk", 3))
+        if loss_streak >= halt_n:
+            ok_to_open = False
+            if state == "normal":
+                state = "halt"
+            reasons.append(f"{loss_streak} losing trades in a row — cooldown; no new positions until a win breaks the streak.")
+        elif loss_streak >= derisk_n:
+            if state == "normal":
+                state = "derisk"
+            size_scale = min(size_scale, 0.5)
+            warnings.append(f"{loss_streak} losing trades in a row — new positions sized at half until the streak breaks.")
+
         # --- concentration cap (per single new position) ---
         max_pos_pct = float(getattr(cfg, "max_position_pct", 15.0))
         max_position_value = round(equity * max_pos_pct / 100, 2) if equity else None
@@ -155,7 +193,7 @@ def evaluate(cfg: Config, equity: float, last_equity: float,
         return {
             "enabled": True, "state": state, "ok_to_open": ok_to_open, "size_scale": size_scale,
             "max_position_value": max_position_value, "max_position_pct": max_pos_pct,
-            "drawdown_pct": dd_pct, "peak_equity": round(peak, 2),
+            "drawdown_pct": dd_pct, "peak_equity": round(peak, 2), "loss_streak": loss_streak,
             "day_pl_pct": day_pl_pct, "reasons": reasons, "warnings": warnings,
         }
     except Exception as e:  # noqa: BLE001 — evaluation error must fail OPEN, never wedge the runner

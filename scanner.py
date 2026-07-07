@@ -309,6 +309,15 @@ def _analyse(symbol: str, df: pd.DataFrame, cfg: Config, equity: float) -> dict 
         factors["vcp"] = screens.vcp_setup(df)
     except Exception:  # noqa: BLE001 - additive; never fail a scan on the screen
         factors["vcp"] = None
+    # Stockbee Momentum Burst + Episodic Pivot (ported): short-term expansion setups. Momentum
+    # burst is a pure price/volume read; EP is computed technical-only here (has_news enrichment
+    # happens later once the news pipeline attaches headlines). Both long-only, additive, fail-safe.
+    try:
+        import screens
+        factors["burst"] = screens.momentum_burst(df)
+        factors["ep"] = screens.episodic_pivot(df, has_news=False)
+    except Exception:  # noqa: BLE001
+        factors["burst"] = factors["ep"] = None
 
     plan, context = _trade_plan(df, sig, cfg, price, equity, direction)
     conviction = _conviction(action, direction, float(last["rsi"]), rv_rounded, plan, context, cfg,
@@ -1117,6 +1126,25 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             add("VCP base setup?", "warn",
                 f"Building — Stage-2 uptrend (trend score {vcpd.get('trend_score')}) but not yet a tight, "
                 "breakout-ready VCP base.")
+
+    # Stockbee Momentum Burst (long only): a sharp 3-5 day expansion out of a tight base. Rewards a
+    # clean A/B breakout on volume; self-retires via the learned-weight loop if it stops predicting.
+    burst = (factors or {}).get("burst")
+    if not short and isinstance(burst, dict) and burst.get("valid"):
+        _tg = ", ".join(burst.get("triggers", [])) or "expansion"
+        add("Momentum burst?", "pass" if burst.get("rating") == "A" else "warn",
+            f"{burst.get('rating')}-grade burst (+{burst.get('gain_pct')}% on {burst.get('vol_ratio')}x volume, "
+            f"{_tg}) out of a {burst.get('base_width')}% base — stop {burst.get('risk_pct')}% away at the trigger low.")
+
+    # Episodic Pivot (long only): a discrete-catalyst repricing out of a neglected base. Fires on a
+    # gap + volume shock; catalyst family enriched when the news pipeline has a headline.
+    ep = (factors or {}).get("ep")
+    if not short and isinstance(ep, dict) and ep.get("valid"):
+        _fam = str(ep.get("family", "EP")).replace("_", " ").title()
+        add("Episodic pivot?", "pass" if ep.get("score", 0) >= 70 else "warn",
+            f"{_fam} — +{ep.get('gap_pct')}% on {ep.get('vol_x')}x volume"
+            + (" out of a neglected base" if ep.get("neglected") else "")
+            + (", fresh catalyst" if ep.get("catalyst") else "") + ".")
 
     pts = {"pass": 1.0, "warn": 0.5, "fail": 0.0}
     wsum = sum(c.get("weight", 1.0) for c in checks)

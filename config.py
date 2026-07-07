@@ -179,6 +179,11 @@ class Config:
     max_position_pct: float = 12.0      # no single position worth more than this % of equity
     kill_switch_trips: int = 3          # consecutive failed/errored runs before the kill switch flips
     kill_switch_cooldown_runs: int = 3  # clean runs needed to auto-reset the kill switch
+    # Losing-trade cooldown (ported from drawdown-circuit-breaker): after a run of consecutive
+    # losing closed theses, throttle new risk — the book is clearly out of sync with the tape.
+    # Stateless: recomputed from the track record each run, so it self-clears on the next win.
+    loss_streak_derisk: int = 3         # consecutive losing trades -> halve new-position sizing
+    loss_streak_halt: int = 4           # consecutive losing trades -> stop opening new positions
 
     # --- Pairs / mean-reversion diversifier (stat-arb on cointegrated spreads) ---
     # Trades the SPREAD between two economically-related liquid names, not direction. Best when

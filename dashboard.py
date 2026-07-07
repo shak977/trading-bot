@@ -781,6 +781,24 @@ def build_snapshot() -> dict:
         macro_posture = None
     _exposure_mult = (macro_posture or {}).get("exposure_mult", 1.0)
 
+    # Market timing (O'Neil): Follow-Through-Day confirmation + distribution-day count on SPY/QQQ.
+    # Where macro reads the *backdrop*, this reads the *tape's own* institutional-timing signal —
+    # a confirmed FTD is a green light to add, a distribution cluster is a warning to trim. It
+    # tilts the exposure multiplier (never buys directly). Live-only (fetches index bars); fail-silent.
+    timing_posture = None
+    if live:
+        try:
+            import timing as _timing
+            timing_posture = _timing.assess(CONFIG)
+        except Exception:  # noqa: BLE001
+            timing_posture = None
+    if timing_posture:
+        # Blend: take the more conservative of macro vs timing so either can throttle, but let a
+        # confirmed FTD lift a merely-neutral macro. Clamp to a sane band.
+        _tm = timing_posture.get("exposure_mult", 1.0)
+        _exposure_mult = round(max(0.4, min(1.25, min(_exposure_mult, _tm) if _tm < 1.0 else (_exposure_mult + _tm) / 2.0)), 3)
+        timing_posture["exposure_mult_blended"] = _exposure_mult
+
     # Multi-agent trade committee: 4 LLM analyst roles (technicals / fundamentals / news / macro)
     # debate the top actionable signals and a chair returns accept/reduce/reject + per-role leans.
     # Advisory second opinion — the rules risk engine keeps final authority. Gated + fail-silent.
@@ -1119,6 +1137,7 @@ def build_snapshot() -> dict:
         "concentration": _concentration(shown),
         "macro": macro,
         "macro_posture": macro_posture,
+        "timing": timing_posture,
         "notrade": notrade_gate,
         "price_drops": price_drops,
         "momentum": [dict(m, name=scanner.name_of(
@@ -1914,6 +1933,45 @@ def _macro_posture_html(mp: dict | None) -> str:
         '<p style="color:var(--muted);font-size:11px;margin:8px 0 0;">Macro sets <b>exposure</b> and <b>strategy emphasis</b>, '
         'not direction: it scales position size and tilts which strategies to lean on — it never directly buys or sells, '
         'and the rules-based risk engine always has the final say. Hover a chip/tag for the read behind it.</p></div>'
+    )
+
+
+def _timing_html(tp: dict | None) -> str:
+    """Market-timing panel: O'Neil Follow-Through-Day state + distribution-day count on SPY/QQQ."""
+    if not tp:
+        return ""
+    state = tp.get("state")
+    col = {"confirmed": "var(--buy)", "neutral": "var(--muted)", "rally_attempt": "#e0a82e",
+           "pressure": "var(--sell)", "correction": "var(--sell)"}.get(state, "var(--muted)")
+    em = tp.get("exposure_mult_blended", tp.get("exposure_mult", 1.0))
+    # per-index chips (SPY / QQQ): FTD state + distribution-day count
+    chips = ""
+    for name, ix in (tp.get("indexes") or {}).items():
+        dc = {"normal": "var(--muted)", "caution": "#e0a82e", "pressure": "var(--sell)",
+              "correction": "var(--sell)"}.get(ix.get("dd_risk"), "var(--muted)")
+        dd = ix.get("dd", 0)
+        off = ix.get("off_high")
+        off_txt = f", {off:.1f}% off high" if isinstance(off, (int, float)) and off else ""
+        chips += (f'<span style="display:inline-block;margin:3px 6px 3px 0;padding:3px 10px;border-radius:6px;'
+                  f'background:color-mix(in srgb,{dc} 14%,transparent);color:{dc};font-size:12px;" '
+                  f'title="{name}: FTD {ix.get("state")}, {dd} distribution days{off_txt}">'
+                  f'{name} · {dd} DD{off_txt}</span>')
+    ftd_note = ""
+    if state == "confirmed" and tp.get("ftd_quality"):
+        ftd_note = f' · FTD quality {tp.get("ftd_quality")}/100 (day {tp.get("ftd_day")})'
+    elif tp.get("dd_total"):
+        ftd_note = f' · {tp.get("dd_total")} distribution days across indexes'
+    return (
+        f'<div class="ovbox" style="border-left:4px solid {col};margin:0 0 16px;">'
+        f'<div class="ovhead">{_svg("regime",14)} Market timing (O\'Neil): '
+        f'<span style="color:{col};">{tp.get("label")}</span> '
+        f'<span style="font-weight:400;color:var(--muted);font-size:12px;">— <b style="color:{col};">{em:.2f}× exposure</b>{ftd_note}</span></div>'
+        f'<p style="color:var(--txt2);font-size:13px;margin:6px 0 8px;">{tp.get("note","")}</p>'
+        f'<div>{chips}</div>'
+        '<p style="color:var(--muted);font-size:11px;margin:8px 0 0;">A <b>Follow-Through Day</b> (high-volume '
+        '&ge;1.25% index gain in the day 4-10 rally window) confirms a new uptrend; a cluster of '
+        '<b>distribution days</b> (index down on rising volume) warns of institutional selling. This tilts '
+        'exposure alongside the macro backdrop — it never buys or sells directly.</p></div>'
     )
 
 
@@ -2926,6 +2984,7 @@ def render_html(snap: dict) -> str:
     sectors_html = _sectors_html(snap.get("sectors"))
     macro_html = (_notrade_html(snap.get("notrade"))
                   + _macro_posture_html(snap.get("macro_posture"))
+                  + _timing_html(snap.get("timing"))
                   + _macro_html(snap.get("macro")) + _calendar_html(snap.get("calendar")))
     dh = snap.get("data_health")
     if not dh:

@@ -190,3 +190,144 @@ def vcp_setup(df: pd.DataFrame, rs_pct: float | None = None) -> dict:
         "near_pivot": pat.get("near_pivot", False),
         "atr_compression": pat.get("atr_compression"),
     }
+
+
+# ---------------------------------------------------------------------------------------------------
+# Stockbee Momentum Burst  (ported from stockbee-momentum-burst-screener)
+# ---------------------------------------------------------------------------------------------------
+def momentum_burst(df: pd.DataFrame) -> dict:
+    """Detect a Stockbee-style short-term momentum burst on the latest bar: a sharp expansion out
+    of a prior range-contraction, meant to run 3-5 sessions. Three trigger families (4% breakout /
+    dollar breakout / range expansion), then a 0-100 setup-quality score from volume expansion,
+    prior-base tightness, close-location and risk-distance, minus failure filters. Long-only; pure;
+    never raises. Returns a compact dict the conviction engine scores & the modal displays."""
+    out = {"valid": False, "triggers": [], "score": 0, "rating": "none",
+           "gain_pct": None, "vol_ratio": None, "close_loc": None, "risk_pct": None}
+    try:
+        if df is None or len(df) < 25:
+            return out
+        o = df["open"].to_numpy(float)
+        h = df["high"].to_numpy(float)
+        lo = df["low"].to_numpy(float)
+        c = df["close"].to_numpy(float)
+        v = df["volume"].to_numpy(float)
+        pc = c[-2]
+        if not (pc and c[-1]):
+            return out
+        gain = c[-1] / pc - 1.0
+        rng = h[-1] - lo[-1]
+        prior3 = [h[i] - lo[i] for i in range(-4, -1)]
+        vol_ratio = v[-1] / v[-2] if v[-2] else 0.0
+        vol_avg20 = float(np.mean(v[-21:-1])) if len(v) > 21 else float(np.mean(v[:-1]))
+        close_loc = (c[-1] - lo[-1]) / rng if rng > 0 else 0.0
+
+        triggers = []
+        if gain >= 0.04 and v[-1] > v[-2]:
+            triggers.append("4% breakout")
+        if (c[-1] - o[-1]) >= 0.90 and v[-1] > vol_avg20 * 0.8:
+            triggers.append("dollar breakout")
+        prior_not_extended = max(prior3) < np.mean(prior3) * 1.8 if prior3 else True
+        if rng > max(prior3) and prior_not_extended:
+            triggers.append("range expansion")
+        if not triggers:
+            return out
+
+        # prior base tightness (range contraction over the ~10 bars before the trigger)
+        base = c[-12:-1]
+        base_width = (float(np.max(base)) / float(np.min(base)) - 1.0) if len(base) and np.min(base) else 1.0
+        # risk distance to the trigger-day low (the Stockbee stop)
+        risk_pct = (c[-1] - lo[-1]) / c[-1] if c[-1] else 1.0
+        # 3-day prior run-up (failure filter: already extended into the trigger)
+        runup3 = c[-2] / c[-5] - 1.0 if len(c) >= 5 and c[-5] else 0.0
+
+        score = 0
+        score += min(30, gain * 100 * 3)                    # day gain (capped)
+        score += min(25, (vol_ratio - 1.0) * 25) if vol_ratio > 1 else 0   # volume expansion
+        score += 20 if base_width <= 0.12 else (10 if base_width <= 0.20 else 0)  # tight prior base
+        score += 15 * close_loc                              # close near high of day
+        score += 10 if risk_pct <= 0.06 else (5 if risk_pct <= 0.09 else 0)  # manageable stop
+        # failure filters
+        reject = []
+        if runup3 > 0.20:
+            score -= 20; reject.append("already +20% in 3 days")
+        if risk_pct > 0.12:
+            score -= 15; reject.append("stop too far")
+        score = int(max(0, min(100, score)))
+        rating = "A" if score >= 75 else "B" if score >= 55 else "C"
+        return {
+            "valid": score >= 55, "triggers": triggers, "score": score, "rating": rating,
+            "gain_pct": float(round(gain * 100, 2)), "vol_ratio": float(round(vol_ratio, 2)),
+            "close_loc": float(round(close_loc * 100, 1)), "risk_pct": float(round(risk_pct * 100, 2)),
+            "base_width": float(round(base_width * 100, 1)), "entry": float(round(c[-1], 2)),
+            "stop": float(round(lo[-1], 2)), "reject": reject,
+        }
+    except Exception:  # noqa: BLE001 - advisory screen must never break the scan
+        return out
+
+
+# ---------------------------------------------------------------------------------------------------
+# Episodic Pivot  (ported from stockbee-episodic-pivot-analyzer)
+# ---------------------------------------------------------------------------------------------------
+def episodic_pivot(df: pd.DataFrame, has_news: bool = False, headline: str | None = None) -> dict:
+    """Detect a Day-1 Episodic Pivot: a discrete catalyst repricing a *neglected* name — a large
+    gap/expansion on a volume shock out of a quiet base, ideally with fresh news. Scores gap size,
+    volume shock, prior neglect (tight base) and catalyst quality. `has_news`/`headline` come from
+    our news pipeline so the catalyst component is real. Pure; never raises."""
+    out = {"valid": False, "score": 0, "family": None, "gap_pct": None, "vol_x": None,
+           "catalyst": False}
+    try:
+        if df is None or len(df) < 25:
+            return out
+        o = df["open"].to_numpy(float)
+        c = df["close"].to_numpy(float)
+        v = df["volume"].to_numpy(float)
+        pc = c[-2]
+        if not (pc and c[-1]):
+            return out
+        gap = o[-1] / pc - 1.0 if o[-1] else 0.0            # opening gap vs prior close
+        day = c[-1] / pc - 1.0                              # full-day move
+        move = max(gap, day)
+        vol_avg20 = float(np.mean(v[-21:-1])) if len(v) > 21 else float(np.mean(v[:-1]))
+        vol_x = v[-1] / vol_avg20 if vol_avg20 else 0.0
+        # neglect: was the prior ~15-bar base quiet (tight range, unremarkable volume)?
+        base = c[-16:-1]
+        base_width = (float(np.max(base)) / float(np.min(base)) - 1.0) if len(base) and np.min(base) else 1.0
+        neglected = base_width <= 0.18
+
+        # an EP needs a real move + a real volume shock; news makes it a *catalyst* EP
+        if move < 0.04 or vol_x < 1.8:
+            return out
+        # infer family from the headline text (best-effort; falls back to TECHNICAL_EP)
+        family = "TECHNICAL_EP"
+        cat_pts = 8
+        htxt = (headline or "").lower()
+        if has_news and htxt:
+            if any(k in htxt for k in ("earnings", "beat", "guidance", "raise", "revenue", "profit")):
+                family, cat_pts = "EARNINGS_EP", 35
+            elif any(k in htxt for k in ("fda", "approval", "phase 3", "pdufa", "trial")):
+                family, cat_pts = "FDA_EP", 30
+            elif any(k in htxt for k in ("acqui", "merger", "buyout", "takeover", "deal")):
+                family, cat_pts = "M_AND_A_EP", 22
+            elif any(k in htxt for k in ("contract", "order", "award", "partnership", "customer")):
+                family, cat_pts = "CONTRACT_EP", 24
+            elif any(k in htxt for k in ("upgrade", "price target", "initiat")):
+                family, cat_pts = "ANALYST_EP", 15
+            else:
+                family, cat_pts = "NEWS_EP", 18
+        elif has_news:
+            family, cat_pts = "NEWS_EP", 16
+
+        score = 0
+        score += min(30, move * 100 * 3)                    # gap/move size
+        score += min(25, (vol_x - 1.0) * 12)                # volume shock
+        score += 20 if neglected else 5                     # revaluation from neglect
+        score += cat_pts                                    # catalyst quality (max 35)
+        score = int(max(0, min(100, score)))
+        return {
+            "valid": score >= 55 and (has_news or move >= 0.06), "score": score, "family": family,
+            "gap_pct": float(round(move * 100, 2)), "vol_x": float(round(vol_x, 2)),
+            "catalyst": bool(has_news), "neglected": neglected,
+            "entry": float(round(c[-1], 2)), "stop": float(round(df["low"].to_numpy(float)[-1], 2)),
+        }
+    except Exception:  # noqa: BLE001
+        return out
