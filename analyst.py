@@ -144,6 +144,56 @@ def _orb_window_note(rows: list[dict]) -> dict | None:
             "proposal": f"{best}-min has the best win rate — consider it as orb_primary_window."}
 
 
+def _edge_findings() -> list[dict]:
+    """Proposals from the walk-forward validation studies (timing_study + setups_study): flag ported
+    edges that lag baseline (candidates to retire/down-weight) and confirm the ones that earn their
+    keep. These come from generic-basket walk-forward, so they're priors, not the bot's own trades —
+    phrased as 'consider', deferring the harder retirement call to the realized-outcome attribution."""
+    out = []
+    # --- entry/short setups ---
+    ss = _load_json("setups_study.json")
+    if isinstance(ss, dict) and ss.get("setups"):
+        H = ss.get("primary_horizon", 10)
+        for key, s in (ss.get("setups") or {}).items():
+            edge, n, lbl = s.get("edge_pct"), s.get("n", 0), s.get("label", key)
+            if edge is None or n < 40:
+                continue
+            obs = f"{lbl} edge vs baseline is {edge:+.2f}% over {H}d ({n} fires, hit {s.get('stats',{}).get(str(H),{}).get('hit_rate')}%)."
+            if edge <= -0.75:
+                out.append({"severity": "act", "area": f"setup:{key}", "observation": obs,
+                            "proposal": f"'{lbl}' is lagging the market on walk-forward — consider retiring it or cutting its conviction weight; confirm against realized trades before removing."})
+            elif edge >= 0.75:
+                out.append({"severity": "info", "area": f"setup:{key}", "observation": obs,
+                            "proposal": f"'{lbl}' is beating baseline — keep, and let the self-weighting lean into it."})
+            else:
+                out.append({"severity": "watch", "area": f"setup:{key}", "observation": obs,
+                            "proposal": f"'{lbl}' edge is marginal — keep watching; don't lean on it yet."})
+    # --- market timing (FTD / distribution) ---
+    ts = _load_json("timing_study.json")
+    if isinstance(ts, dict) and ts.get("states"):
+        H = (ts.get("horizons") or [5, 10, 20])[1]
+        conf = (ts["states"].get("confirmed") or {}).get(str(H), {}).get("mean_pct")
+        corr = (ts["states"].get("correction") or {}).get(str(H), {}).get("mean_pct")
+        if conf is not None and corr is not None:
+            if conf > corr:
+                out.append({"severity": "info", "area": "timing", "observation":
+                            f"Timing separates outcomes: after an FTD the index averaged {conf:+.2f}% vs {corr:+.2f}% after a correction ({H}d).",
+                            "proposal": "The FTD/distribution gate is predictive — keep it blocking new longs in a confirmed correction."})
+            else:
+                out.append({"severity": "watch", "area": "timing", "observation":
+                            f"Timing signal is NOT separating outcomes: correction {corr:+.2f}% vs FTD {conf:+.2f}% ({H}d).",
+                            "proposal": "Reconsider the correction-blocks-longs rule — on this data it isn't adding edge; consider softening the block to a size reduction."})
+    return out
+
+
+def _load_json(path: str):
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def gather(cfg=None) -> dict:
     """Assemble the full quantitative review across buckets. Pure read; never raises."""
     mn = getattr(cfg, "adaptive_min_n", _MIN_N) if cfg else _MIN_N
@@ -164,6 +214,8 @@ def gather(cfg=None) -> dict:
             wn = _orb_window_note(rows)
             if wn:
                 report["findings"].append(wn)
+    # Walk-forward validation studies (timing + setup edge) → proposals about ported edges.
+    report["findings"] += _edge_findings()
     # order: act first, then watch, then info
     _ord = {"act": 0, "watch": 1, "info": 2}
     report["findings"].sort(key=lambda f: _ord.get(f.get("severity"), 3))
