@@ -218726,7 +218726,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 61.22,
+    "exit_date": "2026-07-08",
+    "return_pct": -1.56,
+    "days_held": -1
   },
   {
     "id": "SPGI:2026-07-08",
@@ -227569,7 +227573,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 110.37,
+    "exit_date": "2026-07-08",
+    "return_pct": 0.22,
+    "days_held": -1
   },
   {
     "id": "TMUS:2026-07-08",
@@ -228943,6 +228951,95 @@
       {
         "label": "Reward:risk worth it?",
         "status": "pass"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "loss",
+    "exit": 604.95,
+    "exit_date": "2026-07-08",
+    "return_pct": -0.28,
+    "days_held": -1
+  },
+  {
+    "id": "WHK:2026-07-08",
+    "symbol": "WHK",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-07-08",
+    "advised_ts": "2026-07-08T19:26:07.745313",
+    "entry": 26.76,
+    "stop": 27.1,
+    "target": 26.61,
+    "rr": 0.45,
+    "conviction": "Medium",
+    "conviction_pct": 67,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "fail"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
       },
       {
         "label": "Smart-money footprint?",
