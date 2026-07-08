@@ -1265,6 +1265,7 @@ def build_snapshot() -> dict:
         "setups_study": _load_json_safe("setups_study.json"),
         "performance": _perf_metrics(),
         "book_risk": book_risk,
+        "changelog": _load_json_safe("changelog.json"),
         "notrade": notrade_gate,
         "price_drops": price_drops,
         "momentum": [dict(m, name=scanner.name_of(
@@ -2176,6 +2177,41 @@ def _book_risk_html(br: dict | None) -> str:
         f'together into one. <b>VaR/CVaR</b> are a parametric estimate '
         f'(assumes ~{sig}%/name daily vol with a correlation haircut) of a rough day’s loss on the current book — '
         f'an estimate, not a promise.</p></div>'
+    )
+
+
+def _changelog_html(entries: list | None) -> str:
+    """'What's new' view — the running log of features/additions, newest first, grouped by day."""
+    if not entries:
+        return ""
+    cat_col = {"Signals": "var(--accent,#eaa62b)", "Risk": "var(--sell,#f0596b)", "AI": "var(--ai,#8b5cf6)",
+               "Timing": "#4aa3ff", "Stats": "#4aa3ff", "Analytics": "var(--buy,#22c98a)",
+               "Validation": "var(--buy,#22c98a)", "Alerts": "var(--ai,#8b5cf6)", "Data": "var(--muted,#868c9a)",
+               "UI": "var(--muted,#868c9a)"}
+    from collections import OrderedDict
+    by_day = OrderedDict()
+    for e in entries:
+        by_day.setdefault(e.get("date", ""), []).append(e)
+    blocks = ""
+    for day, items in by_day.items():
+        rows = ""
+        for e in items:
+            c = cat_col.get(e.get("cat"), "var(--muted,#868c9a)")
+            rows += (
+                '<div style="display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--glass-bd,rgba(255,255,255,.07));min-width:0;">'
+                f'<span style="flex:0 0 auto;align-self:flex-start;font-size:10.5px;font-weight:700;color:{c};'
+                f'background:color-mix(in srgb,{c} 14%,transparent);padding:3px 9px;border-radius:999px;">{e.get("cat","")}</span>'
+                '<div style="min-width:0;">'
+                f'<div style="font-weight:700;font-size:14px;color:var(--txt);">{e.get("title","")}</div>'
+                f'<div style="font-size:12.5px;color:var(--txt2);margin-top:2px;line-height:1.5;">{e.get("note","")}</div>'
+                '</div></div>')
+        blocks += (f'<div style="margin-bottom:18px;"><div style="font-size:12px;font-weight:700;color:var(--muted);'
+                   f'text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;">{day}</div>{rows}</div>')
+    return (
+        f'<div class="sec-head"><span class="sh-ico">{_svg("news",15)}</span>'
+        '<h2>What\'s new</h2><span class="sh-sub">recent changes &amp; additions to the bot</span></div>'
+        f'<div class="card glass" style="padding:16px 18px;">{blocks}'
+        '<p style="font-size:10.5px;color:var(--muted);margin:6px 0 0;">Curated highlights — the engine ships changes most days.</p></div>'
     )
 
 
@@ -3282,6 +3318,7 @@ def render_html(snap: dict) -> str:
     altdata_html = _altdata_html(snap)
     news_ideas_html = _news_ideas_html(snap.get("news_ideas"))
     system_html = _system_html(snap.get("system"))
+    whatsnew_html = _changelog_html(snap.get("changelog"))
     regime_html = _regime_html(snap.get("regime"))
     # Compact regime pill for the top app bar (colour-coded dot + label).
     _reg = snap.get("regime") or {}
@@ -4496,6 +4533,7 @@ def render_html(snap: dict) -> str:
       <button data-area="livetv"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.8" y="4.3" width="12.4" height="8.4" rx="1.4"/><path d="M6 1.6 8 4l2-2.4"/></svg> Live TV</button>
       <button data-area="about"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6.3"/><path d="M8 7.3v4"/><path d="M8 4.9h.01"/></svg> About</button>
       <button data-area="system"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.3"/><path d="M8 1.4v2M8 12.6v2M1.4 8h2M12.6 8h2M3.3 3.3l1.4 1.4M11.3 11.3l1.4 1.4M12.7 3.3l-1.4 1.4M4.7 11.3l-1.4 1.4"/></svg> System</button>
+      <button data-area="whatsnew"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5l1.6 3.6 3.9.4-2.9 2.6.8 3.8L8 12.6 4.6 14.5l.8-3.8L2.5 8.1l3.9-.4z"/></svg> What's new</button>
       <div class="side-sig" id="sideSignals" hidden>
         <div class="side-h">{_svg('bolt',12)} Active signals</div>
         <div class="side-sig-list" id="sideSigList"></div>
@@ -4610,6 +4648,10 @@ def render_html(snap: dict) -> str:
 
   <section class="page" id="page-system">
 {system_html}
+  </section>
+
+  <section class="page" id="page-whatsnew">
+{whatsnew_html}
   </section>
 
   <section class="page" id="page-method">
@@ -6394,7 +6436,8 @@ function _tvInit() {{
     ['news', [['news','Market news'],['ipos','IPO watch']]],
     ['livetv', [['livetv','Live TV']]],
     ['about', [['method','How it works']]],
-    ['system', [['system','System']]]
+    ['system', [['system','System']]],
+    ['whatsnew', [['whatsnew',"What's new"]]]
   ];
   AREAS.forEach(a => a[1] = a[1].filter(p => document.getElementById('page-' + p[0])));
   const sideNav = document.getElementById('sideNav');
