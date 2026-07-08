@@ -2215,6 +2215,194 @@ def _changelog_html(entries: list | None) -> str:
     )
 
 
+def _agent_web_html(snap: dict) -> str:
+    """Interactive 'ecosystem web' of the agents, organised on the PEER cycle (Plan → Execute →
+    Express → Review, borrowed from agentUniverse), with the Review→Plan feedback loop drawn in.
+    Nodes are clickable → a drawer shows that agent's FULL latest reasoning. Self-contained SVG +
+    a tiny script; never raises."""
+    import json as _json
+    cfg = CONFIG
+    signals = snap.get("signals") or []
+    esc = lambda s: (str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+
+    def bullets(items):
+        return "".join(f'<li style="margin:3px 0;">{i}</li>' for i in items if i)
+
+    # ---- gather full reasoning per agent (real data) ----
+    cs = next((s.get("committee") for s in signals if s.get("committee")), None)
+    who = next((s["symbol"] for s in signals if s.get("committee") is cs), "") if cs else ""
+    if cs:
+        roles = cs.get("roles") or {}
+        if roles:
+            rd = bullets([f'<b>{k.title()}</b> — {v.get("lean","?")}: {esc(v.get("note",""))}' for k, v in roles.items()])
+        elif cs.get("models"):
+            rd = bullets([f'<b>{esc(m)}</b>: {esc(v)}' for m, v in cs["models"].items()])
+        else:
+            rd = ""
+        comm_detail = (f'<p>On <b>{who}</b> the verdict is <b>{cs.get("verdict")}</b> '
+                       f'({cs.get("confidence")}% confidence).</p><ul>{rd}</ul>'
+                       f'<p style="color:var(--muted);">{esc(cs.get("summary",""))}</p>')
+    else:
+        comm_detail = "<p>No committee verdict this build — it runs on the top actionable names.</p>"
+
+    top = max(signals, key=lambda s: (s.get("conviction") or {}).get("score_pct") or 0, default=None)
+    if top:
+        checks = (top.get("conviction") or {}).get("checks") or []
+        ic = {"pass": "✅", "warn": "🟡", "fail": "❌"}
+        conv_detail = (f'<p><b>{top.get("symbol")}</b> scored <b>{(top.get("conviction") or {}).get("score_pct")}%</b> '
+                       f'({(top.get("conviction") or {}).get("label")}). The checklist:</p><ul>'
+                       + bullets([f'{ic.get(c.get("status"),"•")} {esc(c.get("label"))}' for c in checks[:14]]) + "</ul>")
+    else:
+        conv_detail = "<p>No actionable signals right now.</p>"
+
+    tp = snap.get("timing") or {}
+    tim_detail = (f'<p>Tape: <b>{tp.get("label","—")}</b>. {esc(tp.get("note",""))}</p>'
+                  + "<ul>" + bullets([f'<b>{k}</b>: {v.get("state")} — {v.get("dd")} distribution days'
+                                      for k, v in (tp.get("indexes") or {}).items()]) + "</ul>") if tp else "<p>No timing read.</p>"
+
+    ss = _load_json_safe("setups_study.json") or {}
+    if ss.get("setups"):
+        H = ss.get("primary_horizon", 10)
+        setu_detail = f'<p>Walk-forward edge vs baseline over {H} days:</p><ul>' + bullets([
+            f'<b>{v.get("label")}</b>: {v.get("edge_pct"):+}% edge (n={v.get("n")})'
+            for v in ss["setups"].values() if v.get("edge_pct") is not None]) + "</ul>"
+    else:
+        setu_detail = "<p>Validation runs after the close.</p>"
+
+    br = snap.get("book_risk") or {}
+    if br:
+        cl = br.get("correlated_clusters") or []
+        risk_detail = ("<ul>" + bullets([
+            f'Portfolio heat {br.get("heat_pct")}% of {br.get("heat_cap_pct")}% cap',
+            f'Effective bets {br.get("effective_bets", br.get("n"))} (of {br.get("n")} positions)',
+            f'1-day VaR ${br.get("var95_usd"):,} ({br.get("var95_pct")}% of equity)',
+            (" + ".join(cl[0]) + " move together") if cl else None]) + "</ul>")
+    else:
+        risk_detail = "<p>Flat book — no open risk.</p>"
+
+    pa = snap.get("paper_acct") or {}
+    exec_detail = (f'<ul>' + bullets([
+        f'Equity ${pa.get("equity"):,}' if pa.get("equity") else None,
+        f'Today {pa.get("day_pl_pct")}%' if pa.get("day_pl_pct") is not None else None,
+        f'{pa.get("n_open", 0)} open positions']) + "</ul>") if pa else "<p>Paper account off.</p>"
+
+    ar = _load_json_safe("analyst_report.json") or {}
+    finds = ar.get("findings") or []
+    an_detail = (f'<p>{ar.get("n_actions",0)} action items · confidence {ar.get("self_confidence","—")} '
+                 f'({ar.get("generated_at","")}):</p><ul>'
+                 + bullets([f'<b>[{f.get("severity")}]</b> {esc(f.get("proposal",""))}' for f in finds[:6]]) + "</ul>") if ar else "<p>First report pending.</p>"
+
+    lw = ((snap.get("learned") or {}).get("daily") or {}).get("weights") or {}
+    retired = (snap.get("learned") or {}).get("retired") or []
+    ups = sorted([(k, v) for k, v in lw.items() if v > 1.0], key=lambda x: -x[1])[:5]
+    downs = sorted([(k, v) for k, v in lw.items() if 0 < v < 1.0], key=lambda x: x[1])[:5]
+    attr_detail = ("<p>What the checks have earned from real outcomes:</p><ul>"
+                   + bullets([f'⬆ {esc(k)} ({v}×)' for k, v in ups] + [f'⬇ {esc(k)} ({v}×)' for k, v in downs]
+                             + ([f'🚫 retired: {esc(", ".join(retired))}'] if retired else [])) + "</ul>") if lw else "<p>Gathering trades.</p>"
+
+    mem = _load_json_safe("analyst_memory.json") or {}
+    mem_detail = f'<p>Graded {len(mem.get("ledger") or [])} past proposals against what actually happened, feeding the analyst\'s self-confidence.</p>'
+
+    ch = _load_json_safe("changelog.json") or []
+    express_detail = "<p>Turns the decision into what you see: the dashboard signal cards, the desk read, and the Telegram/phone/email alerts on fresh high-conviction names.</p>"
+    build_detail = ("<p>The build layer — the Claude orchestrator + Explore/Plan/General sub-agents that research, write, verify and ship changes into the runtime.</p>"
+                    + (f'<p style="color:var(--muted);">Latest shipped: {esc(ch[0].get("title",""))} ({ch[0].get("date","")}).</p>' if ch else ""))
+
+    swarm = bool(getattr(cfg, "committee_swarm_enabled", False) and getattr(cfg, "openrouter_api_key", ""))
+    # id, name, role, PEER column (0-3) or 4=build, enabled, detail
+    NODES = [
+        ("committee", "Committee", "swarm vote" if swarm else "4 roles + chair", 0, bool(getattr(cfg, "llm_enabled", False) and getattr(cfg, "committee_enabled", True)), comm_detail),
+        ("timing", "Timing", "FTD / distribution", 0, bool(getattr(cfg, "timing_gate_enabled", True)), tim_detail),
+        ("setups", "Setup edge", "walk-forward", 0, True, setu_detail),
+        ("conviction", "Conviction", "scores the trade", 0, True, conv_detail),
+        ("risk", "Risk engine", "heat · VaR · sizing", 1, bool(getattr(cfg, "risk_engine_enabled", True)), risk_detail),
+        ("paper", "Paper book", "places + holds", 1, bool((snap.get("paper_acct") or {}).get("enabled")), exec_detail),
+        ("express", "Dashboard + alerts", "tells you", 2, True, express_detail),
+        ("analyst", "Analyst", "proposes changes", 3, bool(getattr(cfg, "llm_enabled", False)), an_detail),
+        ("attribution", "Attribution", "re-weights checks", 3, bool(getattr(cfg, "adaptive_weights_enabled", True)), attr_detail),
+        ("memory", "Memory", "grades itself", 3, True, mem_detail),
+        ("build", "Build agents", "orchestrator + subagents", 4, True, build_detail),
+    ]
+    cols = {0: "PLAN", 1: "EXECUTE", 2: "EXPRESS", 3: "REVIEW", 4: "BUILD"}
+    colx = {0: 90, 1: 300, 2: 500, 3: 710, 4: 400}
+    V, G = "#8b5cf6", "#eaa62b"
+    # y layout per column
+    byc = {}
+    for n in NODES:
+        byc.setdefault(n[3], []).append(n)
+    node_svg, detail_map, first_id = [], {}, NODES[0][0]
+    NW, NH = 150, 44
+    for c, ns in byc.items():
+        cx = colx[c]
+        y0 = 70 if c != 4 else 470
+        for i, (nid, name, role, _c, on, detail) in enumerate(ns):
+            y = y0 + i * 66 if c != 4 else 470
+            x = (cx - NW // 2) if c != 4 else (60 + len(node_svg) * 0)  # build laid out separately below
+            detail_map[nid] = {"name": name, "role": role, "detail": detail}
+    # place build nodes in a bottom row
+    bx = 60
+    positions = {}
+    for c, ns in byc.items():
+        if c == 4:
+            continue
+        cx = colx[c]
+        for i, (nid, *_r) in enumerate(ns):
+            positions[nid] = (cx - NW // 2, 78 + i * 66)
+    for i, n in enumerate(byc.get(4, [])):
+        positions[n[0]] = (70 + i * 200, 500)
+
+    acc = {0: V, 1: "#4aa3ff", 2: G, 3: "#22c98a", 4: "#868c9a"}
+    for (nid, name, role, c, on, detail) in NODES:
+        x, y = positions[nid]
+        col = acc[c]
+        dotc = "#22c98a" if on else "#868c9a"
+        node_svg.append(
+            f'<g class="aunode" data-id="{nid}" onclick="auShow(\'{nid}\')" style="cursor:pointer;">'
+            f'<rect x="{x}" y="{y}" width="{NW}" height="{NH}" rx="10" fill="var(--card,#12141a)" '
+            f'stroke="{col}" stroke-width="1.5"/>'
+            f'<circle cx="{x+13}" cy="{y+14}" r="4" fill="{dotc}"/>'
+            f'<text x="{x+24}" y="{y+18}" fill="var(--txt,#e9ecf2)" font-size="12.5" font-weight="700">{name}</text>'
+            f'<text x="{x+12}" y="{y+34}" fill="var(--muted,#868c9a)" font-size="9.5">{role}</text></g>')
+    # column headers
+    heads = "".join(f'<text x="{colx[c]}" y="52" fill="{acc[c]}" font-size="12" font-weight="800" '
+                    f'text-anchor="middle" letter-spacing="1">{cols[c]}</text>' for c in (0, 1, 2, 3))
+    # stage flow arrows (Plan→Execute→Express→Review) + feedback + build→plan
+    edges = (
+        '<path d="M175 250 L285 250" stroke="#5b6270" stroke-width="1.6" marker-end="url(#aar)"/>'
+        '<path d="M385 250 L485 160" stroke="#5b6270" stroke-width="1.6" marker-end="url(#aar)"/>'
+        '<path d="M575 160 L695 200" stroke="#5b6270" stroke-width="1.6" marker-end="url(#aar)"/>'
+        '<path d="M710 320 C 500 430, 250 430, 90 300" fill="none" stroke="#22c98a" stroke-width="1.6" '
+        'stroke-dasharray="5 4" marker-end="url(#aarg)"/>'
+        '<text x="400" y="428" fill="#22c98a" font-size="11" text-anchor="middle" font-weight="600">learns from outcomes → re-weights Plan</text>'
+        '<path d="M160 500 L120 340" fill="none" stroke="#eaa62b" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#aara)"/>'
+        '<text x="70" y="470" fill="#eaa62b" font-size="10.5" font-weight="600">ships ↑</text>')
+    svg = (
+        '<svg viewBox="0 0 900 560" xmlns="http://www.w3.org/2000/svg" role="img" '
+        'font-family="Manrope,system-ui,sans-serif" style="width:100%;height:auto;">'
+        '<defs>'
+        '<marker id="aar" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0 0L5 3L0 6Z" fill="#5b6270"/></marker>'
+        '<marker id="aarg" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0 0L5 3L0 6Z" fill="#22c98a"/></marker>'
+        '<marker id="aara" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0 0L5 3L0 6Z" fill="#eaa62b"/></marker>'
+        '</defs>' + edges + heads + "".join(node_svg) + '</svg>')
+    drawer = ('<div id="au-detail" class="glass" style="border-radius:12px;padding:14px 16px;margin-top:10px;'
+              'min-height:120px;font-size:13px;line-height:1.55;color:var(--txt2);"></div>')
+    style = ('<style>.aunode rect{transition:filter .15s}.aunode:hover rect{filter:brightness(1.25)}'
+             '.aunode.sel rect{stroke-width:2.5px}#au-detail ul{margin:6px 0;padding-left:18px}'
+             '#au-detail .aud-h{font-size:15px;font-weight:800;color:var(--txt);margin-bottom:6px}'
+             '#au-detail .aud-h span{font-weight:500;color:var(--muted);font-size:12px}</style>')
+    script = ("<script>(function(){var AU=" + _json.dumps(detail_map)
+              + ";window.auShow=function(id){var d=AU[id];if(!d)return;"
+              "document.querySelectorAll('#page-agents .aunode').forEach(function(n){n.classList.toggle('sel',n.getAttribute('data-id')===id);});"
+              "var el=document.getElementById('au-detail');"
+              "el.innerHTML='<div class=\\'aud-h\\'>'+d.name+' <span>· '+d.role+'</span></div>'+d.detail;};"
+              "auShow('" + first_id + "');})();</script>")
+    return (
+        f'<div class="sec-head"><span class="sh-ico">{_svg("ai",15)}</span><h2>Agent ecosystem</h2>'
+        '<span class="sh-sub">the PEER cycle — Plan → Execute → Express → Review → (feedback). Tap a node for its full reasoning.</span></div>'
+        f'<div class="card glass" style="padding:14px;overflow-x:auto;">{style}{svg}{drawer}{script}</div>'
+    )
+
+
 def _agent_universe_html(snap: dict) -> str:
     """Live 'Agent Universe' — every AI in the system as a card with its ACTUAL latest output.
     Two zones: RUNTIME (the trading brain, live from the snapshot) and BUILD (how it's made).
@@ -3437,7 +3625,7 @@ def render_html(snap: dict) -> str:
     news_ideas_html = _news_ideas_html(snap.get("news_ideas"))
     system_html = _system_html(snap.get("system"))
     whatsnew_html = _changelog_html(snap.get("changelog"))
-    agents_html = _agent_universe_html(snap)
+    agents_html = _agent_web_html(snap) + _agent_universe_html(snap)
     regime_html = _regime_html(snap.get("regime"))
     # Compact regime pill for the top app bar (colour-coded dot + label).
     _reg = snap.get("regime") or {}
