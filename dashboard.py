@@ -2368,14 +2368,24 @@ def _agent_web_html(snap: dict) -> str:
                     f'text-anchor="middle" letter-spacing="1">{cols[c]}</text>' for c in (0, 1, 2, 3))
     # stage flow arrows (Plan→Execute→Express→Review) + feedback + build→plan
     edges = (
-        '<path d="M175 250 L285 250" stroke="#5b6270" stroke-width="1.6" marker-end="url(#aar)"/>'
-        '<path d="M385 250 L485 160" stroke="#5b6270" stroke-width="1.6" marker-end="url(#aar)"/>'
-        '<path d="M575 160 L695 200" stroke="#5b6270" stroke-width="1.6" marker-end="url(#aar)"/>'
-        '<path d="M710 320 C 500 430, 250 430, 90 300" fill="none" stroke="#22c98a" stroke-width="1.6" '
-        'stroke-dasharray="5 4" marker-end="url(#aarg)"/>'
+        '<path class="auflow" d="M175 250 L285 250" stroke="#5b6270" stroke-width="1.6" marker-end="url(#aar)"/>'
+        '<path class="auflow" d="M385 250 L485 160" stroke="#5b6270" stroke-width="1.6" marker-end="url(#aar)"/>'
+        '<path class="auflow" d="M575 160 L695 200" stroke="#5b6270" stroke-width="1.6" marker-end="url(#aar)"/>'
+        '<path class="auflowg" d="M710 320 C 500 430, 250 430, 90 300" fill="none" stroke="#22c98a" stroke-width="1.6" '
+        'marker-end="url(#aarg)"/>'
         '<text x="400" y="428" fill="#22c98a" font-size="11" text-anchor="middle" font-weight="600">learns from outcomes → re-weights Plan</text>'
-        '<path d="M160 500 L120 340" fill="none" stroke="#eaa62b" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#aara)"/>'
+        '<path class="auflowa" d="M160 500 L120 340" fill="none" stroke="#eaa62b" stroke-width="1.5" marker-end="url(#aara)"/>'
         '<text x="70" y="470" fill="#eaa62b" font-size="10.5" font-weight="600">ships ↑</text>')
+    # a live signal pulse that circulates the full PEER loop, + an amber pulse feeding up from Build
+    _loop = "M120 250 L300 250 L500 160 L710 190 C 500 430, 250 430, 90 300 L120 250"
+    pulses = (
+        '<g class="aupulse">'
+        f'<circle r="10" fill="#a78bfa" opacity="0.18"><animateMotion dur="7s" repeatCount="indefinite" path="{_loop}"/></circle>'
+        f'<circle r="4.5" fill="#c4b5fd"><animateMotion dur="7s" repeatCount="indefinite" path="{_loop}"/>'
+        '<animate attributeName="r" values="3.5;5.5;3.5" dur="1.1s" repeatCount="indefinite"/></circle>'
+        '<circle r="3.5" fill="#eaa62b" opacity="0.9"><animateMotion dur="2.6s" repeatCount="indefinite" '
+        'path="M160 500 L120 340"/></circle>'
+        '</g>')
     svg = (
         '<svg viewBox="0 0 900 560" xmlns="http://www.w3.org/2000/svg" role="img" '
         'font-family="Manrope,system-ui,sans-serif" style="width:100%;height:auto;">'
@@ -2383,13 +2393,19 @@ def _agent_web_html(snap: dict) -> str:
         '<marker id="aar" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0 0L5 3L0 6Z" fill="#5b6270"/></marker>'
         '<marker id="aarg" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0 0L5 3L0 6Z" fill="#22c98a"/></marker>'
         '<marker id="aara" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0 0L5 3L0 6Z" fill="#eaa62b"/></marker>'
-        '</defs>' + edges + heads + "".join(node_svg) + '</svg>')
+        '</defs>' + edges + pulses + heads + "".join(node_svg) + '</svg>')
     drawer = ('<div id="au-detail" class="glass" style="border-radius:12px;padding:14px 16px;margin-top:10px;'
               'min-height:120px;font-size:13px;line-height:1.55;color:var(--txt2);"></div>')
     style = ('<style>.aunode rect{transition:filter .15s}.aunode:hover rect{filter:brightness(1.25)}'
              '.aunode.sel rect{stroke-width:2.5px}#au-detail ul{margin:6px 0;padding-left:18px}'
              '#au-detail .aud-h{font-size:15px;font-weight:800;color:var(--txt);margin-bottom:6px}'
-             '#au-detail .aud-h span{font-weight:500;color:var(--muted);font-size:12px}</style>')
+             '#au-detail .aud-h span{font-weight:500;color:var(--muted);font-size:12px}'
+             '@keyframes auflow{to{stroke-dashoffset:-22 } }'
+             '.auflow{stroke-dasharray:6 5;animation:auflow .9s linear infinite}'
+             '.auflowg{stroke-dasharray:5 4;animation:auflow 1.5s linear infinite}'
+             '.auflowa{stroke-dasharray:4 3;animation:auflow 1.1s linear infinite}'
+             '@media (prefers-reduced-motion:reduce){.auflow,.auflowg,.auflowa{animation:none }'
+             '.aupulse{display:none } }</style>')
     script = ("<script>(function(){var AU=" + _json.dumps(detail_map)
               + ";window.auShow=function(id){var d=AU[id];if(!d)return;"
               "document.querySelectorAll('#page-agents .aunode').forEach(function(n){n.classList.toggle('sel',n.getAttribute('data-id')===id);});"
