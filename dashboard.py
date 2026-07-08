@@ -2288,7 +2288,14 @@ def _agent_web_html(snap: dict) -> str:
 
     ar = _load_json_safe("analyst_report.json") or {}
     finds = ar.get("findings") or []
-    an_detail = (f'<p>{ar.get("n_actions",0)} action items · confidence {ar.get("self_confidence","—")} '
+    _sc = ar.get("self_confidence") or {}
+    if _sc.get("hit_rate") is not None:
+        _conf = f'{_sc.get("hit_rate")}% hit rate ({_sc.get("improved")}/{_sc.get("graded")} acted-on buckets improved)'
+    elif _sc.get("pending"):
+        _conf = f'building — {_sc.get("pending")} action(s) awaiting enough post-change trades to grade'
+    else:
+        _conf = "building — no graded actions yet"
+    an_detail = (f'<p>{ar.get("n_actions",0)} action items · self-check: {_conf} '
                  f'({ar.get("generated_at","")}):</p><ul>'
                  + bullets([f'<b>[{f.get("severity")}]</b> {esc(f.get("proposal",""))}' for f in finds[:6]]) + "</ul>") if ar else "<p>First report pending.</p>"
 

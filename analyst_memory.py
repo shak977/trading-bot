@@ -119,8 +119,17 @@ def review(report: dict, buckets_rows: dict, now: datetime | None = None, path: 
                             f"{pri['win_rate']}% ({delta:+.0f}pts) — {trend}.",
                 })
 
-        # 3) grade every recurring 'act' proposal against the metric it targeted
+        # 3) grade recurring 'act' proposals HONESTLY.
+        # The old version compared the CUMULATIVE bucket win rate now vs when a proposal was first
+        # raised, and counted any positive tick as a "hit". That was misleading three ways: (a) every
+        # check-level proposal in a bucket shares the same bucket-wide number, so N proposals inflated
+        # the hit rate N-fold; (b) a slow-moving cumulative average barely responds to a recent
+        # change; (c) a +0.3pt move counted as a win. Instead we measure, per bucket we acted on, the
+        # win rate of trades that CLOSED AFTER we started acting vs BEFORE — with a real post-change
+        # sample and a dead-band — and we grade each BUCKET once, not each check.
         ledger = mem["ledger"]
+        DEAD = 3.0                 # pts: moves smaller than this are "no clear change", not a hit/miss
+        scope_since: dict[str, str] = {}    # earliest first_seen among a scope's recurring act proposals
         for f in report.get("findings", []):
             if f.get("severity") != "act":
                 continue
@@ -132,34 +141,58 @@ def review(report: dict, buckets_rows: dict, now: datetime | None = None, path: 
             e = ledger.get(key)
             if e is None:
                 ledger[key] = {"first_seen": today, "first_wr": cur_wr, "times": 1, "last_seen": today}
+                f["history"] = {"times_raised": 1, "since": today, "status": "just flagged"}
+                continue
+            e["times"] = e.get("times", 1) + 1
+            e["last_seen"] = today
+            since = e.get("first_seen", today)
+            rows = buckets_rows.get(scope, []) if scope else []
+            before = windowed_winrate(rows, end=since)      # trades closed BEFORE we acted
+            after = windowed_winrate(rows, start=since)      # trades closed SINCE we acted
+            if after["n"] >= _MIN_WIN and before["win_rate"] is not None and after["win_rate"] is not None:
+                d = round(after["win_rate"] - before["win_rate"], 1)
+                status = "improved" if d >= DEAD else "worse" if d <= -DEAD else "no clear change"
+                f["history"] = {"times_raised": e["times"], "since": since, "before_wr": before["win_rate"],
+                                "after_wr": after["win_rate"], "after_n": after["n"], "delta": d, "status": status}
+                if scope:
+                    scope_since.setdefault(scope, since)
             else:
-                e["times"] = e.get("times", 1) + 1
-                e["last_seen"] = today
-                fw = e.get("first_wr")
-                if fw is not None and cur_wr is not None:
-                    d = round(cur_wr - fw, 1)
-                    f["history"] = {"times_raised": e["times"], "since": e["first_seen"],
-                                    "win_rate_delta": d}
-                    verdict = ("improving since first flagged" if d > 0
-                               else "still unresolved — win rate hasn't improved since first flagged")
-                    review_out.append({
-                        "kind": "proposal_grade", "scope": scope, "area": key, "delta": d,
-                        "text": f"'{key}' raised {e['times']}× since {e['first_seen']}; bucket win "
-                                f"rate {fw}%→{cur_wr}% ({d:+.0f}pts) — {verdict}.",
-                    })
+                f["history"] = {"times_raised": e["times"], "since": since, "after_n": after["n"],
+                                "status": "too soon — not enough trades have closed since it was flagged"}
 
         # prune ledger entries not seen in a while so it doesn't grow unbounded
         cutoff = (now - timedelta(days=120)).strftime("%Y-%m-%d")
         for k in [k for k, v in ledger.items() if (v.get("last_seen") or "") < cutoff]:
             ledger.pop(k, None)
 
-        # 4) the analyst's own hit rate: of graded proposals, how often did things improve after?
-        graded = [r for r in review_out if r.get("kind") == "proposal_grade"]
-        improved = [r for r in graded if r["delta"] > 0]
+        # 4) honest hit rate: ONE grade per bucket we acted on, only counting buckets with enough
+        # post-change trades AND a move bigger than the dead-band. Flat / too-soon buckets count
+        # neither way, so the number reflects real, measurable follow-through — not noise.
+        graded_scopes = []
+        for scope, since in scope_since.items():
+            rows = buckets_rows.get(scope, [])
+            before, after = windowed_winrate(rows, end=since), windowed_winrate(rows, start=since)
+            if after["n"] < _MIN_WIN or before["win_rate"] is None or after["win_rate"] is None:
+                continue
+            d = round(after["win_rate"] - before["win_rate"], 1)
+            status = "improved" if d >= DEAD else "worse" if d <= -DEAD else "flat"
+            graded_scopes.append(status)
+            review_out.append({
+                "kind": "proposal_grade", "scope": scope, "delta": d,
+                "text": f"{scope}: since we began acting ({since}), win rate on trades closed since is "
+                        f"{after['win_rate']}% vs {before['win_rate']}% before ({d:+.0f}pts, "
+                        f"n={after['n']}) — {status}.",
+            })
+        hits = sum(1 for s in graded_scopes if s == "improved")
+        misses = sum(1 for s in graded_scopes if s == "worse")
+        gradeable = hits + misses
+        pending = sum(1 for f in report.get("findings", []) if f.get("severity") == "act"
+                      and str((f.get("history") or {}).get("status", "")).startswith(("too soon", "just")))
         report["self_review"] = review_out
         report["self_confidence"] = {
-            "graded": len(graded), "improved": len(improved),
-            "hit_rate": round(len(improved) / len(graded) * 100, 1) if graded else None,
+            "graded": gradeable, "improved": hits, "pending": pending,
+            "hit_rate": round(hits / gradeable * 100, 1) if gradeable else None,
+            "basis": "per-bucket win rate on trades closed after each action vs before (±3pt dead-band)",
         }
         _save(mem, path)
         return mem

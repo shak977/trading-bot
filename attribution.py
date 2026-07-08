@@ -144,6 +144,14 @@ def suppressed_directions(scope: str = "daily", path: str | None = None,
     return out
 
 
+# Payoff / expectancy checks (reward:risk). These INTENTIONALLY trade win rate for larger wins — a
+# higher-R:R target sits farther away, so it's hit less often but pays more when it is. Grading them
+# by win-rate edge is a category error: they will always look "anti-predictive" on win rate even
+# when they add expectancy, so the win-rate loop must never down-weight or retire them. (Judging
+# them properly needs realized R-multiples / expectancy, not hit rate.) Matched case-insensitively.
+_EXPECTANCY_CHECKS = frozenset({"worth the risk?", "reward:risk worth it?"})
+
+
 def learned_weights(scope: str = "all", path: str | None = None,
                     min_n: int = 12, max_adj: float = 0.5, retire_edge: float = -15.0,
                     bonferroni: bool = True, alpha: float = 0.05) -> dict:
@@ -172,6 +180,8 @@ def learned_weights(scope: str = "all", path: str | None = None,
     alpha_corr = alpha / m
     out = {}
     for r in eligible:
+        if (r.get("label") or "").strip().lower() in _EXPECTANCY_CHECKS:
+            continue                        # payoff check — never retire/adjust on win-rate edge (see note above)
         if bonferroni:
             p = r.get("p_value")
             if p is None or p >= alpha_corr:

@@ -48,7 +48,9 @@ def _bucket_stats(rows: list[dict]) -> dict:
     # by macro regime at entry (if tagged)
     reg = {}
     for t in decided:
-        lab = t.get("regime") or "—"
+        lab = t.get("regime")
+        if not lab:
+            continue  # untagged (legacy trades logged before regime-tagging) — not a real regime
         reg.setdefault(lab, [0, 0])
         reg[lab][1] += 1
         if t["status"] == "win":
@@ -90,12 +92,26 @@ def _findings(scope: str, label: str, stats: dict, rep: list[dict], learned: dic
         if edge is None or nn < _MIN_N:
             continue
         if edge <= _EDGE_LO:
-            out.append({"severity": "act", "area": f"{label}: check '{r['label']}'",
-                        "observation": f"Win rate {r['win_rate_pass']}% when it passes vs "
-                                       f"{r['win_rate_fail']}% when it fails (edge {edge:+.0f}pts) — it's "
-                                       "not separating winners.",
-                        "proposal": f"Down-weight or retire '{r['label']}' (currently "
-                                    f"×{learned.get(r['label'], 1.0)})."})
+            lbl = r["label"]
+            w = learned.get(lbl)
+            obs = (f"Win rate {r['win_rate_pass']}% when it passes vs {r['win_rate_fail']}% when it "
+                   f"fails (edge {edge:+.0f}pts) — it's not separating winners.")
+            if lbl.strip().lower() in attribution._EXPECTANCY_CHECKS:
+                # A reward:risk check trades win rate for payoff by design — a poor win-rate edge is
+                # EXPECTED and isn't evidence it's broken. Report it, but don't propose retiring it.
+                out.append({"severity": "info", "area": f"{label}: check '{lbl}'",
+                            "observation": obs + " Expected for a payoff check — it's judged on "
+                                                 "expectancy (size of wins), not hit rate.",
+                            "proposal": f"Leave '{lbl}' as-is; the win-rate loop is held off it on purpose."})
+            elif w is not None and w <= 0.05:
+                # Engine has already retired it — don't keep re-proposing an action that's done.
+                out.append({"severity": "info", "area": f"{label}: check '{lbl}'",
+                            "observation": obs,
+                            "proposal": f"Already retired (weight ×{w}) — the engine dropped it; no action needed."})
+            else:
+                out.append({"severity": "act", "area": f"{label}: check '{lbl}'",
+                            "observation": obs,
+                            "proposal": f"Down-weight or retire '{lbl}' (currently ×{w if w is not None else 1.0})."})
         elif edge >= _EDGE_HI:
             out.append({"severity": "info", "area": f"{label}: check '{r['label']}'",
                         "observation": f"Strong edge {edge:+.0f}pts — earning its keep.",
