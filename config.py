@@ -110,6 +110,13 @@ class Config:
     committee_max_names: int = 6            # cap names sent to the committee (one batched call)
     committee_conviction_enabled: bool = True   # the AI committee's vote counts toward conviction (and is graded by attribution)
     committee_conviction_weight: float = 1.0    # base weight of the committee check (the learned loop re-weights it from outcomes)
+    # Real multi-model swarm: ask several DIFFERENT models (via OpenRouter) to each vote, then tally
+    # agreement — instead of one model playing all four roles. Opt-in (needs a key + a little cost);
+    # falls back to the single-model committee when off / no key.
+    openrouter_api_key: str = field(default_factory=lambda: os.getenv("OPENROUTER_API_KEY", ""))
+    committee_swarm_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("COMMITTEE_SWARM"), False))
+    committee_models: tuple = ("anthropic/claude-3.5-sonnet", "deepseek/deepseek-chat",
+                               "qwen/qwen-2.5-72b-instruct")
 
     # --- Real-time ORB executor (always-on runner; PAPER only by default, DISABLED by default) ---
     live_executor_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("LIVE_EXECUTOR_ENABLED"), False))

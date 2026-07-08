@@ -7,6 +7,8 @@ data — the model is told to reason only from the facts we pass in.
 """
 from __future__ import annotations
 
+import json as _json
+
 import requests
 
 from config import Config
@@ -326,6 +328,15 @@ def committee(rows: list[dict], cfg: Config, regime: dict | None = None,
             f"day move {ctx.get('day_change_pct')}%, ATR {ctx.get('atr_pct')}%, vs trend {ctx.get('vs_slow_ma_pct')}%; "
             f"analysts {an.get('consensus','n/a')} (target ${fu.get('target_mean','n/a')}, P/E {fu.get('pe','n/a')}); "
             f"news: {heads}")
+
+    # Real multi-model swarm (opt-in): several DIFFERENT models each vote, then we tally agreement —
+    # more robust than one model playing four roles. Falls through to the single-model chair on
+    # failure / when disabled.
+    if getattr(cfg, "committee_swarm_enabled", False) and getattr(cfg, "openrouter_api_key", ""):
+        sw = _committee_swarm(blocks, cfg, reg_txt, macro_txt, timeout)
+        if sw:
+            return sw
+
     prompt = (
         "You are the chair of a trading committee with four analysts: a TECHNICALS analyst, a "
         "FUNDAMENTALS analyst, a NEWS/CATALYST analyst, and a MACRO/REGIME analyst. For each candidate "
@@ -382,6 +393,86 @@ def committee(rows: list[dict], cfg: Config, regime: dict | None = None,
         except Exception:  # noqa: BLE001
             continue
     return out
+
+
+def _tally_votes(votes: dict) -> dict:
+    """Pure consensus tally. `votes`: {SYM: [(model, verdict, confidence), ...]}. Majority verdict
+    per symbol (accept > reduce > reject on ties toward caution), with support/against counts and a
+    per-model breakdown — shaped like committee() so it flows through conviction unchanged."""
+    out = {}
+    for sym, vs in votes.items():
+        if not vs:
+            continue
+        acc = sum(1 for v in vs if v[1] == "accept")
+        rej = sum(1 for v in vs if v[1] == "reject")
+        red = sum(1 for v in vs if v[1] == "reduce")
+        n = len(vs)
+        if acc > rej and acc >= red:
+            verdict = "accept"
+        elif rej >= acc and rej > red:
+            verdict = "reject"
+        else:
+            verdict = "reduce"
+        conf = round(sum(v[2] for v in vs) / n)
+        out[sym] = {"verdict": verdict, "confidence": conf, "support": acc, "against": rej,
+                    "n_models": n, "models": {v[0]: v[1] for v in vs},
+                    "summary": f"{n} models — {acc} accept / {red} reduce / {rej} reject"}
+    return out
+
+
+def _openrouter_json(model: str, prompt: str, cfg: Config, timeout: int = 45) -> dict:
+    """One model's per-ticker verdicts via OpenRouter (OpenAI-compatible). {} on any failure."""
+    key = getattr(cfg, "openrouter_api_key", "")
+    if not key:
+        return {}
+    try:
+        r = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json={"model": model, "max_tokens": 1200, "temperature": 0.2,
+                  "messages": [{"role": "user", "content": prompt}]},
+            timeout=timeout,
+        )
+        r.raise_for_status()
+        txt = (r.json()["choices"][0]["message"]["content"] or "").strip()
+        if "```" in txt:
+            parts = txt.split("```")
+            txt = parts[1].lstrip("json").strip() if len(parts) > 1 else txt
+        a, b = txt.find("{"), txt.rfind("}")
+        return _json.loads(txt[a:b + 1]) if (a >= 0 and b >= 0) else {}
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def _committee_swarm(blocks: list, cfg: Config, reg_txt: str, macro_txt: str, timeout: int = 45) -> dict:
+    """Query each configured model independently, then tally consensus. Returns committee-shaped
+    verdicts, or {} if no model answered (caller falls back to the single-model chair)."""
+    models = list(getattr(cfg, "committee_models", ()) or ())
+    if not models:
+        return {}
+    prompt = (
+        "You are a disciplined equities analyst. For each candidate below, vote 'accept' (take as "
+        "planned), 'reduce' (smaller size — mixed signals), or 'reject' (skip — clear red flag), using "
+        "ONLY the data given (never invent numbers, events, or price predictions). "
+        f"Market regime: {reg_txt}. Macro: {macro_txt}.\n"
+        'Return ONLY a JSON object keyed by ticker: '
+        '{"NVDA":{"verdict":"accept","confidence":75,"note":"<=12 words"}}. No prose.\n\n'
+        "CANDIDATES:\n" + "\n".join(blocks))
+    votes: dict = {}
+    for m in models:
+        raw = _openrouter_json(m, prompt, cfg, timeout)
+        if not isinstance(raw, dict) or not raw:
+            continue
+        short = m.split("/")[-1]
+        for sym, d in raw.items():
+            if not isinstance(d, dict):
+                continue
+            v = str(d.get("verdict", "")).lower()
+            if v not in ("accept", "reduce", "reject"):
+                v = "reduce"
+            conf = int(max(0, min(100, int(d.get("confidence", 50) or 50))))
+            votes.setdefault(str(sym).upper().strip().lstrip("$"), []).append((short, v, conf))
+    return _tally_votes(votes)
 
 
 def analyst_review(report: dict, cfg: Config, timeout: int = 30) -> str | None:

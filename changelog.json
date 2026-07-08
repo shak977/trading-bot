@@ -1,4 +1,6 @@
 [
+  {"date": "2026-07-08", "cat": "AI", "title": "Multi-model AI committee",
+   "note": "The committee can now poll several DIFFERENT models (Claude + DeepSeek + Qwen via OpenRouter) that each vote accept/reduce/reject, then tallies real consensus — instead of one model playing four roles. Opt-in with an OpenRouter key; falls back to the single model otherwise."},
   {"date": "2026-07-08", "cat": "Alerts", "title": "Telegram bot control",
    "note": "Text commands to the bot from your phone: /status for the latest signals + book health, /scan to run a fresh scan, /analyst for the review, /test for a test alert. Handled by the always-on Cloudflare Worker, locked to your chat id."},
   {"date": "2026-07-08", "cat": "Alerts", "title": "Telegram alerts",

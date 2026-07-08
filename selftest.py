@@ -863,6 +863,32 @@ def test_recovery_ladder():
     _ok("evaluate exposes recovery_step", "recovery_step" in g)
 
 
+def test_swarm_tally():
+    print("multi-model committee tally:")
+    import llm
+    # 3 models, 2 accept + 1 reduce -> majority accept, support 2
+    v = llm._tally_votes({"NVDA": [("claude", "accept", 80), ("deepseek", "accept", 70), ("qwen", "reduce", 55)]})
+    n = v["NVDA"]
+    _ok("majority accept wins", n["verdict"] == "accept")
+    _ok("support = accept count", n["support"] == 2 and n["against"] == 0)
+    _ok("confidence is the mean", n["confidence"] == round((80 + 70 + 55) / 3))
+    _ok("per-model breakdown kept", n["models"]["qwen"] == "reduce" and n["n_models"] == 3)
+    # 2 reject + 1 accept -> reject
+    r = llm._tally_votes({"X": [("a", "reject", 60), ("b", "reject", 50), ("c", "accept", 70)]})["X"]
+    _ok("majority reject wins", r["verdict"] == "reject" and r["against"] == 2)
+    # unanimous accept flows to a 'pass' in the conviction check (support>=3)
+    import scanner
+    from data import synthetic_bars
+    from config import CONFIG
+    row = scanner._analyse("MSFT", synthetic_bars("MSFT", n=CONFIG.lookback_days), CONFIG, CONFIG.starting_cash)
+    row["direction"] = "LONG"; row["action"] = "BUY"
+    unan = llm._tally_votes({"MSFT": [("a", "accept", 80), ("b", "accept", 75), ("c", "accept", 82)]})["MSFT"]
+    scanner.rescore(row, CONFIG, committee=unan)
+    ck = {c["label"]: c for c in row["conviction"]["checks"]}
+    _ok("unanimous swarm accept => committee check passes", ck["AI committee agrees?"]["status"] == "pass")
+    _ok("empty votes => empty tally", llm._tally_votes({}) == {})
+
+
 def test_kelly_sizing():
     print("half-Kelly sizing scalar:")
     import json, tempfile, os
@@ -1058,6 +1084,7 @@ def main():
     test_bonferroni_guard()
     test_recovery_ladder()
     test_book_risk()
+    test_swarm_tally()
     test_kelly_sizing()
     test_correlation_clusters()
     test_telegram_alerts()
