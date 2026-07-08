@@ -2215,6 +2215,124 @@ def _changelog_html(entries: list | None) -> str:
     )
 
 
+def _agent_universe_html(snap: dict) -> str:
+    """Live 'Agent Universe' — every AI in the system as a card with its ACTUAL latest output.
+    Two zones: RUNTIME (the trading brain, live from the snapshot) and BUILD (how it's made).
+    Extensible: add an agent by appending one card. Never raises (defensive .get everywhere)."""
+    def dot(on):
+        c = "var(--buy)" if on else "var(--muted)"
+        return f'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:{c};flex:0 0 auto;"></span>'
+
+    def card(icon, name, role, on, line, accent="var(--ai,#8b5cf6)"):
+        return (
+            f'<div class="glass" style="border-left:3px solid {accent};border-radius:12px;padding:13px 15px;min-width:0;">'
+            f'<div style="display:flex;align-items:center;gap:8px;">{dot(on)}'
+            f'<span style="color:{accent};display:inline-flex;">{_svg(icon,14)}</span>'
+            f'<span style="font-weight:700;font-size:13.5px;color:var(--txt);">{name}</span>'
+            f'<span style="margin-left:auto;font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">{"live" if on else "off"}</span></div>'
+            f'<div style="font-size:11px;color:var(--muted);margin:3px 0 6px;">{role}</div>'
+            f'<div style="font-size:12.5px;color:var(--txt2);line-height:1.5;min-width:0;">{line}</div></div>')
+
+    V, G = "var(--ai,#8b5cf6)", "var(--accent,#eaa62b)"
+    cfg = CONFIG
+    signals = snap.get("signals") or []
+
+    # --- Committee / chair (or swarm) ---
+    swarm = bool(getattr(cfg, "committee_swarm_enabled", False) and getattr(cfg, "openrouter_api_key", ""))
+    comm_on = bool(getattr(cfg, "llm_enabled", False) and getattr(cfg, "committee_enabled", True))
+    cs = next((s.get("committee") for s in signals if s.get("committee")), None)
+    if cs:
+        who = next((s["symbol"] for s in signals if s.get("committee") is cs), "top pick")
+        models = cs.get("models")
+        detail = (f'{cs.get("n_models", len(models))} models: ' + ", ".join(sorted(set(models.values())))) if models else f'{cs.get("support",0)}/4 analysts agree'
+        comm_line = f'Latest verdict on <b>{who}</b>: <b>{cs.get("verdict","?")}</b> ({detail}, {cs.get("confidence","?")}% conf).'
+    else:
+        comm_line = "No verdict yet this build — runs on the top actionable names."
+    comm_role = ("Multi-model swarm — 3 models vote" if swarm else "4 analyst roles + a chair vote")
+
+    # --- Conviction engine ---
+    top = max(signals, key=lambda s: (s.get("conviction") or {}).get("score_pct") or 0, default=None)
+    if top:
+        conv = top.get("conviction") or {}
+        conv_line = f'Top pick <b>{top.get("symbol")}</b> at <b>{conv.get("score_pct")}%</b> ({conv.get("label")}) across {conv.get("total", len(conv.get("checks") or []))} checks.'
+    else:
+        conv_line = "No actionable signals right now."
+
+    # --- Attribution (self-learning weights) ---
+    lw = ((snap.get("learned") or {}).get("daily") or {}).get("weights") or {}
+    retired = (snap.get("learned") or {}).get("retired") or []
+    up = sum(1 for m in lw.values() if isinstance(m, (int, float)) and m > 1.0)
+    down = sum(1 for m in lw.values() if isinstance(m, (int, float)) and 0 < m < 1.0)
+    if lw:
+        _best = max(lw.items(), key=lambda kv: kv[1]) if lw else None
+        attr_line = f'Up-weighted {up}, down-weighted {down}, retired {len(retired)} checks.' + (f' Strongest: “{_best[0]}” ({_best[1]}×).' if _best else "")
+    else:
+        attr_line = "Still gathering resolved trades before it adjusts weights."
+
+    # --- Nightly analyst ---
+    ar = _load_json_safe("analyst_report.json") or {}
+    if ar:
+        acts = ar.get("n_actions", 0)
+        top_find = next((f for f in (ar.get("findings") or []) if f.get("severity") == "act"), None) or (ar.get("findings") or [None])[0]
+        an_line = f'{acts} action item{"s" if acts != 1 else ""} in the last review ({ar.get("generated_at","")}).' + (f' Top: {top_find.get("proposal","")[:90]}' if top_find else "")
+    else:
+        an_line = "Runs after the close — first report pending."
+
+    # --- Memory loop ---
+    mem = _load_json_safe("analyst_memory.json") or {}
+    ledger = mem.get("ledger") or []
+    mem_line = (f'Graded {len(ledger)} of its own past proposals against outcomes.' if ledger
+                else "Will start grading once the analyst has a history.")
+
+    # --- Market timing ---
+    tp = snap.get("timing") or {}
+    tim_on = bool(getattr(cfg, "timing_gate_enabled", True))
+    tim_line = (f'Tape read: <b>{tp.get("label")}</b>.' + (f' {tp.get("dd_total")} distribution days.' if tp.get("dd_total") else "")) if tp else "No index-timing read this build."
+
+    # --- Risk engine ---
+    br = snap.get("book_risk") or {}
+    risk_on = bool(getattr(cfg, "risk_engine_enabled", True))
+    if br:
+        risk_line = f'Open book: heat {br.get("heat_pct")}% of {br.get("heat_cap_pct")}% cap, {br.get("effective_bets", br.get("n"))} effective bets, VaR ${br.get("var95_usd"):,}.'
+    else:
+        risk_line = "Flat book — no open risk to watch."
+
+    # --- Setup validation ---
+    ss = _load_json_safe("setups_study.json") or {}
+    val_line = ss.get("verdict", "Walk-forward validation runs after the close.")[:150]
+
+    runtime = "".join([
+        card("bank" if not swarm else "ai", "Trade committee", comm_role, comm_on, comm_line, V),
+        card("target", "Conviction engine", "scores every trade from all checks", True, conv_line, V),
+        card("ai", "Attribution", "learns which checks predict wins", bool(getattr(cfg, "adaptive_weights_enabled", True)), attr_line, V),
+        card("regime", "Market timing", "O'Neil FTD / distribution on SPY+QQQ", tim_on, tim_line, V),
+        card("octagon", "Risk engine", "heat, VaR, drawdown, cooldown", risk_on, risk_line, V),
+        card("chart", "Setup validation", "walk-forward edge of each setup", True, val_line, V),
+        card("news", "Nightly analyst", "reviews the book, proposes changes", bool(getattr(cfg, "llm_enabled", False)), an_line, V),
+        card("compass", "Memory loop", "grades the analyst's own past calls", True, mem_line, V),
+    ])
+
+    # --- Build AI ---
+    cl = _load_json_safe("changelog.json") or []
+    build_line = (f'{len(cl)} tracked additions; latest {cl[0].get("date","")} — {cl[0].get("title","")}.' if cl else "Ships changes to the runtime AI.")
+    build = "".join([
+        card("gear", "Orchestrator", "the main Claude that plans + coordinates", True, "Turns your prompts into verified, shipped changes. " + build_line, G),
+        card("search", "Explore agent", "fast fan-out code/search", True, "Spawned to sweep the repo and skills libraries when a task needs broad reading.", G),
+        card("compass", "Plan agent", "designs the implementation", True, "Spawned to architect bigger changes before code is written.", G),
+        card("gear", "General agent", "deep research + build", True, "Spawned for heavy research (e.g. reading external skill repos) and multi-step builds.", G),
+    ])
+
+    return (
+        f'<div class="sec-head"><span class="sh-ico">{_svg("ai",15)}</span><h2>Agent universe</h2>'
+        '<span class="sh-sub">every AI in the system — and its latest output</span></div>'
+        '<div style="margin:0 0 8px;font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--ai,#8b5cf6);">◈ RUNTIME AI — THE TRADING BRAIN</div>'
+        f'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">{runtime}</div>'
+        '<div style="margin:20px 0 8px;font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--accent,#eaa62b);">◆ BUILD AI — HOW IT\'S MADE</div>'
+        f'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">{build}</div>'
+        '<p style="color:var(--muted);font-size:10.5px;margin:14px 0 0;">Green dot = live now · grey = off or awaiting data. Runtime agents read this build\'s snapshot; the build agents ship changes into it.</p>'
+    )
+
+
 def _perf_metrics():
     """Risk-adjusted performance of the traded book (metrics.py). Best-effort; None on too little data."""
     try:
@@ -3319,6 +3437,7 @@ def render_html(snap: dict) -> str:
     news_ideas_html = _news_ideas_html(snap.get("news_ideas"))
     system_html = _system_html(snap.get("system"))
     whatsnew_html = _changelog_html(snap.get("changelog"))
+    agents_html = _agent_universe_html(snap)
     regime_html = _regime_html(snap.get("regime"))
     # Compact regime pill for the top app bar (colour-coded dot + label).
     _reg = snap.get("regime") or {}
@@ -4533,6 +4652,7 @@ def render_html(snap: dict) -> str:
       <button data-area="livetv"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.8" y="4.3" width="12.4" height="8.4" rx="1.4"/><path d="M6 1.6 8 4l2-2.4"/></svg> Live TV</button>
       <button data-area="about"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6.3"/><path d="M8 7.3v4"/><path d="M8 4.9h.01"/></svg> About</button>
       <button data-area="system"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.3"/><path d="M8 1.4v2M8 12.6v2M1.4 8h2M12.6 8h2M3.3 3.3l1.4 1.4M11.3 11.3l1.4 1.4M12.7 3.3l-1.4 1.4M4.7 11.3l-1.4 1.4"/></svg> System</button>
+      <button data-area="agents"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="4" r="2.2"/><circle cx="3.6" cy="11.5" r="2.2"/><circle cx="12.4" cy="11.5" r="2.2"/><path d="M8 6.2v3M6.7 5.6 4.9 9.6M9.3 5.6l1.8 4"/></svg> Agents</button>
       <button data-area="whatsnew"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5l1.6 3.6 3.9.4-2.9 2.6.8 3.8L8 12.6 4.6 14.5l.8-3.8L2.5 8.1l3.9-.4z"/></svg> What's new</button>
       <div class="side-sig" id="sideSignals" hidden>
         <div class="side-h">{_svg('bolt',12)} Active signals</div>
@@ -4648,6 +4768,10 @@ def render_html(snap: dict) -> str:
 
   <section class="page" id="page-system">
 {system_html}
+  </section>
+
+  <section class="page" id="page-agents">
+{agents_html}
   </section>
 
   <section class="page" id="page-whatsnew">
@@ -6437,6 +6561,7 @@ function _tvInit() {{
     ['livetv', [['livetv','Live TV']]],
     ['about', [['method','How it works']]],
     ['system', [['system','System']]],
+    ['agents', [['agents','Agent universe']]],
     ['whatsnew', [['whatsnew',"What's new"]]]
   ];
   AREAS.forEach(a => a[1] = a[1].filter(p => document.getElementById('page-' + p[0])));
