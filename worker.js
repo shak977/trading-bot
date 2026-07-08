@@ -33,7 +33,28 @@ export default {
     }).catch(() => {}));
   },
 
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
+    // --- Telegram bot control: POST /?telegram=1 (the webhook) ---
+    // Text /status, /scan, /analyst, /test, /help to your bot. Locked to YOUR chat id, and (if set)
+    // verified by a secret token so only real Telegram updates are accepted. Needs Worker secrets:
+    //   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TG_WEBHOOK_SECRET  (+ the existing GH_TOKEN).
+    if (request.method === "POST") {
+      if (env.TG_WEBHOOK_SECRET &&
+          request.headers.get("X-Telegram-Bot-Api-Secret-Token") !== env.TG_WEBHOOK_SECRET) {
+        return new Response("forbidden", { status: 403 });
+      }
+      let update;
+      try { update = await request.json(); } catch (e) { return new Response("ok"); }
+      const msg = update.message || update.edited_message || {};
+      const chatId = msg.chat && String(msg.chat.id);
+      const text = (msg.text || "").trim();
+      if (!chatId || (env.TELEGRAM_CHAT_ID && chatId !== String(env.TELEGRAM_CHAT_ID))) {
+        return new Response("ok");            // not the owner — ignore silently
+      }
+      ctx.waitUntil(handleTelegram(env, chatId, text));
+      return new Response("ok");              // ack Telegram immediately (reply is sent async)
+    }
+
     const cors = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -214,4 +235,89 @@ function json(obj, status, cors) {
     status,
     headers: { ...cors, "content-type": "application/json" },
   });
+}
+
+// ---------------- Telegram bot control ----------------
+const TG_HELP =
+  "🤖 Trading-bot commands:\n" +
+  "/status — latest signals + book health\n" +
+  "/scan — run a fresh scan now (~2 min)\n" +
+  "/analyst — run the nightly analyst review\n" +
+  "/test — send yourself a test alert\n" +
+  "/help — this menu";
+
+async function handleTelegram(env, chatId, text) {
+  const cmd = (text.split(/\s+/)[0] || "").toLowerCase().replace(/@.*$/, "");  // strip @botname
+  try {
+    if (cmd === "/scan") {
+      await dispatchWorkflow(env, env.GH_WORKFLOW || "weekly-signals.yml");
+      return tgSend(env, chatId, "🔄 Scan started — fresh signals in ~2 min. I'll ping you if anything strong shows up.");
+    }
+    if (cmd === "/analyst") {
+      await dispatchWorkflow(env, "analyst.yml");
+      return tgSend(env, chatId, "🧠 Analyst run started — it'll review the book and refresh its proposals.");
+    }
+    if (cmd === "/test") {
+      await dispatchWorkflow(env, "alert-test.yml");
+      return tgSend(env, chatId, "🔔 Alert test fired — a test message should arrive shortly.");
+    }
+    if (cmd === "/status") {
+      return tgSend(env, chatId, await buildStatus(env));
+    }
+    return tgSend(env, chatId, TG_HELP);      // /help, /start, or anything unrecognised
+  } catch (e) {
+    return tgSend(env, chatId, "⚠️ Couldn't run that just now — try again in a moment.");
+  }
+}
+
+async function dispatchWorkflow(env, wf) {
+  if (!env.GH_TOKEN) throw new Error("no GH_TOKEN");
+  const repo = env.GH_REPO || "shak977/trading-bot";
+  const url = `https://api.github.com/repos/${repo}/actions/workflows/${wf}/dispatches`;
+  const r = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${env.GH_TOKEN}`,
+      "Accept": "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      "User-Agent": "trading-bot-tg",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ ref: env.GH_BRANCH || "main" }),
+  });
+  if (!r.ok) throw new Error("dispatch " + r.status);
+}
+
+async function tgSend(env, chatId, text) {
+  if (!env.TELEGRAM_BOT_TOKEN) return;
+  return fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
+  }).catch(() => {});
+}
+
+async function buildStatus(env) {
+  const site = (env.SITE_URL || "https://shak977.github.io/trading-bot").replace(/\/$/, "");
+  try {
+    const r = await fetch(site + "/signals.json", { cf: { cacheTtl: 0 } });
+    if (!r.ok) return "Couldn't read the latest data (site returned " + r.status + ").";
+    const d = await r.json();
+    const regime = (d.regime && d.regime.label) || "—";
+    const rows = (d.signals || []).filter(s => s.action === "BUY" || s.action === "SHORT");
+    rows.sort((a, b) => ((b.conviction && b.conviction.score_pct) || 0) - ((a.conviction && a.conviction.score_pct) || 0));
+    const top = rows.slice(0, 6).map(s => {
+      const cp = (s.conviction && s.conviction.score_pct);
+      const arrow = s.action === "BUY" ? "🟢" : "🔴";
+      return `${arrow} ${s.symbol} ${s.action}${cp ? " — " + cp + "%" : ""}`;
+    }).join("\n") || "no fresh BUY/SHORT signals right now";
+    const wr = d.track && d.track.win_rate;
+    const dd = d.paper_acct && d.paper_acct.day_pl_pct;
+    const bits = [`📊 Market: ${regime}`];
+    if (wr != null) bits.push(`track: ${wr}% win rate`);
+    if (dd != null) bits.push(`today: ${dd > 0 ? "+" : ""}${dd}%`);
+    return bits.join("  ·  ") + "\n\nTop signals:\n" + top + "\n\nBuilt " + (d.generated_at || "");
+  } catch (e) {
+    return "Couldn't read the latest data right now.";
+  }
 }

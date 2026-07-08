@@ -1,4 +1,6 @@
 [
+  {"date": "2026-07-08", "cat": "Alerts", "title": "Telegram bot control",
+   "note": "Text commands to the bot from your phone: /status for the latest signals + book health, /scan to run a fresh scan, /analyst for the review, /test for a test alert. Handled by the always-on Cloudflare Worker, locked to your chat id."},
   {"date": "2026-07-08", "cat": "Alerts", "title": "Telegram alerts",
    "note": "Fresh high-conviction signals now push straight to Telegram, alongside webhook / phone-push / email. One-click alert test from the Actions tab."},
   {"date": "2026-07-08", "cat": "Risk", "title": "Correlation-as-one-bet",
