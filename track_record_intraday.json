@@ -226027,7 +226027,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "loss",
+    "exit": 130.08,
+    "exit_date": "2026-07-08",
+    "return_pct": -1.22,
+    "days_held": -1
   },
   {
     "id": "ETN:2026-07-08",
@@ -227889,7 +227893,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 73.3,
+    "exit_date": "2026-07-08",
+    "return_pct": -0.47,
+    "days_held": -1
   },
   {
     "id": "NET:2026-07-08",
@@ -227978,7 +227986,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 266.86,
+    "exit_date": "2026-07-08",
+    "return_pct": 0.44,
+    "days_held": -1
   },
   {
     "id": "IBM:2026-07-08",
@@ -228656,6 +228668,99 @@
       {
         "label": "Smart-money footprint?",
         "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "win",
+    "exit": 112.66,
+    "exit_date": "2026-07-08",
+    "return_pct": 0.18,
+    "days_held": -1
+  },
+  {
+    "id": "PBLS:2026-07-08",
+    "symbol": "PBLS",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-08",
+    "advised_ts": "2026-07-08T18:37:02.217383",
+    "entry": 30.73,
+    "stop": 30.31,
+    "target": 31.4,
+    "rr": 1.59,
+    "conviction": "High",
+    "conviction_pct": 76,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
       }
     ],
     "tv_align": null,
