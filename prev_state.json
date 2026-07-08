@@ -33,7 +33,13 @@
     "IBM": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 80,
+      "score": 88,
+      "dir": "LONG"
+    },
+    "BA": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 88,
       "dir": "LONG"
     },
     "CL": {
@@ -48,10 +54,10 @@
       "score": 78,
       "dir": "LONG"
     },
-    "SPY": {
+    "WM": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 84,
+      "score": 91,
       "dir": "LONG"
     },
     "GE": {
@@ -60,16 +66,22 @@
       "score": 81,
       "dir": "LONG"
     },
+    "CIA": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 84,
+      "dir": "LONG"
+    },
     "UNP": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 94,
+      "score": 96,
       "dir": "LONG"
     },
     "CSX": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 92,
+      "score": 94,
       "dir": "LONG"
     },
     "ELV": {
@@ -99,13 +111,7 @@
     "DXCM": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 93,
-      "dir": "LONG"
-    },
-    "WM": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 90,
+      "score": 92,
       "dir": "LONG"
     },
     "CNC": {
@@ -126,10 +132,22 @@
       "score": 79,
       "dir": "LONG"
     },
+    "SPY": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 86,
+      "dir": "LONG"
+    },
     "PH": {
       "action": "WATCH LONG",
       "label": "High",
       "score": 86,
+      "dir": "LONG"
+    },
+    "DUK": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 95,
       "dir": "LONG"
     },
     "VTRS": {
@@ -141,13 +159,7 @@
     "GD": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 88,
-      "dir": "LONG"
-    },
-    "BA": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 86,
+      "score": 91,
       "dir": "LONG"
     },
     "WFC": {
@@ -166,12 +178,6 @@
       "action": "WATCH LONG",
       "label": "High",
       "score": 86,
-      "dir": "LONG"
-    },
-    "DUK": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 90,
       "dir": "LONG"
     },
     "MCO": {
@@ -226,12 +232,6 @@
       "action": "WATCH SHORT",
       "label": "High",
       "score": 82,
-      "dir": "SHORT"
-    },
-    "AMT": {
-      "action": "WATCH SHORT",
-      "label": "High",
-      "score": 88,
       "dir": "SHORT"
     },
     "TSLA": {
@@ -300,12 +300,6 @@
       "score": 62,
       "dir": "SHORT"
     },
-    "CIA": {
-      "action": "AVOID",
-      "label": "Medium",
-      "score": 62,
-      "dir": "SHORT"
-    },
     "CSCO": {
       "action": "FLAT",
       "label": "Medium",
@@ -326,13 +320,13 @@
     }
   },
   "sectors": {
+    "Industrials": 89,
     "Healthcare": 87,
-    "Industrials": 78,
     "Financials": 78,
     "Index ETFs": 75,
     "Materials": 67,
     "Utilities": 67,
-    "Other / Movers": 62,
+    "Other / Movers": 64,
     "Staples": 56,
     "Technology": 54,
     "Consumer": 50,
