@@ -1,15 +1,15 @@
 {
   "signals": {
-    "AAL": {
+    "ANET": {
       "action": "WATCH LONG",
       "label": "High",
       "score": 83,
       "dir": "LONG"
     },
-    "SNOW": {
+    "AAL": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 90,
+      "score": 83,
       "dir": "LONG"
     },
     "UNH": {
@@ -27,7 +27,13 @@
     "BA": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 92,
+      "score": 96,
+      "dir": "LONG"
+    },
+    "SNOW": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 90,
       "dir": "LONG"
     },
     "GE": {
@@ -60,19 +66,13 @@
       "score": 94,
       "dir": "LONG"
     },
+    "WM": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 94,
+      "dir": "LONG"
+    },
     "CSX": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 92,
-      "dir": "LONG"
-    },
-    "IBM": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 88,
-      "dir": "LONG"
-    },
-    "LIN": {
       "action": "WATCH LONG",
       "label": "High",
       "score": 94,
@@ -84,16 +84,22 @@
       "score": 93,
       "dir": "LONG"
     },
+    "IBM": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 89,
+      "dir": "LONG"
+    },
+    "LIN": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 94,
+      "dir": "LONG"
+    },
     "MET": {
       "action": "WATCH LONG",
       "label": "High",
       "score": 96,
-      "dir": "LONG"
-    },
-    "WMB": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 88,
       "dir": "LONG"
     },
     "PM": {
@@ -120,28 +126,16 @@
       "score": 81,
       "dir": "LONG"
     },
-    "TFC": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 79,
-      "dir": "LONG"
-    },
-    "SPY": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 93,
-      "dir": "LONG"
-    },
     "PH": {
       "action": "WATCH LONG",
       "label": "High",
       "score": 86,
       "dir": "LONG"
     },
-    "DUK": {
+    "SPY": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 95,
+      "score": 93,
       "dir": "LONG"
     },
     "VTRS": {
@@ -153,13 +147,7 @@
     "AON": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 95,
-      "dir": "LONG"
-    },
-    "WM": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 91,
+      "score": 96,
       "dir": "LONG"
     },
     "GD": {
@@ -172,6 +160,12 @@
       "action": "WATCH LONG",
       "label": "High",
       "score": 96,
+      "dir": "LONG"
+    },
+    "DUK": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 94,
       "dir": "LONG"
     },
     "PRU": {
@@ -222,22 +216,28 @@
       "score": 84,
       "dir": "SHORT"
     },
+    "BITO": {
+      "action": "WATCH SHORT",
+      "label": "Medium",
+      "score": 71,
+      "dir": "SHORT"
+    },
     "TMUS": {
       "action": "WATCH SHORT",
       "label": "High",
       "score": 82,
       "dir": "SHORT"
     },
+    "NOC": {
+      "action": "WATCH SHORT",
+      "label": "Medium",
+      "score": 69,
+      "dir": "SHORT"
+    },
     "TSLA": {
       "action": "WATCH SHORT",
       "label": "Medium",
       "score": 75,
-      "dir": "SHORT"
-    },
-    "ORLY": {
-      "action": "WATCH SHORT",
-      "label": "Medium",
-      "score": 74,
       "dir": "SHORT"
     },
     "PANW": {
@@ -291,13 +291,7 @@
     "META": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 72,
-      "dir": "SHORT"
-    },
-    "CRNC": {
-      "action": "AVOID",
-      "label": "Medium",
-      "score": 62,
+      "score": 67,
       "dir": "SHORT"
     },
     "CSCO": {
@@ -312,6 +306,12 @@
       "score": 60,
       "dir": "LONG"
     },
+    "CRNC": {
+      "action": "FLAT",
+      "label": "Medium",
+      "score": 62,
+      "dir": "SHORT"
+    },
     "MA": {
       "action": "FLAT",
       "label": "Low",
@@ -324,12 +324,12 @@
     "Healthcare": 87,
     "Financials": 78,
     "Index ETFs": 75,
+    "Other / Movers": 67,
     "Materials": 67,
     "Utilities": 67,
-    "Other / Movers": 66,
     "Technology": 58,
     "Staples": 56,
-    "Consumer": 50,
+    "Consumer": 56,
     "Communication": 12,
     "Real Estate": 0,
     "Energy": 0
