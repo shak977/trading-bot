@@ -112,7 +112,7 @@ def _rows_for(scope: str) -> list[dict]:
 
 
 def report(scope: str = "all", path: str | None = None) -> list[dict]:
-    return attribute(load(path) if path else _rows_for(scope))
+    return attribute(_tradeable_rows(scope, path))
 
 
 def direction_edge(scope: str = "daily", path: str | None = None) -> dict:
@@ -144,6 +144,23 @@ def suppressed_directions(scope: str = "daily", path: str | None = None,
     return out
 
 
+def _tradeable_rows(scope: str, path: str | None = None) -> list[dict]:
+    """Resolved rows for a scope, EXCLUDING any direction the book has proven it can't trade and is
+    now suppressing (e.g. shorts getting run over in a bull tape). A losing, no-longer-surfaced side
+    shouldn't teach the conviction engine what predicts a WINNER — otherwise a check gets judged
+    'bad' only because it rode along on a losing short book, which mis-ranks the trades we DO take
+    (this is what made high-conviction longs look worse than medium ones). When a direction earns
+    its way back above the suppression bar, its trades rejoin the learning pool automatically."""
+    rows = load(path) if path else _rows_for(scope)
+    try:
+        supp = suppressed_directions(scope, path)
+        if supp:
+            rows = [t for t in rows if (t.get("direction") or "LONG") not in supp]
+    except Exception:  # noqa: BLE001
+        pass
+    return rows
+
+
 # Payoff / expectancy checks (reward:risk). These INTENTIONALLY trade win rate for larger wins — a
 # higher-R:R target sits farther away, so it's hit less often but pays more when it is. Grading them
 # by win-rate edge is a category error: they will always look "anti-predictive" on win rate even
@@ -170,7 +187,7 @@ def learned_weights(scope: str = "all", path: str | None = None,
     LESS when it passes than when it fails, by a wide, well-sampled margin) is dropped to weight 0 —
     acting on the analyst's own 'down-weight or retire' finding instead of only reporting it. Returns
     {} until there's enough data — so early on the engine runs on its transparent default weights."""
-    rows = attribute(load(path) if path else _rows_for(scope))
+    rows = attribute(_tradeable_rows(scope, path))
     # Bonferroni p-hack guard: we test many checks at once, so some will look predictive by pure
     # chance. Correct the significance bar for how many checks are eligible (alpha / m) — a check
     # only earns a weight change / retirement if its pass-vs-fail edge clears that stricter bar.
