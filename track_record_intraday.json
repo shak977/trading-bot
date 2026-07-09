@@ -245269,7 +245269,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 20.98,
+    "exit_date": "2026-07-09",
+    "return_pct": -0.58,
+    "days_held": -1
   },
   {
     "id": "AMT:2026-07-09",
@@ -246127,7 +246131,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 134.08,
+    "exit_date": "2026-07-09",
+    "return_pct": -0.4,
+    "days_held": -1
   },
   {
     "id": "BITO:2026-07-09",
@@ -246803,7 +246811,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 954.09,
+    "exit_date": "2026-07-09",
+    "return_pct": -0.21,
+    "days_held": -1
   },
   {
     "id": "DE:2026-07-09",
@@ -247228,7 +247240,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 13.64,
+    "exit_date": "2026-07-09",
+    "return_pct": -0.44,
+    "days_held": -1
   },
   {
     "id": "PYPL:2026-07-09",
@@ -247882,6 +247898,91 @@
       {
         "label": "Worked here before?",
         "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "win",
+    "exit": 334.96,
+    "exit_date": "2026-07-09",
+    "return_pct": 0.13,
+    "days_held": -1
+  },
+  {
+    "id": "CVX:2026-07-09",
+    "symbol": "CVX",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-07-09",
+    "advised_ts": "2026-07-09T19:13:51.433334",
+    "entry": 174.09,
+    "stop": 174.42,
+    "target": 173.94,
+    "rr": 0.46,
+    "conviction": "Medium",
+    "conviction_pct": 62,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "fail"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "warn"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
       },
       {
         "label": "Strategies agree?",
