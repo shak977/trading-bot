@@ -239647,7 +239647,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 222.17,
+    "exit_date": "2026-07-09",
+    "return_pct": -0.95,
+    "days_held": -1
   },
   {
     "id": "CRM:2026-07-09",
@@ -240064,7 +240068,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 134.2,
+    "exit_date": "2026-07-09",
+    "return_pct": -0.83,
+    "days_held": -1
   },
   {
     "id": "PGR:2026-07-09",
@@ -241003,7 +241011,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 181.94,
+    "exit_date": "2026-07-09",
+    "return_pct": 1.82,
+    "days_held": -1
   },
   {
     "id": "MDLZ:2026-07-09",
@@ -248041,7 +248053,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 173.94,
+    "exit_date": "2026-07-09",
+    "return_pct": 0.09,
+    "days_held": -1
   },
   {
     "id": "ABNB:2026-07-09",
@@ -248211,7 +248227,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 14.06,
+    "exit_date": "2026-07-09",
+    "return_pct": -1.06,
+    "days_held": -1
   },
   {
     "id": "OXY:2026-07-09",
@@ -248289,6 +248309,79 @@
       },
       {
         "label": "Smart-money footprint?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "PNC:2026-07-09",
+    "symbol": "PNC",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-07-09",
+    "advised_ts": "2026-07-09T20:03:43.123728",
+    "entry": 250.18,
+    "stop": 250.57,
+    "target": 248.63,
+    "rr": 4.0,
+    "conviction": "High",
+    "conviction_pct": 91,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
         "status": "pass"
       }
     ],
