@@ -116,7 +116,20 @@ class Config:
     openrouter_api_key: str = field(default_factory=lambda: os.getenv("OPENROUTER_API_KEY", ""))
     committee_swarm_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("COMMITTEE_SWARM"), False))
     committee_models: tuple = ("anthropic/claude-3.5-sonnet", "deepseek/deepseek-chat",
-                               "qwen/qwen-2.5-72b-instruct")
+                               "qwen/qwen-2.5-72b-instruct", "x-ai/grok-4.1-fast")
+
+    # --- xAI / Grok: the one model with LIVE X (Twitter) + real-time web access (xai.py) ---
+    # Direct xAI API (OpenAI-compatible) — needed for the server-side x_search tool that OpenRouter
+    # doesn't expose. All opt-in + fail-silent; nothing runs without a key.
+    xai_api_key: str = field(default_factory=lambda: os.getenv("XAI_API_KEY", ""))
+    xai_model: str = field(default_factory=lambda: os.getenv("XAI_MODEL", "grok-4.1-fast"))  # cheap, real-time
+    xai_daily_call_cap: int = 40            # hard per-run cap on Grok calls (bounds cost)
+    xai_max_names: int = 6                  # live-sentiment only the top N actionable names per build
+    # (1) live X/web social read as a self-grading conviction check
+    xai_live_sentiment_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("XAI_LIVE_SENTIMENT"), False))
+    xai_sentiment_conviction_weight: float = 1.0   # base weight; the learned loop re-weights it from outcomes
+    # (2) pre-market catalyst sweep -> seeds the next scan via news_candidates.json
+    xai_premarket_scan_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("XAI_PREMARKET_SCAN"), False))
 
     # --- Real-time ORB executor (always-on runner; PAPER only by default, DISABLED by default) ---
     live_executor_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("LIVE_EXECUTOR_ENABLED"), False))

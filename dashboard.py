@@ -626,6 +626,18 @@ def build_snapshot() -> dict:
                 _tk = (_i.get("ticker") or "").upper().strip().lstrip("$")
                 if _tk and _i.get("confidence") in ("high", "medium"):
                     _ncw[_tk] = _today0
+            # Grok pre-market sweep: names with a FRESH real-time X/news catalyst get pinned into the
+            # next scan for a full technical + episodic-pivot read (opt-in; fail-silent; the engine's
+            # technicals still decide whether any of them become a signal).
+            if getattr(CONFIG, "xai_premarket_scan_enabled", False):
+                try:
+                    import xai as _xai_pm
+                    for _pm in _xai_pm.premarket_catalysts(CONFIG):
+                        _pt = (_pm.get("symbol") or "").upper().strip().lstrip("$")
+                        if _pt:
+                            _ncw[_pt] = _today0
+                except Exception:  # noqa: BLE001
+                    pass
             _old = (datetime.now(timezone.utc).date() - _td(days=5)).isoformat()
             _ncw = {k: v for k, v in _ncw.items() if v >= _old}
             with open("news_candidates.json", "w") as _f:
@@ -909,6 +921,28 @@ def build_snapshot() -> dict:
                             pass
         except Exception:  # noqa: BLE001
             committee_verdicts = {}
+
+    # Live X (Twitter)/web sentiment from Grok on the top actionable names — the one real-time social
+    # read the other models can't give. Opt-in (XAI key + flag), budget-capped, fail-silent. Enters
+    # conviction as a self-grading check so it earns its influence from outcomes like everything else.
+    if live and getattr(CONFIG, "xai_live_sentiment_enabled", False):
+        try:
+            import xai as _xai
+            _xcap = int(getattr(CONFIG, "xai_max_names", 6))
+            _xc = [r for r in shown if r.get("action") in ("BUY", "SHORT")][:_xcap]
+            for r in _xc:
+                _sent = _xai.live_sentiment(r["symbol"], r.get("name", ""), r.get("direction", "LONG"), CONFIG)
+                if _sent:
+                    r["xai_sentiment"] = _sent
+                    try:
+                        scanner.rescore(r, CONFIG, sentiment=r.get("sentiment"),
+                                        fundamentals=r.get("fundamentals"), tv=r.get("tv"), regime=regime,
+                                        intraday=r.get("intraday_sig"), learned=daily_learned,
+                                        committee=r.get("committee"), xai_sentiment=_sent)
+                    except Exception:  # noqa: BLE001
+                        pass
+        except Exception:  # noqa: BLE001
+            pass
 
     # Regime-specific weighting: in a defensive / high-volatility regime, RAISE the conviction bar
     # a fresh entry must clear — so the bot makes fewer, higher-quality trades when the backdrop is

@@ -816,6 +816,48 @@ def test_committee_vote():
     _ok("disabled => no committee check", "AI committee agrees?" not in [c["label"] for c in row["conviction"]["checks"]])
 
 
+def test_xai_live_sentiment():
+    print("xAI (Grok) live-X sentiment (parsing + self-grading check):")
+    import dataclasses
+    import scanner
+    import xai
+    from data import synthetic_bars
+    from config import CONFIG
+    # 1) parsing: good reply -> normalized; junk -> None
+    good = xai.normalize_sentiment({"stance": "Bullish", "fresh_catalyst": True, "catalyst": "earnings beat",
+                                    "social_volume": "high", "confidence": 77, "note": "buzz building"})
+    _ok("valid Grok reply normalizes", good is not None and good["stance"] == "bullish" and good["fresh_catalyst"])
+    _ok("bad stance rejected", xai.normalize_sentiment({"stance": "moon"}) is None)
+    _ok("missing stance rejected", xai.normalize_sentiment({"note": "x"}) is None)
+    # 2) premarket symbol filtering
+    cats = xai.normalize_catalysts({"names": [{"symbol": "$AAPL", "stance": "bullish"},
+                                              {"symbol": "toolongsym"}, {"symbol": "AAPL"}]})
+    _ok("premarket keeps clean symbols, dedups + drops junk", [c["symbol"] for c in cats] == ["AAPL"])
+    # 3) the conviction check, direction-aware, only when enabled + present
+    cfg = dataclasses.replace(CONFIG, xai_live_sentiment_enabled=True)
+    row = scanner._analyse("MSFT", synthetic_bars("MSFT", n=CONFIG.lookback_days), cfg, CONFIG.starting_cash)
+    row["direction"] = "LONG"; row["action"] = "BUY"
+    scanner.rescore(row, cfg, xai_sentiment={"stance": "bullish", "fresh_catalyst": False, "catalyst": ""})
+    ck = {c["label"]: c for c in row["conviction"]["checks"]}
+    _ok("long + bullish live read => pass", ck.get("Live X sentiment on side?", {}).get("status") == "pass")
+    scanner.rescore(row, cfg, xai_sentiment={"stance": "bearish"})
+    ck = {c["label"]: c for c in row["conviction"]["checks"]}
+    _ok("long + bearish live read => fail", ck["Live X sentiment on side?"]["status"] == "fail")
+    # short flips the favorable side
+    row["direction"] = "SHORT"; row["action"] = "SHORT"
+    scanner.rescore(row, cfg, xai_sentiment={"stance": "bearish"})
+    ck = {c["label"]: c for c in row["conviction"]["checks"]}
+    _ok("short + bearish live read => pass", ck["Live X sentiment on side?"]["status"] == "pass")
+    # absent => no check
+    row2 = scanner._analyse("MSFT", synthetic_bars("MSFT", n=CONFIG.lookback_days), cfg, CONFIG.starting_cash)
+    row2["direction"] = "LONG"; row2["action"] = "BUY"
+    scanner.rescore(row2, cfg)
+    _ok("no live read => no check", "Live X sentiment on side?" not in [c["label"] for c in row2["conviction"]["checks"]])
+    # no key => live_sentiment returns None (never calls out)
+    xai.reset_budget()
+    _ok("no key => live_sentiment None", xai.live_sentiment("AAPL", "Apple", "LONG", dataclasses.replace(CONFIG, xai_api_key="")) is None)
+
+
 def test_bonferroni_guard():
     print("Bonferroni p-hack guard (attribution):")
     import attribution
@@ -1081,6 +1123,7 @@ def main():
     test_regime_confluence()
     test_wyckoff_vsa()
     test_committee_vote()
+    test_xai_live_sentiment()
     test_bonferroni_guard()
     test_recovery_ladder()
     test_book_risk()

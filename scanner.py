@@ -670,7 +670,7 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: st
 
 def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
                 factors=None, patterns=None, edge=None,
-                sentiment=None, fundamentals=None, price=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None, retail=None, liquidity=None, learned=None, committee=None):
+                sentiment=None, fundamentals=None, price=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None, retail=None, liquidity=None, learned=None, committee=None, xai_sentiment=None):
     """Auto-scored pre-entry checklist, direction-aware. Each check is pass/warn/fail.
 
     For a LONG it asks the bullish questions (trending up? room to rise?); for a SHORT it
@@ -792,6 +792,27 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             add("AI committee agrees?", "warn",
                 f"Mixed — the committee is split ({_sup}/4 for, {committee.get('against',0)}/4 against): "
                 f"{committee.get('summary','')}", _w)
+
+    # Live X (Twitter)/web read from Grok — the one model with real-time social+news access. Enters
+    # as a normal check so the attribution loop grades it and self-weights it from real outcomes: if
+    # the live-social read stops predicting winners it self-retires; if it predicts, it earns weight.
+    if isinstance(xai_sentiment, dict) and xai_sentiment.get("stance"):
+        _st = xai_sentiment.get("stance")
+        _cat = xai_sentiment.get("catalyst", "")
+        _fresh = xai_sentiment.get("fresh_catalyst")
+        _xw = float(getattr(cfg, "xai_sentiment_conviction_weight", 1.0))
+        _favor = "bearish" if short else "bullish"      # what a good trade wants the crowd/news to be
+        _against = "bullish" if short else "bearish"
+        _catnote = f" Fresh catalyst: {_cat}." if (_fresh and _cat) else ""
+        if _st == _favor:
+            add("Live X sentiment on side?", "pass",
+                f"Yes — real-time X/news read is {_st}, with the {'short' if short else 'long'}.{_catnote}", _xw)
+        elif _st == _against:
+            add("Live X sentiment on side?", "fail",
+                f"No — the live X/news read is {_st}, against the trade.{_catnote}", _xw)
+        else:
+            add("Live X sentiment on side?", "warn",
+                f"{_st.title()} — no clear live social lean right now.{_catnote}", _xw)
 
     if short:
         if rsi <= cfg.rsi_oversold:
@@ -1243,7 +1264,7 @@ def _conviction(action, direction, rsi, relvol, plan, context, cfg: Config,
             "earnings_days": ed, "earnings_gated": gated}
 
 
-def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None, retail=None, liquidity=None, learned=None, committee=None) -> None:
+def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, regime=None, insider=None, buzz=None, news_idea=None, intraday=None, sector_pct=None, short_interest=None, retail=None, liquidity=None, learned=None, committee=None, xai_sentiment=None) -> None:
     """Recompute conviction + desk read for a shown row once research is fetched."""
     direction = row.get("direction", "LONG")
     _apply_fundamental_cap(row.get("plan"), fundamentals, cfg)
@@ -1253,7 +1274,8 @@ def rescore(row: dict, cfg: Config, sentiment=None, fundamentals=None, tv=None, 
                        regime=regime, insider=insider, buzz=buzz, news_idea=news_idea, intraday=intraday,
                        sector_pct=sector_pct, short_interest=short_interest, retail=retail,
                        liquidity=liquidity if liquidity is not None else row.get("liquidity"), learned=learned,
-                       committee=committee if committee is not None else row.get("committee"))
+                       committee=committee if committee is not None else row.get("committee"),
+                       xai_sentiment=xai_sentiment if xai_sentiment is not None else row.get("xai_sentiment"))
     row["conviction"] = conv
     row["desk_read"] = _desk_read(row["action"], direction, row["plan"], row["context"], conv,
                                   row.get("patterns"), row.get("edge"),

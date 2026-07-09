@@ -56,6 +56,9 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           COMMITTEE_SWARM: ${{ vars.COMMITTEE_SWARM }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          XAI_LIVE_SENTIMENT: ${{ vars.XAI_LIVE_SENTIMENT }}
+          XAI_PREMARKET_SCAN: ${{ vars.XAI_PREMARKET_SCAN }}
           LIVE_QUOTES_URL: ${{ secrets.LIVE_QUOTES_URL }}
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
