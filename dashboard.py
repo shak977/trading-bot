@@ -3754,7 +3754,7 @@ def render_html(snap: dict) -> str:
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://s3.tradingview.com/tv.js"></script>
 <script src="chart_engine.js"></script>
 <style>
@@ -3771,14 +3771,15 @@ def render_html(snap: dict) -> str:
     --acc2:#c98a1a; --amb-ground:#eef1f6; --glass-bg:rgba(255,255,255,.72); --glass-bd:rgba(16,24,40,.09); --glass-blur:14px;
     --ai:#6d3fd4; --ai-soft:rgba(109,63,212,.12); }}
   /* Warm-gold glass system (v1 — see DESIGN_SPEC.md). Dark-first. */
-  html[data-theme="dark"] {{ --bg:#050506; --amb-ground:#0b0a08; --card:#0f111b; --line:rgba(255,255,255,.09); --txt:#e9ecf2;
-    --muted:#868c9a; --txt2:#c2c7d2; --buy:#22c98a; --sell:#f0596b; --hold:#7fb2ff; --flat:#6e7681;
-    --short:#f0596b; --watch:#94a3b8; --exit:#d29922; --avoid:#6e7681; --warn:#e0a82e;
-    --accent:#eaa62b; --acc2:#ffcf72; --grid:rgba(255,255,255,.06); --cross:rgba(139,151,166,0.45);
-    --inset:#12131d; --hover:#1a1c28; --ring:rgba(234,166,43,.45);
-    --glass-bg:rgba(255,255,255,.05); --glass-bd:rgba(255,255,255,.10); --glass-blur:20px;
-    --hud-edge:rgba(255,255,255,.10); --ai:#a078ff; --ai-soft:rgba(160,120,255,.14);
-    --shadow:0 1px 2px rgba(0,0,0,0.5); --shadow-lg:0 16px 40px rgba(0,0,0,0.55); }}
+  /* xAI-style: pure-black canvas, monochrome chrome, green/red kept only for P&L + direction. */
+  html[data-theme="dark"] {{ --bg:#000000; --amb-ground:#000000; --card:#0b0b0c; --line:rgba(255,255,255,.10); --txt:#f5f5f5;
+    --muted:#8a8a8f; --txt2:#b5b5ba; --buy:#5ed6a6; --sell:#f0797f; --hold:#c7c7cc; --flat:#6e7681;
+    --short:#f0797f; --watch:#a8a8ad; --exit:#d0d0d3; --avoid:#6e7681; --warn:#d0d0d3;
+    --accent:#f5f5f5; --acc2:#ffffff; --grid:rgba(255,255,255,.05); --cross:rgba(160,160,166,0.4);
+    --inset:#101012; --hover:#161618; --ring:rgba(255,255,255,.30);
+    --glass-bg:#0b0b0c; --glass-bd:rgba(255,255,255,.10); --glass-blur:0px;
+    --hud-edge:rgba(255,255,255,.12); --ai:#c9c9cf; --ai-soft:rgba(255,255,255,.06);
+    --shadow:none; --shadow-lg:none; }}
   * {{ box-sizing:border-box; }}
   /* ---- inline SVG icon set (Tabler/Lucide 1.5-stroke, inherits colour) ---- */
   .ico {{ display:inline-block; vertical-align:-.16em; flex:0 0 auto; }}
@@ -3804,19 +3805,13 @@ def render_html(snap: dict) -> str:
     *, *::before, *::after {{ transition:none !important; animation:none !important; scroll-behavior:auto !important; }}
     .card:hover {{ transform:none; }} }}
   html, body {{ max-width:100%; overflow-x:hidden; }}
-  body {{ margin:0; font:14px/1.55 'Manrope','Inter',-apple-system,Segoe UI,Roboto,sans-serif;
+  body {{ margin:0; font:14px/1.55 'Inter','Manrope',-apple-system,Segoe UI,Roboto,sans-serif;
     background:var(--bg); color:var(--txt);
     -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-rendering:optimizeLegibility; }}
   /* warm-gold drifting ambient glow behind everything (F2 / softer) */
   body::before {{ content:''; position:fixed; inset:0; z-index:-2; pointer-events:none;
-    background:
-      radial-gradient(85vw 65vh at 10% -10%, rgba(240,172,44,.20), transparent 60%),
-      radial-gradient(70vw 60vh at 102% 110%, rgba(96,116,160,.12), transparent 60%),
-      radial-gradient(120% 105% at 50% -5%, #16120c 0%, #0c0a08 52%, #070606 100%); }}
-  html[data-theme="dark"] body::after {{ content:''; position:fixed; z-index:-1; pointer-events:none;
-    width:74vw; height:74vh; left:-12vw; top:-20vh; border-radius:50%;
-    background:radial-gradient(closest-side, rgba(242,176,52,.34), transparent 68%); filter:blur(46px);
-    animation:ambDrift 26s ease-in-out infinite; }}
+    background:#000000; }}
+  html[data-theme="dark"] body::after {{ content:none; }}
   @keyframes ambDrift {{ 0%,100%{{ transform:translate(0,0); }} 33%{{ transform:translate(11vw,7vh); }} 66%{{ transform:translate(-6vw,11vh); }} }}
   @media (prefers-reduced-motion: reduce) {{ html[data-theme="dark"] body::after {{ animation:none; }} }}
   /* ===== scrolling ticker tape (terminal marquee) ===== */
@@ -3861,32 +3856,29 @@ def render_html(snap: dict) -> str:
   html[data-theme="dark"] .ai-box, html[data-theme="dark"] .ai-read {{ border-left:2px solid var(--ai) !important; }}
   .ai-h, .ai-read-h {{ color:var(--ai); }}
   /* reusable frosted glass panel */
-  .glass {{ background:var(--glass-bg); backdrop-filter:blur(var(--glass-blur)); -webkit-backdrop-filter:blur(var(--glass-blur));
-    border:1px solid var(--glass-bd); border-radius:14px; box-shadow:var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,.06); }}
+  .glass {{ background:var(--glass-bg); border:1px solid var(--glass-bd); border-radius:14px; box-shadow:none; }}
   /* Apply the glass system to EVERY surface tile (dark), so the whole dashboard feels the design. */
   html[data-theme="dark"] .card, html[data-theme="dark"] .bento .bt, html[data-theme="dark"] .bento-tile,
   html[data-theme="dark"] .bento-regime, html[data-theme="dark"] .bento-feat, html[data-theme="dark"] .kpi,
   html[data-theme="dark"] .stat, html[data-theme="dark"] .wl, html[data-theme="dark"] .featured,
   html[data-theme="dark"] .lane, html[data-theme="dark"] .tk-panel, html[data-theme="dark"] .secbar,
   html[data-theme="dark"] .trackrec, html[data-theme="dark"] details.tvwidget {{
-    background:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.022)) !important;
-    backdrop-filter:blur(var(--glass-blur)); -webkit-backdrop-filter:blur(var(--glass-blur));
-    border:1px solid var(--glass-bd) !important; border-radius:16px !important;
-    box-shadow:var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,.13), inset 0 -20px 40px rgba(0,0,0,.12) !important; }}
+    background:var(--card) !important;
+    border:1px solid var(--glass-bd) !important; border-radius:14px !important;
+    box-shadow:none !important; }}
   /* clickable float on interactive tiles */
   html[data-theme="dark"] .card, html[data-theme="dark"] .bento .bt, html[data-theme="dark"] .kpi,
   html[data-theme="dark"] .stat, html[data-theme="dark"] .lane {{
     cursor:pointer; transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease; }}
   html[data-theme="dark"] .card:hover, html[data-theme="dark"] .bento .bt:hover, html[data-theme="dark"] .kpi:hover,
   html[data-theme="dark"] .stat:hover, html[data-theme="dark"] .lane:hover {{
-    transform:translateY(-3px);
-    border-color:color-mix(in srgb,var(--accent) 42%,var(--glass-bd)) !important;
-    box-shadow:0 20px 44px rgba(0,0,0,.55), 0 0 0 1px color-mix(in srgb,var(--accent) 20%,transparent),
-      inset 0 1px 0 rgba(255,255,255,.09) !important; }}
+    transform:none;
+    border-color:rgba(255,255,255,.28) !important;
+    box-shadow:none !important; }}
   .wrap {{ width:100%; max-width:1480px; margin:0 auto;
     padding:0 max(24px, env(safe-area-inset-right)) calc(60px + env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); }}
   .grid-stack {{ width:100%; }}
-  h1 {{ font-size:25px; font-weight:800; letter-spacing:-.015em; margin:0 0 5px; }}
+  h1 {{ font-size:30px; font-weight:300; letter-spacing:-.025em; margin:0 0 5px; }}
   h2 {{ font-size:13px; margin:30px 0 12px; color:var(--muted); font-weight:700;
     text-transform:uppercase; letter-spacing:.06em; }}
   .meta {{ color:var(--muted); font-size:13px; margin-bottom:6px; }}
@@ -3900,11 +3892,9 @@ def render_html(snap: dict) -> str:
     border:1px solid var(--line); background:var(--inset); }}
   .grid {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
     gap:14px; }}
-  .card {{ background:var(--glass-bg); backdrop-filter:blur(var(--glass-blur)); -webkit-backdrop-filter:blur(var(--glass-blur));
-    border:1px solid var(--glass-bd); border-radius:14px;
-    padding:16px; cursor:pointer; box-shadow:var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,.06); }}
-  .card:hover {{ border-color:color-mix(in srgb, var(--accent) 40%, var(--glass-bd));
-    transform:translateY(-2px); box-shadow:var(--shadow-lg); }}
+  .card {{ background:var(--glass-bg); border:1px solid var(--glass-bd); border-radius:14px;
+    padding:16px; cursor:pointer; box-shadow:none; }}
+  .card:hover {{ border-color:rgba(255,255,255,.28); transform:none; box-shadow:none; }}
   .ladder {{ margin-top:12px; border:0.5px solid var(--line); border-radius:8px; overflow:hidden; }}
   .lad-row {{ display:flex; justify-content:space-between; align-items:baseline; padding:6px 11px; font-size:13px; }}
   .lad-row > span:first-child {{ color:var(--muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; }}
