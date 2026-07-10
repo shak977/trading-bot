@@ -3818,7 +3818,7 @@ def render_html(snap: dict) -> str:
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://s3.tradingview.com/tv.js"></script>
 <script src="chart_engine.js"></script>
 <style>
@@ -3828,7 +3828,7 @@ def render_html(snap: dict) -> str:
     --short:#c2410c; --watch:#475569; --exit:#b45309; --avoid:#6b7280; --warn:#b7791f;
     --accent:#0b5cad; --grid:rgba(120,130,145,0.16); --cross:rgba(60,70,85,0.4);
     --inset:#f1f4f8; --hover:#eef2f7; --ring:rgba(11,92,173,.40);
-    --tape:'JetBrains Mono',ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --tape:'Inter',-apple-system,'Segoe UI',Roboto,sans-serif;
     --mono:'Inter',-apple-system,'Segoe UI',Roboto,sans-serif;
     --hud-edge:color-mix(in srgb,var(--accent) 46%,var(--line));
     --shadow:0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.06);
@@ -3859,7 +3859,7 @@ def render_html(snap: dict) -> str:
   a {{ color:var(--accent); text-underline-offset:2px; }}
   .px, .stat .v, .kv span:last-child, .trackrec td, .secpct, .readout .rprice,
   .wl-px, .wl-chg, .convbadge {{ font-variant-numeric:tabular-nums; font-feature-settings:'tnum' 1; }}
-  /* HUD: monospace, tabular data figures */
+  /* HUD: tabular data figures (Inter, tabular-nums) */
   .kpi-v, .stat .v, .px, .wl-px, .convbadge, .num {{ font-family:var(--mono); }}
   ::-webkit-scrollbar {{ width:10px; height:10px; }}
   ::-webkit-scrollbar-thumb {{ background:var(--line); border-radius:6px; border:2px solid transparent;
@@ -4015,7 +4015,7 @@ def render_html(snap: dict) -> str:
     color:#fff; font-weight:700; overflow:hidden; position:relative; flex:none; }}
   .mono2 img {{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#fff; }}
   .bbwrap {{ background:#000; border:1px solid #2a2a17; border-radius:8px; overflow:hidden;
-    font-family:ui-monospace,Menlo,Consolas,monospace; }}
+    font-family:var(--mono); }}
   .bbhead {{ display:flex; align-items:center; gap:18px; padding:8px 12px; background:#13130a;
     border-bottom:1px solid #2a2a17; font-size:11px; color:#8a8a6a; letter-spacing:1px;
     white-space:nowrap; overflow-x:auto; }}
