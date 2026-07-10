@@ -4957,16 +4957,16 @@ def render_html(snap: dict) -> str:
   /* accent is now white -> pills/CTAs on an accent bg need dark text */
   .sd-full, .why-chip.trig, .tc-seg button.on, button.sf-run, .sd-cta, #newbuild, .bt-logo {{ color:#000 !important; }}
   /* ---- stage 2: Signals hero ---- */
-  .hero-x {{ padding:22px 0 30px; }}
-  .hx-title {{ font-size:90px; line-height:.92; font-weight:300; letter-spacing:-.035em; margin:0 0 18px; }}
-  .hx-sub {{ font-size:16.5px; line-height:1.6; color:var(--muted); max-width:440px; margin:0 0 28px; font-weight:300; }}
-  .hx-btns {{ display:flex; gap:12px; margin:0 0 40px; }}
+  .hero-x {{ display:flex; flex-direction:column; padding:8px 0 16px; }}
+  .hx-title {{ font-size:62px; line-height:.95; font-weight:300; letter-spacing:-.03em; margin:0 0 14px; }}
+  .hx-sub {{ font-size:16px; line-height:1.55; color:var(--muted); max-width:440px; margin:0 0 22px; font-weight:300; }}
+  .hx-btns {{ display:flex; gap:12px; margin:0 0 26px; }}
   .hx-btn {{ border-radius:999px; padding:12px 24px; font-size:14px; font-weight:400; cursor:pointer;
     border:1px solid rgba(255,255,255,.16); background:none; color:var(--txt); font-family:inherit; transition:.15s; }}
   .hx-btn.solid {{ background:var(--txt); color:#000; border-color:var(--txt); }}
   .hx-btn.solid:hover {{ background:#d8d8d8; border-color:#d8d8d8; }}
   .hx-btn.ghost:hover {{ border-color:var(--txt); }}
-  .hx-kpis {{ display:flex; gap:48px; flex-wrap:wrap; }}
+  .hx-kpis {{ display:flex; gap:48px; flex-wrap:wrap; margin-top:auto; }}
   .hx-kpi .k {{ font-size:11.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }}
   .hx-kpi .v {{ font-size:30px; font-weight:300; margin-top:6px; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }}
   .hx-kpi .v.buy {{ color:var(--buy); }} .hx-kpi .v.sell {{ color:var(--sell); }} .hx-kpi .v.warn {{ color:var(--warn); }}
@@ -4974,10 +4974,10 @@ def render_html(snap: dict) -> str:
   /* hero right column: chart + Live TV */
   .hero-row {{ display:grid; grid-template-columns:minmax(0,1fr) minmax(360px,460px); gap:32px; align-items:start; }}
   .hero-row .hero-x {{ padding-right:0; }}
-  .hero-side {{ display:flex; flex-direction:column; gap:16px; padding-top:26px; min-width:0; }}
+  .hero-side {{ display:flex; flex-direction:column; gap:14px; padding-top:6px; min-width:0; }}
   .hero-chart {{ border:1px solid var(--line); border-radius:14px; background:var(--card); overflow:hidden; }}
   .hero-chart-h {{ font-size:12.5px; color:var(--muted); padding:12px 14px 8px; display:flex; align-items:center; gap:6px; }}
-  .hero-chart-frame {{ width:100%; height:260px; display:block; border:0; }}
+  .hero-chart-frame {{ width:100%; height:190px; display:block; border:0; }}
   @media (max-width:900px) {{ .hero-row {{ grid-template-columns:1fr; gap:10px; }} .hero-side {{ padding-top:2px; }} }}
   /* ---- stage 3: hairline signal rows ---- */
   .rowswrap {{ margin-top:2px; }}
