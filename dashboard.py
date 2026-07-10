@@ -2281,7 +2281,7 @@ def _changelog_html(entries: list | None) -> str:
     if not entries:
         return ""
     cat_col = {"Signals": "var(--accent,#d0d0d3)", "Risk": "var(--sell,#f0596b)", "AI": "var(--ai,#8b5cf6)",
-               "Timing": "#4aa3ff", "Stats": "#4aa3ff", "Analytics": "var(--buy,#22c98a)",
+               "Timing": "var(--muted,#868c9a)", "Stats": "var(--muted,#868c9a)", "Analytics": "var(--buy,#22c98a)",
                "Validation": "var(--buy,#22c98a)", "Alerts": "var(--ai,#8b5cf6)", "Data": "var(--muted,#868c9a)",
                "UI": "var(--muted,#868c9a)"}
     from collections import OrderedDict
@@ -3906,15 +3906,15 @@ def render_html(snap: dict) -> str:
   .tkt-sep {{ display:inline-block; width:1px; height:11px; margin:0 2px; background:var(--line); vertical-align:-1px; }}
   @media (prefers-reduced-motion: reduce) {{ .tkt-track {{ animation:none; }} }}
   /* ===== section headers with SVG icons + dividers ===== */
-  .sec-head {{ display:flex; align-items:center; gap:9px; margin:26px 0 12px; padding-bottom:9px;
-    border-bottom:1px solid var(--line); }}
+  .sec-head {{ display:flex; align-items:center; gap:10px; margin:30px 0 14px; padding-bottom:0;
+    border-bottom:0; }}
   .sec-head:first-child {{ margin-top:6px; }}
-  .sec-head .sh-ico {{ display:inline-grid; place-items:center; width:26px; height:26px; border-radius:8px;
-    background:color-mix(in srgb, var(--accent) 16%, transparent); color:var(--accent); flex:0 0 auto; }}
-  .sec-head .sh-ico.ai {{ background:var(--ai-soft); color:var(--ai); }}
-  .sec-head h2 {{ margin:0; font-size:13px; font-weight:800; letter-spacing:.04em; text-transform:uppercase;
+  .sec-head .sh-ico {{ display:inline-grid; place-items:center; width:22px; height:22px; border-radius:6px;
+    background:transparent; color:var(--txt); flex:0 0 auto; }}
+  .sec-head .sh-ico.ai {{ background:transparent; color:var(--txt); }}
+  .sec-head h2 {{ margin:0; font-size:18px; font-weight:600; letter-spacing:-.01em; text-transform:none;
     color:var(--txt); }}
-  .sec-head .sh-sub {{ margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--muted); }}
+  .sec-head .sh-sub {{ margin-left:auto; font-size:13px; color:var(--muted); font-weight:400; }}
   .sec-rule {{ height:1px; background:var(--line); border:0; margin:22px 0; }}
   /* AI identity: violet accent for any AI/analyst surface */
   .ai-ident {{ color:var(--ai); }}
@@ -4151,24 +4151,18 @@ def render_html(snap: dict) -> str:
     -webkit-backdrop-filter:blur(9px) saturate(1.1); }}
   .overlay.open {{ display:block; }}
   .modal {{ max-width:760px; margin:22px auto; position:relative;
-    background:linear-gradient(180deg, color-mix(in srgb, var(--card) 92%, transparent),
-                                       color-mix(in srgb, var(--card) 82%, transparent));
-    backdrop-filter:blur(30px) saturate(1.2); -webkit-backdrop-filter:blur(30px) saturate(1.2);
-    border:1px solid var(--glass-bd); border-radius:20px; padding:0 24px 24px;
-    box-shadow:0 40px 100px rgba(0,0,0,.62), 0 4px 20px rgba(0,0,0,.35),
-               inset 0 1px 0 rgba(255,255,255,.09); }}
+    background:var(--card);
+    border:1px solid var(--line); border-radius:16px; padding:0 24px 24px;
+    box-shadow:0 24px 60px rgba(0,0,0,.55); }}
   /* header: logo tile · ticker · direction pill · live price · %chg · close */
   .mhead {{ display:flex; align-items:center; gap:14px; position:sticky; top:0; z-index:2;
     margin:0 -24px 4px; padding:18px 22px 15px; border-bottom:1px solid var(--line);
-    border-radius:20px 20px 0 0;
-    background:linear-gradient(180deg, color-mix(in srgb,var(--accent) 7%, var(--card)),
-                                       color-mix(in srgb,var(--card) 90%, transparent));
-    backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); }}
+    border-radius:16px 16px 0 0; background:var(--card); }}
   .mhead-id {{ display:flex; align-items:center; gap:12px; min-width:0; flex:1 1 auto; }}
   .mhead-logo {{ position:relative; flex:0 0 auto; width:42px; height:42px; border-radius:11px;
     overflow:hidden; display:grid; place-items:center; font-weight:800; font-size:15px; letter-spacing:.02em;
-    color:#fff; background:color-mix(in srgb,var(--accent) 30%, var(--inset));
-    border:1px solid var(--glass-bd); box-shadow:inset 0 1px 0 rgba(255,255,255,.12); }}
+    color:var(--txt2); background:var(--inset);
+    border:1px solid var(--line); box-shadow:none; }}
   .mhead-logo img {{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }}
   .mhead-init {{ position:relative; z-index:0; }}
   .mhead-idtext {{ min-width:0; }}
@@ -4201,8 +4195,8 @@ def render_html(snap: dict) -> str:
   .reasons li {{ position:relative; padding:8px 0 8px 24px; font-size:14px;
     border-bottom:1px solid var(--line); overflow-wrap:anywhere; }}
   .reasons li:before {{ content:'›'; position:absolute; left:6px; color:var(--accent); }}
-  .modal .sech {{ color:var(--txt2); font-weight:700; text-transform:uppercase; font-size:11.5px;
-    letter-spacing:.06em; margin:20px 0 9px; padding-bottom:7px;
+  .modal .sech {{ color:var(--muted); font-weight:600; text-transform:none; font-size:13px;
+    letter-spacing:0; margin:22px 0 10px; padding-bottom:8px;
     border-bottom:1px solid var(--line); }}
   .mk-view > .sech:first-child {{ margin-top:2px; }}
   .modal .summary {{ font-size:14.5px; margin:14px 0 2px; color:var(--txt2); line-height:1.5;
@@ -4214,10 +4208,10 @@ def render_html(snap: dict) -> str:
     .plangrid {{ grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr)); }} }}
   /* trade-plan tiles — inset glass chips with a tier accent bar */
   .stat {{ position:relative; min-width:0; background:var(--inset);
-    border:1px solid var(--glass-bd); border-radius:11px; padding:11px 13px; overflow:hidden;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.05); }}
+    border:1px solid var(--line); border-radius:12px; padding:13px 15px; overflow:hidden;
+    box-shadow:none; }}
   .stat::before {{ content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
-    background:var(--hud-edge); opacity:.7; }}
+    background:var(--hud-edge); opacity:0; }}
   .stat .l {{ color:var(--muted); font-size:10.5px; text-transform:uppercase; font-weight:700;
     letter-spacing:.05em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
   .stat .v {{ font-size:17px; font-weight:800; margin-top:3px; overflow-wrap:anywhere; }}
@@ -4599,9 +4593,9 @@ def render_html(snap: dict) -> str:
   /* ---- bento home grid ---- */
   .bento {{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); grid-auto-flow:row dense;
     gap:10px; margin:0 0 18px; align-items:start; }}
-  .bento .bt {{ background:var(--card); border:1px solid var(--hud-edge); border-radius:7px;
-    padding:13px 15px; min-width:0; display:flex; flex-direction:column; }}
-  .bento .bt.hero {{ grid-column:span 2; border-top:2px solid var(--accent); }}
+  .bento .bt {{ background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:18px 20px; min-width:0; display:flex; flex-direction:column; }}
+  .bento .bt.hero {{ grid-column:span 2; }}
   .bento .bt.wide {{ grid-column:1 / -1; }}
   .bt-l {{ font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); font-weight:600; margin-bottom:3px; }}
   .bt-v {{ font-family:var(--mono); font-weight:700; font-size:22px; }}
@@ -4679,7 +4673,7 @@ def render_html(snap: dict) -> str:
   .meta-chip.fresh {{ color:var(--buy); border-color:color-mix(in srgb,var(--buy) 30%,var(--line)); }}
   .meta-chip.held {{ color:var(--accent); border-color:color-mix(in srgb,var(--accent) 30%,var(--line)); }}
   .meta-chip.bad {{ color:var(--sell); border-color:color-mix(in srgb,var(--sell) 30%,var(--line)); }}
-  .meta-chip.ai {{ color:#a078ff; border-color:color-mix(in srgb,#a078ff 30%,var(--line)); }}
+  .meta-chip.ai {{ color:var(--txt2); border-color:var(--line); }}
   @media (max-width:400px) {{ .plan-chips {{ grid-template-columns:repeat(2,minmax(0,1fr)); }} }}
   /* ---- SpaceX-style signal card (monochrome, label/value driven) ---- */
   .sxcard {{ position:relative; background:var(--card); border:1px solid var(--line);
@@ -4744,7 +4738,7 @@ def render_html(snap: dict) -> str:
   /* favorites star */
   .favbtn {{ background:none; border:none; color:var(--flat); cursor:pointer; font-size:17px;
     line-height:1; padding:0 2px; flex:0 0 auto; }}
-  .favbtn:hover, .favbtn.on {{ color:#e8a93a; }}
+  .favbtn:hover, .favbtn.on {{ color:var(--txt); }}
   /* ---- mobile / small screens ---- */
   @media (max-width:600px) {{
     /* rank table: drop to the 3 key factors on a narrow screen */
@@ -4837,8 +4831,8 @@ def render_html(snap: dict) -> str:
   html[data-theme="dark"] .note {{ color:var(--muted);
     background:rgba(255,255,255,.04); border:1px solid var(--glass-bd); }}
   /* --- SIGNAL CARD internals: premium treatment --- */
-  html[data-theme="dark"] .card-mono {{ background:linear-gradient(135deg, color-mix(in srgb,var(--accent) 28%,#241f16), #17140f);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.15); }}
+  html[data-theme="dark"] .card-mono {{ background:var(--inset);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.06); }}
   html[data-theme="dark"] .card-id .s {{ font-size:17px; letter-spacing:-.01em; }}
   html[data-theme="dark"] .act {{ padding:3px 12px !important; border-radius:999px !important; font-size:11px !important;
     font-weight:800 !important; letter-spacing:.05em; box-shadow:0 3px 10px rgba(0,0,0,.4); }}
@@ -4857,9 +4851,9 @@ def render_html(snap: dict) -> str:
     letter-spacing:.02em; margin:12px 0 5px; }}
   html[data-theme="dark"] .mdh:first-child {{ margin-top:0; }}
   html[data-theme="dark"] p {{ margin:0 0 9px; }} html[data-theme="dark"] p:last-child {{ margin-bottom:0; }}
-  html[data-theme="dark"] .ai-h {{ color:#c4a6ff; font-weight:700; }}
-  html[data-theme="dark"] .ai-box {{ background:rgba(160,120,255,.07) !important;
-    border:1px solid rgba(160,120,255,.20) !important; border-radius:11px !important; }}
+  html[data-theme="dark"] .ai-h {{ color:var(--txt2); font-weight:700; }}
+  html[data-theme="dark"] .ai-box {{ background:rgba(255,255,255,.04) !important;
+    border:1px solid var(--line) !important; border-radius:12px !important; }}
   html[data-theme="dark"] h1, html[data-theme="dark"] h2, html[data-theme="dark"] h3 {{ font-weight:700; }}
   html[data-theme="dark"] .subhead, html[data-theme="dark"] .why-h, html[data-theme="dark"] .kpi-l,
   html[data-theme="dark"] .bt-l, html[data-theme="dark"] .conv-row {{ color:var(--muted); }}
@@ -4977,6 +4971,14 @@ def render_html(snap: dict) -> str:
   .hx-kpi .v {{ font-size:30px; font-weight:300; margin-top:6px; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }}
   .hx-kpi .v.buy {{ color:var(--buy); }} .hx-kpi .v.sell {{ color:var(--sell); }} .hx-kpi .v.warn {{ color:var(--warn); }}
   @media (max-width:760px) {{ .hx-title {{ font-size:58px; }} .hx-kpis {{ gap:32px; }} }}
+  /* hero right column: chart + Live TV */
+  .hero-row {{ display:grid; grid-template-columns:minmax(0,1fr) minmax(360px,460px); gap:32px; align-items:start; }}
+  .hero-row .hero-x {{ padding-right:0; }}
+  .hero-side {{ display:flex; flex-direction:column; gap:16px; padding-top:26px; min-width:0; }}
+  .hero-chart {{ border:1px solid var(--line); border-radius:14px; background:var(--card); overflow:hidden; }}
+  .hero-chart-h {{ font-size:12.5px; color:var(--muted); padding:12px 14px 8px; display:flex; align-items:center; gap:6px; }}
+  .hero-chart-frame {{ width:100%; height:260px; display:block; border:0; }}
+  @media (max-width:900px) {{ .hero-row {{ grid-template-columns:1fr; gap:10px; }} .hero-side {{ padding-top:2px; }} }}
   /* ---- stage 3: hairline signal rows ---- */
   .rowswrap {{ margin-top:2px; }}
   .rowsig {{ display:grid; grid-template-columns:30px 28px 1.5fr 96px 170px 1fr 20px; align-items:center;
@@ -5003,11 +5005,11 @@ def render_html(snap: dict) -> str:
   .brand {{ font-family:'Inter',-apple-system,sans-serif !important; text-transform:none !important;
     letter-spacing:.01em; font-weight:400; }}
   /* section headers -> quiet label + hairline icon (every page) */
-  .sec-head {{ border-bottom:1px solid var(--line); margin:34px 0 14px; }}
-  .sec-head h2 {{ font-weight:500 !important; color:var(--txt) !important; letter-spacing:.04em; font-size:12.5px; }}
-  .sec-head .sh-ico {{ background:none !important; border:1px solid var(--line); color:var(--muted) !important; border-radius:8px; }}
-  .sec-head .sh-ico.ai {{ background:none !important; color:var(--muted) !important; }}
-  .sec-head .sh-sub {{ color:var(--faint); }}
+  .sec-head {{ border-bottom:0; margin:34px 0 14px; }}
+  .sec-head h2 {{ font-weight:600 !important; color:var(--txt) !important; letter-spacing:-.01em; font-size:18px; text-transform:none; }}
+  .sec-head .sh-ico {{ background:none !important; border:0; color:var(--txt) !important; border-radius:6px; }}
+  .sec-head .sh-ico.ai {{ background:none !important; color:var(--txt) !important; }}
+  .sec-head .sh-sub {{ color:var(--muted); }}
   /* uniform hairline card everywhere */
   .card, .bt, .kpi, .stat, .lane, .ovbox, .glass, .featured, .tk-panel, .secbar, .trackrec,
   .bento-tile, .bento-feat, details.tvwidget, .wl {{
@@ -5185,19 +5187,27 @@ def render_html(snap: dict) -> str:
   </section>
 
   <section class="page on" id="page-signals">
-    {signals_hero_html}
+    <div class="hero-row">
+      {signals_hero_html}
+      <div class="hero-side">
+        <div class="hero-chart">
+          <div class="hero-chart-h">{_svg('trend-up',13)} S&amp;P 500 · SPY</div>
+          <iframe class="hero-chart-frame" src="https://s.tradingview.com/widgetembed/?symbol=AMEX%3ASPY&amp;interval=D&amp;theme=dark&amp;style=3&amp;hidetoptoolbar=1&amp;hidesidetoolbar=1&amp;withdateranges=0&amp;saveimage=0&amp;toolbarbg=0b0b0c" title="S&amp;P 500 chart" frameborder="0" scrolling="no"></iframe>
+        </div>
+        <details class="tvwidget" open>
+          <summary>{_svg('tv',15)} Live market TV
+            <span class="ctlgrp wtvgrp">
+              <button data-wtv="KQp-e_XQnDE" class="on" onclick="event.preventDefault();event.stopPropagation();_wtvSet(this);">Yahoo Finance</button>
+              <button data-wtv="vKOd3v8VTYo" onclick="event.preventDefault();event.stopPropagation();_wtvSet(this);">Schwab Network</button>
+            </span>
+            <a class="tvw-open" href="#" onclick="event.preventDefault();event.stopPropagation();_gotoTab('livetv');return false;">more channels →</a></summary>
+          <div class="tvw-frame"><iframe id="wtvFrame" src="https://www.youtube.com/embed/KQp-e_XQnDE?autoplay=1&amp;mute=1" title="Live market TV" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+        </details>
+      </div>
+    </div>
     {bento_home_html}
     <div class="strat-badge"><span class="k">Strategy type</span><span class="v">Multi-strategy confluence · 7 long + 7 short, trend-gated</span></div>
     <div id="concWarn"></div>
-    <details class="tvwidget" open>
-      <summary>{_svg('tv',15)} Live market TV
-        <span class="ctlgrp wtvgrp">
-          <button data-wtv="KQp-e_XQnDE" class="on" onclick="event.preventDefault();event.stopPropagation();_wtvSet(this);">Yahoo Finance</button>
-          <button data-wtv="vKOd3v8VTYo" onclick="event.preventDefault();event.stopPropagation();_wtvSet(this);">Schwab Network</button>
-        </span>
-        <a class="tvw-open" href="#" onclick="event.preventDefault();event.stopPropagation();_gotoTab('livetv');return false;">more channels →</a></summary>
-      <div class="tvw-frame"><iframe id="wtvFrame" src="https://www.youtube.com/embed/KQp-e_XQnDE?autoplay=1&amp;mute=1" title="Live market TV" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
-    </details>
     <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Layout:</span>
       <span class="ctlgrp" id="layoutBtns"></span></div>
     <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Sort:</span>
@@ -5868,7 +5878,7 @@ function makeCard(s) {{
     ? `<span class="card-day" data-chg="${{s.symbol}}" data-base="${{_base}}" style="color:${{_dc>=0?'var(--buy)':'var(--sell)'}};">${{_dc>=0?'+':''}}${{_dc.toFixed(2)}}% ${{_lab}}</span>`
     : '';
   const initials = (s.symbol.replace(/[^A-Za-z]/g,'').slice(0,2) || s.symbol.slice(0,2)).toUpperCase();
-  const logo = `<span class="card-mono" style="background:hsl(${{_symHue(s.symbol)}},42%,42%);">${{initials}}`
+  const logo = `<span class="card-mono" style="background:var(--inset);color:var(--txt2);">${{initials}}`
     + `<img src="https://financialmodelingprep.com/image-stock/${{s.symbol}}.png" alt="" loading="lazy" onerror="this.remove()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;">`
     + `</span>`;
   const _isShort = (s.direction === 'SHORT');
