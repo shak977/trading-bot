@@ -1340,7 +1340,7 @@ def build_snapshot() -> dict:
 def _regime_html(reg: dict | None) -> str:
     if not reg:
         return ""
-    palette = {"Risk-on": ("#15361f", "#7ee2a0"), "Neutral": ("#3a2e12", "#e8c878"),
+    palette = {"Risk-on": ("#15361f", "#7ee2a0"), "Neutral": ("#3a2e12", "#b5b5ba"),
                "Risk-off": ("#3a1e1e", "#ff9b9b")}
     bg, fg = palette.get(reg["label"], ("#1a212b", "var(--txt2)"))
     return (f'<div class="regime" style="background:{bg};">'
@@ -1378,6 +1378,77 @@ def _kpi_html(reg: dict | None, snap: dict) -> str:
     return f'<div class="kpis">{tiles}</div>'
 
 
+def _meganav() -> str:
+    """xAI-style top navigation: a few top-level groups, each dropping a mega-menu of pages with a
+    one-line description and a tiny visual mockup of that page. Items proxy-click the (hidden) sidebar
+    buttons so routing is untouched. Pure-CSS hover open; a small JS delegate handles the click."""
+    M = {
+        "rows": "<rect x='10' y='12' width='40' height='3' rx='1.5' fill='#8a8a8f'/><rect x='10' y='23' width='34' height='3' rx='1.5' fill='#5a5a60'/><rect x='10' y='34' width='44' height='3' rx='1.5' fill='#5a5a60'/><circle cx='62' cy='13' r='3' fill='#5ed6a6'/>",
+        "candles": "<rect x='16' y='18' width='4' height='16' fill='#5ed6a6'/><rect x='28' y='12' width='4' height='24' fill='#5ed6a6'/><rect x='40' y='22' width='4' height='14' fill='#f0797f'/><rect x='52' y='16' width='4' height='20' fill='#5ed6a6'/>",
+        "donut": "<circle cx='38' cy='24' r='13' fill='none' stroke='#5a5a60' stroke-width='5'/><circle cx='38' cy='24' r='13' fill='none' stroke='#5ed6a6' stroke-width='5' stroke-dasharray='40 82' transform='rotate(-90 38 24)'/>",
+        "chartup": "<polyline points='10,34 24,28 34,30 48,18 64,12' fill='none' stroke='#5ed6a6' stroke-width='2'/>",
+        "text": "<rect x='10' y='14' width='48' height='3' rx='1.5' fill='#8a8a8f'/><rect x='10' y='23' width='40' height='3' rx='1.5' fill='#5a5a60'/><rect x='10' y='32' width='52' height='3' rx='1.5' fill='#5a5a60'/>",
+        "nodes": "<line x1='38' y1='14' x2='22' y2='34' stroke='#5a5a60'/><line x1='38' y1='14' x2='54' y2='34' stroke='#5a5a60'/><circle cx='38' cy='14' r='4' fill='#8a8a8f'/><circle cx='22' cy='34' r='4' fill='#5ed6a6'/><circle cx='54' cy='34' r='4' fill='#8a8a8f'/>",
+        "tv": "<rect x='18' y='12' width='40' height='24' rx='3' fill='none' stroke='#8a8a8f'/><path d='M34 19 L44 24 L34 29 Z' fill='#f0797f'/>",
+    }
+    groups = [
+        ("Trading", [("signals", "Signals", "Live conviction-scored ideas", "rows"),
+                     ("markets", "Markets", "Charts, sectors, macro", "candles"),
+                     ("portfolio", "Portfolio", "Positions & allocation", "donut")]),
+        ("Research", [("intel", "Intel", "Data-driven signals", "text"),
+                      ("news", "News", "Market-moving headlines", "text"),
+                      ("track", "Track record", "How past calls did", "chartup"),
+                      ("analyst", "Analyst", "Nightly self-review", "text")]),
+        ("AI", [("agents", "Agents", "The agent ecosystem", "nodes")]),
+        ("More", [("livetv", "Live TV", "Financial news streams", "tv"),
+                  ("whatsnew", "What's new", "Latest changes", "text"),
+                  ("about", "About", "How it works", "text"),
+                  ("system", "System", "Config & health", "text")]),
+    ]
+    def mock(k):
+        return f"<div class='mg-mock'><svg viewBox='0 0 76 48' xmlns='http://www.w3.org/2000/svg'>{M.get(k, M['text'])}</svg></div>"
+    out = ['<nav class="meganav" id="megaNav">']
+    for gname, items in groups:
+        links = "".join(
+            f'<a class="mg-link" data-go="{area}">{mock(mk)}'
+            f'<div><div class="mg-t">{title}</div><div class="mg-d">{desc}</div></div></a>'
+            for area, title, desc, mk in items)
+        out.append(f'<div class="mg-item"><span class="mg-lbl">{gname} <span class="mg-car">&#9662;</span></span>'
+                   f'<div class="mg-panel">{links}</div></div>')
+    out.append('</nav>')
+    return "".join(out)
+
+
+def _signals_hero(snap: dict) -> str:
+    """xAI-style Signals hero: a big thin headline, one-line thesis, two pill actions, and a KPI trio
+    wired to real snapshot data (actionable count, realised win rate, current regime). Never raises."""
+    sigs = snap.get("signals") or []
+    n_live = sum(1 for s in sigs if s.get("action") in ("BUY", "SHORT"))
+    tk = snap.get("track") or {}
+    wr = tk.get("win_rate")
+    wr_txt = f'{wr}%' if isinstance(wr, (int, float)) else "—"
+    resolved = tk.get("resolved", 0)
+    reg = snap.get("regime") or {}
+    reg_lab = reg.get("label", "—")
+    tone = {"Risk-on": "buy", "Neutral": "warn", "Risk-off": "sell"}.get(reg_lab, "")
+    esc = lambda s: (str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+    return (
+        '<div class="hero-x"><div class="hx-title">Signals</div>'
+        '<p class="hx-sub">A self-adapting read on US equities — conviction scored from every check, '
+        'graded against real outcomes, with a live social pulse from Grok.</p>'
+        '<div class="hx-btns">'
+        '<button class="hx-btn solid" onclick="location.reload()">Refresh &rarr;</button>'
+        '<button class="hx-btn ghost" onclick="window._showPage&&_showPage(\'markets\')">Watchlist</button>'
+        '</div>'
+        '<div class="hx-kpis">'
+        f'<div class="hx-kpi"><div class="k">Live today</div><div class="v">{n_live}</div></div>'
+        f'<div class="hx-kpi"><div class="k">Win rate</div><div class="v">{wr_txt}</div>'
+        f'<div class="k" style="margin-top:3px;text-transform:none;letter-spacing:0;font-size:11px;">{resolved} resolved</div></div>'
+        f'<div class="hx-kpi"><div class="k">Regime</div><div class="v {tone}">{esc(reg_lab)}</div></div>'
+        '</div></div>'
+    )
+
+
 def _bento_home(snap: dict) -> str:
     """The Signals home as a true HUD bento — a grid of varied-size tiles: a regime hero, the key
     metrics, the market brief and what-changed, all as modular boxes."""
@@ -1398,21 +1469,12 @@ def _bento_home(snap: dict) -> str:
 
     if not reg and not sigs:
         return ""
+    # NB: regime, live count and win rate now live in the Signals hero — don't duplicate them here.
     expo = mp.get("exposure_mult")
-    tiles = (
-        f'<div class="bt hero"><div class="bt-l">Market regime</div>'
-        f'<div class="bt-v {tone}" style="font-size:38px;">{reg.get("label", "—")}</div>'
-        f'<div class="bt-sub">{reg.get("note", "")[:80]}</div>'
-        + (f'<div class="bt-chip">{expo:.2f}× sizing'
-           + (f' · entry bar {mp.get("entry_threshold")}%' if mp.get("entry_threshold") else '')
-           + '</div>' if expo else '')
-        + '</div>'
-    )
-    tiles += t("Breadth", f'{reg.get("breadth", "—")}%', sub=f'of {reg.get("total","?")} above trend')
+    _bar = f'entry bar {mp.get("entry_threshold")}%' if mp.get("entry_threshold") else "regime-adjusted"
+    tiles = t("Breadth", f'{reg.get("breadth", "—")}%', sub=f'of {reg.get("total","?")} above trend')
     tiles += t("Avg momentum", f'{reg.get("avg_rsi", "—")}', sub="RSI 0–100")
-    tiles += t("Fresh buys", str(n_buy), "buy" if n_buy else "", "new long setups")
-    tiles += t("Fresh shorts", str(n_short), "sell" if n_short else "", "new short setups")
-    tiles += t("Track record", wr_txt, "", f'{tk.get("resolved", 0)} resolved')
+    tiles += t("Position sizing", f'{expo:.2f}×' if expo else "—", sub=_bar)
     # top opportunity tile (the #1 ranked name) — quick glance at where capital goes first
     if ranked:
         top = ranked[0]
@@ -1449,7 +1511,7 @@ def _allweather_html(aw: dict | None) -> str:
 
     # allocation table
     body = ""
-    colors = ["#2ea043", "#58a6ff", "#7aa2f7", "#d29922", "#c08457"]
+    colors = ["#2ea043", "#58a6ff", "#7aa2f7", "#b5b5ba", "#c08457"]
     bar = ""
     for i, t in enumerate(aw.get("targets", [])):
         px = f'${t["price"]:,.2f}' if t.get("price") is not None else "—"
@@ -1865,7 +1927,7 @@ def _momentum_html(rows: list[dict]) -> str:
              '<b>1-mo</b> = recent month (negative = losing steam) · <b>Wt</b> = suggested inverse-volatility weight. '
              'Capped at 3 names per sector. Re-rank monthly; rotate out names that drop off. '
              '<span class="chip mini bull" style="font-size:9px;padding:0 5px;">NEW</span> = entered the list this run.</p>')
-    caveats = ('<div class="deskread" style="margin-top:16px;border-left-color:#e8c878;">'
+    caveats = ('<div class="deskread" style="margin-top:16px;border-left-color:#b5b5ba;">'
                '<b>Read before using.</b> This is a monthly-rebalanced approach (hold the leaders, '
                're-rank ~monthly) — not a day-trade list. In backtest it earned a higher Sharpe than '
                'the index over ~9 years <i>including</i> the 2022 bear, but with a deeper ~31% drawdown, '
@@ -2069,7 +2131,7 @@ def _macro_posture_html(mp: dict | None) -> str:
     tag_html = ""
     for t in mp.get("tags", []):
         tag_html += (f'<span style="display:inline-block;margin:3px 6px 3px 0;padding:3px 10px;border-radius:6px;'
-                     f'background:color-mix(in srgb,#e0a82e 16%,transparent);color:#e0a82e;font-size:12px;font-weight:600;" '
+                     f'background:color-mix(in srgb,#b5b5ba 16%,transparent);color:#b5b5ba;font-size:12px;font-weight:600;" '
                      f'title="{t["why"]}">{t["tag"]}</span>')
     tags_row = (f'<div style="margin:2px 0 8px;">{tag_html}</div>') if tag_html else ""
     # strategy bias (favoured vs caution)
@@ -2103,13 +2165,13 @@ def _timing_html(tp: dict | None) -> str:
     if not tp:
         return ""
     state = tp.get("state")
-    col = {"confirmed": "var(--buy)", "neutral": "var(--muted)", "rally_attempt": "#e0a82e",
+    col = {"confirmed": "var(--buy)", "neutral": "var(--muted)", "rally_attempt": "#b5b5ba",
            "pressure": "var(--sell)", "correction": "var(--sell)"}.get(state, "var(--muted)")
     em = tp.get("exposure_mult_blended", tp.get("exposure_mult", 1.0))
     # per-index chips (SPY / QQQ): FTD state + distribution-day count
     chips = ""
     for name, ix in (tp.get("indexes") or {}).items():
-        dc = {"normal": "var(--muted)", "caution": "#e0a82e", "pressure": "var(--sell)",
+        dc = {"normal": "var(--muted)", "caution": "#b5b5ba", "pressure": "var(--sell)",
               "correction": "var(--sell)"}.get(ix.get("dd_risk"), "var(--muted)")
         dd = ix.get("dd", 0)
         off = ix.get("off_high")
@@ -2131,7 +2193,7 @@ def _timing_html(tp: dict | None) -> str:
         hz = (study.get("horizons") or [5, 10, 20])
         hcol = hz[1] if len(hz) > 1 else hz[0]
         order = [("confirmed", "Confirmed FTD", "var(--buy)"), ("neutral", "Neutral", "var(--muted)"),
-                 ("pressure", "Pressure", "#e0a82e"), ("correction", "Correction", "var(--sell)")]
+                 ("pressure", "Pressure", "#b5b5ba"), ("correction", "Correction", "var(--sell)")]
         rows = ""
         for key, lbl, rc in order:
             cell = (study.get("states") or {}).get(key, {}).get(str(hcol))
@@ -2175,7 +2237,7 @@ def _book_risk_html(br: dict | None) -> str:
         return ""
     heat = br.get("heat_pct")
     cap = br.get("heat_cap_pct", 6.0)
-    hc = "var(--sell)" if heat >= cap * 1.5 else "#e0a82e" if heat >= cap else "var(--buy)"
+    hc = "var(--sell)" if heat >= cap * 1.5 else "#b5b5ba" if heat >= cap else "var(--buy)"
     sig = int(round(br.get("sigma_assumed", 0.02) * 100))
 
     def tile(label, val, color="var(--txt)", sub=""):
@@ -2184,7 +2246,7 @@ def _book_risk_html(br: dict | None) -> str:
                 f'<div style="font-size:17px;font-weight:700;color:{color};font-family:var(--mono,monospace);">{val}</div>{s}</div>')
     clusters = br.get("correlated_clusters") or []
     eff = br.get("effective_bets")
-    eff_tile = (tile("Effective bets", f'{eff}', "#e0a82e" if clusters else "var(--buy)",
+    eff_tile = (tile("Effective bets", f'{eff}', "#b5b5ba" if clusters else "var(--buy)",
                      f'{br.get("n")} names, {len(clusters)} cluster{"s" if len(clusters) != 1 else ""}')
                 if eff is not None else
                 tile("Gross exposure", f'{br.get("gross_exposure_pct")}%', "var(--txt)", f'{br.get("n")} positions'))
@@ -2201,7 +2263,7 @@ def _book_risk_html(br: dict | None) -> str:
         cluster_html = (f'<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--glass-bd,rgba(255,255,255,.08));">'
                         f'{rows}</div>')
     return (
-        '<div class="ovbox glass" style="border-left:4px solid var(--accent,#eaa62b);margin:0 0 16px;">'
+        '<div class="ovbox glass" style="border-left:4px solid var(--accent,#d0d0d3);margin:0 0 16px;">'
         f'<div class="ovhead">{_svg("octagon",14)} Open-book risk '
         f'<span style="font-weight:400;color:var(--muted);font-size:12px;">— the book you’re holding right now</span></div>'
         f'<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 16px;margin-top:8px;">{grid}</div>'
@@ -2218,7 +2280,7 @@ def _changelog_html(entries: list | None) -> str:
     """'What's new' view — the running log of features/additions, newest first, grouped by day."""
     if not entries:
         return ""
-    cat_col = {"Signals": "var(--accent,#eaa62b)", "Risk": "var(--sell,#f0596b)", "AI": "var(--ai,#8b5cf6)",
+    cat_col = {"Signals": "var(--accent,#d0d0d3)", "Risk": "var(--sell,#f0596b)", "AI": "var(--ai,#8b5cf6)",
                "Timing": "#4aa3ff", "Stats": "#4aa3ff", "Analytics": "var(--buy,#22c98a)",
                "Validation": "var(--buy,#22c98a)", "Alerts": "var(--ai,#8b5cf6)", "Data": "var(--muted,#868c9a)",
                "UI": "var(--muted,#868c9a)"}
@@ -2366,7 +2428,7 @@ def _agent_web_html(snap: dict) -> str:
     ]
     cols = {0: "PLAN", 1: "EXECUTE", 2: "EXPRESS", 3: "REVIEW", 4: "BUILD"}
     colx = {0: 90, 1: 300, 2: 500, 3: 710, 4: 400}
-    V, G = "#8b5cf6", "#eaa62b"
+    V, G = "#8b5cf6", "#d0d0d3"
     # y layout per column
     byc = {}
     for n in NODES:
@@ -2415,8 +2477,8 @@ def _agent_web_html(snap: dict) -> str:
         '<path class="auflowg" d="M710 320 C 500 430, 250 430, 90 300" fill="none" stroke="#22c98a" stroke-width="1.6" '
         'marker-end="url(#aarg)"/>'
         '<text x="400" y="428" fill="#22c98a" font-size="11" text-anchor="middle" font-weight="600">learns from outcomes → re-weights Plan</text>'
-        '<path class="auflowa" d="M160 500 L120 340" fill="none" stroke="#eaa62b" stroke-width="1.5" marker-end="url(#aara)"/>'
-        '<text x="70" y="470" fill="#eaa62b" font-size="10.5" font-weight="600">ships ↑</text>')
+        '<path class="auflowa" d="M160 500 L120 340" fill="none" stroke="#d0d0d3" stroke-width="1.5" marker-end="url(#aara)"/>'
+        '<text x="70" y="470" fill="#d0d0d3" font-size="10.5" font-weight="600">ships ↑</text>')
     # a live signal pulse that circulates the full PEER loop, + an amber pulse feeding up from Build
     _loop = "M120 250 L300 250 L500 160 L710 190 C 500 430, 250 430, 90 300 L120 250"
     pulses = (
@@ -2424,16 +2486,16 @@ def _agent_web_html(snap: dict) -> str:
         f'<circle r="10" fill="#a78bfa" opacity="0.18"><animateMotion dur="7s" repeatCount="indefinite" path="{_loop}"/></circle>'
         f'<circle r="4.5" fill="#c4b5fd"><animateMotion dur="7s" repeatCount="indefinite" path="{_loop}"/>'
         '<animate attributeName="r" values="3.5;5.5;3.5" dur="1.1s" repeatCount="indefinite"/></circle>'
-        '<circle r="3.5" fill="#eaa62b" opacity="0.9"><animateMotion dur="2.6s" repeatCount="indefinite" '
+        '<circle r="3.5" fill="#d0d0d3" opacity="0.9"><animateMotion dur="2.6s" repeatCount="indefinite" '
         'path="M160 500 L120 340"/></circle>'
         '</g>')
     svg = (
         '<svg viewBox="0 0 900 560" xmlns="http://www.w3.org/2000/svg" role="img" '
-        'font-family="Manrope,system-ui,sans-serif" style="width:100%;height:auto;">'
+        'font-family="Inter,system-ui,sans-serif" style="width:100%;height:auto;">'
         '<defs>'
         '<marker id="aar" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0 0L5 3L0 6Z" fill="#5b6270"/></marker>'
         '<marker id="aarg" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0 0L5 3L0 6Z" fill="#22c98a"/></marker>'
-        '<marker id="aara" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0 0L5 3L0 6Z" fill="#eaa62b"/></marker>'
+        '<marker id="aara" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0 0L5 3L0 6Z" fill="#d0d0d3"/></marker>'
         '</defs>' + edges + pulses + heads + "".join(node_svg) + '</svg>')
     drawer = ('<div id="au-detail" class="glass" style="border-radius:12px;padding:14px 16px;margin-top:10px;'
               'min-height:120px;font-size:13px;line-height:1.55;color:var(--txt2);"></div>')
@@ -2478,7 +2540,7 @@ def _agent_universe_html(snap: dict) -> str:
             f'<div style="font-size:11px;color:var(--muted);margin:3px 0 6px;">{role}</div>'
             f'<div style="font-size:12.5px;color:var(--txt2);line-height:1.5;min-width:0;">{line}</div></div>')
 
-    V, G = "var(--ai,#8b5cf6)", "var(--accent,#eaa62b)"
+    V, G = "var(--ai,#8b5cf6)", "var(--accent,#d0d0d3)"
     cfg = CONFIG
     signals = snap.get("signals") or []
 
@@ -2572,7 +2634,7 @@ def _agent_universe_html(snap: dict) -> str:
         '<span class="sh-sub">every AI in the system — and its latest output</span></div>'
         '<div style="margin:0 0 8px;font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--ai,#8b5cf6);">◈ RUNTIME AI — THE TRADING BRAIN</div>'
         f'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">{runtime}</div>'
-        '<div style="margin:20px 0 8px;font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--accent,#eaa62b);">◆ BUILD AI — HOW IT\'S MADE</div>'
+        '<div style="margin:20px 0 8px;font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--accent,#d0d0d3);">◆ BUILD AI — HOW IT\'S MADE</div>'
         f'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">{build}</div>'
         '<p style="color:var(--muted);font-size:10.5px;margin:14px 0 0;">Green dot = live now · grey = off or awaiting data. Runtime agents read this build\'s snapshot; the build agents ship changes into it.</p>'
     )
@@ -2601,7 +2663,7 @@ def _performance_html(p: dict | None) -> str:
     elif sqn >= 1.6:
         sc, sq = "var(--buy)", "tradeable"
     elif sqn >= 1.0:
-        sc, sq = "#e0a82e", "marginal"
+        sc, sq = "#b5b5ba", "marginal"
     else:
         sc, sq = "var(--sell)", "no clear edge"
     exp = p.get("expectancy_r")
@@ -2641,7 +2703,7 @@ def _performance_html(p: dict | None) -> str:
     mc_html = ""
     if mc:
         pl = mc.get("prob_losing_r_pct")
-        plc = "var(--sell)" if (pl or 0) >= 40 else "#e0a82e" if (pl or 0) >= 20 else "var(--buy)"
+        plc = "var(--sell)" if (pl or 0) >= 40 else "#b5b5ba" if (pl or 0) >= 20 else "var(--buy)"
         mc_html = (
             '<div style="font-size:12px;color:var(--txt2);margin-top:8px;border-top:1px solid var(--glass-bd,rgba(255,255,255,.08));padding-top:8px;">'
             f'{_svg("regime",12)} <b>Monte Carlo</b> — {mc.get("sims"):,} bootstrapped paths of the next '
@@ -2650,7 +2712,7 @@ def _performance_html(p: dict | None) -> str:
             f'<b>{mc.get("median_terminal_r")}R</b> (5th pct {mc.get("p05_terminal_r")}R); '
             f'chance of a net-losing run <b style="color:{plc};">{pl}%</b>.</div>')
     return (
-        '<div class="ovbox glass" style="border-left:4px solid var(--accent,#eaa62b);margin:0 0 16px;">'
+        '<div class="ovbox glass" style="border-left:4px solid var(--accent,#d0d0d3);margin:0 0 16px;">'
         f'<div class="ovhead">{_svg("target",14)} Performance &amp; risk '
         f'<span style="font-weight:400;color:var(--muted);font-size:12px;">— {p.get("n")} resolved theses, '
         f'in R (units of risk)</span></div>'
@@ -2692,7 +2754,7 @@ def _setup_study_html(st: dict | None) -> str:
                  f'<td style="text-align:right;padding-left:10px;color:var(--muted);">hit {cell.get("hit_rate")}% · n={nn}</td></tr>')
     basetxt = f'{base.get("mean_pct"):+.2f}%' if base.get("mean_pct") is not None else "—"
     return (
-        '<div class="ovbox" style="border-left:4px solid var(--accent,#eaa62b);margin:0 0 16px;">'
+        '<div class="ovbox" style="border-left:4px solid var(--accent,#d0d0d3);margin:0 0 16px;">'
         f'<div class="ovhead">{_svg("target",14)} Setup edge check '
         f'<span style="font-weight:400;color:var(--muted);font-size:12px;">— forward {H}-day return, walk-forward on '
         f'{st.get("names", 0)} liquid names</span></div>'
@@ -3699,13 +3761,15 @@ def render_html(snap: dict) -> str:
                   f'{len(_pd)} dropped (bad feed price)</span>') if _pd else ""
     kpi_html = _kpi_html(snap.get("regime"), snap)
     bento_home_html = _bento_home(snap)
+    signals_hero_html = _signals_hero(snap)
+    meganav_html = _meganav()
     _brief = (snap.get("market_brief") or "").strip()
     brief_html = (f'<div class="ai-box" style="margin:2px 0 18px;line-height:1.6;">'
                   f'<span class="ai-h">{_svg("ai",13)} Market brief</span> {_md_inline(_brief)}</div>') if _brief else ""
     _changes = snap.get("changes") or []
-    changes_html = ((f'<div class="ai-box" style="margin:0 0 18px;border-color:color-mix(in srgb,#e0a82e 32%,transparent);'
-                     f'background:color-mix(in srgb,#e0a82e 11%,transparent);">'
-                     f'<span class="ai-h" style="color:#e0a82e;">{_svg("bolt",13)} What changed since last build</span>'
+    changes_html = ((f'<div class="ai-box" style="margin:0 0 18px;border-color:color-mix(in srgb,#b5b5ba 32%,transparent);'
+                     f'background:color-mix(in srgb,#b5b5ba 11%,transparent);">'
+                     f'<span class="ai-h" style="color:#b5b5ba;">{_svg("bolt",13)} What changed since last build</span>'
                      f'<ul style="margin:7px 0 0;padding-left:18px;line-height:1.8;">'
                      + "".join(f"<li>{_c}</li>" for _c in _changes) + "</ul></div>") if _changes else "")
     momentum_html = (_momentum_bt_html(snap.get("momentum_bt"))
@@ -3764,11 +3828,12 @@ def render_html(snap: dict) -> str:
     --short:#c2410c; --watch:#475569; --exit:#b45309; --avoid:#6b7280; --warn:#b7791f;
     --accent:#0b5cad; --grid:rgba(120,130,145,0.16); --cross:rgba(60,70,85,0.4);
     --inset:#f1f4f8; --hover:#eef2f7; --ring:rgba(11,92,173,.40);
-    --mono:'JetBrains Mono',ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --tape:'JetBrains Mono',ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --mono:'Inter',-apple-system,'Segoe UI',Roboto,sans-serif;
     --hud-edge:color-mix(in srgb,var(--accent) 46%,var(--line));
     --shadow:0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.06);
     --shadow-lg:0 6px 20px rgba(16,24,40,0.10);
-    --acc2:#c98a1a; --amb-ground:#eef1f6; --glass-bg:rgba(255,255,255,.72); --glass-bd:rgba(16,24,40,.09); --glass-blur:14px;
+    --acc2:#b5b5ba; --amb-ground:#eef1f6; --glass-bg:rgba(255,255,255,.72); --glass-bd:rgba(16,24,40,.09); --glass-blur:14px;
     --ai:#6d3fd4; --ai-soft:rgba(109,63,212,.12); }}
   /* Warm-gold glass system (v1 — see DESIGN_SPEC.md). Dark-first. */
   /* xAI-style: pure-black canvas, monochrome chrome, green/red kept only for P&L + direction. */
@@ -3805,7 +3870,7 @@ def render_html(snap: dict) -> str:
     *, *::before, *::after {{ transition:none !important; animation:none !important; scroll-behavior:auto !important; }}
     .card:hover {{ transform:none; }} }}
   html, body {{ max-width:100%; overflow-x:hidden; }}
-  body {{ margin:0; font:14px/1.55 'Inter','Manrope',-apple-system,Segoe UI,Roboto,sans-serif;
+  body {{ margin:0; font:14px/1.55 'Inter',-apple-system,Segoe UI,Roboto,sans-serif;
     background:var(--bg); color:var(--txt);
     -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-rendering:optimizeLegibility; }}
   /* warm-gold drifting ambient glow behind everything (F2 / softer) */
@@ -3827,7 +3892,7 @@ def render_html(snap: dict) -> str:
   .tkt-track {{ display:inline-flex; align-items:center; padding:8px 0; animation:tktScroll 74s linear infinite; }}
   .tickertape:hover .tkt-track {{ animation-play-state:paused; }}
   @keyframes tktScroll {{ from {{ transform:translateX(0); }} to {{ transform:translateX(-50%); }} }}
-  .tkt-it {{ display:inline-flex; align-items:baseline; gap:7px; margin:0 16px; font-family:var(--mono);
+  .tkt-it {{ display:inline-flex; align-items:baseline; gap:7px; margin:0 16px; font-family:var(--tape);
     font-size:12px; font-variant-numeric:tabular-nums; }}
   .tkt-it .tlogo {{ width:17px; height:17px; border-radius:4px; object-fit:contain; background:#fff;
     align-self:center; flex:0 0 auto; }}
@@ -3886,11 +3951,11 @@ def render_html(snap: dict) -> str:
     font-size:12px; font-weight:600; }}
   .m-LIVE {{ background:#5a1e1e; color:#ff9b9b; }}
   .m-PAPER {{ background:#15361f; color:#7ee2a0; }}
-  .m-SYNTHETIC {{ background:#3a2e12; color:#e8c878; }}
+  .m-SYNTHETIC {{ background:#3a2e12; color:#b5b5ba; }}
   .note {{ color:var(--muted); font-size:13px; margin:10px 0 8px;
     display:inline-block; padding:5px 11px; border-radius:9px;
     border:1px solid var(--line); background:var(--inset); }}
-  .grid {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+  .grid {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
     gap:14px; }}
   .card {{ background:var(--glass-bg); border:1px solid var(--glass-bd); border-radius:14px;
     padding:16px; cursor:pointer; box-shadow:none; }}
@@ -3913,7 +3978,7 @@ def render_html(snap: dict) -> str:
   .bbalt {{ margin-top:4px; font-size:10.5px; font-weight:700; display:flex; gap:9px; flex-wrap:wrap; }}
   .bbalt span {{ cursor:help; }}
   .conc-warn {{ margin:0 0 16px; padding:10px 14px; font-size:12.5px; line-height:1.5; border-radius:10px;
-    background:color-mix(in srgb, #b8860b 12%, transparent); border:1px solid color-mix(in srgb, #b8860b 38%, transparent);
+    background:color-mix(in srgb, #6e7681 12%, transparent); border:1px solid color-mix(in srgb, #6e7681 38%, transparent);
     color:var(--txt); cursor:help; }}
   .hcell {{ cursor:help; text-decoration:underline dotted var(--muted); text-underline-offset:3px;
     text-decoration-thickness:1px; }}
@@ -3928,8 +3993,8 @@ def render_html(snap: dict) -> str:
   #newbuild:hover {{ filter:brightness(1.08); }}
   /* ---- alternate layouts ---- */
   .cat-chip {{ margin-top:10px; display:inline-block; font-size:11.5px; font-weight:600;
-    color:#b8860b; background:color-mix(in srgb, #e0a82e 16%, transparent);
-    border:1px solid color-mix(in srgb, #e0a82e 36%, transparent); padding:3px 9px; border-radius:999px; }}
+    color:#6e7681; background:color-mix(in srgb, #b5b5ba 16%, transparent);
+    border:1px solid color-mix(in srgb, #b5b5ba 36%, transparent); padding:3px 9px; border-radius:999px; }}
   .ai-tag {{ color:var(--accent); font-weight:700; }}
   .ai-box {{ margin-top:10px; padding:9px 11px; border-radius:8px; font-size:12px; line-height:1.5;
     color:var(--txt); background:color-mix(in srgb, #9b59b6 12%, transparent);
@@ -3954,7 +4019,7 @@ def render_html(snap: dict) -> str:
   .bbhead {{ display:flex; align-items:center; gap:18px; padding:8px 12px; background:#13130a;
     border-bottom:1px solid #2a2a17; font-size:11px; color:#8a8a6a; letter-spacing:1px;
     white-space:nowrap; overflow-x:auto; }}
-  .bbtitle {{ color:#e8a33d; font-weight:700; }} .bbst b {{ color:#e8a33d; }}
+  .bbtitle {{ color:#d0d0d3; font-weight:700; }} .bbst b {{ color:#d0d0d3; }}
   .bbclock {{ margin-left:auto; color:#5a5a45; }}
   .bbgrid {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:1px; background:#2a2a17; }}
   .bbtile {{ background:#000; padding:9px 11px; cursor:pointer; }}
@@ -4070,7 +4135,7 @@ def render_html(snap: dict) -> str:
   .kv {{ display:flex; justify-content:space-between; font-size:13px;
     color:var(--muted); padding:3px 0; }}
   .kv span:last-child {{ color:var(--txt); }}
-  .hot span:last-child {{ color:#e8c878; font-weight:700; }}
+  .hot span:last-child {{ color:#b5b5ba; font-weight:700; }}
   select {{ background:var(--card); color:var(--txt); border:1px solid var(--line);
     border-radius:8px; padding:6px 10px; font-size:14px; }}
   .chartbox {{ background:var(--card); border:1px solid var(--line);
@@ -4175,7 +4240,7 @@ def render_html(snap: dict) -> str:
     background:var(--inset); box-shadow:inset 0 1px 0 rgba(255,255,255,.04); }}
   .scen-row.higherodds {{ border-left:3px solid var(--buy); }}
   .scen-row.medium {{ border-left:3px solid var(--accent); }}
-  .scen-row.lowerodds {{ border-left:3px solid #b8860b; }}
+  .scen-row.lowerodds {{ border-left:3px solid #6e7681; }}
   .scen-top {{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap; min-width:0; }}
   .scen-top > b {{ min-width:0; overflow-wrap:anywhere; }}
   .scen-px {{ font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:800; white-space:nowrap; }}
@@ -4186,7 +4251,7 @@ def render_html(snap: dict) -> str:
     border-radius:9px; padding:10px 12px; margin-bottom:9px; }}
   .sigdet.good {{ border-left-color:var(--buy); }}
   .sigdet.bad {{ border-left-color:var(--sell); }}
-  .sigdet.warn {{ border-left-color:#b8860b; }}
+  .sigdet.warn {{ border-left-color:#6e7681; }}
   .sigdet-h {{ display:flex; align-items:baseline; gap:8px; font-size:13.5px; flex-wrap:wrap; }}
   .sigdet-v {{ margin-left:auto; font-weight:700; font-variant-numeric:tabular-nums; font-size:12.5px; }}
   .sigdet-why {{ color:var(--muted); font-size:12px; margin-top:4px; line-height:1.45; }}
@@ -4491,7 +4556,7 @@ def render_html(snap: dict) -> str:
     font-size:15px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); }}
   .brand-mark {{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px;
     border-radius:9px; color:#fff; font-size:15px; box-shadow:0 2px 8px color-mix(in srgb, var(--accent) 45%, transparent);
-    background:linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 50%, #16c98d)); }}
+    background:linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 50%, #5ed6a6)); }}
   .appbar-right {{ display:flex; align-items:center; gap:10px; }}
   .livepill {{ font-size:12px; color:var(--muted); }}
   /* ---- app-bar centre cluster: search + clock + regime ---- */
@@ -4522,8 +4587,8 @@ def render_html(snap: dict) -> str:
     border:1px solid; }}
   .stale-banner.red {{ background:color-mix(in srgb, var(--sell) 14%, transparent);
     border-color:var(--sell); color:var(--sell); }}
-  .stale-banner.amber {{ background:color-mix(in srgb, #b8860b 12%, transparent);
-    border-color:color-mix(in srgb, #b8860b 45%, transparent); color:var(--txt); }}
+  .stale-banner.amber {{ background:color-mix(in srgb, #6e7681 12%, transparent);
+    border-color:color-mix(in srgb, #6e7681 45%, transparent); color:var(--txt); }}
   /* ---- KPI summary strip ---- */
   .kpis {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:0 0 18px; }}
   .kpi {{ background:var(--card); border:1px solid var(--hud-edge); border-radius:6px; padding:12px 14px; }}
@@ -4557,7 +4622,7 @@ def render_html(snap: dict) -> str:
   }}
   .kpi-l {{ font-size:10px; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); font-weight:600; }}
   .kpi-v {{ font-size:24px; font-weight:800; margin-top:4px; letter-spacing:-.015em; font-variant-numeric:tabular-nums; }}
-  .kpi-v.buy {{ color:var(--buy); }} .kpi-v.sell {{ color:var(--sell); }} .kpi-v.warn {{ color:#b8860b; }}
+  .kpi-v.buy {{ color:var(--buy); }} .kpi-v.sell {{ color:var(--sell); }} .kpi-v.warn {{ color:#6e7681; }}
   .kpi-sub {{ font-size:11px; color:var(--muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
   /* ---- redesigned signal card ---- */
   .card-top {{ display:flex; align-items:center; gap:10px; margin-bottom:6px; }}
@@ -4616,6 +4681,34 @@ def render_html(snap: dict) -> str:
   .meta-chip.bad {{ color:var(--sell); border-color:color-mix(in srgb,var(--sell) 30%,var(--line)); }}
   .meta-chip.ai {{ color:#a078ff; border-color:color-mix(in srgb,#a078ff 30%,var(--line)); }}
   @media (max-width:400px) {{ .plan-chips {{ grid-template-columns:repeat(2,minmax(0,1fr)); }} }}
+  /* ---- SpaceX-style signal card (monochrome, label/value driven) ---- */
+  .sxcard {{ position:relative; background:var(--card); border:1px solid var(--line);
+    border-radius:16px; padding:22px 24px 20px; box-shadow:none; }}
+  .sxcard:hover {{ border-color:rgba(255,255,255,.20); transform:none; box-shadow:none; }}
+  .sxcard .favbtn {{ position:absolute; top:15px; right:15px; z-index:2; }}
+  .sx-head {{ display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }}
+  .sx-hl {{ display:flex; align-items:center; gap:11px; min-width:0; }}
+  .sx-hid {{ min-width:0; }}
+  .sxcard .card-mono {{ width:34px; height:34px; border-radius:8px; flex:0 0 auto; }}
+  .sx-title {{ font-size:21px; font-weight:800; letter-spacing:-.01em; line-height:1.12; color:var(--txt); }}
+  .sx-meta {{ text-align:right; white-space:nowrap; padding-right:26px; }}
+  .sx-meta-l {{ font-size:13px; color:var(--muted); }}
+  .sx-meta-v {{ font-size:15px; font-weight:700; color:var(--txt2); font-variant-numeric:tabular-nums; }}
+  .sx-meta-chg {{ font-size:12px; margin-top:2px; font-variant-numeric:tabular-nums; }}
+  .sx-sub {{ font-size:13px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+  .sx-desc {{ font-size:14px; line-height:1.5; color:var(--muted); margin-top:13px; }}
+  .sx-pills {{ display:flex; flex-wrap:wrap; gap:8px; margin-top:15px; }}
+  .sx-pill {{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:500;
+    padding:5px 12px; border-radius:999px; background:var(--inset); color:var(--txt2); line-height:1.2; }}
+  .sx-dot {{ width:6px; height:6px; border-radius:50%; flex:0 0 auto; }}
+  .sx-dot.l {{ background:var(--buy); }} .sx-dot.s {{ background:var(--sell); }}
+  .sx-div {{ height:1px; background:var(--line); margin:18px 0 14px; }}
+  .sx-rows {{ display:flex; flex-direction:column; gap:10px; }}
+  .sx-row {{ display:flex; align-items:baseline; justify-content:space-between; gap:16px; }}
+  .sx-l {{ font-size:14px; color:var(--muted); }}
+  .sx-v {{ font-size:14px; font-weight:600; color:var(--txt); font-variant-numeric:tabular-nums; }}
+  .sx-up {{ color:var(--buy); }} .sx-dn {{ color:var(--sell); }}
+  .sxcard .card-warn {{ margin-top:14px; }}
   /* ---- Markets sub-tab layout ---- */
   .mkt {{ display:grid; grid-template-columns:190px minmax(0,1fr); gap:18px; align-items:start; }}
   .mkt-side {{ display:flex; flex-direction:column; gap:4px; position:sticky; top:66px; }}
@@ -4839,11 +4932,174 @@ def render_html(snap: dict) -> str:
   #mStrategies, #mSignals, #mResearch, #mMeta, #mRegimeFit, #mNewsRead, #mRank {{
     min-width:0; overflow-wrap:anywhere; }}
   #mStrategies .trackrec {{ display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; }}
+  /* ============================================================
+     xAI RESURFACE — stage 1 chrome: xAI-console-style sectioned sidebar
+     ============================================================ */
+  .appbar {{ background:rgba(0,0,0,.72) !important; backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line); }}
+  .brand {{ color:var(--txt); letter-spacing:.02em; }}
+  .brand-mark {{ background:none !important; border:1px solid var(--txt); color:var(--txt) !important;
+    box-shadow:none !important; border-radius:8px; }}
+  /* sidebar: flat, wider, xAI-console look (kept vertical) */
+  .sidebar {{ width:216px; flex:0 0 216px; background:transparent !important; backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important; border:0 !important; border-radius:0 !important;
+    box-shadow:none !important; padding:4px 8px; gap:1px; }}
+  .sidebar button {{ border-left:0 !important; border-radius:9px; text-transform:none; letter-spacing:0;
+    font-size:14px; font-weight:400; color:var(--muted); padding:9px 12px; gap:12px; }}
+  .sidebar button svg {{ width:17px; height:17px; opacity:.8; }}
+  .sidebar button:hover {{ background:rgba(255,255,255,.05) !important; color:var(--txt); }}
+  .sidebar button.on {{ background:rgba(255,255,255,.07) !important; color:var(--txt) !important;
+    box-shadow:none !important; border-left:0 !important; }}
+  .sidebar button.on svg {{ opacity:1; }}
+  /* section labels between nav groups */
+  .side-sect {{ font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--faint);
+    font-weight:500; padding:17px 12px 6px; }}
+  .side-sig, .side-foot {{ display:none !important; }}
+  /* kill the gold HUD corner ticks */
+  .bt::after, .bt::before, .kpi::after, .kpi::before, .ovbox::after {{ display:none !important; }}
+  /* secondary tab bar -> white underline */
+  .toptabs button.on {{ color:var(--txt) !important; border-bottom-color:var(--txt) !important; }}
+  .toptabs button.on::before {{ content:"" !important; }}
+  /* accent is now white -> pills/CTAs on an accent bg need dark text */
+  .sd-full, .why-chip.trig, .tc-seg button.on, button.sf-run, .sd-cta, #newbuild, .bt-logo {{ color:#000 !important; }}
+  /* ---- stage 2: Signals hero ---- */
+  .hero-x {{ padding:22px 0 30px; }}
+  .hx-title {{ font-size:90px; line-height:.92; font-weight:300; letter-spacing:-.035em; margin:0 0 18px; }}
+  .hx-sub {{ font-size:16.5px; line-height:1.6; color:var(--muted); max-width:440px; margin:0 0 28px; font-weight:300; }}
+  .hx-btns {{ display:flex; gap:12px; margin:0 0 40px; }}
+  .hx-btn {{ border-radius:999px; padding:12px 24px; font-size:14px; font-weight:400; cursor:pointer;
+    border:1px solid rgba(255,255,255,.16); background:none; color:var(--txt); font-family:inherit; transition:.15s; }}
+  .hx-btn.solid {{ background:var(--txt); color:#000; border-color:var(--txt); }}
+  .hx-btn.solid:hover {{ background:#d8d8d8; border-color:#d8d8d8; }}
+  .hx-btn.ghost:hover {{ border-color:var(--txt); }}
+  .hx-kpis {{ display:flex; gap:48px; flex-wrap:wrap; }}
+  .hx-kpi .k {{ font-size:11.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }}
+  .hx-kpi .v {{ font-size:30px; font-weight:300; margin-top:6px; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }}
+  .hx-kpi .v.buy {{ color:var(--buy); }} .hx-kpi .v.sell {{ color:var(--sell); }} .hx-kpi .v.warn {{ color:var(--warn); }}
+  @media (max-width:760px) {{ .hx-title {{ font-size:58px; }} .hx-kpis {{ gap:32px; }} }}
+  /* ---- stage 3: hairline signal rows ---- */
+  .rowswrap {{ margin-top:2px; }}
+  .rowsig {{ display:grid; grid-template-columns:30px 28px 1.5fr 96px 170px 1fr 20px; align-items:center;
+    gap:16px; padding:17px 6px; border-top:1px solid var(--line); cursor:pointer; transition:.15s; }}
+  .rowsig:hover {{ padding-left:9px; background:rgba(255,255,255,.02); }}
+  .rowsig .rk {{ font-family:var(--mono); font-size:13px; color:var(--faint); }}
+  .rowsig .nm {{ min-width:0; }}
+  .rowsig .sym {{ font-size:16px; font-weight:500; letter-spacing:.01em; }}
+  .rowsig .co {{ font-size:12.5px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+  .rowsig .rtag {{ font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted);
+    border:1px solid rgba(255,255,255,.16); border-radius:999px; padding:2px 8px; margin-left:6px; vertical-align:2px; }}
+  .rowsig .rconv {{ font-size:13px; color:var(--muted); }}
+  .rowsig .rconv b {{ font-family:var(--mono); font-weight:500; font-size:16px; color:var(--txt); }}
+  .rowsig .rpx {{ font-family:var(--mono); font-size:14px; text-align:right; }}
+  .rowsig .rpx .chg {{ font-size:12px; margin-top:2px; }}
+  .rowsig .rarr {{ color:var(--faint); font-size:16px; text-align:right; transition:.15s; }}
+  .rowsig:hover .rarr {{ color:var(--txt); transform:translateX(3px); }}
+  .rowsig .rspark canvas, .rowsig .rspark svg {{ display:block; }}
+  @media (max-width:760px) {{ .rowsig {{ grid-template-columns:24px 26px 1.4fr auto 20px; gap:11px; }}
+    .rowsig .rspark, .rowsig .rpx {{ display:none; }} }}
+  /* ============================================================
+     xAI RESURFACE — stage 4: fonts, section headers, cards, pills, buttons (all pages)
+     ============================================================ */
+  .brand {{ font-family:'Inter',-apple-system,sans-serif !important; text-transform:none !important;
+    letter-spacing:.01em; font-weight:400; }}
+  /* section headers -> quiet label + hairline icon (every page) */
+  .sec-head {{ border-bottom:1px solid var(--line); margin:34px 0 14px; }}
+  .sec-head h2 {{ font-weight:500 !important; color:var(--txt) !important; letter-spacing:.04em; font-size:12.5px; }}
+  .sec-head .sh-ico {{ background:none !important; border:1px solid var(--line); color:var(--muted) !important; border-radius:8px; }}
+  .sec-head .sh-ico.ai {{ background:none !important; color:var(--muted) !important; }}
+  .sec-head .sh-sub {{ color:var(--faint); }}
+  /* uniform hairline card everywhere */
+  .card, .bt, .kpi, .stat, .lane, .ovbox, .glass, .featured, .tk-panel, .secbar, .trackrec,
+  .bento-tile, .bento-feat, details.tvwidget, .wl {{
+    border:1px solid var(--line) !important; border-radius:14px !important; background:var(--card) !important;
+    box-shadow:none !important; }}
+  .card {{ padding:18px 20px; }}
+  /* pills / chips -> subtle rounded (keep semantic colour where it carries meaning) */
+  .badge, .bt-chip, .why-chip, .tag, .metaChip, .convbadge {{ border-radius:999px !important; }}
+  .why-chip, .bt-chip {{ background:rgba(255,255,255,.05) !important; border:1px solid var(--line) !important;
+    color:var(--muted) !important; }}
+  /* control + header buttons -> ghost pills; active = white pill */
+  .themebtn, .ctlgrp button, .ctlbtn {{ border-radius:999px !important;
+    border:1px solid rgba(255,255,255,.14) !important; background:none !important; color:var(--muted) !important;
+    font-weight:400 !important; }}
+  .themebtn:hover, .ctlgrp button:hover, .ctlbtn:hover {{ color:var(--txt) !important; border-color:var(--txt) !important; }}
+  .ctlgrp button.on {{ background:var(--txt) !important; color:#000 !important; border-color:var(--txt) !important; }}
+  /* ---- Live TV: channel card grid ---- */
+  .tvwrap {{ border:1px solid var(--line); border-radius:14px; overflow:hidden; aspect-ratio:16/9; background:#000; }}
+  .tvwrap iframe {{ width:100%; height:100%; display:block; border:0; }}
+  .tvcards {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; margin-top:4px; }}
+  .tvcard {{ border:1px solid var(--line); border-radius:14px; overflow:hidden; cursor:pointer;
+    background:var(--card); transition:border-color .15s; }}
+  .tvcard:hover {{ border-color:rgba(255,255,255,.28); }}
+  .tvcard.on {{ border-color:var(--txt); }}
+  .tvthumb {{ position:relative; aspect-ratio:16/9; background:#0a0a0b; overflow:hidden; }}
+  .tvthumb img {{ width:100%; height:100%; object-fit:cover; display:block; }}
+  .tvlabel {{ position:absolute; top:10px; left:10px; display:inline-flex; align-items:center; gap:6px;
+    font-size:11px; letter-spacing:.02em; color:var(--txt); background:rgba(0,0,0,.6);
+    border:1px solid rgba(255,255,255,.14); border-radius:999px; padding:4px 10px; }}
+  .tvlabel .dot {{ width:6px; height:6px; border-radius:50%; background:var(--sell); }}
+  .tvbody {{ padding:14px 16px 16px; }}
+  .tvname {{ font-size:16px; font-weight:500; }}
+  .tvdesc {{ font-size:13px; color:var(--muted); margin-top:4px; line-height:1.5; }}
+  .tvtags {{ display:flex; gap:7px; margin-top:12px; flex-wrap:wrap; }}
+  .tvtag {{ font-size:11px; color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:3px 10px; }}
+  /* ---- top mega-nav (replaces the sidebar) ---- */
+  .sidebar {{ display:none !important; }}
+  .shell {{ display:block; }}
+  .maincol {{ padding-left:0 !important; border-left:0 !important; width:100%; }}
+  .meganav {{ display:flex; align-items:center; gap:2px; margin-left:14px; }}
+  .mg-item {{ position:relative; }}
+  .mg-lbl {{ display:inline-flex; align-items:center; gap:6px; padding:8px 13px; font-size:14px;
+    color:var(--muted); cursor:default; border-radius:8px; white-space:nowrap; }}
+  .mg-item:hover .mg-lbl {{ color:var(--txt); background:rgba(255,255,255,.05); }}
+  .mg-car {{ font-size:9px; opacity:.7; }}
+  .mg-panel {{ position:absolute; top:100%; left:0; margin-top:8px; background:#0b0b0c;
+    border:1px solid var(--line); border-radius:14px; padding:8px; display:none;
+    grid-template-columns:repeat(2,minmax(230px,1fr)); gap:4px; z-index:60;
+    box-shadow:0 24px 60px rgba(0,0,0,.65); }}
+  .mg-item:last-child .mg-panel {{ left:auto; right:0; }}
+  .mg-item:hover .mg-panel {{ display:grid; }}
+  .mg-panel::before {{ content:""; position:absolute; top:-8px; left:0; right:0; height:8px; }}
+  .mg-link {{ display:flex; gap:12px; align-items:center; padding:10px; border-radius:10px; cursor:pointer; }}
+  .mg-link:hover {{ background:rgba(255,255,255,.06); }}
+  .mg-mock {{ width:76px; height:48px; border:1px solid var(--line); border-radius:7px; background:#050506;
+    flex:0 0 auto; overflow:hidden; }}
+  .mg-mock svg {{ width:100%; height:100%; display:block; }}
+  .mg-t {{ font-size:14px; font-weight:500; color:var(--txt); }}
+  .mg-d {{ font-size:12px; color:var(--muted); margin-top:2px; line-height:1.4; }}
+  @media (max-width:900px) {{ .meganav {{ display:none; }} }}
+  /* ---- stage 4b: one typeface (Inter) for ALL text incl. big numbers; mono only in the ticker ---- */
+  .kpi-v, .bt-v, .stat .v, .hx-kpi .v, .px, .wl-px, .convbadge, .num, .mono2,
+  .rowsig .rpx, .rowsig .rk, .rowsig .rconv b, .sig .conv b, .mhead-tick, .mhead-px, .mhead-chg,
+  .scen-px, .brand, .appsearch input, .side-sig-row .ss-sym, .lv, .lad-row > span:last-child {{
+    font-family:'Inter',-apple-system,Segoe UI,Roboto,sans-serif !important; font-variant-numeric:tabular-nums; }}
+  .sec-head .sh-sub {{ font-family:'Inter',-apple-system,sans-serif !important; }}
+  /* strategy badge -> quiet, not coral */
+  .strat-badge {{ background:none !important; border:1px solid var(--line) !important; }}
+  .strat-badge .v {{ color:var(--txt) !important; font-weight:500 !important; }}
+  /* ---- stage 4c: signal cards -> grok-clean (keep target-green / stop-red + charts) ---- */
+  .card-why {{ border:1px solid var(--line) !important; border-left:1px solid var(--line) !important;
+    background:none !important; border-radius:10px !important; }}
+  .why-h {{ color:var(--muted) !important; }}
+  .why-fam {{ background:rgba(255,255,255,.05) !important; border:1px solid var(--line) !important;
+    color:var(--txt) !important; border-radius:999px !important; }}
+  .plan-chip {{ background:none !important; border-radius:10px !important; }}
+  .plan-chip .pc-v {{ font-family:'Inter',-apple-system,sans-serif !important; }}
+  .meta-chip {{ background:rgba(255,255,255,.04) !important; }}
+  .meta-chip.ai {{ color:var(--muted) !important; border-color:var(--line) !important; }}
+  .meta-chip.held, .card-age.held {{ color:var(--muted) !important; }}
+  .cat-chip {{ border-radius:999px !important; background:rgba(255,255,255,.05) !important;
+    border:1px solid var(--line) !important; color:var(--muted) !important; }}
+  .conv2-ring .cv {{ font-family:'Inter',-apple-system,sans-serif !important; }}
+  .card-id .s {{ font-weight:600 !important; }}
+  /* home tiles a touch more padded, grok-style */
+  .bt {{ padding:15px 17px; }} .bt-l {{ letter-spacing:.05em; }}
 </style></head>
 <body><div class="wrap">
   <header class="appbar">
     <div class="appbar-top">
       <div class="brand"><span class="brand-mark">◢</span><span>Signal Desk</span></div>
+      {meganav_html}
       <div class="appbar-mid">
         <div class="appsearch">
           {_svg('search',14)}
@@ -4864,7 +5120,7 @@ def render_html(snap: dict) -> str:
             <button class="acsw" data-accent="#2dd4bf" style="background:#2dd4bf;" aria-label="Cyan"></button>
             <button class="acsw" data-accent="#8b5cf6" style="background:#8b5cf6;" aria-label="Violet"></button>
             <button class="acsw" data-accent="#46d08a" style="background:#46d08a;" aria-label="Green"></button>
-            <button class="acsw" data-accent="#e0a82e" style="background:#e0a82e;" aria-label="Amber"></button>
+            <button class="acsw" data-accent="#b5b5ba" style="background:#b5b5ba;" aria-label="Amber"></button>
             <button class="acsw" data-accent="#ff7a59" style="background:#ff7a59;" aria-label="Coral"></button>
             <button class="acsw" data-accent="#ec4899" style="background:#ec4899;" aria-label="Pink"></button>
             <label class="accustom">Custom <input type="color" id="accentCustom" value="#58a6ff"></label>
@@ -4880,10 +5136,12 @@ def render_html(snap: dict) -> str:
       <button data-area="signals" class="on"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 8h3l2-5 3 10 2-5h4"/></svg> Signals</button>
       <button data-area="markets"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6.3"/><path d="M1.7 8h12.6M8 1.7c2.4 1.8 2.4 10.8 0 12.6M8 1.7c-2.4 1.8-2.4 10.8 0 12.6"/></svg> Markets</button>
       <button data-area="portfolio"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.8" y="5" width="12.4" height="8.5" rx="1.2"/><path d="M5.5 5V3.7a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1V5"/></svg> Portfolio</button>
+      <div class="side-sect">Research</div>
       <button data-area="intel"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="4.5" y="4.5" width="7" height="7" rx="1"/><path d="M6.5 1.8v2.7M9.5 1.8v2.7M6.5 11.5v2.7M9.5 11.5v2.7M1.8 6.5h2.7M1.8 9.5h2.7M11.5 6.5h2.7M11.5 9.5h2.7"/></svg> Intel</button>
       <button data-area="news"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.8" y="3" width="12.4" height="10" rx="1.2"/><path d="M4.3 6h7.4M4.3 8.3h7.4M4.3 10.6h4.5"/></svg> News</button>
       <button data-area="track"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 14V2M1.5 14h13"/><path d="M4 11l3-3 2.4 2L14 4.5"/><path d="M11 4.5h3v3"/></svg> Track record</button>
       <button data-area="analyst"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4.3"/><path d="M10.1 10.1 14 14"/></svg> Analyst</button>
+      <div class="side-sect">System</div>
       <button data-area="livetv"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.8" y="4.3" width="12.4" height="8.4" rx="1.4"/><path d="M6 1.6 8 4l2-2.4"/></svg> Live TV</button>
       <button data-area="about"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6.3"/><path d="M8 7.3v4"/><path d="M8 4.9h.01"/></svg> About</button>
       <button data-area="system"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.3"/><path d="M8 1.4v2M8 12.6v2M1.4 8h2M12.6 8h2M3.3 3.3l1.4 1.4M11.3 11.3l1.4 1.4M12.7 3.3l-1.4 1.4M4.7 11.3l-1.4 1.4"/></svg> System</button>
@@ -4927,6 +5185,7 @@ def render_html(snap: dict) -> str:
   </section>
 
   <section class="page on" id="page-signals">
+    {signals_hero_html}
     {bento_home_html}
     <div class="strat-badge"><span class="k">Strategy type</span><span class="v">Multi-strategy confluence · 7 long + 7 short, trend-gated</span></div>
     <div id="concWarn"></div>
@@ -5190,10 +5449,10 @@ def render_html(snap: dict) -> str:
 
   <section class="page" id="page-livetv">
     <div class="sec-head"><span class="sh-ico">{_svg('tv',15)}</span><h2>Live TV</h2><span class="sh-sub">live financial news streams</span></div>
-    <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Channel:</span>
-      <span class="ctlgrp" id="tvBtns"></span></div>
     <div class="tvwrap"><iframe id="tvFrame" title="Live financial news" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
     <p style="color:var(--muted);font-size:12px;margin-top:10px;">Start muted; unmute in the player. If a stream is blank (it restarted with a new ID) or you want the full experience, <a id="tvLink" href="https://www.youtube.com/@markets/live" target="_blank" rel="noopener">open it on YouTube ↗</a>. Not affiliated with these networks; embedded for convenience.</p>
+    <div class="sec-head"><span class="sh-ico">{_svg('tv',15)}</span><h2>Channels</h2><span class="sh-sub">tap to play</span></div>
+    <div class="tvcards" id="tvCards"></div>
   </section>
 
   <div class="disclaimer">
@@ -5593,7 +5852,7 @@ function _intradayBit(s) {{
   return `<span class="meta-chip ${{ok ? 'fresh' : 'bad'}}" data-tip="${{_esc('Lower-timeframe (' + tf + ') momentum ' + (ok ? 'agrees with' : 'is against') + ' this trade')}}">${{_ico('bolt',12)}}Intraday ${{_ico(ok ? 'check' : 'x',11)}}</span>`;
 }}
 function makeCard(s) {{
-  const el = document.createElement('div'); el.className='card';
+  const el = document.createElement('div'); el.className='card sxcard';
   const cls = (s.action||'').replace(' ','');
   const conv = s.conviction || {{}};
   const cpct = conv.score_pct || 0;
@@ -5675,23 +5934,35 @@ function makeCard(s) {{
         <div class="conv2-bar"><i style="width:${{cpct}}%;background:${{ccol}};"></i></div></div>
     </div>` : '';
   const metaRow = _ageBit(s)+_heldBit(s)+_cmteBit(s)+_alertBit(s)+_intradayBit(s);
+  // ---- SpaceX-style card body: header · description · pills · hairline · label/value rows ----
+  const _m2 = v => '$'+Number(v).toLocaleString(undefined,{{minimumFractionDigits:2,maximumFractionDigits:2}});
+  const _agree = _co ? (_isShort ? (_co.short||[]) : (_co.long||[])) : [];
+  let _dirWord = _isShort ? 'Short' : 'Long';
+  if (s.action==='EXIT') _dirWord='Exit';
+  else if (s.action==='AVOID') _dirWord='Avoid';
+  else if ((s.action||'').indexOf('WATCH')===0) _dirWord = _isShort ? 'Watch short' : 'Watch';
+  let _desc = '';
+  if (s.ai_read) {{ _desc = _mdStrip(s.ai_read).split('. ')[0].slice(0,140); }}
+  else if (famLabel) {{ _desc = famLabel + ' setup' + (_agree.length ? ' — ' + _agree.length + ' strateg' + (_agree.length>1?'ies':'y') + ' in agreement' : ''); }}
+  else if (s.catalyst) {{ _desc = _mdStrip(s.catalyst.headline).slice(0,140); }}
+  const _pills = [`<span class="sx-pill sx-dir"><i class="sx-dot ${{_isShort?'s':'l'}}"></i>${{_dirWord}}</span>`];
+  if (famLabel) _pills.push(`<span class="sx-pill">${{_esc(famLabel)}}</span>`);
+  _agree.slice(0,3).forEach(n => _pills.push(`<span class="sx-pill">${{_esc(n)}}</span>`));
+  if (s.catalyst) _pills.push(`<span class="sx-pill">Catalyst</span>`);
+  const _rows = [];
+  if (_p.entry!=null) _rows.push(['Entry', _m2(_p.entry)]);
+  if (_p.target_pct!=null) _rows.push(['Target', `<span class="sx-up">${{_isShort?'−':'+'}}${{_p.target_pct}}%</span>`]);
+  if (_p.stop_pct!=null) _rows.push(['Stop', `<span class="sx-dn">${{_isShort?'+':'−'}}${{_p.stop_pct}}%</span>`]);
+  if (_p.rr!=null) _rows.push(['R : R', '1:'+_p.rr]);
+  if (conv.label) _rows.push(['Conviction', `<span style="color:${{ccol}}; font-weight:700;">${{cpct}} · ${{_esc(conv.label)}}</span>`]);
+  const _rightMeta = `<div class="sx-meta"><span class="sx-meta-l">Last</span> <span class="sx-meta-v" data-px="${{s.symbol}}">$${{_px.toLocaleString()}}</span>${{dchg?`<div class="sx-meta-chg">${{dchg}}</div>`:''}}</div>`;
   el.innerHTML = `
-    <div class="card-top">${{logo}}
-      <div class="card-id"><div class="s">${{s.symbol}}</div><div class="n">${{s.name||s.exchange||''}}</div></div>
-      ${{_dirPill(s.action)}}
-      <button class="favbtn ${{FAVS.has(s.symbol)?'on':''}}" title="Save to favorites" aria-label="Save to favorites">${{_ico(FAVS.has(s.symbol)?'star-fill':'star',17)}}</button></div>
-    <div class="card-px-row"><span class="card-px" data-px="${{s.symbol}}">$${{_px.toLocaleString()}}</span>${{dchg}}</div>
-    <div class="card-spark">${{_spark2(s.symbol, _dirCol(s), 300, 42)}}</div>
-    ${{convRing}}
-    ${{ladder}}
-    ${{whyHtml}}
-    ${{(metaRow) ? `<div class="meta-chips">${{metaRow}}</div>` : ''}}
-    ${{s.catalyst ? `<div class="cat-chip hint" data-tip="${{_esc(s.catalyst.headline)}}">${{_ico('bolt',12)}} Catalyst — fresh news${{s.catalyst.source?' · '+s.catalyst.source:''}}</div>` : ''}}
-    ${{_altPills(s)}}
-    ${{s.tv ? `<div class="tv-chip hint" data-tip="TradingView's aggregate technical rating (independent of our engine) — daily ${{s.tv.d||'n/a'}}, weekly ${{s.tv.w||'n/a'}}">${{_ico('scale',12)}} TradingView: ${{s.tv.d||'—'}} <span style="opacity:.7;">· 1W ${{s.tv.w||'—'}}</span></div>` : ''}}
-    ${{s.ai_read ? `<div class="ai-box hint" data-tip="${{_esc(_mdStrip(s.ai_read).slice(0,600))}}"><span class="ai-h">${{_ico('ai',13)}} AI analyst</span> ${{_esc(_mdStrip(s.ai_read).split('. ')[0].slice(0,130))}}…</div>` : ''}}
-    ${{edWarn}}
-    <div class="more">${{nNews ? nNews+' news &middot; ':''}}click for chart, RSI, patterns + full breakdown ${{_ico('arrow-rt',12)}}</div>`;
+    <button class="favbtn ${{FAVS.has(s.symbol)?'on':''}}" title="Save to favorites" aria-label="Save to favorites">${{_ico(FAVS.has(s.symbol)?'star-fill':'star',17)}}</button>
+    <div class="sx-head"><div class="sx-hl">${{logo}}<div class="sx-hid"><div class="sx-title">${{s.symbol}}</div><div class="sx-sub">${{s.name||s.exchange||''}}</div></div></div>${{_rightMeta}}</div>
+    ${{_desc ? `<div class="sx-desc">${{_esc(_desc)}}${{_desc.length>=140?'…':''}}</div>` : ''}}
+    ${{_pills.length ? `<div class="sx-pills">${{_pills.join('')}}</div>` : ''}}
+    ${{_rows.length ? `<div class="sx-div"></div><div class="sx-rows">${{_rows.map(r=>`<div class="sx-row"><span class="sx-l">${{r[0]}}</span><span class="sx-v">${{r[1]}}</span></div>`).join('')}}</div>` : ''}}
+    ${{edWarn}}`;
   const _fb = el.querySelector('.favbtn');
   if (_fb) _fb.addEventListener('click', (e) => {{
     e.stopPropagation(); _toggleFav(s.symbol);
@@ -5707,11 +5978,11 @@ const _ACT_ORDER = {{'BUY':0, 'SHORT':1, 'HOLD LONG':2, 'HOLD SHORT':3, 'EXIT':4
 const _conv = s => (s.conviction ? s.conviction.score_pct : -1);
 
 // ===== Alternate layouts (view switcher) ===========================================
-let _layout = 'terminal';
-try {{ _layout = localStorage.getItem('layout') || 'terminal'; }} catch(e) {{}}
+let _layout = 'cards';
+try {{ _layout = localStorage.getItem('layout2') || 'cards'; }} catch(e) {{}}
 function _pxOf(s) {{ return (s.quote_price != null) ? s.quote_price : s.price; }}
 function _rag(pct) {{ pct = pct||0; return pct>=70 ? 'var(--buy)' : (pct>=50 ? '#c08a1e' : 'var(--sell)'); }}
-function _ragT(pct) {{ pct = pct||0; return pct>=70 ? '#33d17a' : (pct>=50 ? '#e8a33d' : '#ff5c4d'); }}
+function _ragT(pct) {{ pct = pct||0; return pct>=70 ? '#33d17a' : (pct>=50 ? '#d0d0d3' : '#ff5c4d'); }}
 function _tvBit(s) {{ return (s.tv && s.tv.d) ? (' · TV ' + s.tv.d) : ''; }}  // short tail for compact rows
 
 // Jump to a top-level tab programmatically (used by clickable alt-data badges).
@@ -5852,7 +6123,7 @@ function L_terminal(list, grouped) {{
       + `<div class="bbpx"><span data-px="${{s.symbol}}">${{_pxOf(s).toLocaleString()}}</span> ${{dcs}}</div>`
       + `<div class="bbmeta">CONV <b style="color:${{_conv(s)>=0?_ragT(_conv(s)):'#8a8a6a'}};">${{_conv(s)>=0?_conv(s):'—'}}</b> · ${{_famOf(s)||'—'}}</div>`
       + `<div class="bblv">${{lv}}</div>`
-      + (s.tv && s.tv.d ? `<div class="bbtv">TV <span style="color:#cbb88a;">${{s.tv.d}}</span> · 1W ${{s.tv.w||'—'}}</div>` : '')
+      + (s.tv && s.tv.d ? `<div class="bbtv">TV <span style="color:#b5b5ba;">${{s.tv.d}}</span> · 1W ${{s.tv.w||'—'}}</div>` : '')
       + _altMini(s)
       + `</div>`;
   }}).join('');
@@ -5917,7 +6188,25 @@ function L_ticker(list, grouped) {{
   const tapeHtml = grouped ? '' : `<div class="tktape"><div class="tktape-in">${{tape}}${{tape}}</div></div>`;
   return _bindAll(_wrap('', `${{tapeHtml}}<div class="tkbody">${{rows}}</div>`), list);
 }}
-const LAYOUT_RENDER = {{terminal:L_terminal, lanes:L_lanes, gauges:L_gauges, feed:L_feed, ticker:L_ticker}};
+function L_rows(list) {{
+  const rows = list.map((s,i)=>{{
+    const conv=_conv(s);
+    const dc=(s.quote_price!=null && s.prev_close)?(s.quote_price/s.prev_close-1)*100:(s.context&&s.context.day_change_pct);
+    const dcs=(dc!=null)?`<div class="chg" style="color:${{dc<0?'var(--sell)':'var(--buy)'}};">${{dc>=0?'+':''}}${{dc.toFixed(1)}}%</div>`:'';
+    const dir=s.action.indexOf('SHORT')>=0?'short':(s.action.indexOf('WATCH')>=0?'watch':'long');
+    return `<div class="rowsig" data-open="${{s.symbol}}">`
+      + `<div class="rk">${{String(i+1).padStart(2,'0')}}</div>`
+      + `${{_logo2(s.symbol,28)}}`
+      + `<div class="nm"><div class="sym">${{s.symbol}} <span class="rtag">${{dir}}</span></div>`
+      + `<div class="co">${{s.name||_famOf(s)||''}}</div></div>`
+      + `<div class="rconv">${{conv>=0?'<b>'+conv+'</b> <span>/100</span>':'—'}}</div>`
+      + `<span class="rspark">${{_spark2(s.symbol,_dirCol(s),160,26)}}</span>`
+      + `<div class="rpx">$${{_pxOf(s).toLocaleString()}}${{dcs}}</div>`
+      + `<div class="rarr">&rarr;</div></div>`;
+  }}).join('');
+  return _bindAll(_wrap('rowswrap', rows), list);
+}}
+const LAYOUT_RENDER = {{rows:L_rows, terminal:L_terminal, lanes:L_lanes, gauges:L_gauges, feed:L_feed, ticker:L_ticker}};
 // ===================================================================================
 
 function _renderConcWarn() {{
@@ -6005,14 +6294,14 @@ function renderCards() {{
   }});
   // --- layout switcher (visual form: cards / terminal / lanes / …) ---
   const lbar = document.getElementById('layoutBtns');
-  const layouts = [['cards','Cards'],['lanes','Lanes'],['terminal','Terminal'],
+  const layouts = [['rows','Rows'],['cards','Cards'],['lanes','Lanes'],['terminal','Terminal'],
                    ['gauges','Gauges'],['feed','Feed'],['ticker','Ticker']];
   layouts.forEach(([v,lab]) => {{
     const b = document.createElement('button'); b.textContent = lab; b.dataset.layout = v;
     if (v === _layout) b.className = 'on';
     b.onclick = () => {{
       _layout = v;
-      try {{ localStorage.setItem('layout', v); }} catch(e) {{}}
+      try {{ localStorage.setItem('layout2', v); }} catch(e) {{}}
       lbar.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.layout === v));
       renderCards();
     }};
@@ -6725,10 +7014,10 @@ document.addEventListener('keydown', e => {{ if (e.key === 'Escape') closeModal(
 // restarts gets a new id, so the embed can go blank until the id is refreshed -> the
 // "open on YouTube" link below always works as the escape hatch.
 const TV_CHANNELS = [
-  ['bloomberg', 'Bloomberg', 'iEpJwprxDdk', 'https://www.youtube.com/@markets/live'],
-  ['yahoo', 'Yahoo Finance', 'KQp-e_XQnDE', 'https://www.youtube.com/@YahooFinance/live'],
-  ['schwab', 'Schwab Network', 'vKOd3v8VTYo', 'https://www.youtube.com/@SchwabNetwork/live'],
-  ['cnbc', 'CNBC', '', 'https://www.youtube.com/@CNBC/live'],
+  ['bloomberg', 'Bloomberg', 'iEpJwprxDdk', 'https://www.youtube.com/@markets/live', 'Global markets, macro and business news, around the clock.', ['Markets','24/7']],
+  ['yahoo', 'Yahoo Finance', 'KQp-e_XQnDE', 'https://www.youtube.com/@YahooFinance/live', 'US market coverage, earnings and single-stock news.', ['Stocks','Earnings']],
+  ['schwab', 'Schwab Network', 'vKOd3v8VTYo', 'https://www.youtube.com/@SchwabNetwork/live', 'Trader-focused analysis, technicals and the open/close.', ['Trading','Technicals']],
+  ['cnbc', 'CNBC', '', 'https://www.youtube.com/@CNBC/live', 'Breaking business news and market coverage (opens on YouTube).', ['News','Live']],
 ];
 let _tvCur = 'bloomberg';
 try {{ _tvCur = localStorage.getItem('tvch') || 'bloomberg'; }} catch (e) {{}}
@@ -6739,7 +7028,7 @@ function _tvSet(key) {{
   // No pinned id (e.g. CNBC, whose live is login-gated) -> blank the player; the link below covers it.
   if (f) f.src = ch[2] ? `https://www.youtube.com/embed/${{ch[2]}}?autoplay=1&mute=1` : 'about:blank';
   const lk = document.getElementById('tvLink'); if (lk) lk.href = ch[3];
-  document.querySelectorAll('#tvBtns button').forEach(b => b.classList.toggle('on', b.dataset.tv === _tvCur));
+  document.querySelectorAll('#tvCards .tvcard').forEach(b => b.classList.toggle('on', b.dataset.tv === _tvCur));
   try {{ localStorage.setItem('tvch', _tvCur); }} catch (e) {{}}
 }}
 let _tvLoaded = false;
@@ -6772,16 +7061,33 @@ function _heatmapInit() {{
   host.appendChild(cont);
 }}
 function _tvInit() {{
-  const bar = document.getElementById('tvBtns');
-  if (!bar || bar.childElementCount) return;
+  const grid = document.getElementById('tvCards');
+  if (!grid || grid.childElementCount) return;
   TV_CHANNELS.forEach(c => {{
-    const b = document.createElement('button'); b.textContent = c[1]; b.dataset.tv = c[0];
-    if (c[0] === _tvCur) b.className = 'on';
-    b.onclick = () => _tvSet(c[0]);
-    bar.appendChild(b);
+    const thumb = c[2] ? `https://img.youtube.com/vi/${{c[2]}}/hqdefault.jpg` : '';
+    const tags = (c[5]||[]).map(t => `<span class="tvtag">${{t}}</span>`).join('');
+    const label = c[2] ? '<span class="dot"></span> Live' : 'YouTube &rarr;';
+    const el = document.createElement('div');
+    el.className = 'tvcard' + (c[0] === _tvCur ? ' on' : '');
+    el.dataset.tv = c[0];
+    el.innerHTML = `<div class="tvthumb">${{thumb ? `<img src="${{thumb}}" loading="lazy" onerror="this.remove()">` : ''}}`
+      + `<span class="tvlabel">${{label}}</span></div>`
+      + `<div class="tvbody"><div class="tvname">${{c[1]}}</div><div class="tvdesc">${{c[4]||''}}</div>`
+      + `<div class="tvtags">${{tags}}</div></div>`;
+    el.onclick = () => _tvSet(c[0]);
+    grid.appendChild(el);
   }});
 }}
 
+// ---- top mega-nav proxies clicks to the (hidden) sidebar buttons ----
+(function setupMegaNav() {{
+  document.querySelectorAll('#megaNav .mg-link[data-go]').forEach(a => {{
+    a.addEventListener('click', () => {{
+      const b = document.querySelector('#sideNav [data-area="' + a.dataset.go + '"]');
+      if (b) b.click();
+    }});
+  }});
+}})();
 // ---- tab navigation ----
 (function setupTabs() {{
   // primary areas (sidebar) -> pages (top tabs). Pages not present in the DOM are filtered out.
