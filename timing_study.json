@@ -17,6 +17,23 @@
         "hit_rate": 76.6
       }
     },
+    "pressure": {
+      "5": {
+        "n": 210,
+        "mean_pct": 0.529,
+        "hit_rate": 61.4
+      },
+      "10": {
+        "n": 210,
+        "mean_pct": 0.997,
+        "hit_rate": 73.3
+      },
+      "20": {
+        "n": 210,
+        "mean_pct": 1.7,
+        "hit_rate": 74.3
+      }
+    },
     "confirmed": {
       "5": {
         "n": 39,
@@ -34,38 +51,21 @@
         "hit_rate": 71.8
       }
     },
-    "pressure": {
-      "5": {
-        "n": 211,
-        "mean_pct": 0.53,
-        "hit_rate": 61.6
-      },
-      "10": {
-        "n": 211,
-        "mean_pct": 0.996,
-        "hit_rate": 73.5
-      },
-      "20": {
-        "n": 211,
-        "mean_pct": 1.705,
-        "hit_rate": 74.4
-      }
-    },
     "correction": {
       "5": {
-        "n": 324,
-        "mean_pct": 0.25,
-        "hit_rate": 57.1
+        "n": 325,
+        "mean_pct": 0.266,
+        "hit_rate": 57.2
       },
       "10": {
-        "n": 324,
-        "mean_pct": 0.348,
-        "hit_rate": 56.2
+        "n": 325,
+        "mean_pct": 0.357,
+        "hit_rate": 56.3
       },
       "20": {
-        "n": 324,
-        "mean_pct": 1.083,
-        "hit_rate": 56.2
+        "n": 325,
+        "mean_pct": 1.098,
+        "hit_rate": 56.3
       }
     },
     "rally_attempt": {
@@ -89,24 +89,24 @@
   "per_index": {
     "S&P 500": {
       "horizon": 10,
-      "always_in_mean_pct": 0.651,
+      "always_in_mean_pct": 0.652,
       "gated_mean_pct": 1.034,
       "days_gated_out": 295,
       "days_total": 430
     },
     "NASDAQ": {
       "horizon": 10,
-      "always_in_mean_pct": 1.004,
+      "always_in_mean_pct": 1.009,
       "gated_mean_pct": 1.311,
       "days_gated_out": 240,
       "days_total": 430
     }
   },
-  "verdict": "Timing signal has separated outcomes: after a correction signal the index averaged +0.35% over the next 10 days (324 samples); after a Follow-Through Day it averaged +4.34% (39 samples).",
+  "verdict": "Timing signal has separated outcomes: after a correction signal the index averaged +0.36% over the next 10 days (325 samples); after a Follow-Through Day it averaged +4.34% (39 samples).",
   "horizons": [
     5,
     10,
     20
   ],
-  "generated_at": "2026-07-10 10:31 UTC"
+  "generated_at": "2026-07-11 06:32 UTC"
 }
