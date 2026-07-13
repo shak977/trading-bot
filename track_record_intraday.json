@@ -261863,7 +261863,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "loss",
+    "exit": 210.2,
+    "exit_date": "2026-07-13",
+    "return_pct": -0.37,
+    "days_held": 0
   },
   {
     "id": "REGN:2026-07-12",
@@ -263468,7 +263472,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 525.41,
+    "exit_date": "2026-07-13",
+    "return_pct": -0.07,
+    "days_held": 0
   },
   {
     "id": "NSC:2026-07-12",
@@ -265937,7 +265945,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "win",
+    "exit": 976.48,
+    "exit_date": "2026-07-13",
+    "return_pct": 0.43,
+    "days_held": 0
   },
   {
     "id": "NET:2026-07-12",
@@ -266233,7 +266245,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "loss",
+    "exit": 210.2,
+    "exit_date": "2026-07-13",
+    "return_pct": -0.37,
+    "days_held": -1
   },
   {
     "id": "REGN:2026-07-13",
@@ -267757,7 +267773,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 525.41,
+    "exit_date": "2026-07-13",
+    "return_pct": -0.07,
+    "days_held": -1
   },
   {
     "id": "NSC:2026-07-13",
@@ -270226,7 +270246,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "win",
+    "exit": 976.48,
+    "exit_date": "2026-07-13",
+    "return_pct": 0.43,
+    "days_held": -1
   },
   {
     "id": "NET:2026-07-13",
@@ -270435,6 +270459,87 @@
       {
         "label": "Smart-money footprint?",
         "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "KEYS:2026-07-13",
+    "symbol": "KEYS",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-13",
+    "advised_ts": "2026-07-13T12:33:48.729503",
+    "entry": 326.5,
+    "stop": 325.1,
+    "target": 332.08,
+    "rr": 4.0,
+    "conviction": "Medium",
+    "conviction_pct": 72,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
       }
     ],
     "tv_align": null,
