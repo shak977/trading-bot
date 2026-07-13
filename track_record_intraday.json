@@ -278204,7 +278204,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 244.32,
+    "exit_date": "2026-07-13",
+    "return_pct": 1.4,
+    "days_held": -1
   },
   {
     "id": "UNP:2026-07-13",
@@ -280542,7 +280546,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 204.43,
+    "exit_date": "2026-07-13",
+    "return_pct": -1.44,
+    "days_held": -1
   },
   {
     "id": "MA:2026-07-13",
@@ -280846,7 +280854,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 135.44,
+    "exit_date": "2026-07-13",
+    "return_pct": 1.23,
+    "days_held": -1
   },
   {
     "id": "AADX:2026-07-13",
@@ -281304,7 +281316,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 175.59,
+    "exit_date": "2026-07-13",
+    "return_pct": -0.45,
+    "days_held": -1
   },
   {
     "id": "CB:2026-07-13",
@@ -282232,7 +282248,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 102.21,
+    "exit_date": "2026-07-13",
+    "return_pct": 0.27,
+    "days_held": -1
   },
   {
     "id": "SPCX:2026-07-13",
@@ -283083,6 +283103,79 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "CSCO:2026-07-13",
+    "symbol": "CSCO",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-13",
+    "advised_ts": "2026-07-13T18:55:36.984343",
+    "entry": 119.68,
+    "stop": 119.24,
+    "target": 120.24,
+    "rr": 1.26,
+    "conviction": "Medium",
+    "conviction_pct": 67,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "warn"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "thin",
     "status": "open"
   }
 ]
