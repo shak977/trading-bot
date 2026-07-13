@@ -1,11 +1,5 @@
 {
   "signals": {
-    "ANET": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 91,
-      "dir": "LONG"
-    },
     "AAL": {
       "action": "WATCH LONG",
       "label": "High",
@@ -24,6 +18,12 @@
       "score": 94,
       "dir": "LONG"
     },
+    "SBUX": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 78,
+      "dir": "LONG"
+    },
     "CI": {
       "action": "WATCH LONG",
       "label": "High",
@@ -34,12 +34,6 @@
       "action": "WATCH LONG",
       "label": "High",
       "score": 90,
-      "dir": "LONG"
-    },
-    "SBUX": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 77,
       "dir": "LONG"
     },
     "DLTR": {
@@ -54,12 +48,6 @@
       "score": 89,
       "dir": "LONG"
     },
-    "NET": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 87,
-      "dir": "LONG"
-    },
     "IBM": {
       "action": "WATCH LONG",
       "label": "High",
@@ -69,25 +57,19 @@
     "GE": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 81,
-      "dir": "LONG"
-    },
-    "AXP": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 91,
+      "score": 80,
       "dir": "LONG"
     },
     "MPC": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 88,
+      "score": 87,
       "dir": "LONG"
     },
     "BMY": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 88,
+      "score": 87,
       "dir": "LONG"
     },
     "ABBV": {
@@ -96,19 +78,25 @@
       "score": 90,
       "dir": "LONG"
     },
+    "WMB": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 87,
+      "dir": "LONG"
+    },
     "UPS": {
       "action": "WATCH LONG",
       "label": "High",
       "score": 86,
       "dir": "LONG"
     },
-    "DELL": {
+    "ANET": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 84,
+      "score": 83,
       "dir": "LONG"
     },
-    "WMB": {
+    "DELL": {
       "action": "WATCH LONG",
       "label": "High",
       "score": 85,
@@ -117,7 +105,7 @@
     "SNOW": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 80,
+      "score": 81,
       "dir": "LONG"
     },
     "AAPL": {
@@ -135,10 +123,16 @@
     "AMGN": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 86,
+      "score": 84,
       "dir": "LONG"
     },
     "V": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 83,
+      "dir": "LONG"
+    },
+    "AXP": {
       "action": "WATCH LONG",
       "label": "High",
       "score": 85,
@@ -147,7 +141,13 @@
     "GD": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 83,
+      "score": 82,
+      "dir": "LONG"
+    },
+    "NET": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 79,
       "dir": "LONG"
     },
     "PRU": {
@@ -162,6 +162,12 @@
       "score": 76,
       "dir": "LONG"
     },
+    "MSFT": {
+      "action": "WATCH SHORT",
+      "label": "High",
+      "score": 81,
+      "dir": "SHORT"
+    },
     "LULU": {
       "action": "WATCH SHORT",
       "label": "High",
@@ -170,14 +176,20 @@
     },
     "CMCSA": {
       "action": "WATCH SHORT",
-      "label": "Medium",
-      "score": 74,
+      "label": "High",
+      "score": 84,
       "dir": "SHORT"
     },
     "INTU": {
       "action": "WATCH SHORT",
       "label": "High",
       "score": 77,
+      "dir": "SHORT"
+    },
+    "ORLY": {
+      "action": "WATCH SHORT",
+      "label": "Medium",
+      "score": 74,
       "dir": "SHORT"
     },
     "AMT": {
@@ -210,34 +222,22 @@
       "score": 69,
       "dir": "SHORT"
     },
-    "ORLY": {
-      "action": "WATCH SHORT",
-      "label": "Medium",
-      "score": 66,
-      "dir": "SHORT"
-    },
     "TSLA": {
       "action": "WATCH SHORT",
       "label": "Medium",
       "score": 63,
       "dir": "SHORT"
     },
-    "MET": {
+    "UNP": {
       "action": "HOLD LONG",
       "label": "High",
       "score": 92,
       "dir": "LONG"
     },
-    "CSX": {
+    "MET": {
       "action": "HOLD LONG",
       "label": "High",
-      "score": 88,
-      "dir": "LONG"
-    },
-    "UNP": {
-      "action": "HOLD LONG",
-      "label": "High",
-      "score": 88,
+      "score": 92,
       "dir": "LONG"
     }
   },
@@ -248,10 +248,10 @@
     "Industrials": 67,
     "Materials": 67,
     "Utilities": 67,
-    "Other / Movers": 62,
+    "Other / Movers": 61,
     "Consumer": 56,
     "Staples": 56,
-    "Technology": 54,
+    "Technology": 50,
     "Communication": 25,
     "Real Estate": 0,
     "Energy": 0
