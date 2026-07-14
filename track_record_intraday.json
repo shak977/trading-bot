@@ -296954,7 +296954,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "win",
+    "exit": 138.05,
+    "exit_date": "2026-07-14",
+    "return_pct": 3.25,
+    "days_held": -1
   },
   {
     "id": "LULU:2026-07-14",
@@ -298498,7 +298502,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 354.76,
+    "exit_date": "2026-07-14",
+    "return_pct": -0.44,
+    "days_held": -1
   },
   {
     "id": "ITG:2026-07-14",
@@ -298952,7 +298960,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 13.85,
+    "exit_date": "2026-07-14",
+    "return_pct": -0.72,
+    "days_held": -1
   },
   {
     "id": "DVN:2026-07-14",
@@ -299714,7 +299726,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "win",
+    "exit": 211.51,
+    "exit_date": "2026-07-14",
+    "return_pct": 0.14,
+    "days_held": -1
   },
   {
     "id": "SPGI:2026-07-14",
@@ -299937,7 +299953,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 219.0,
+    "exit_date": "2026-07-14",
+    "return_pct": -0.3,
+    "days_held": -1
   },
   {
     "id": "WHK:2026-07-14",
@@ -300300,6 +300320,229 @@
       {
         "label": "Worked here before?",
         "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "win",
+    "exit": 120.84,
+    "exit_date": "2026-07-14",
+    "return_pct": 0.15,
+    "days_held": -1
+  },
+  {
+    "id": "WM:2026-07-14",
+    "symbol": "WM",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-14",
+    "advised_ts": "2026-07-14T18:34:24.016795",
+    "entry": 234.35,
+    "stop": 233.98,
+    "target": 234.73,
+    "rr": 1.03,
+    "conviction": "Medium",
+    "conviction_pct": 71,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "PBLS:2026-07-14",
+    "symbol": "PBLS",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-14",
+    "advised_ts": "2026-07-14T18:34:24.016795",
+    "entry": 30.43,
+    "stop": 30.17,
+    "target": 30.5,
+    "rr": 0.25,
+    "conviction": "Medium",
+    "conviction_pct": 67,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "COP:2026-07-14",
+    "symbol": "COP",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-14",
+    "advised_ts": "2026-07-14T18:34:24.016795",
+    "entry": 111.0,
+    "stop": 110.66,
+    "target": 111.12,
+    "rr": 0.37,
+    "conviction": "Medium",
+    "conviction_pct": 63,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
       },
       {
         "label": "Strategies agree?",
