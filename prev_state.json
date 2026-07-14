@@ -3,25 +3,43 @@
     "GS": {
       "action": "WATCH LONG",
       "label": "Medium",
+      "score": 86,
+      "dir": "LONG"
+    },
+    "ELV": {
+      "action": "WATCH LONG",
+      "label": "Medium",
       "score": 87,
       "dir": "LONG"
     },
     "CRWD": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 88,
+      "score": 87,
       "dir": "LONG"
     },
-    "C": {
+    "BAC": {
       "action": "WATCH LONG",
       "label": "Medium",
-      "score": 76,
+      "score": 86,
+      "dir": "LONG"
+    },
+    "CI": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 90,
       "dir": "LONG"
     },
     "VRTX": {
       "action": "WATCH LONG",
       "label": "High",
       "score": 90,
+      "dir": "LONG"
+    },
+    "NET": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 87,
       "dir": "LONG"
     },
     "ABBV": {
@@ -42,16 +60,22 @@
       "score": 87,
       "dir": "LONG"
     },
-    "GE": {
-      "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 81,
-      "dir": "LONG"
-    },
     "MPC": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 86,
+      "score": 87,
+      "dir": "LONG"
+    },
+    "AXP": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 89,
+      "dir": "LONG"
+    },
+    "GE": {
+      "action": "WATCH LONG",
+      "label": "Medium",
+      "score": 82,
       "dir": "LONG"
     },
     "YUM": {
@@ -63,19 +87,13 @@
     "AAPL": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 80,
+      "score": 79,
       "dir": "LONG"
     },
     "AMGN": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 82,
-      "dir": "LONG"
-    },
-    "BAC": {
-      "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 80,
+      "score": 83,
       "dir": "LONG"
     },
     "ANET": {
@@ -87,7 +105,7 @@
     "BMY": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 83,
+      "score": 82,
       "dir": "LONG"
     },
     "SBUX": {
@@ -99,13 +117,13 @@
     "V": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 87,
+      "score": 85,
       "dir": "LONG"
     },
     "KMI": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 84,
+      "score": 83,
       "dir": "LONG"
     },
     "WMB": {
@@ -132,28 +150,10 @@
       "score": 73,
       "dir": "LONG"
     },
-    "AXP": {
+    "PM": {
       "action": "WATCH LONG",
-      "label": "High",
-      "score": 84,
-      "dir": "LONG"
-    },
-    "CI": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 79,
-      "dir": "LONG"
-    },
-    "NET": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 79,
-      "dir": "LONG"
-    },
-    "GD": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 77,
+      "label": "Medium",
+      "score": 69,
       "dir": "LONG"
     },
     "ISRG": {
@@ -198,6 +198,12 @@
       "score": 74,
       "dir": "SHORT"
     },
+    "HCA": {
+      "action": "WATCH SHORT",
+      "label": "Medium",
+      "score": 58,
+      "dir": "SHORT"
+    },
     "TSLA": {
       "action": "WATCH SHORT",
       "label": "Medium",
@@ -208,12 +214,6 @@
       "action": "WATCH SHORT",
       "label": "High",
       "score": 76,
-      "dir": "SHORT"
-    },
-    "HCA": {
-      "action": "WATCH SHORT",
-      "label": "Medium",
-      "score": 57,
       "dir": "SHORT"
     },
     "COST": {
@@ -237,22 +237,22 @@
     "AAL": {
       "action": "HOLD LONG",
       "label": "High",
-      "score": 89,
+      "score": 88,
       "dir": "LONG"
     }
   },
   "sectors": {
     "Index ETFs": 100,
     "Utilities": 100,
-    "Financials": 89,
     "Healthcare": 87,
-    "Industrials": 67,
+    "Financials": 83,
+    "Industrials": 78,
     "Materials": 67,
     "Other / Movers": 63,
     "Technology": 58,
     "Consumer": 44,
+    "Staples": 33,
     "Communication": 25,
-    "Staples": 22,
     "Real Estate": 0,
     "Energy": 0
   },
