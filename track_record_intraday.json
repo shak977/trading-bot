@@ -285295,7 +285295,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "loss",
+    "exit": 316.4,
+    "exit_date": "2026-07-14",
+    "return_pct": -0.3,
+    "days_held": -1
   },
   {
     "id": "DUK:2026-07-14",
@@ -287367,7 +287371,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 523.6,
+    "exit_date": "2026-07-14",
+    "return_pct": 0.16,
+    "days_held": -1
   },
   {
     "id": "CCCTU:2026-07-14",
@@ -287951,7 +287959,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "win",
+    "exit": 131.36,
+    "exit_date": "2026-07-14",
+    "return_pct": 0.55,
+    "days_held": -1
   },
   {
     "id": "PH:2026-07-14",
@@ -288316,6 +288328,83 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "thin",
+    "status": "open"
+  },
+  {
+    "id": "JPM:2026-07-14",
+    "symbol": "JPM",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-07-14",
+    "advised_ts": "2026-07-14T12:36:15.255755",
+    "entry": 325.0,
+    "stop": 327.15,
+    "target": 316.39,
+    "rr": 4.0,
+    "conviction": "High",
+    "conviction_pct": 77,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
     "status": "open"
   }
 ]
