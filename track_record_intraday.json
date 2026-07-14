@@ -300950,5 +300950,86 @@
     "regime_score": null,
     "liquidity_tier": "illiquid",
     "status": "open"
+  },
+  {
+    "id": "SKHY:2026-07-14",
+    "symbol": "SKHY",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-14",
+    "advised_ts": "2026-07-14T22:12:50.580400",
+    "entry": 190.23,
+    "stop": 186.45,
+    "target": 194.69,
+    "rr": 1.18,
+    "conviction": "Medium",
+    "conviction_pct": 72,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "thin",
+    "status": "open"
   }
 ]
