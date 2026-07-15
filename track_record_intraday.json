@@ -316878,7 +316878,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 196.26,
+    "exit_date": "2026-07-15",
+    "return_pct": -0.53,
+    "days_held": -1
   },
   {
     "id": "CAT:2026-07-15",
@@ -317806,7 +317810,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 74.48,
+    "exit_date": "2026-07-15",
+    "return_pct": 0.75,
+    "days_held": -1
   },
   {
     "id": "WMT:2026-07-15",
@@ -318261,6 +318269,75 @@
       },
       {
         "label": "Smart-money footprint?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "win",
+    "exit": 23.67,
+    "exit_date": "2026-07-15",
+    "return_pct": 0.59,
+    "days_held": -1
+  },
+  {
+    "id": "FRBT:2026-07-15",
+    "symbol": "FRBT",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-07-15",
+    "advised_ts": "2026-07-15T19:36:47.098660",
+    "entry": 19.28,
+    "stop": 19.72,
+    "target": 18.23,
+    "rr": 2.41,
+    "conviction": "High",
+    "conviction_pct": 86,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Reward:risk worth it?",
         "status": "pass"
       }
     ],
