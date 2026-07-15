@@ -1,15 +1,27 @@
 {
   "signals": {
+    "ANET": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 83,
+      "dir": "LONG"
+    },
     "PYPL": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 80,
+      "score": 84,
       "dir": "LONG"
     },
     "AAPL": {
       "action": "WATCH LONG",
       "label": "High",
       "score": 78,
+      "dir": "LONG"
+    },
+    "META": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 76,
       "dir": "LONG"
     },
     "DLTR": {
@@ -36,6 +48,12 @@
       "score": 83,
       "dir": "LONG"
     },
+    "BAC": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 83,
+      "dir": "LONG"
+    },
     "JPM": {
       "action": "WATCH LONG",
       "label": "High",
@@ -48,22 +66,22 @@
       "score": 68,
       "dir": "LONG"
     },
-    "META": {
-      "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 73,
-      "dir": "LONG"
-    },
     "VRTX": {
       "action": "WATCH LONG",
       "label": "High",
       "score": 87,
       "dir": "LONG"
     },
-    "BAC": {
+    "GS": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 83,
+      "score": 77,
+      "dir": "LONG"
+    },
+    "YUM": {
+      "action": "WATCH LONG",
+      "label": "Medium",
+      "score": 72,
       "dir": "LONG"
     },
     "ABBV": {
@@ -78,18 +96,6 @@
       "score": 86,
       "dir": "LONG"
     },
-    "GS": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 77,
-      "dir": "LONG"
-    },
-    "NET": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 78,
-      "dir": "LONG"
-    },
     "PSX": {
       "action": "WATCH LONG",
       "label": "High",
@@ -99,13 +105,13 @@
     "DXCM": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 79,
+      "score": 78,
       "dir": "LONG"
     },
     "LIN": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 78,
+      "score": 77,
       "dir": "LONG"
     },
     "CRWD": {
@@ -120,12 +126,6 @@
       "score": 77,
       "dir": "LONG"
     },
-    "SNOW": {
-      "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 67,
-      "dir": "LONG"
-    },
     "BMY": {
       "action": "WATCH LONG",
       "label": "High",
@@ -135,7 +135,7 @@
     "VLO": {
       "action": "WATCH LONG",
       "label": "Medium",
-      "score": 73,
+      "score": 70,
       "dir": "LONG"
     },
     "SBUX": {
@@ -147,13 +147,7 @@
     "V": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 79,
-      "dir": "LONG"
-    },
-    "GD": {
-      "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 69,
+      "score": 81,
       "dir": "LONG"
     },
     "PRU": {
@@ -162,10 +156,16 @@
       "score": 68,
       "dir": "LONG"
     },
-    "DG": {
+    "SNOW": {
       "action": "WATCH LONG",
       "label": "Medium",
-      "score": 71,
+      "score": 62,
+      "dir": "LONG"
+    },
+    "GD": {
+      "action": "WATCH LONG",
+      "label": "Medium",
+      "score": 67,
       "dir": "LONG"
     },
     "KMI": {
@@ -244,10 +244,10 @@
   "sectors": {
     "Utilities": 100,
     "Financials": 94,
-    "Healthcare": 87,
+    "Healthcare": 80,
     "Index ETFs": 75,
     "Materials": 67,
-    "Other / Movers": 57,
+    "Other / Movers": 58,
     "Consumer": 56,
     "Industrials": 44,
     "Technology": 38,
