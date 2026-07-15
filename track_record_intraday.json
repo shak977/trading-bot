@@ -314285,7 +314285,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 245.22,
+    "exit_date": "2026-07-15",
+    "return_pct": -0.45,
+    "days_held": -1
   },
   {
     "id": "V:2026-07-15",
@@ -315614,7 +315618,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 345.82,
+    "exit_date": "2026-07-15",
+    "return_pct": -0.65,
+    "days_held": -1
   },
   {
     "id": "HUM:2026-07-15",
@@ -317490,7 +317498,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 11.99,
+    "exit_date": "2026-07-15",
+    "return_pct": -0.93,
+    "days_held": -1
   },
   {
     "id": "UBER:2026-07-15",
@@ -318098,7 +318110,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 122.11,
+    "exit_date": "2026-07-15",
+    "return_pct": -0.27,
+    "days_held": -1
   },
   {
     "id": "XOM:2026-07-15",
@@ -318176,5 +318192,82 @@
     "exit_date": "2026-07-15",
     "return_pct": -0.26,
     "days_held": -1
+  },
+  {
+    "id": "LFTO:2026-07-15",
+    "symbol": "LFTO",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-07-15",
+    "advised_ts": "2026-07-15T18:47:15.489793",
+    "entry": 23.81,
+    "stop": 24.04,
+    "target": 23.67,
+    "rr": 0.6,
+    "conviction": "Medium",
+    "conviction_pct": 74,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
   }
 ]
