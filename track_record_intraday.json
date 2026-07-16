@@ -331018,7 +331018,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 47.23,
+    "exit_date": "2026-07-16",
+    "return_pct": -1.83,
+    "days_held": -1
   },
   {
     "id": "MDLZ:2026-07-16",
@@ -332882,7 +332886,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 352.24,
+    "exit_date": "2026-07-16",
+    "return_pct": -0.93,
+    "days_held": -1
   },
   {
     "id": "CVX:2026-07-16",
@@ -333960,7 +333968,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 114.89,
+    "exit_date": "2026-07-16",
+    "return_pct": 0.34,
+    "days_held": -1
   },
   {
     "id": "ALL:2026-07-16",
@@ -334033,7 +334045,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 239.27,
+    "exit_date": "2026-07-16",
+    "return_pct": 1.5,
+    "days_held": -1
   },
   {
     "id": "YUM:2026-07-16",
@@ -334479,7 +334495,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 13.83,
+    "exit_date": "2026-07-16",
+    "return_pct": -0.86,
+    "days_held": -1
   },
   {
     "id": "FANG:2026-07-16",
@@ -334629,7 +334649,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 272.48,
+    "exit_date": "2026-07-16",
+    "return_pct": 0.42,
+    "days_held": -1
   },
   {
     "id": "TRV:2026-07-16",
@@ -334852,7 +334876,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 138.63,
+    "exit_date": "2026-07-16",
+    "return_pct": -0.34,
+    "days_held": -1
   },
   {
     "id": "CB:2026-07-16",
@@ -334923,6 +334951,229 @@
     ],
     "tv_align": null,
     "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "CRWD:2026-07-16",
+    "symbol": "CRWD",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-07-16",
+    "advised_ts": "2026-07-16T17:05:13.315033",
+    "entry": 202.48,
+    "stop": 204.49,
+    "target": 201.41,
+    "rr": 0.53,
+    "conviction": "High",
+    "conviction_pct": 79,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "EROC:2026-07-16",
+    "symbol": "EROC",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-07-16",
+    "advised_ts": "2026-07-16T17:05:13.315033",
+    "entry": 10.75,
+    "stop": 10.91,
+    "target": 10.59,
+    "rr": 1.0,
+    "conviction": "Medium",
+    "conviction_pct": 74,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "ABNB:2026-07-16",
+    "symbol": "ABNB",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-07-16",
+    "advised_ts": "2026-07-16T17:05:13.315033",
+    "entry": 147.39,
+    "stop": 147.87,
+    "target": 147.27,
+    "rr": 0.25,
+    "conviction": "Medium",
+    "conviction_pct": 67,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "warn"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
     "status": "open"
