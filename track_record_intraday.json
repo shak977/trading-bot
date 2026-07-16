@@ -314021,7 +314021,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 134.42,
+    "exit_date": "2026-07-16",
+    "return_pct": 2.22,
+    "days_held": 0
   },
   {
     "id": "CNXU:2026-07-15",
@@ -331326,7 +331330,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 305.01,
+    "exit_date": "2026-07-16",
+    "return_pct": -0.67,
+    "days_held": -1
   },
   {
     "id": "DLTR:2026-07-16",
@@ -333506,7 +333514,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 286.46,
+    "exit_date": "2026-07-16",
+    "return_pct": -1.09,
+    "days_held": -1
   },
   {
     "id": "AADX:2026-07-16",
@@ -333895,7 +333907,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 145.82,
+    "exit_date": "2026-07-16",
+    "return_pct": -0.42,
+    "days_held": -1
   },
   {
     "id": "WMT:2026-07-16",
@@ -334572,7 +334588,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 190.72,
+    "exit_date": "2026-07-16",
+    "return_pct": -0.34,
+    "days_held": -1
   },
   {
     "id": "MCD:2026-07-16",
@@ -334726,7 +334746,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 332.48,
+    "exit_date": "2026-07-16",
+    "return_pct": -0.27,
+    "days_held": -1
   },
   {
     "id": "CMG:2026-07-16",
@@ -334953,7 +334977,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 343.08,
+    "exit_date": "2026-07-16",
+    "return_pct": -0.27,
+    "days_held": -1
   },
   {
     "id": "CRWD:2026-07-16",
@@ -335103,7 +335131,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 10.59,
+    "exit_date": "2026-07-16",
+    "return_pct": 1.49,
+    "days_held": -1
   },
   {
     "id": "ABNB:2026-07-16",
@@ -335170,6 +335202,83 @@
       {
         "label": "Reward:risk worth it?",
         "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "COF:2026-07-16",
+    "symbol": "COF",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-16",
+    "advised_ts": "2026-07-16T17:35:49.198984",
+    "entry": 212.72,
+    "stop": 212.01,
+    "target": 213.15,
+    "rr": 0.59,
+    "conviction": "Medium",
+    "conviction_pct": 66,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
       }
     ],
     "tv_align": null,
