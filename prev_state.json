@@ -1,11 +1,5 @@
 {
   "signals": {
-    "USB": {
-      "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 87,
-      "dir": "LONG"
-    },
     "PSX": {
       "action": "WATCH LONG",
       "label": "High",
@@ -26,11 +20,17 @@
     },
     "PLD": {
       "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 85,
+      "label": "High",
+      "score": 90,
       "dir": "LONG"
     },
     "DXCM": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 90,
+      "dir": "LONG"
+    },
+    "USB": {
       "action": "WATCH LONG",
       "label": "High",
       "score": 90,
@@ -63,7 +63,7 @@
     "BAC": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 88,
+      "score": 90,
       "dir": "LONG"
     },
     "CNC": {
@@ -96,22 +96,16 @@
       "score": 83,
       "dir": "LONG"
     },
-    "AXP": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 91,
-      "dir": "LONG"
-    },
     "PM": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 81,
+      "score": 79,
       "dir": "LONG"
     },
     "DLTR": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 81,
+      "score": 80,
       "dir": "LONG"
     },
     "JPM": {
@@ -132,6 +126,12 @@
       "score": 84,
       "dir": "LONG"
     },
+    "AXP": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 88,
+      "dir": "LONG"
+    },
     "UPS": {
       "action": "WATCH LONG",
       "label": "Medium",
@@ -144,16 +144,16 @@
       "score": 78,
       "dir": "LONG"
     },
-    "XOM": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 75,
-      "dir": "LONG"
-    },
     "GD": {
       "action": "WATCH LONG",
+      "label": "High",
+      "score": 79,
+      "dir": "LONG"
+    },
+    "XOM": {
+      "action": "WATCH LONG",
       "label": "Medium",
-      "score": 74,
+      "score": 71,
       "dir": "LONG"
     },
     "AMZN": {
@@ -165,7 +165,7 @@
     "ORCL": {
       "action": "WATCH SHORT",
       "label": "High",
-      "score": 78,
+      "score": 77,
       "dir": "SHORT"
     },
     "ISRG": {
@@ -206,8 +206,8 @@
     },
     "TSLA": {
       "action": "WATCH SHORT",
-      "label": "Medium",
-      "score": 73,
+      "label": "High",
+      "score": 79,
       "dir": "SHORT"
     },
     "MCD": {
@@ -224,8 +224,8 @@
     },
     "T": {
       "action": "WATCH SHORT",
-      "label": "Medium",
-      "score": 68,
+      "label": "High",
+      "score": 78,
       "dir": "SHORT"
     },
     "LMT": {
@@ -237,7 +237,7 @@
     "PEP": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 65,
+      "score": 64,
       "dir": "SHORT"
     }
   },
@@ -257,5 +257,5 @@
     "Communication": 25
   },
   "catalysts": [],
-  "generated_at": "2026-07-16"
+  "generated_at": "2026-07-17"
 }
