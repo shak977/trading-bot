@@ -39,6 +39,43 @@ def _md_inline(s: str) -> str:
     return "".join(f"<p>{p.replace(chr(10), '<br>')}</p>" for p in parts) if parts else s
 
 
+def _brief_panels(brief: str, sectors: list | None) -> str:
+    """Market brief as a 2x2 quadrant of labelled panels + a colour-coded sector-strength strip."""
+    import re
+    _ic = {"The Mood": "compass", "What's Driving It": "bolt",
+           "What the Screen Flags": "search", "What to Watch": "target"}
+
+    def _inline(t):
+        t = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", t)
+        t = re.sub(r"(?<!\*)\*(?!\s)(.+?)(?<!\s)\*(?!\*)", r"<em>\1</em>", t)
+        t = re.sub(r"(?i)\b(risk-on|bullish|high-conviction|leading|winners?|strength|gains|outperform\w*|benefit\w*)\b",
+                   r'<span class="mbhl up">\1</span>', t)
+        t = re.sub(r"(?i)\b(risk-off|bearish|downgrade\w*|headwinds?|weakness|weak|fragilit\w*|fragile|sidelined)\b",
+                   r'<span class="mbhl dn">\1</span>', t)
+        return " ".join(t.split())
+
+    parts = re.split(r"\*\*([^*]+?):\*\*", brief or "")
+    panels = ""
+    it = iter(parts[1:])
+    for label, text in zip(it, it):
+        label = label.strip()
+        panels += (f'<div class="mbp"><div class="mbp-h">{_svg(_ic.get(label, "sparkle"), 14)} {label}</div>'
+                   f'<div class="mbp-b">{_inline(text.strip())}</div></div>')
+    if not panels:
+        return f'<div class="bt-body">{_md_inline(brief)}</div>'
+    chips = ""
+    for s in (sectors or [])[:8]:
+        nm = s.get("sector", "")
+        if not nm or nm.startswith("Other"):
+            continue
+        pu = s.get("pct_up", 0)
+        cls = "up" if pu >= 70 else ("dn" if pu < 50 else "flat")
+        arr = "&uarr;" if pu >= 70 else ("&darr;" if pu < 50 else "&rarr;")
+        chips += f'<span class="mbsec">{nm} <b class="{cls}">{pu}% {arr}</b></span>'
+    strip = f'<div class="mbsecs">{chips}</div>' if chips else ""
+    return f'<div class="mb-quad">{panels}</div>{strip}'
+
+
 # --- Inline SVG icon set (Tabler/Lucide-style, 1.5 stroke, currentColor) ---------------------
 # One reusable line-icon library, mirrored in JS as `ICON` for client-side templates. Every
 # emoji that used to stand in for meaning is replaced by one of these so colour is inherited and
@@ -1428,12 +1465,44 @@ def _signals_hero(snap: dict) -> str:
     wr = tk.get("win_rate")
     wr_txt = f'{wr}%' if isinstance(wr, (int, float)) else "—"
     resolved = tk.get("resolved", 0)
+    def _is_long(s): return s.get("direction") == "LONG" or s.get("action") in ("BUY", "HOLD LONG", "WATCH LONG")
+    def _is_short(s): return s.get("direction") == "SHORT" or s.get("action") in ("SHORT", "HOLD SHORT", "WATCH SHORT")
+    n_long = sum(1 for s in sigs if _is_long(s))
+    n_short = sum(1 for s in sigs if _is_short(s))
+    _cv = [(s.get("conviction") or {}).get("score_pct") for s in sigs]
+    _cv = [c for c in _cv if isinstance(c, (int, float))]
+    avg_conv = round(sum(_cv) / len(_cv)) if _cv else "—"
     reg = snap.get("regime") or {}
+    mp = snap.get("macro_posture") or {}
+    ranked = snap.get("ranked") or []
+    _breadth = reg.get("breadth")
+    breadth_txt = f'{_breadth}%' if _breadth is not None else "—"
+    rsi_txt = f'{reg.get("avg_rsi")}' if reg.get("avg_rsi") is not None else "—"
+    _expo = mp.get("exposure_mult")
+    expo_txt = f'{_expo:.2f}×' if _expo else "—"
+
+    def _lv(x):
+        a = x.get("action") or ""
+        if a in ("FLAT", "EXIT", "AVOID"):
+            return False
+        if (x.get("days_old") or 0) > 14:
+            return False
+        p = x.get("quote_price") if x.get("quote_price") is not None else x.get("price")
+        pl = x.get("plan") or {}
+        if p is not None and pl.get("target") is not None and pl.get("stop") is not None:
+            lng = x.get("direction") != "SHORT"
+            if lng and (p >= pl["target"] or p <= pl["stop"]):
+                return False
+            if (not lng) and (p <= pl["target"] or p >= pl["stop"]):
+                return False
+        return True
+    _top = max((x for x in sigs if _lv(x)), key=lambda x: (x.get("rank_score") or 0), default=None)
+    top_txt = (_top.get("symbol") if _top else None) or "—"
     reg_lab = reg.get("label", "—")
     tone = {"Risk-on": "buy", "Neutral": "warn", "Risk-off": "sell"}.get(reg_lab, "")
     esc = lambda s: (str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
     return (
-        '<div class="hero-x"><div class="hx-title">Signals</div>'
+        '<div class="hero-x"><div class="hx-eyebrow">Live · US equities</div><div class="hx-title">Signals</div>'
         '<p class="hx-sub">A self-adapting read on US equities — conviction scored from every check, '
         'graded against real outcomes, with a live social pulse from Grok.</p>'
         '<div class="hx-btns">'
@@ -1441,12 +1510,82 @@ def _signals_hero(snap: dict) -> str:
         '<button class="hx-btn ghost" onclick="window._showPage&&_showPage(\'markets\')">Watchlist</button>'
         '</div>'
         '<div class="hx-kpis">'
-        f'<div class="hx-kpi"><div class="k">Live today</div><div class="v">{n_live}</div></div>'
-        f'<div class="hx-kpi"><div class="k">Win rate</div><div class="v">{wr_txt}</div>'
-        f'<div class="k" style="margin-top:3px;text-transform:none;letter-spacing:0;font-size:11px;">{resolved} resolved</div></div>'
-        f'<div class="hx-kpi"><div class="k">Regime</div><div class="v {tone}">{esc(reg_lab)}</div></div>'
+        f'<div class="hx-kpi"><div class="v">{n_live}</div><div class="k">Live today</div></div>'
+        f'<div class="hx-kpi"><div class="v">{wr_txt}</div><div class="k">Win rate · {resolved} resolved</div></div>'
+        f'<div class="hx-kpi"><div class="v {tone}">{esc(reg_lab)}</div><div class="k">Regime</div></div>'
+        f'<div class="hx-kpi"><div class="v">{n_long} / {n_short}</div><div class="k">Long / short</div></div>'
+        f'<div class="hx-kpi"><div class="v">{avg_conv}</div><div class="k">Avg conviction</div></div>'
+        f'<div class="hx-kpi"><div class="v">{breadth_txt}</div><div class="k">Breadth</div></div>'
+        f'<div class="hx-kpi"><div class="v">{rsi_txt}</div><div class="k">Avg momentum</div></div>'
+        f'<div class="hx-kpi"><div class="v">{expo_txt}</div><div class="k">Position sizing</div></div>'
+        f'<div class="hx-kpi"><div class="v">{top_txt}</div><div class="k">Top opportunity</div></div>'
         '</div></div>'
     )
+
+
+def _stat_strip(snap: dict) -> str:
+    """xAI-style stat callout strip — big number + small muted label, in a row.
+    Uses facets NOT shown in the hero KPIs or bento (to avoid duplicate metrics)."""
+    sigs = snap.get("signals") or []
+    n_total = len(sigs)
+    def _is_long(s):
+        return s.get("direction") == "LONG" or s.get("action") in ("BUY", "HOLD LONG", "WATCH LONG")
+    def _is_short(s):
+        return s.get("direction") == "SHORT" or s.get("action") in ("SHORT", "HOLD SHORT", "WATCH SHORT")
+    n_long = sum(1 for s in sigs if _is_long(s))
+    n_short = sum(1 for s in sigs if _is_short(s))
+    convs = [(s.get("conviction") or {}).get("score_pct") for s in sigs]
+    convs = [c for c in convs if isinstance(c, (int, float))]
+    avg_conv = round(sum(convs) / len(convs)) if convs else None
+    tgts = [(s.get("plan") or {}).get("target_pct") for s in sigs]
+    tgts = [t for t in tgts if isinstance(t, (int, float))]
+    avg_tgt = round(sum(tgts) / len(tgts)) if tgts else None
+    items = [
+        (str(n_total), "signals scanned"),
+        (f"{n_long} / {n_short}", "long / short"),
+        (f"{avg_conv}" if avg_conv is not None else "—", "avg conviction"),
+        (f"{avg_tgt}%" if avg_tgt is not None else "—", "avg target"),
+    ]
+    cells = "".join(
+        f'<div class="sx-stat"><div class="sx-stat-v">{v}</div><div class="sx-stat-k">{k}</div></div>'
+        for v, k in items
+    )
+    return f'<div class="sx-statstrip">{cells}</div>'
+
+
+def _showcase(snap: dict) -> str:
+    """xAI-style 2x2 showcase of the main sections — quiet cards: icon · label · one stat · Explore."""
+    sigs = snap.get("signals") or []
+
+    def _lv(x):
+        a = x.get("action") or ""
+        return not (a in ("FLAT", "EXIT", "AVOID") or (x.get("days_old") or 0) > 14)
+    live = sorted((x for x in sigs if _lv(x)), key=lambda x: -(x.get("rank_score") or 0))
+    n_live = len(live)
+    top = live[0].get("symbol") if live else "—"
+
+    reg = snap.get("regime") or {}
+    reg_lab = reg.get("label", "—")
+    tone = {"Risk-on": "up", "Neutral": "warn", "Risk-off": "dn"}.get(reg_lab, "")
+    breadth = reg.get("breadth")
+    tk = snap.get("track") or {}
+
+    def card(icon, label, sub, act):
+        return (f'<div class="sc-card" onclick="{act}"><div class="sc-ic">{_svg(icon, 19)}</div>'
+                f'<div class="sc-t">{label}</div><div class="sc-s">{sub}</div>'
+                f'<div class="sc-ex">Explore &rarr;</div></div>')
+
+    sig_sub = f'{n_live} live &middot; top pick {top}'
+    mkt_sub = f'<span class="{tone}">{reg_lab}</span>' + (f' &middot; {breadth}% breadth' if breadth is not None else "")
+    tv_sub = "On air &middot; Yahoo Finance"
+    tr_sub = f'{tk.get("win_rate", "—")}% win &middot; {tk.get("resolved", 0)} resolved'
+
+    return ('<div class="showcase">'
+            + card("sparkle", "Signals", sig_sub, "document.getElementById('cards').scrollIntoView()")
+            + card("chart", "Markets", mkt_sub, "window._showPage&&_showPage('markets')")
+            + card("tv", "Live TV", tv_sub, "window._showPage&&_showPage('livetv')")
+            + card("receipt", "Track record", tr_sub, "window._showPage&&_showPage('track')")
+            + '</div>')
 
 
 def _bento_home(snap: dict) -> str:
@@ -1470,27 +1609,17 @@ def _bento_home(snap: dict) -> str:
     if not reg and not sigs:
         return ""
     # NB: regime, live count and win rate now live in the Signals hero — don't duplicate them here.
-    expo = mp.get("exposure_mult")
-    _bar = f'entry bar {mp.get("entry_threshold")}%' if mp.get("entry_threshold") else "regime-adjusted"
-    tiles = t("Breadth", f'{reg.get("breadth", "—")}%', sub=f'of {reg.get("total","?")} above trend')
-    tiles += t("Avg momentum", f'{reg.get("avg_rsi", "—")}', sub="RSI 0–100")
-    tiles += t("Position sizing", f'{expo:.2f}×' if expo else "—", sub=_bar)
-    # top opportunity tile (the #1 ranked name) — quick glance at where capital goes first
-    if ranked:
-        top = ranked[0]
-        _sym = top.get("symbol", "")
-        _ini = (_sym[:2] or "?").upper()
-        logo = (f'<span class="bt-logo"><span>{_ini}</span>'
-                f'<img src="https://financialmodelingprep.com/image-stock/{_sym}.png" alt="" loading="lazy" '
-                f'onerror="this.remove()"></span>')
-        tiles += (f'<div class="bt"><div class="bt-l">Top opportunity</div>'
-                  f'<div style="display:flex;align-items:center;gap:9px;margin-top:2px;">{logo}'
-                  f'<div class="bt-v" style="font-size:20px;">{_sym}</div></div>'
-                  f'<div class="bt-sub">rank {top.get("rank_score","—")} · {top.get("action","")}</div></div>')
+    # Breadth / Avg momentum / Position sizing / Top opportunity now live in the Signals hero
+    # as naked stat callouts (single stat primitive). The bento keeps only the narrative tiles.
+    tiles = ""
     brief = (snap.get("market_brief") or "").strip()
+    # drop a redundant leading "**Market Brief**" title line — the tile already labels it
+    if brief.lstrip("*# ").lower().startswith("market brief"):
+        _nl = brief.find("\n")
+        brief = brief[_nl + 1:].lstrip() if _nl != -1 else ""
     if brief:
         tiles += (f'<div class="bt wide"><div class="bt-l ai-ident">{_svg("ai",14)} Market brief</div>'
-                  f'<div class="bt-body">{_md_inline(brief)}</div></div>')
+                  f'{_brief_panels(brief, snap.get("sectors"))}</div>')
     changes = snap.get("changes") or []
     if changes:
         tiles += (f'<div class="bt wide"><div class="bt-l">{_svg("bolt",14)} What changed since last build</div>'
@@ -3762,6 +3891,7 @@ def render_html(snap: dict) -> str:
     kpi_html = _kpi_html(snap.get("regime"), snap)
     bento_home_html = _bento_home(snap)
     signals_hero_html = _signals_hero(snap)
+    showcase_html = _showcase(snap)
     meganav_html = _meganav()
     _brief = (snap.get("market_brief") or "").strip()
     brief_html = (f'<div class="ai-box" style="margin:2px 0 18px;line-height:1.6;">'
@@ -3837,12 +3967,12 @@ def render_html(snap: dict) -> str:
     --ai:#6d3fd4; --ai-soft:rgba(109,63,212,.12); }}
   /* Warm-gold glass system (v1 — see DESIGN_SPEC.md). Dark-first. */
   /* xAI-style: pure-black canvas, monochrome chrome, green/red kept only for P&L + direction. */
-  html[data-theme="dark"] {{ --bg:#000000; --amb-ground:#000000; --card:#0b0b0c; --line:rgba(255,255,255,.10); --txt:#f5f5f5;
+  html[data-theme="dark"] {{ --bg:#0a0a0a; --amb-ground:#0a0a0a; --card:#1a1a1a; --line:rgba(255,255,255,.10); --txt:#f5f5f5;
     --muted:#8a8a8f; --txt2:#b5b5ba; --buy:#5ed6a6; --sell:#f0797f; --hold:#c7c7cc; --flat:#6e7681;
     --short:#f0797f; --watch:#a8a8ad; --exit:#d0d0d3; --avoid:#6e7681; --warn:#d0d0d3;
     --accent:#f5f5f5; --acc2:#ffffff; --grid:rgba(255,255,255,.05); --cross:rgba(160,160,166,0.4);
-    --inset:#101012; --hover:#161618; --ring:rgba(255,255,255,.30);
-    --glass-bg:#0b0b0c; --glass-bd:rgba(255,255,255,.10); --glass-blur:0px;
+    --inset:#242428; --hover:#2b2b30; --ring:rgba(255,255,255,.30);
+    --glass-bg:#1a1a1a; --glass-bd:rgba(255,255,255,.10); --glass-blur:0px;
     --hud-edge:rgba(255,255,255,.12); --ai:#c9c9cf; --ai-soft:rgba(255,255,255,.06);
     --shadow:none; --shadow-lg:none; }}
   * {{ box-sizing:border-box; }}
@@ -3955,8 +4085,23 @@ def render_html(snap: dict) -> str:
   .note {{ color:var(--muted); font-size:13px; margin:10px 0 8px;
     display:inline-block; padding:5px 11px; border-radius:9px;
     border:1px solid var(--line); background:var(--inset); }}
-  .grid {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
-    gap:14px; }}
+  .grid {{ display:flex; gap:14px; overflow-x:auto; overflow-y:hidden; align-items:stretch;
+    padding:2px 2px 14px; scroll-snap-type:x proximity; scrollbar-width:thin; }}
+  .grid > .card {{ flex:0 0 340px; scroll-snap-align:start; }}
+  .grid::-webkit-scrollbar {{ height:8px; }}
+  .grid::-webkit-scrollbar-thumb {{ background:var(--inset); border-radius:8px; }}
+  .grid::-webkit-scrollbar-track {{ background:transparent; }}
+  @media (max-width:600px) {{ .grid > .card {{ flex-basis:82vw; }} }}
+  /* live-signals scroll controls + expand-all */
+  .cards-ctl {{ margin-left:auto; display:flex; align-items:center; gap:8px; }}
+  .cards-ctl .sh-sub {{ margin-left:0; }}
+  .cbtn {{ display:inline-flex; align-items:center; justify-content:center; min-width:30px; height:30px;
+    border-radius:999px; border:1px solid rgba(255,255,255,.16); background:none; color:var(--muted);
+    font-size:15px; line-height:1; cursor:pointer; transition:color .15s ease, border-color .15s ease; }}
+  .cbtn:hover {{ color:var(--txt); border-color:var(--txt); }}
+  .cbtn-txt {{ padding:0 14px; font-size:12.5px; font-weight:500; }}
+  #cards.expanded .grid {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+    gap:14px; overflow:visible; scroll-snap-type:none; }}
   .card {{ background:var(--glass-bg); border:1px solid var(--glass-bd); border-radius:14px;
     padding:16px; cursor:pointer; box-shadow:none; }}
   .card:hover {{ border-color:rgba(255,255,255,.28); transform:none; box-shadow:none; }}
@@ -4040,7 +4185,7 @@ def render_html(snap: dict) -> str:
   .tvwidget summary {{ cursor:pointer; font-weight:700; font-size:13px; display:flex; align-items:center;
     gap:8px; list-style:none; }}
   .tvwidget summary::-webkit-details-marker {{ display:none; }}
-  .tvwidget .tvw-open {{ margin-left:auto; font-size:11.5px; font-weight:600; color:var(--accent); text-decoration:none; }}
+  .tvwidget .tvw-open {{ margin-left:auto; font-size:11.5px; font-weight:600; color:var(--muted); text-decoration:none; }}
   .tvwidget .tvw-open:hover {{ text-decoration:underline; }}
   .tvw-frame {{ position:relative; width:100%; padding-bottom:56.25%; height:0; margin-top:10px;
     border-radius:8px; overflow:hidden; background:#000; }}
@@ -4167,7 +4312,7 @@ def render_html(snap: dict) -> str:
   .mhead-init {{ position:relative; z-index:0; }}
   .mhead-idtext {{ min-width:0; }}
   .mhead-tickrow {{ display:flex; align-items:center; gap:9px; min-width:0; }}
-  .mhead-tick {{ font-family:var(--mono); font-size:24px; font-weight:800; letter-spacing:.01em;
+  .mhead-tick {{ font-family:var(--mono); font-size:24px; font-weight:600; letter-spacing:-.01em;
     line-height:1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
   .mhead-pill {{ flex:0 0 auto; display:inline-flex; align-items:center; gap:5px;
     padding:3px 10px 3px 8px; border-radius:999px; font-size:11.5px; font-weight:800;
@@ -4179,7 +4324,7 @@ def render_html(snap: dict) -> str:
   .mhead-name {{ color:var(--muted); font-size:12.5px; margin-top:3px; white-space:nowrap;
     overflow:hidden; text-overflow:ellipsis; max-width:100%; }}
   .mhead-quote {{ flex:0 0 auto; text-align:right; margin-left:auto; }}
-  .mhead-px {{ font-family:var(--mono); font-size:19px; font-weight:800; line-height:1.1;
+  .mhead-px {{ font-family:var(--mono); font-size:19px; font-weight:600; line-height:1.1;
     white-space:nowrap; }}
   .mhead-chg {{ display:inline-flex; align-items:center; gap:3px; justify-content:flex-end;
     font-family:var(--mono); font-size:12.5px; font-weight:700; margin-top:3px; color:var(--muted); }}
@@ -4208,15 +4353,58 @@ def render_html(snap: dict) -> str:
     .plangrid {{ grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr)); }} }}
   /* trade-plan tiles — inset glass chips with a tier accent bar */
   .stat {{ position:relative; min-width:0; background:var(--inset);
-    border:1px solid var(--line); border-radius:12px; padding:13px 15px; overflow:hidden;
+    border:1px solid var(--line); border-radius:12px; padding:15px 16px; overflow:hidden;
     box-shadow:none; }}
-  .stat::before {{ content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
-    background:var(--hud-edge); opacity:0; }}
-  .stat .l {{ color:var(--muted); font-size:10.5px; text-transform:uppercase; font-weight:700;
+  .stat::before {{ display:none; }}
+  .stat .l {{ color:var(--muted); font-size:10px; text-transform:uppercase; font-weight:600;
     letter-spacing:.05em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
-  .stat .v {{ font-size:17px; font-weight:800; margin-top:3px; overflow-wrap:anywhere; }}
+  .stat .v {{ font-size:21px; font-weight:600; letter-spacing:-.015em; font-variant-numeric:tabular-nums; margin-top:5px; overflow-wrap:anywhere; }}
+  /* Direction 2 — strategy row-cards with inline win-rate bars */
+  .strows {{ display:flex; flex-direction:column; }}
+  .strow {{ display:grid; grid-template-columns:8px 1fr 90px 42px 30px 52px; align-items:center; gap:11px;
+    padding:12px 4px; border-top:1px solid var(--line); cursor:help; }}
+  .strow:first-child {{ border-top:0; }}
+  .st-dot {{ width:7px; height:7px; border-radius:50%; }}
+  .st-nm {{ font-size:13px; font-weight:500; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
+  .st-kind {{ color:var(--muted); font-weight:400; margin-left:8px; font-size:11.5px; }}
+  .st-bar {{ height:6px; background:var(--inset); border-radius:4px; overflow:hidden; }}
+  .st-bar i {{ display:block; height:100%; border-radius:4px; }}
+  .st-wr {{ text-align:right; font-size:12.5px; font-weight:600; font-variant-numeric:tabular-nums; }}
+  .st-tr {{ text-align:right; font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }}
+  .st-ret {{ text-align:right; font-size:12.5px; font-weight:600; font-variant-numeric:tabular-nums; }}
+  .st-ret.win {{ color:var(--buy); }} .st-ret.loss {{ color:var(--sell); }}
+  @media (max-width:600px) {{ .strow {{ grid-template-columns:8px 1fr 40px 52px; }} .st-bar, .st-tr {{ display:none; }} }}
+  /* Direction 2 — committee analyst rows */
+  .crows {{ margin-top:12px; }}
+  .crow {{ display:grid; grid-template-columns:132px 76px 1fr; gap:12px; align-items:start;
+    padding:11px 2px; border-top:1px solid var(--line); font-size:12.5px; }}
+  .crow:first-child {{ border-top:0; }}
+  .cr-role {{ color:var(--muted); }}
+  .cr-lean {{ text-transform:capitalize; font-weight:600; }}
+  .cr-note {{ color:var(--txt2); line-height:1.5; }}
+  @media (max-width:600px) {{ .crow {{ grid-template-columns:1fr; gap:3px; }} }}
   .stat .v.buy {{ color:var(--buy); }} .stat .v.sell {{ color:var(--sell); }}
   .stat .sub {{ color:var(--muted); font-size:11px; margin-top:2px; overflow-wrap:anywhere; }}
+  /* Option E — verdict strip + plan summary (modal overview) */
+  .msparkwrap {{ background:var(--inset); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:14px; }}
+  .msparkwrap:empty {{ display:none; }}
+  .mverdict {{ display:flex; align-items:center; gap:14px; background:var(--inset); border:1px solid var(--line);
+    border-radius:12px; padding:13px 16px; margin-bottom:14px; }}
+  .mverdict:empty, .mplan-strip:empty {{ display:none; }}
+  .mv-badge {{ font-size:12px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; padding:4px 12px;
+    border-radius:999px; border:1px solid var(--line); color:var(--txt2); white-space:nowrap; }}
+  .mv-badge.up {{ color:var(--buy); border-color:color-mix(in srgb,var(--buy) 40%,var(--line)); }}
+  .mv-badge.dn {{ color:var(--sell); border-color:color-mix(in srgb,var(--sell) 40%,var(--line)); }}
+  .mv-badge.warn {{ color:var(--warn); border-color:color-mix(in srgb,var(--warn) 40%,var(--line)); }}
+  .mv-meter {{ flex:1 1 auto; height:6px; border-radius:4px; background:var(--card); overflow:hidden; }}
+  .mv-meter i {{ display:block; height:100%; border-radius:4px; }}
+  .mv-score {{ font-size:13px; font-weight:600; white-space:nowrap; font-variant-numeric:tabular-nums; }}
+  .mplan-strip {{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:16px; }}
+  .pt {{ background:var(--inset); border:1px solid var(--line); border-radius:12px; padding:12px 13px; }}
+  .pt-l {{ font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:600; }}
+  .pt-v {{ font-size:17px; font-weight:600; margin-top:4px; font-variant-numeric:tabular-nums; }}
+  .pt-v.up {{ color:var(--buy); }} .pt-v.dn {{ color:var(--sell); }}
+  @media (max-width:560px) {{ .mplan-strip {{ grid-template-columns:1fr 1fr; }} }}
   .stat.buy::before {{ background:var(--buy); opacity:1; }}
   .stat.sell::before {{ background:var(--sell); opacity:1; }}
   .stat.gold::before {{ background:var(--accent); opacity:1; }}
@@ -4230,10 +4418,10 @@ def render_html(snap: dict) -> str:
     flex-wrap:wrap; }}
   .scen-h span {{ font-weight:400; color:var(--muted); text-transform:none; overflow-wrap:anywhere; }}
   .scen-h .ico {{ color:var(--accent); }}
-  .scen-row {{ padding:10px 13px; border:1px solid var(--glass-bd); border-radius:11px; margin-bottom:8px;
-    background:var(--inset); box-shadow:inset 0 1px 0 rgba(255,255,255,.04); }}
+  .scen-row {{ padding:11px 14px; border:1px solid var(--line); border-radius:12px; margin-bottom:8px;
+    background:var(--inset); }}
   .scen-row.higherodds {{ border-left:3px solid var(--buy); }}
-  .scen-row.medium {{ border-left:3px solid var(--accent); }}
+  .scen-row.medium {{ border-left:3px solid var(--muted); }}
   .scen-row.lowerodds {{ border-left:3px solid #6e7681; }}
   .scen-top {{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap; min-width:0; }}
   .scen-top > b {{ min-width:0; overflow-wrap:anywhere; }}
@@ -4269,27 +4457,26 @@ def render_html(snap: dict) -> str:
     margin-left:10px; letter-spacing:.03em; }}
   .syspill.on {{ color:var(--buy); background:color-mix(in srgb, var(--buy) 14%, transparent); }}
   .syspill.off {{ color:var(--muted); background:var(--inset); }}
-  .deskread {{ background:var(--inset); border:1px solid var(--glass-bd); border-left:3px solid var(--accent);
-    border-radius:11px; padding:13px 15px; font-size:14px; line-height:1.55; margin:12px 0;
-    overflow-wrap:anywhere; box-shadow:inset 0 1px 0 rgba(255,255,255,.04); }}
-  .deskread.ai-read {{ border-left-color:var(--ai);
-    background:linear-gradient(180deg, var(--ai-soft), var(--inset)); }}
+  .deskread {{ background:var(--inset); border:1px solid var(--line); border-left:3px solid rgba(255,255,255,.16);
+    border-radius:12px; padding:13px 15px; font-size:14px; line-height:1.6; margin:12px 0;
+    overflow-wrap:anywhere; }}
+  .deskread.ai-read {{ border-left-color:var(--muted); background:var(--inset); }}
   .deskread p {{ margin:0 0 8px; }} .deskread p:last-child {{ margin-bottom:0; }}
   .convbadge {{ font-size:12.5px; font-weight:800; padding:3px 11px; border-radius:999px; color:#fff;
     letter-spacing:.02em; }}
   .conv-High {{ background:var(--buy); }} .conv-Medium {{ background:#9e6a1e; }}
   .conv-Low {{ background:var(--sell); }}
   .checks {{ list-style:none; padding:0; margin:8px 0; display:flex; flex-direction:column; gap:6px; }}
-  .checks li {{ display:flex; gap:10px; align-items:flex-start; padding:9px 12px; min-width:0;
-    background:var(--inset); border:1px solid var(--glass-bd); border-radius:10px; font-size:13px; }}
+  .checks li {{ display:flex; gap:10px; align-items:flex-start; padding:10px 13px; min-width:0;
+    background:var(--inset); border:1px solid var(--line); border-radius:12px; font-size:13px; }}
   .checks li.pass {{ border-left:3px solid var(--buy); }}
-  .checks li.warn {{ border-left:3px solid var(--accent); }}
+  .checks li.warn {{ border-left:3px solid var(--muted); }}
   .checks li.fail {{ border-left:3px solid var(--sell); }}
   .checks li > span:last-child {{ min-width:0; overflow-wrap:anywhere; line-height:1.45; }}
   .checks .ic {{ flex:0 0 16px; display:inline-flex; }}
-  .checks .pass .ic {{ color:var(--buy); }} .checks .warn .ic {{ color:var(--accent); }}
+  .checks .pass .ic {{ color:var(--buy); }} .checks .warn .ic {{ color:var(--muted); }}
   .checks .fail .ic {{ color:var(--sell); }}
-  .checks .ck-l {{ font-weight:700; }} .checks .ck-n {{ color:var(--muted); }}
+  .checks .ck-l {{ font-weight:600; }} .checks .ck-n {{ color:var(--muted); }}
   .chartkey {{ color:var(--muted); font-size:12px; margin-top:8px; line-height:1.6; }}
   .reasons li {{ font-size:14px; line-height:1.5; }}
   .readout {{ display:flex; align-items:baseline; gap:12px; min-height:30px; margin:2px 0 10px; }}
@@ -4364,7 +4551,7 @@ def render_html(snap: dict) -> str:
   .trackstats {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
     gap:10px; margin:12px 0; }}
   .trackrec {{ width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }}
-  .trackrec th, .trackrec td {{ text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); }}
+  .trackrec th, .trackrec td {{ text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums; }}
   .trackrec th {{ color:var(--muted); font-weight:600; }}
   .orb-sec {{ margin-top:14px; border-top:1px solid var(--line); }}
   .orb-sec > summary {{ cursor:pointer; list-style:none; padding:12px 2px 6px; font-size:14px;
@@ -4375,7 +4562,7 @@ def render_html(snap: dict) -> str:
   .win {{ color:var(--buy); }} .loss {{ color:var(--sell); }} .exp {{ color:var(--muted); }}
   /* shared table style for the intelligence/data panels (was previously unstyled) */
   .tbl {{ width:100%; border-collapse:collapse; font-size:13px; }}
-  .tbl th, .tbl td {{ text-align:left; padding:7px 9px; border-bottom:1px solid var(--line); vertical-align:middle; }}
+  .tbl th, .tbl td {{ text-align:left; padding:9px 11px; border-bottom:1px solid var(--line); vertical-align:middle; font-variant-numeric:tabular-nums; }}
   .tbl thead th {{ color:var(--muted); font-weight:600; font-size:11px; white-space:nowrap;
     text-transform:uppercase; letter-spacing:.05em; position:sticky; top:0; background:var(--card); }}
   .tbl tbody tr:hover {{ background:var(--hover); }}
@@ -4598,12 +4785,44 @@ def render_html(snap: dict) -> str:
   .bento .bt.hero {{ grid-column:span 2; }}
   .bento .bt.wide {{ grid-column:1 / -1; }}
   .bt-l {{ font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); font-weight:600; margin-bottom:3px; }}
-  .bt-v {{ font-family:var(--mono); font-weight:700; font-size:22px; }}
+  .bt-v {{ font-family:var(--mono); font-weight:600; font-size:22px; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }}
   .bt-v.buy {{ color:var(--buy); }} .bt-v.sell {{ color:var(--sell); }} .bt-v.warn {{ color:var(--warn); }}
   .bt-sub {{ font-size:11px; color:var(--muted); margin-top:3px; }}
   .bt-chip {{ display:inline-block; margin-top:9px; font-size:11px; padding:3px 10px; border-radius:999px;
     background:color-mix(in srgb,var(--accent) 16%,transparent); color:var(--accent); align-self:flex-start; }}
-  .bt-body {{ font-size:13px; line-height:1.6; color:var(--txt2); max-height:210px; overflow:auto; }}
+  .bt-body {{ font-size:14px; line-height:1.7; color:var(--txt2); max-width:74ch; }}
+  .bt-body p {{ margin:0 0 14px; }}
+  .bt-body p:last-child {{ margin-bottom:0; }}
+  .bt-body p > strong:first-child {{ display:block; color:var(--txt); font-weight:600; letter-spacing:-.01em; margin-bottom:3px; }}
+  .bt.wide {{ padding:22px 24px; }}
+  .bt.wide .bt-list {{ max-width:74ch; line-height:1.7; }}
+  /* market brief — 2x2 quadrant panels + coloured sector strip */
+  .mb-quad {{ display:grid; grid-template-columns:1fr 1fr; grid-auto-rows:1fr; gap:12px; }}
+  .mbp {{ background:var(--inset); border-radius:12px; padding:15px 17px; min-width:0; }}
+  .mbp-h {{ font-size:13px; font-weight:600; display:flex; align-items:center; gap:7px; margin-bottom:6px; color:var(--txt); }}
+  .mbp-h .ico {{ color:var(--muted); }}
+  .mbp-b {{ font-size:13px; line-height:1.55; color:var(--txt2); }}
+  .mbp-b strong {{ color:var(--txt); font-weight:600; }}
+  .mbsecs {{ display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }}
+  .mbsec {{ font-size:12px; background:var(--inset); color:var(--txt2); padding:4px 11px; border-radius:999px;
+    display:inline-flex; align-items:center; gap:6px; }}
+  .mbsec b {{ font-weight:600; font-variant-numeric:tabular-nums; }}
+  .mbsec b.up {{ color:var(--buy); }} .mbsec b.dn {{ color:var(--sell); }} .mbsec b.flat {{ color:var(--muted); }}
+  .mbp-b .mbhl.up {{ color:var(--buy); font-weight:500; }}
+  .mbp-b .mbhl.dn {{ color:var(--sell); font-weight:500; }}
+  @media (max-width:640px) {{ .mb-quad {{ grid-template-columns:1fr; }} }}
+  /* xAI-style 2x2 section showcase — quiet cards */
+  .showcase {{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:6px 0 4px; }}
+  .sc-card {{ display:flex; flex-direction:column; background:var(--card); border:1px solid var(--line);
+    border-radius:16px; padding:18px 20px; cursor:pointer; transition:border-color .15s ease; }}
+  .sc-card:hover {{ border-color:rgba(255,255,255,.24); }}
+  .sc-ic {{ color:var(--muted); }}
+  .sc-t {{ font-size:16px; font-weight:600; letter-spacing:-.01em; margin-top:10px; }}
+  .sc-s {{ font-size:12.5px; color:var(--muted); margin-top:4px; }}
+  .sc-s .up {{ color:var(--buy); }} .sc-s .dn {{ color:var(--sell); }} .sc-s .warn {{ color:var(--warn); }}
+  .sc-ex {{ font-size:12px; color:var(--muted); margin-top:12px; }}
+  .sc-card:hover .sc-ex {{ color:var(--txt); }}
+  @media (max-width:760px) {{ .showcase {{ grid-template-columns:1fr; }} }}
   .bt-list {{ margin:4px 0 0; padding-left:16px; font-size:13px; line-height:1.7; color:var(--txt2); }}
   .bt-logo {{ position:relative; width:26px; height:26px; border-radius:6px; flex:0 0 auto;
     display:inline-flex; align-items:center; justify-content:center; font-size:10px; font-weight:700;
@@ -4615,7 +4834,7 @@ def render_html(snap: dict) -> str:
     .bento .bt.wide {{ grid-column:span 2; }}
   }}
   .kpi-l {{ font-size:10px; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); font-weight:600; }}
-  .kpi-v {{ font-size:24px; font-weight:800; margin-top:4px; letter-spacing:-.015em; font-variant-numeric:tabular-nums; }}
+  .kpi-v {{ font-size:24px; font-weight:600; margin-top:4px; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }}
   .kpi-v.buy {{ color:var(--buy); }} .kpi-v.sell {{ color:var(--sell); }} .kpi-v.warn {{ color:#6e7681; }}
   .kpi-sub {{ font-size:11px; color:var(--muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
   /* ---- redesigned signal card ---- */
@@ -4676,8 +4895,8 @@ def render_html(snap: dict) -> str:
   .meta-chip.ai {{ color:var(--txt2); border-color:var(--line); }}
   @media (max-width:400px) {{ .plan-chips {{ grid-template-columns:repeat(2,minmax(0,1fr)); }} }}
   /* ---- SpaceX-style signal card (monochrome, label/value driven) ---- */
-  .sxcard {{ position:relative; background:var(--card); border:1px solid var(--line);
-    border-radius:16px; padding:22px 24px 20px; box-shadow:none; }}
+  .sxcard {{ position:relative; display:flex; flex-direction:column; background:var(--card);
+    border:1px solid var(--line); border-radius:16px; padding:22px 24px 20px; box-shadow:none; }}
   .sxcard:hover {{ border-color:rgba(255,255,255,.20); transform:none; box-shadow:none; }}
   .sxcard .favbtn {{ position:absolute; top:15px; right:15px; z-index:2; }}
   .sx-head {{ display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }}
@@ -4690,13 +4909,15 @@ def render_html(snap: dict) -> str:
   .sx-meta-v {{ font-size:15px; font-weight:700; color:var(--txt2); font-variant-numeric:tabular-nums; }}
   .sx-meta-chg {{ font-size:12px; margin-top:2px; font-variant-numeric:tabular-nums; }}
   .sx-sub {{ font-size:13px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
-  .sx-desc {{ font-size:14px; line-height:1.5; color:var(--muted); margin-top:13px; }}
+  .sx-desc {{ font-size:14px; line-height:1.5; color:var(--muted); margin-top:13px;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }}
   .sx-pills {{ display:flex; flex-wrap:wrap; gap:8px; margin-top:15px; }}
   .sx-pill {{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:500;
     padding:5px 12px; border-radius:999px; background:var(--inset); color:var(--txt2); line-height:1.2; }}
   .sx-dot {{ width:6px; height:6px; border-radius:50%; flex:0 0 auto; }}
   .sx-dot.l {{ background:var(--buy); }} .sx-dot.s {{ background:var(--sell); }}
   .sx-div {{ height:1px; background:var(--line); margin:18px 0 14px; }}
+  .sxcard .sx-div {{ margin-top:auto; }}
   .sx-rows {{ display:flex; flex-direction:column; gap:10px; }}
   .sx-row {{ display:flex; align-items:baseline; justify-content:space-between; gap:16px; }}
   .sx-l {{ font-size:14px; color:var(--muted); }}
@@ -4715,23 +4936,21 @@ def render_html(snap: dict) -> str:
     .mkt-side {{ flex-direction:row; flex-wrap:wrap; position:static; }} }}
   /* ---- modal sub-tab layout ---- */
   .modal-wide {{ max-width:880px; }}
-  .mk-top {{ display:flex; gap:2px; flex-wrap:wrap; border-bottom:1px solid var(--line);
-    margin:16px 0 0; padding-bottom:0; }}
-  .mk-top button {{ display:inline-flex; align-items:center; gap:6px; background:none; border:none;
-    border-bottom:2px solid transparent; color:var(--muted); font-size:13.5px; font-weight:700;
-    padding:9px 13px; cursor:pointer; margin-bottom:-1px; border-radius:9px 9px 0 0;
-    transition:color .15s ease, background .15s ease; white-space:nowrap; }}
+  .mk-top {{ display:flex; gap:7px; flex-wrap:wrap; margin:18px 0 0; padding-bottom:2px; }}
+  .mk-top button {{ display:inline-flex; align-items:center; gap:6px; background:none;
+    border:1px solid rgba(255,255,255,.14); color:var(--muted); font-size:13px; font-weight:500;
+    padding:7px 14px; cursor:pointer; border-radius:999px;
+    transition:color .15s ease, background .15s ease, border-color .15s ease; white-space:nowrap; }}
   .mk-top button .ico {{ width:14px; height:14px; opacity:.8; }}
-  .mk-top button:hover {{ color:var(--txt); background:color-mix(in srgb,var(--accent) 7%,transparent); }}
-  .mk-top button.on {{ color:var(--accent); border-bottom-color:var(--accent);
-    background:linear-gradient(180deg, color-mix(in srgb,var(--accent) 12%,transparent), transparent); }}
+  .mk-top button:hover {{ color:var(--txt); border-color:var(--txt); }}
+  .mk-top button.on {{ color:#000; background:var(--txt); border-color:var(--txt); }}
   .mk-top button.on .ico {{ opacity:1; }}
   .mk {{ display:grid; grid-template-columns:158px minmax(0,1fr); gap:18px; margin-top:14px; align-items:start; }}
   .mk-side {{ display:flex; flex-direction:column; gap:4px; position:sticky; top:0; }}
   .mk-side button {{ text-align:left; background:none; border:none; color:var(--muted); font-size:13.5px;
     font-weight:600; padding:9px 11px; border-radius:8px; cursor:pointer; }}
   .mk-side button:hover {{ background:var(--hover); color:var(--txt); }}
-  .mk-side button.on {{ background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); }}
+  .mk-side button.on {{ background:rgba(255,255,255,.06); color:var(--txt); font-weight:600; }}
   .mk-view {{ display:none; }} .mk-view.on {{ display:block; }}
   @media (max-width:680px) {{ .mk {{ grid-template-columns:1fr; }}
     .mk-side {{ flex-direction:row; flex-wrap:wrap; position:static; }} }}
@@ -4786,7 +5005,7 @@ def render_html(snap: dict) -> str:
   html[data-theme="dark"] .sysrow, html[data-theme="dark"] .method, html[data-theme="dark"] .kv,
   html[data-theme="dark"] .card-stat, html[data-theme="dark"] .plangrid {{
     background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:11px; }}
-  html[data-theme="dark"] .deskread {{ border-left:3px solid var(--accent); }}
+  html[data-theme="dark"] .deskread {{ border-left:3px solid rgba(255,255,255,.16); }}
   html[data-theme="dark"] .deskread.ai-read, html[data-theme="dark"] #mAI {{ border-left:3px solid var(--ai) !important; }}
   /* controls — glass pill buttons */
   html[data-theme="dark"] .themebtn, html[data-theme="dark"] .ctlbtn, html[data-theme="dark"] .favbtn,
@@ -4966,19 +5185,42 @@ def render_html(snap: dict) -> str:
   .hx-btn.solid {{ background:var(--txt); color:#000; border-color:var(--txt); }}
   .hx-btn.solid:hover {{ background:#d8d8d8; border-color:#d8d8d8; }}
   .hx-btn.ghost:hover {{ border-color:var(--txt); }}
-  .hx-kpis {{ display:flex; gap:48px; flex-wrap:wrap; margin-top:auto; }}
-  .hx-kpi .k {{ font-size:11.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }}
-  .hx-kpi .v {{ font-size:30px; font-weight:300; margin-top:6px; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }}
+  .hx-kpis {{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:24px 28px; margin-top:30px; }}
+  .hx-kpi .v {{ font-size:32px; font-weight:600; letter-spacing:-.02em; line-height:1; font-variant-numeric:tabular-nums; }}
+  .hx-kpi .k {{ font-size:12px; color:var(--muted); margin-top:8px; }}
   .hx-kpi .v.buy {{ color:var(--buy); }} .hx-kpi .v.sell {{ color:var(--sell); }} .hx-kpi .v.warn {{ color:var(--warn); }}
-  @media (max-width:760px) {{ .hx-title {{ font-size:58px; }} .hx-kpis {{ gap:32px; }} }}
+  @media (max-width:760px) {{ .hx-title {{ font-size:58px; }} .hx-kpis {{ grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px 22px; }} }}
   /* hero right column: chart + Live TV */
-  .hero-row {{ display:grid; grid-template-columns:minmax(0,1fr) minmax(360px,460px); gap:32px; align-items:start; }}
+  .hero-row {{ display:grid; grid-template-columns:minmax(0,1fr) minmax(400px,520px); gap:32px; align-items:stretch; }}
   .hero-row .hero-x {{ padding-right:0; }}
-  .hero-side {{ display:flex; flex-direction:column; gap:14px; padding-top:6px; min-width:0; }}
+  .hero-side {{ display:flex; flex-direction:column; gap:14px; padding-top:6px; min-width:0; align-self:start; }}
   .hero-chart {{ border:1px solid var(--line); border-radius:14px; background:var(--card); overflow:hidden; }}
   .hero-chart-h {{ font-size:12.5px; color:var(--muted); padding:12px 14px 8px; display:flex; align-items:center; gap:6px; }}
   .hero-chart-frame {{ width:100%; height:190px; display:block; border:0; }}
   @media (max-width:900px) {{ .hero-row {{ grid-template-columns:1fr; gap:10px; }} .hero-side {{ padding-top:2px; }} }}
+  /* xAI eyebrow label + stat callout strip */
+  .hx-eyebrow {{ font-size:12px; font-weight:500; color:var(--muted); margin:0 0 16px; }}
+  .sec-eyebrow {{ font-size:12px; font-weight:500; color:var(--muted); margin:32px 0 6px; }}
+  .sec-eyebrow + .sec-head {{ margin-top:4px; }}
+  .sx-statstrip {{ display:flex; flex-wrap:wrap; gap:44px; padding:22px 0; margin:6px 0 2px;
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line); }}
+  .sx-stat-v {{ font-size:32px; font-weight:500; letter-spacing:-.02em; font-variant-numeric:tabular-nums; line-height:1; }}
+  .sx-stat-k {{ font-size:12px; color:var(--muted); margin-top:8px; }}
+  @media (max-width:600px) {{ .sx-statstrip {{ gap:28px 32px; }} .sx-stat-v {{ font-size:26px; }} }}
+  /* Grok · X pulse feed */
+  .gp-empty {{ color:var(--muted); font-size:13.5px; line-height:1.6; padding:14px 0 4px; max-width:640px; }}
+  .gp-empty code {{ font-family:var(--tape); background:var(--inset); padding:1px 6px; border-radius:5px; font-size:12px; }}
+  .gp-list {{ display:flex; flex-direction:column; }}
+  .gp-row {{ display:grid; grid-template-columns:66px 96px 1fr auto; align-items:center; gap:14px;
+    padding:13px 6px; border-top:1px solid var(--line); cursor:pointer; transition:background .15s ease; }}
+  .gp-row:hover {{ background:rgba(255,255,255,.02); }}
+  .gp-sym {{ font-weight:600; letter-spacing:-.01em; }}
+  .gp-row .sx-pill {{ justify-self:start; text-transform:capitalize; }}
+  .gp-up {{ color:var(--buy); }} .gp-dn {{ color:var(--sell); }} .gp-mut {{ color:var(--muted); }}
+  .gp-note {{ color:var(--txt2); font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
+  .gp-cat {{ color:var(--muted); }}
+  .gp-meta {{ color:var(--muted); font-size:12px; white-space:nowrap; font-variant-numeric:tabular-nums; }}
+  @media (max-width:600px) {{ .gp-row {{ grid-template-columns:56px 84px 1fr; }} .gp-meta {{ display:none; }} }}
   /* ---- stage 3: hairline signal rows ---- */
   .rowswrap {{ margin-top:2px; }}
   .rowsig {{ display:grid; grid-template-columns:30px 28px 1.5fr 96px 170px 1fr 20px; align-items:center;
@@ -5205,25 +5447,36 @@ def render_html(snap: dict) -> str:
         </details>
       </div>
     </div>
+    {showcase_html}
     {bento_home_html}
     <div class="strat-badge"><span class="k">Strategy type</span><span class="v">Multi-strategy confluence · 7 long + 7 short, trend-gated</span></div>
     <div id="concWarn"></div>
+    <div class="sec-eyebrow">Live social</div>
+    <div class="sec-head"><span class="sh-ico">{_svg('sparkle',15)}</span><h2>Grok · X pulse</h2><span class="sh-sub">real-time X + news read on the top names</span></div>
+    <div id="grokPulse"></div>
     <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Layout:</span>
       <span class="ctlgrp" id="layoutBtns"></span></div>
     <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Sort:</span>
       <span class="ctlgrp" id="sortBtns"></span></div>
     <div class="viewctl"><span style="color:var(--muted);font-size:13px;">Show:</span>
       <span class="ctlgrp" id="filterBtns"></span></div>
-    <div class="sec-head"><span class="sh-ico">{_svg('sparkle',15)}</span><h2>Live signals</h2><span class="sh-sub" id="cardsCount"></span></div>
+    <div class="sec-eyebrow">Signals engine</div>
+    <div class="sec-head"><span class="sh-ico">{_svg('sparkle',15)}</span><h2>Live signals</h2>
+      <span class="cards-ctl"><span class="sh-sub" id="cardsCount"></span>
+      <button class="cbtn" id="cardsPrev" aria-label="Scroll left">&larr;</button>
+      <button class="cbtn" id="cardsNext" aria-label="Scroll right">&rarr;</button>
+      <button class="cbtn cbtn-txt" id="cardsExpand">Expand all</button></span></div>
     <div id="cards"></div>
   </section>
 
   <section class="page" id="page-momentum">
+    <div class="sec-eyebrow">Rankings</div>
     <div class="sec-head"><span class="sh-ico">{_svg('trend-up',15)}</span><h2>Momentum leaders</h2><span class="sh-sub">dual-momentum ranking · best backtested strategy</span></div>
 {momentum_html}
   </section>
 
   <section class="page" id="page-intraday">
+    <div class="sec-eyebrow">Intraday</div>
     <div class="sec-head"><span class="sh-ico">{_svg('bolt',15)}</span><h2>Intraday signals</h2><span class="sh-sub">same engine on intraday bars — faster, noisier</span></div>
     <div id="intradayCards"></div>
   </section>
@@ -5233,6 +5486,7 @@ def render_html(snap: dict) -> str:
   </section>
 
   <section class="page" id="page-heatmap">
+    <div class="sec-eyebrow">Markets</div>
     <div class="sec-head"><span class="sh-ico">{_svg('brick',15)}</span><h2>Market heatmap</h2><span class="sh-sub">whole market by sector, sized by cap, coloured by today's move</span></div>
     <div id="heatmapHost" style="height:78vh;min-height:520px;width:100%;"></div>
   </section>
@@ -5242,6 +5496,7 @@ def render_html(snap: dict) -> str:
   </section>
 
   <section class="page" id="page-portfolio">
+    <div class="sec-eyebrow">Book</div>
     <div class="sec-head"><span class="sh-ico">{_svg('briefcase',15)}</span><h2>Portfolio</h2><span class="sh-sub">hypothetical book from today's actionable signals</span></div>
 {portfolio_html}
   </section>
@@ -5452,12 +5707,14 @@ def render_html(snap: dict) -> str:
   </section>
 
   <section class="page" id="page-news">
+    <div class="sec-eyebrow">News</div>
     <div class="sec-head"><span class="sh-ico">{_svg('news',15)}</span><h2>Market news</h2><span class="sh-sub">recent headlines across the scanned stocks</span></div>
 {news_ideas_html}
     <ul class="news" id="news"></ul>
   </section>
 
   <section class="page" id="page-livetv">
+    <div class="sec-eyebrow">Watch</div>
     <div class="sec-head"><span class="sh-ico">{_svg('tv',15)}</span><h2>Live TV</h2><span class="sh-sub">live financial news streams</span></div>
     <div class="tvwrap"><iframe id="tvFrame" title="Live financial news" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
     <p style="color:var(--muted);font-size:12px;margin-top:10px;">Start muted; unmute in the player. If a stream is blank (it restarted with a new ID) or you want the full experience, <a id="tvLink" href="https://www.youtube.com/@markets/live" target="_blank" rel="noopener">open it on YouTube ↗</a>. Not affiliated with these networks; embedded for convenience.</p>
@@ -5524,6 +5781,9 @@ def render_html(snap: dict) -> str:
       </nav>
       <div class="mk-main">
         <div class="mk-view on" id="mkview-overview">
+          <div class="msparkwrap" id="mSpark"></div>
+          <div class="mverdict" id="mVerdict"></div>
+          <div class="mplan-strip" id="mPlanTop"></div>
           <div class="sech ai-ident" id="mAIHead" style="display:none;">{_svg('ai',13)} In plain English (AI)</div>
           <div class="deskread ai-read" id="mAI" style="display:none;border-left-color:var(--ai);"></div>
           <div class="sech">The bottom line</div>
@@ -5656,6 +5916,16 @@ function _md(t) {{
   return s.split(/\\n\\s*\\n/).map(p => '<p>'+p.replace(/\\n/g,'<br>')+'</p>').join('');
 }}
 const _mdStrip = t => String(t||'').replace(/[#*`>_]/g,'').replace(/\\s+/g,' ').trim();
+function _leadSentence(md) {{
+  let t = String(md||'').replace(/\\r/g,'');
+  t = t.replace(/^\\s*#{{1,6}}[^\\n]*\\n+/, '');          // drop leading markdown heading line
+  t = t.replace(/^\\s*\\*\\*[^*]+\\*\\*:?\\s*/, '');       // drop a leading **Label:** prefix
+  t = t.replace(/[#*`>_]/g,'').replace(/\\s+/g,' ').trim();
+  const m = t.match(/^(.+?[.!?])(?:\\s|$)/);           // first real sentence
+  let out = m ? m[1] : t;
+  if (out.length > 165) out = out.slice(0,165).replace(/\\s+\\S*$/,'') + '…';
+  return out;
+}}
 // estimated time-to-play-out, labelled for the signal's timeframe (intraday = minutes/hours, daily = sessions)
 function _holdTxt(p) {{
   if (!p || p.hold_lo == null || p.hold_hi == null) return '—';
@@ -5952,12 +6222,12 @@ function makeCard(s) {{
   else if (s.action==='AVOID') _dirWord='Avoid';
   else if ((s.action||'').indexOf('WATCH')===0) _dirWord = _isShort ? 'Watch short' : 'Watch';
   let _desc = '';
-  if (s.ai_read) {{ _desc = _mdStrip(s.ai_read).split('. ')[0].slice(0,140); }}
+  if (s.ai_read) {{ _desc = _leadSentence(s.ai_read); }}
   else if (famLabel) {{ _desc = famLabel + ' setup' + (_agree.length ? ' — ' + _agree.length + ' strateg' + (_agree.length>1?'ies':'y') + ' in agreement' : ''); }}
   else if (s.catalyst) {{ _desc = _mdStrip(s.catalyst.headline).slice(0,140); }}
   const _pills = [`<span class="sx-pill sx-dir"><i class="sx-dot ${{_isShort?'s':'l'}}"></i>${{_dirWord}}</span>`];
   if (famLabel) _pills.push(`<span class="sx-pill">${{_esc(famLabel)}}</span>`);
-  _agree.slice(0,3).forEach(n => _pills.push(`<span class="sx-pill">${{_esc(n)}}</span>`));
+  _agree.slice(0,2).forEach(n => _pills.push(`<span class="sx-pill">${{_esc(n)}}</span>`));
   if (s.catalyst) _pills.push(`<span class="sx-pill">Catalyst</span>`);
   const _rows = [];
   if (_p.entry!=null) _rows.push(['Entry', _m2(_p.entry)]);
@@ -5969,7 +6239,7 @@ function makeCard(s) {{
   el.innerHTML = `
     <button class="favbtn ${{FAVS.has(s.symbol)?'on':''}}" title="Save to favorites" aria-label="Save to favorites">${{_ico(FAVS.has(s.symbol)?'star-fill':'star',17)}}</button>
     <div class="sx-head"><div class="sx-hl">${{logo}}<div class="sx-hid"><div class="sx-title">${{s.symbol}}</div><div class="sx-sub">${{s.name||s.exchange||''}}</div></div></div>${{_rightMeta}}</div>
-    ${{_desc ? `<div class="sx-desc">${{_esc(_desc)}}${{_desc.length>=140?'…':''}}</div>` : ''}}
+    ${{_desc ? `<div class="sx-desc">${{_esc(_desc)}}</div>` : ''}}
     ${{_pills.length ? `<div class="sx-pills">${{_pills.join('')}}</div>` : ''}}
     ${{_rows.length ? `<div class="sx-div"></div><div class="sx-rows">${{_rows.map(r=>`<div class="sx-row"><span class="sx-l">${{r[0]}}</span><span class="sx-v">${{r[1]}}</span></div>`).join('')}}</div>` : ''}}
     ${{edWarn}}`;
@@ -6062,6 +6332,32 @@ function _spark2(sym, color, w, h) {{
   const mn=Math.min(...c), mx=Math.max(...c), rng=(mx-mn)||1;
   const pts = c.map((v,i)=>`${{(i/(c.length-1)*w).toFixed(1)}},${{(h-((v-mn)/rng)*(h-3)-1.5).toFixed(1)}}`).join(' ');
   return `<svg viewBox="0 0 ${{w}} ${{h}}" style="width:${{w}}px;height:${{h}}px;"><polyline points="${{pts}}" fill="none" stroke="${{color}}" stroke-width="1.5"/></svg>`;
+}}
+function _mChart(s) {{
+  const el = document.getElementById('mSpark'); if (!el) return;
+  const ch = (DATA.charts||{{}})[s.symbol];
+  let c = (ch && ch.close ? ch.close : []).filter(x=>x!=null);
+  const p = s.plan||{{}};
+  if (c.length < 5) {{ el.innerHTML = ''; return; }}
+  c = c.slice(-60);
+  const W=600, H=150, padR=48, plotW=W-padR;
+  const lv=[p.entry,p.target,p.stop].filter(x=>x!=null);
+  const mn=Math.min(Math.min(...c),...lv), mx=Math.max(Math.max(...c),...lv), rng=(mx-mn)||1;
+  const X=i=>(i/(c.length-1))*plotW, Y=v=>H-((v-mn)/rng)*(H-14)-7;
+  const up=c[c.length-1]>=c[0], col=up?'var(--buy)':'var(--sell)', hex=up?'#5ed6a6':'#f0797f';
+  const ln=c.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' ');
+  const ar=ln+' '+plotW.toFixed(1)+','+H+' 0,'+H;
+  const fmt=v=>(+v).toLocaleString(undefined,{{maximumFractionDigits:(v<10?2:0)}});
+  const lvln=(v,color,lab)=>v==null?'':(
+    '<line x1="0" y1="'+Y(v).toFixed(1)+'" x2="'+plotW+'" y2="'+Y(v).toFixed(1)+'" stroke="'+color+'" stroke-width="1" stroke-dasharray="3 3" opacity=".55"/>'
+    +'<text x="'+(W-4)+'" y="'+(Y(v)+3).toFixed(1)+'" text-anchor="end" fill="'+color+'" font-size="9.5" font-weight="600">'+lab+' '+fmt(v)+'</text>');
+  el.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block;">'
+    +'<defs><linearGradient id="mspg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="'+hex+'" stop-opacity=".16"/><stop offset="1" stop-color="'+hex+'" stop-opacity="0"/></linearGradient></defs>'
+    +'<polygon points="'+ar+'" fill="url(#mspg)"/>'
+    +lvln(p.target,'var(--buy)','T')+lvln(p.entry,'var(--muted)','E')+lvln(p.stop,'var(--sell)','S')
+    +'<polyline points="'+ln+'" fill="none" stroke="'+col+'" stroke-width="2"/>'
+    +'<circle cx="'+plotW.toFixed(1)+'" cy="'+Y(c[c.length-1]).toFixed(1)+'" r="3" fill="'+col+'"/>'
+    +'</svg>';
 }}
 function _famOf(s) {{
   const co = (s.direction==='SHORT') ? (s.strategies&&s.strategies.short) : (s.strategies&&s.strategies.now);
@@ -6227,11 +6523,24 @@ function _renderConcWarn() {{
     + `${{_ico('warn',13)}} Concentration: ${{c.n}} of ${{c.total}} fresh ${{c.word}} are in <b>${{c.sector}}</b> (${{c.pct}}%). `
     + `These can be the same macro bet in disguise — sizing them as separate trades understates your real risk.</div>`;
 }}
+function _isLive(s) {{
+  const a = s.action || '';
+  if (a === 'FLAT' || a === 'EXIT' || a === 'AVOID') return false;   // not a live setup
+  if ((s.days_old || 0) > 14) return false;                          // time has run out
+  const p = (s.quote_price != null) ? s.quote_price : s.price;
+  const pl = s.plan || {{}};
+  if (p != null && pl.target != null && pl.stop != null) {{
+    const long = s.direction !== 'SHORT';
+    if (long && (p >= pl.target || p <= pl.stop)) return false;      // target hit / stopped → done
+    if (!long && (p <= pl.target || p >= pl.stop)) return false;
+  }}
+  return true;
+}}
 function renderCards() {{
   _renderConcWarn();
   cards.innerHTML = '';
   const useLayout = _layout && _layout !== 'cards' && LAYOUT_RENDER[_layout];
-  let base = _applyFilter(DATA.signals.slice(), _curFilter);
+  let base = _applyFilter(DATA.signals.filter(_isLive), _curFilter);
   if (_searchTerm) {{
     const q = _searchTerm.toLowerCase();
     base = base.filter(s => (s.symbol||'').toLowerCase().includes(q)
@@ -6319,6 +6628,55 @@ function renderCards() {{
   }});
   renderCards();
 }})();
+
+// --- Live-signals horizontal scroll arrows + expand-all toggle ---
+(function setupCardScroll() {{
+  const wrap = document.getElementById('cards');
+  const prev = document.getElementById('cardsPrev');
+  const next = document.getElementById('cardsNext');
+  const exp = document.getElementById('cardsExpand');
+  if (!wrap) return;
+  const grid = () => wrap.querySelector('.grid');
+  const scroll = d => {{ const el = grid(); if (el) el.scrollBy({{left: d * Math.min(560, el.clientWidth * 0.85), behavior: 'smooth'}}); }};
+  if (prev) prev.onclick = () => scroll(-1);
+  if (next) next.onclick = () => scroll(1);
+  if (exp) exp.onclick = () => {{
+    const on = wrap.classList.toggle('expanded');
+    exp.textContent = on ? 'Collapse' : 'Expand all';
+    if (prev) prev.style.display = on ? 'none' : '';
+    if (next) next.style.display = on ? 'none' : '';
+  }};
+}})();
+
+// --- Grok · X pulse: live social/news read on top names (populated on live builds) ---
+function renderGrokPulse() {{
+  const el = document.getElementById('grokPulse'); if (!el) return;
+  const items = (DATA.signals || []).filter(s => s.xai_sentiment);
+  if (!items.length) {{
+    el.innerHTML = '<div class="gp-empty">' + _ico('ai',15) + ' Grok live sentiment is off right now. Turn on '
+      + '<code>xai_live_sentiment_enabled</code> and run a live build to populate the X + news pulse on the top names.</div>';
+    return;
+  }}
+  const cls = {{bullish:'gp-up', bearish:'gp-dn', mixed:'gp-mut', quiet:'gp-mut'}};
+  el.innerHTML = '<div class="gp-list">' + items.slice(0,12).map(s => {{
+    const x = s.xai_sentiment || {{}};
+    const st = (x.stance || 'quiet');
+    const conf = (x.confidence != null) ? x.confidence : '';
+    const vol = x.social_volume ? (x.social_volume + ' volume') : '';
+    const cat = x.catalyst ? ('<span class="gp-cat">' + _ico('bolt',11) + ' ' + _esc(x.catalyst) + '</span>') : '';
+    const note = x.note ? _esc(x.note) : '';
+    return '<div class="gp-row" data-sym="' + s.symbol + '">'
+      + '<span class="gp-sym">' + s.symbol + '</span>'
+      + '<span class="sx-pill ' + (cls[st] || 'gp-mut') + '">' + st + '</span>'
+      + '<span class="gp-note">' + note + ' ' + cat + '</span>'
+      + '<span class="gp-meta">' + vol + (conf !== '' ? (' · ' + conf) : '') + '</span>'
+      + '</div>';
+  }}).join('') + '</div>';
+  el.querySelectorAll('.gp-row').forEach(r => r.addEventListener('click', () => {{
+    const sig = (DATA.signals || []).find(s => s.symbol === r.dataset.sym); if (sig) openModal(sig);
+  }}));
+}}
+try {{ renderGrokPulse(); }} catch (e) {{}}
 
 // --- Intraday tab: render the intraday-bar signals (reuses the same card UI) ---
 function renderIntraday() {{
@@ -6718,18 +7076,23 @@ function openModal(s) {{
     }});
     let rows = '';
     Object.keys(edges).forEach(k => {{
-      const e = edges[k]; const wr = e.win_rate == null ? '–' : e.win_rate + '%';
+      const e = edges[k];
+      const wr = (e.win_rate == null) ? null : e.win_rate;
       const ret = (e.total_return >= 0 ? '+' : '') + e.total_return + '%';
-      const dir = e.side==='short' ? '<span style="color:var(--sell);" title="short strategy">▼</span> ' : '<span style="color:var(--buy);" title="long strategy">▲</span> ';
-      rows += `<tr><td class="hcell" data-tip="${{_esc(STRAT_INFO[e.label] || '')}}">${{dir}}${{e.label}}</td>`
-        + `<td class="hcell" style="color:var(--muted);" data-tip="${{_esc(TYPE_INFO[e.kind] || '')}}">${{e.kind}}</td>`
-        + `<td style="text-align:right;">${{wr}}</td><td style="text-align:right;color:var(--muted);">${{e.n_trades}}</td>`
-        + `<td style="text-align:right;" class="${{e.total_return >= 0 ? 'win' : 'loss'}}">${{ret}}</td></tr>`;
+      const dcol = e.side === 'short' ? 'var(--sell)' : 'var(--buy)';
+      const bcol = (wr == null) ? 'var(--muted)' : (wr >= 50 ? 'var(--buy)' : 'var(--sell)');
+      rows += `<div class="strow hint" data-tip="${{_esc(STRAT_INFO[e.label] || '')}}">`
+        + `<span class="st-dot" style="background:${{dcol}};"></span>`
+        + `<span class="st-nm">${{e.label}}<span class="st-kind">${{e.kind}}</span></span>`
+        + `<span class="st-bar"><i style="width:${{wr == null ? 0 : wr}}%;background:${{bcol}};"></i></span>`
+        + `<span class="st-wr">${{wr == null ? '–' : wr + '%'}}</span>`
+        + `<span class="st-tr">${{e.n_trades}}t</span>`
+        + `<span class="st-ret ${{e.total_return >= 0 ? 'win' : 'loss'}}">${{ret}}</span></div>`;
     }});
-    const head = `<div style="margin-bottom:6px;font-size:13px;"><b>${{now.count || 0}}</b> of ${{now.total || 0}} strategies are long here right now (● long · ○ flat). <span style="color:var(--muted);">Hover any name for what it means.</span></div>`
-      + `<div class="chips" style="margin-bottom:12px;">${{chips}}</div>`;
+    const head = `<div style="margin-bottom:12px;font-size:13px;"><b>${{now.count || 0}}</b> of ${{now.total || 0}} strategies are long here now (● long · ○ flat). <span style="color:var(--muted);">Hover a name for what it means.</span></div>`
+      + `<div class="chips" style="margin-bottom:14px;">${{chips}}</div>`;
     const table = rows
-      ? `<table class="trackrec"><thead><tr><th class="hcell" data-tip="The method being tested. Hover each row's name for a plain-English description.">Strategy</th><th class="hcell" data-tip="The family the method belongs to — hover for what each type means.">Type</th><th class="hcell" style="text-align:right;" data-tip="How often this method has been profitable on THIS stock historically.">Win</th><th class="hcell" style="text-align:right;" data-tip="How many completed trades that win rate is based on — more = more reliable.">Trades</th><th class="hcell" style="text-align:right;" data-tip="Total hypothetical return of this method on this stock (no fees/slippage).">Return</th></tr></thead><tbody>${{rows}}</tbody></table>`
+      ? `<div class="strows">${{rows}}</div>`
       : '<div style="color:var(--muted);font-size:13px;">Per-strategy backtests are computed for the shown signals.</div>';
     sel.innerHTML = head + table;
   }}
@@ -6742,7 +7105,7 @@ function openModal(s) {{
 
   const conv = s.conviction || {{}};
   document.getElementById('mConvScore').innerHTML = conv.label
-    ? `<span class="convbadge conv-${{conv.label}}">${{conv.label}} · ${{conv.score_pct}}% · ${{conv.passes}}/${{conv.total}} checks</span>`
+    ? `<span class="convbadge conv-${{conv.label}}">${{conv.passes}}/${{conv.total}} checks passed</span>`
     : '';
   const icon = {{pass:_ico('check',13), warn:_ico('warn',13), fail:_ico('x',13)}};
   document.getElementById('mChecks').innerHTML = (conv.checks||[]).map(c =>
@@ -6759,6 +7122,36 @@ function openModal(s) {{
   const _dirWord = _short ? 'short' : 'long';
   document.getElementById('mPlanNote').textContent =
     _active ? `(${{_dirWord}} — active)` : `— levels if you took this ${{_dirWord}}`;
+  try {{ _mChart(s); }} catch (e) {{}}
+  // Option E — verdict strip + plan summary at the top of the overview
+  (function() {{
+    const cpct = conv.score_pct || 0;
+    const rag = cpct >= 70 ? 'var(--buy)' : (cpct >= 50 ? 'var(--warn)' : 'var(--sell)');
+    const cm = s.committee;
+    let vword, vtone = '', vsup = '';
+    if (cm) {{
+      vword = ({{accept:'STRONG BUY', reduce:'REDUCE', reject:'AVOID'}})[cm.verdict] || String(cm.verdict||'').toUpperCase();
+      vtone = ({{accept:'up', reduce:'warn', reject:'dn'}})[cm.verdict] || '';
+      vsup = cm.support != null ? (' · ' + cm.support + '/4') : '';
+    }} else {{
+      const a = s.action || 'Signal';
+      vword = a;
+      vtone = _short ? 'dn' : ((a.indexOf('BUY') >= 0 || a.indexOf('LONG') >= 0) ? 'up' : '');
+    }}
+    const vEl = document.getElementById('mVerdict');
+    if (vEl) vEl.innerHTML = conv.label ? (
+      '<span class="mv-badge ' + vtone + '">' + vword + vsup + '</span>'
+      + '<div class="mv-meter"><i style="width:' + cpct + '%;background:' + rag + ';"></i></div>'
+      + '<span class="mv-score" style="color:' + rag + ';">' + cpct + ' · ' + conv.label + '</span>'
+    ) : '';
+    const pt = document.getElementById('mPlanTop');
+    if (pt) pt.innerHTML = (p.entry != null) ? (
+      '<div class="pt"><div class="pt-l">Entry</div><div class="pt-v">' + money(p.entry) + '</div></div>'
+      + '<div class="pt"><div class="pt-l">Target</div><div class="pt-v up">' + (_short ? '−' : '+') + p.target_pct + '%</div></div>'
+      + '<div class="pt"><div class="pt-l">Stop</div><div class="pt-v dn">' + (_short ? '+' : '−') + p.stop_pct + '%</div></div>'
+      + '<div class="pt"><div class="pt-l">R : R</div><div class="pt-v">' + (p.rr != null ? ('1:' + p.rr) : '–') + '</div></div>'
+    ) : '';
+  }})();
   const _scen = (Array.isArray(p.targets) && p.targets.length)
     ? `<div class="scen"><div class="scen-h">${{_ico('target',13)}} Target scenarios <span>— the order uses the Base case; the others are where you could scale out or run it</span></div>`
       + p.targets.map(t => {{
@@ -6848,12 +7241,12 @@ function openModal(s) {{
       const leanc = l => l==='support' ? 'var(--buy)' : l==='against' ? 'var(--sell)' : 'var(--muted)';
       const RL = {{technicals:'Technicals',fundamentals:'Fundamentals',news:'News / catalyst',macro:'Macro / regime'}};
       const rolesH = Object.keys(RL).map(k => {{ const rv = (cm.roles||{{}})[k] || {{lean:'neutral',note:''}};
-        return '<div style="display:flex;gap:8px;margin:3px 0;font-size:12px;"><span style="flex:0 0 120px;color:var(--muted);">'+RL[k]+'</span>'
-          + '<span style="flex:0 0 68px;color:'+leanc(rv.lean)+';text-transform:capitalize;">'+rv.lean+'</span>'
-          + '<span style="flex:1;color:var(--txt2);">'+_esc(rv.note||'')+'</span></div>'; }}).join('');
+        return '<div class="crow"><span class="cr-role">'+RL[k]+'</span>'
+          + '<span class="cr-lean" style="color:'+leanc(rv.lean)+';">'+rv.lean+'</span>'
+          + '<span class="cr-note">'+_esc(rv.note||'')+'</span></div>'; }}).join('');
       mMeta.innerHTML += '<div class="sech ai-ident" style="margin-top:14px;">'+_ico('bank',13)+' Trade committee <span style="text-transform:none;color:var(--muted);font-size:12px;">— four AI analysts debate the setup; the chair rules</span></div>'
         + '<div class="deskread" style="border-left-color:'+vc+';"><b style="color:'+vc+';text-transform:uppercase;">'+cm.verdict+'</b> · confidence '+cm.confidence+'% · '+cm.support+'/4 support, '+cm.against+'/4 against'
-        + (cm.summary ? (' — '+_esc(cm.summary)) : '') + '</div>' + rolesH
+        + (cm.summary ? (' — '+_esc(cm.summary)) : '') + '</div><div class="crows">' + rolesH + '</div>'
         + '<p style="color:var(--muted);font-size:11px;margin:8px 0 0;">Advisory second opinion. The rules risk engine keeps final authority.</p>';
     }}
   }}
