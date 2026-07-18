@@ -126,7 +126,7 @@ class Config:
     xai_daily_call_cap: int = 40            # hard per-run cap on Grok calls (bounds cost)
     xai_max_names: int = 6                  # live-sentiment only the top N actionable names per build
     # (1) live X/web social read as a self-grading conviction check
-    xai_live_sentiment_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("XAI_LIVE_SENTIMENT"), False))
+    xai_live_sentiment_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("XAI_LIVE_SENTIMENT"), True))
     xai_sentiment_conviction_weight: float = 1.0   # base weight; the learned loop re-weights it from outcomes
     # (2) pre-market catalyst sweep -> seeds the next scan via news_candidates.json
     xai_premarket_scan_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("XAI_PREMARKET_SCAN"), False))
