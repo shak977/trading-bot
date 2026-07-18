@@ -719,7 +719,8 @@ def build_snapshot() -> dict:
                              lookback_days=CONFIG.intraday_lookback_days,
                              fast_ma=CONFIG.intraday_fast_ma, slow_ma=CONFIG.intraday_slow_ma,
                              target_atr_reach=getattr(CONFIG, "intraday_target_atr_reach", 14.0),
-                             target_swing_lookback=getattr(CONFIG, "intraday_target_swing_lookback", 78))
+                             target_swing_lookback=getattr(CONFIG, "intraday_target_swing_lookback", 78),
+                             atr_stop_mult=getattr(CONFIG, "intraday_atr_stop_mult", 2.5))
             _iuni, _iseen = [], set()
             for _s in [r["symbol"] for r in rows] + scanner.recent_listings(CONFIG):
                 if _s and _s not in _iseen:
