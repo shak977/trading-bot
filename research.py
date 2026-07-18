@@ -535,6 +535,21 @@ def fred_macro(cfg: Config) -> dict | None:
         if len(hy) >= 23 and hy[22]:
             m["hy_oas_chg_1mo"] = round(hy[0] - hy[22], 2)  # change in spread over ~1 month
             m["hy_trend"] = "widening" if hy[0] > hy[22] else "tightening"
+    # --- financial conditions + extra curve/inflation gauges (free FRED series) ---
+    nfci = _fred_latest("NFCI", key, limit=2)       # Chicago Fed Nat'l Financial Conditions Index
+    curve3m = _fred_latest("T10Y3M", key)           # 10yr − 3mo curve (recession-canonical)
+    t10yie = _fred_latest("T10YIE", key)            # 10yr breakeven inflation expectations
+    if nfci:
+        m["nfci"] = round(nfci[0], 2)
+        if len(nfci) >= 2 and nfci[1] is not None:
+            m["nfci_trend"] = "tightening" if nfci[0] > nfci[1] else "easing"
+        m["fin_conditions"] = ("Loose — supportive of risk" if nfci[0] < -0.1 else
+                               "Tight — a headwind for risk" if nfci[0] > 0.1 else
+                               "Around average")
+    if curve3m is not None:
+        m["curve_3m"] = round(curve3m, 2)
+    if t10yie is not None:
+        m["infl_expectations"] = round(t10yie, 2)
     if not m:
         return None
     curve = m.get("curve")

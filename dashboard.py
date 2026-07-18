@@ -2924,6 +2924,13 @@ def _macro_html(m: dict | None) -> str:
         cells += cell("Unemployment", f'{m["unemployment"]}%')
     if m.get("fed_funds") is not None:
         cells += cell("Fed funds rate", f'{m["fed_funds"]}%')
+    if m.get("nfci") is not None:
+        _nt = f' ({m["nfci_trend"]})' if m.get("nfci_trend") else ''
+        cells += cell("Financial conditions", f'{m["nfci"]:+.2f}{_nt}')
+    if m.get("curve_3m") is not None:
+        cells += cell("Yield curve (10y-3mo)", f'{m["curve_3m"]:+.2f}')
+    if m.get("infl_expectations") is not None:
+        cells += cell("Inflation expectations", f'{m["infl_expectations"]}%')
     return ('<div class="ovbox"><div class="ovhead">' + _svg('globe',14) + ' Macro backdrop '
             '<span style="font-weight:400;color:var(--muted);font-size:12px;">'
             '— the underlying readings feeding the posture above</span></div>'
