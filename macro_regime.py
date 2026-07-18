@@ -111,7 +111,27 @@ def _breadth_score(tape) -> tuple[float, str] | None:
 
 
 # driver -> weight (credit + vol are the most reliable risk gauges)
-_WEIGHTS = {"VIX": 0.25, "Credit": 0.30, "Yield curve": 0.15, "US dollar": 0.10, "Breadth": 0.20}
+def _finconditions_score(macro) -> tuple[float, str] | None:
+    n = macro.get("nfci")
+    if n is None:
+        return None
+    # NFCI: negative = looser-than-average conditions (risk-on), positive = tighter (risk-off); ~0 = average.
+    s = _clamp(-n / 0.4, -1, 1)
+    if n < -0.1:
+        txt = f"Financial conditions {n:+.2f} — loose"
+    elif n > 0.1:
+        txt = f"Financial conditions {n:+.2f} — tight"
+    else:
+        txt = f"Financial conditions {n:+.2f} — average"
+    if macro.get("nfci_trend") == "tightening":
+        s -= 0.15; txt += ", tightening"
+    elif macro.get("nfci_trend") == "easing":
+        s += 0.15; txt += ", easing"
+    return _clamp(s, -1, 1), txt
+
+
+_WEIGHTS = {"VIX": 0.25, "Credit": 0.28, "Yield curve": 0.15, "US dollar": 0.08,
+            "Breadth": 0.18, "Financial conditions": 0.22}
 
 
 def _regime_tags(macro: dict, tape_regime: dict | None) -> list[dict]:
@@ -195,6 +215,7 @@ def assess(macro: dict | None, tape_regime: dict | None, cfg) -> dict | None:
             "Yield curve": _curve_score(macro),
             "US dollar": _usd_score(macro),
             "Breadth": _breadth_score(tape_regime),
+            "Financial conditions": _finconditions_score(macro),
         }
         drivers, wsum, used = [], 0.0, 0.0
         for name, res in scorers.items():

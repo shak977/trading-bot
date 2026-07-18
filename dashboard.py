@@ -717,7 +717,9 @@ def build_snapshot() -> dict:
             from dataclasses import replace as _replace
             _icfg = _replace(CONFIG, timeframe=CONFIG.intraday_timeframe,
                              lookback_days=CONFIG.intraday_lookback_days,
-                             fast_ma=CONFIG.intraday_fast_ma, slow_ma=CONFIG.intraday_slow_ma)
+                             fast_ma=CONFIG.intraday_fast_ma, slow_ma=CONFIG.intraday_slow_ma,
+                             target_atr_reach=getattr(CONFIG, "intraday_target_atr_reach", 14.0),
+                             target_swing_lookback=getattr(CONFIG, "intraday_target_swing_lookback", 78))
             _iuni, _iseen = [], set()
             for _s in [r["symbol"] for r in rows] + scanner.recent_listings(CONFIG):
                 if _s and _s not in _iseen:
