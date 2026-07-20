@@ -350831,7 +350831,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "win",
+    "exit": 102.07,
+    "exit_date": "2026-07-20",
+    "return_pct": 1.38,
+    "days_held": 2
   },
   {
     "id": "VLO:2026-07-17",
@@ -351949,7 +351953,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "win",
+    "exit": 102.07,
+    "exit_date": "2026-07-20",
+    "return_pct": 1.38,
+    "days_held": 1
   },
   {
     "id": "VLO:2026-07-18",
@@ -358532,7 +358540,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "win",
+    "exit": 102.07,
+    "exit_date": "2026-07-20",
+    "return_pct": 1.38,
+    "days_held": 0
   },
   {
     "id": "COP:2026-07-19",
@@ -364540,7 +364552,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "win",
+    "exit": 102.07,
+    "exit_date": "2026-07-20",
+    "return_pct": 1.38,
+    "days_held": -1
   },
   {
     "id": "COP:2026-07-20",
@@ -376124,7 +376140,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 27.79,
+    "exit_date": "2026-07-20",
+    "return_pct": -3.0,
+    "days_held": -1
   },
   {
     "id": "EOG:2026-07-20",
@@ -378547,7 +378567,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 32.62,
+    "exit_date": "2026-07-20",
+    "return_pct": -0.58,
+    "days_held": -1
   },
   {
     "id": "NEE:2026-07-20",
@@ -379544,7 +379568,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 147.47,
+    "exit_date": "2026-07-20",
+    "return_pct": -0.38,
+    "days_held": -1
   },
   {
     "id": "JNJ:2026-07-20",
@@ -379621,7 +379649,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 250.15,
+    "exit_date": "2026-07-20",
+    "return_pct": 0.47,
+    "days_held": -1
   },
   {
     "id": "HPQ:2026-07-20",
@@ -380087,7 +380119,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 511.78,
+    "exit_date": "2026-07-20",
+    "return_pct": 0.43,
+    "days_held": -1
   },
   {
     "id": "CI:2026-07-20",
@@ -380306,6 +380342,156 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "ZS:2026-07-20",
+    "symbol": "ZS",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-20",
+    "advised_ts": "2026-07-20T17:33:55.760174",
+    "entry": 152.79,
+    "stop": 151.74,
+    "target": 156.78,
+    "rr": 3.82,
+    "conviction": "High",
+    "conviction_pct": 85,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "AMZN:2026-07-20",
+    "symbol": "AMZN",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-07-20",
+    "advised_ts": "2026-07-20T17:33:55.760174",
+    "entry": 250.27,
+    "stop": 251.49,
+    "target": 246.62,
+    "rr": 3.0,
+    "conviction": "High",
+    "conviction_pct": 79,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "fail"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "thin",
     "status": "open"
   }
 ]
