@@ -371804,7 +371804,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 35.4,
+    "exit_date": "2026-07-20",
+    "return_pct": -0.76,
+    "days_held": -1
   },
   {
     "id": "LRCX:2026-07-20",
@@ -377424,7 +377428,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 33.51,
+    "exit_date": "2026-07-20",
+    "return_pct": 0.78,
+    "days_held": -1
   },
   {
     "id": "XOM:2026-07-20",
@@ -377955,7 +377963,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "win",
+    "exit": 525.63,
+    "exit_date": "2026-07-20",
+    "return_pct": 1.38,
+    "days_held": -1
   },
   {
     "id": "EMR:2026-07-20",
@@ -378190,7 +378202,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 46.43,
+    "exit_date": "2026-07-20",
+    "return_pct": 0.75,
+    "days_held": -1
   },
   {
     "id": "SBUX:2026-07-20",
@@ -380814,6 +380830,152 @@
       {
         "label": "Reward:risk worth it?",
         "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "HL:2026-07-20",
+    "symbol": "HL",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-07-20",
+    "advised_ts": "2026-07-20T20:05:12.804323",
+    "entry": 14.41,
+    "stop": 14.52,
+    "target": 14.06,
+    "rr": 3.23,
+    "conviction": "High",
+    "conviction_pct": 75,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "fail"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "LFTO:2026-07-20",
+    "symbol": "LFTO",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-07-20",
+    "advised_ts": "2026-07-20T20:05:12.804323",
+    "entry": 23.2,
+    "stop": 23.46,
+    "target": 22.0,
+    "rr": 4.64,
+    "conviction": "High",
+    "conviction_pct": 75,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "fail"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "warn"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
       }
     ],
     "tv_align": null,
