@@ -370561,7 +370561,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 50.37,
+    "exit_date": "2026-07-20",
+    "return_pct": -0.45,
+    "days_held": -1
   },
   {
     "id": "ETN:2026-07-20",
@@ -371866,7 +371870,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 140.24,
+    "exit_date": "2026-07-20",
+    "return_pct": -0.95,
+    "days_held": -1
   },
   {
     "id": "QQQ:2026-07-20",
@@ -376174,7 +376182,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 354.42,
+    "exit_date": "2026-07-20",
+    "return_pct": 0.5,
+    "days_held": -1
   },
   {
     "id": "MO:2026-07-20",
@@ -377013,7 +377025,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 157.81,
+    "exit_date": "2026-07-20",
+    "return_pct": -1.45,
+    "days_held": -1
   },
   {
     "id": "AZO:2026-07-20",
@@ -377167,7 +377183,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 518.94,
+    "exit_date": "2026-07-20",
+    "return_pct": 0.15,
+    "days_held": -1
   },
   {
     "id": "BSP:2026-07-20",
@@ -377325,7 +377345,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 148.76,
+    "exit_date": "2026-07-20",
+    "return_pct": 0.4,
+    "days_held": -1
   },
   {
     "id": "STDN:2026-07-20",
@@ -378067,6 +378091,79 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "SPY:2026-07-20",
+    "symbol": "SPY",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-07-20",
+    "advised_ts": "2026-07-20T15:13:33.744566",
+    "entry": 744.12,
+    "stop": 746.27,
+    "target": 742.16,
+    "rr": 0.91,
+    "conviction": "Medium",
+    "conviction_pct": 70,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "warn"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "warn"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "moderate",
     "status": "open"
   }
 ]
