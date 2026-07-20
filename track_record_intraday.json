@@ -351416,7 +351416,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 7.3,
+    "exit_date": "2026-07-20",
+    "return_pct": -0.97,
+    "days_held": 2
   },
   {
     "id": "META:2026-07-17",
@@ -354330,7 +354334,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 7.3,
+    "exit_date": "2026-07-20",
+    "return_pct": -0.97,
+    "days_held": 1
   },
   {
     "id": "WHK:2026-07-18",
@@ -354695,7 +354703,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 6.6,
+    "exit_date": "2026-07-20",
+    "return_pct": -1.07,
+    "days_held": 1
   },
   {
     "id": "WMT:2026-07-18",
@@ -356191,7 +356203,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 10.16,
+    "exit_date": "2026-07-20",
+    "return_pct": -0.69,
+    "days_held": 1
   },
   {
     "id": "HUM:2026-07-18",
@@ -356852,7 +356868,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "loss",
+    "exit": 95.94,
+    "exit_date": "2026-07-20",
+    "return_pct": -1.07,
+    "days_held": 1
   },
   {
     "id": "YUM:2026-07-18",
@@ -360131,7 +360151,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 7.31,
+    "exit_date": "2026-07-20",
+    "return_pct": -1.11,
+    "days_held": 0
   },
   {
     "id": "WHK:2026-07-19",
@@ -360715,7 +360739,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 6.62,
+    "exit_date": "2026-07-20",
+    "return_pct": -1.38,
+    "days_held": 0
   },
   {
     "id": "INTC:2026-07-19",
@@ -360792,7 +360820,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "loss",
+    "exit": 96.2,
+    "exit_date": "2026-07-20",
+    "return_pct": -1.35,
+    "days_held": 0
   },
   {
     "id": "NOK:2026-07-19",
@@ -360869,7 +360901,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 10.17,
+    "exit_date": "2026-07-20",
+    "return_pct": -0.79,
+    "days_held": 0
   },
   {
     "id": "LULU:2026-07-19",
@@ -365859,7 +365895,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 7.31,
+    "exit_date": "2026-07-20",
+    "return_pct": -1.11,
+    "days_held": -1
   },
   {
     "id": "WHK:2026-07-20",
@@ -366443,7 +366483,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 6.62,
+    "exit_date": "2026-07-20",
+    "return_pct": -1.38,
+    "days_held": -1
   },
   {
     "id": "INTC:2026-07-20",
@@ -366520,7 +366564,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "loss",
+    "exit": 96.2,
+    "exit_date": "2026-07-20",
+    "return_pct": -1.35,
+    "days_held": -1
   },
   {
     "id": "NOK:2026-07-20",
@@ -366597,7 +366645,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 10.17,
+    "exit_date": "2026-07-20",
+    "return_pct": -0.79,
+    "days_held": -1
   },
   {
     "id": "LULU:2026-07-20",
@@ -368819,6 +368871,233 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "AAPL:2026-07-20",
+    "symbol": "AAPL",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-20",
+    "advised_ts": "2026-07-20T12:25:57.753525",
+    "entry": 331.35,
+    "stop": 329.27,
+    "target": 334.98,
+    "rr": 1.74,
+    "conviction": "Medium",
+    "conviction_pct": 65,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "warn"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "moderate",
+    "status": "open"
+  },
+  {
+    "id": "SOXS:2026-07-20",
+    "symbol": "SOXS",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-07-20",
+    "advised_ts": "2026-07-20T12:25:57.753525",
+    "entry": 50.9,
+    "stop": 52.49,
+    "target": 43.27,
+    "rr": 4.79,
+    "conviction": "High",
+    "conviction_pct": 77,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "SPCX:2026-07-20",
+    "symbol": "SPCX",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-07-20",
+    "advised_ts": "2026-07-20T12:25:57.753525",
+    "entry": 125.35,
+    "stop": 127.62,
+    "target": 122.9,
+    "rr": 1.08,
+    "conviction": "Medium",
+    "conviction_pct": 60,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "thin",
     "status": "open"
   }
 ]
