@@ -179,6 +179,24 @@
           "decided": 0
         }
       }
+    },
+    {
+      "ts": "2026-07-20 23:29 GMT",
+      "date": "2026-07-20",
+      "buckets": {
+        "daily": {
+          "win_rate": 47.0,
+          "decided": 692
+        },
+        "intraday": {
+          "win_rate": 41.1,
+          "decided": 4667
+        },
+        "orb": {
+          "win_rate": null,
+          "decided": 0
+        }
+      }
     }
   ],
   "ledger": {
@@ -239,14 +257,20 @@
     "Daily / swing: check 'News on side?'": {
       "first_seen": "2026-07-10",
       "first_wr": 47.0,
-      "times": 7,
-      "last_seen": "2026-07-17"
+      "times": 8,
+      "last_seen": "2026-07-20"
     },
     "Daily / swing: check 'Sector trending right?'": {
       "first_seen": "2026-07-10",
       "first_wr": 47.0,
       "times": 7,
       "last_seen": "2026-07-17"
+    },
+    "Daily / swing: check 'Liquid enough to trade?'": {
+      "first_seen": "2026-07-20",
+      "first_wr": 47.0,
+      "times": 1,
+      "last_seen": "2026-07-20"
     }
   }
 }
