@@ -378486,7 +378486,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 366.48,
+    "exit_date": "2026-07-20",
+    "return_pct": -0.74,
+    "days_held": -1
   },
   {
     "id": "KMI:2026-07-20",
@@ -378879,7 +378883,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 124.81,
+    "exit_date": "2026-07-20",
+    "return_pct": 0.53,
+    "days_held": -1
   },
   {
     "id": "ELV:2026-07-20",
@@ -380342,7 +380350,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 154.08,
+    "exit_date": "2026-07-20",
+    "return_pct": 0.47,
+    "days_held": -1
   },
   {
     "id": "ZS:2026-07-20",
@@ -380492,6 +380504,79 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
+    "status": "open"
+  },
+  {
+    "id": "CSQR:2026-07-20",
+    "symbol": "CSQR",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-20",
+    "advised_ts": "2026-07-20T18:05:11.652196",
+    "entry": 20.52,
+    "stop": 20.29,
+    "target": 20.62,
+    "rr": 0.48,
+    "conviction": "Medium",
+    "conviction_pct": 71,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "warn"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
     "status": "open"
   }
 ]
