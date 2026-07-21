@@ -3013,6 +3013,64 @@ def _paper_spark(history: dict | None) -> str:
             f'stroke-linejoin="round" stroke-linecap="round"/></svg>')
 
 
+def _system_health_html(diag: dict | None) -> str:
+    """The nightly self-diagnostic surfaced on the dashboard: direction split, where targets get
+    reached by R:R, the most/least predictive checks (longs-only), and the setup/timing verdicts."""
+    if not diag or not diag.get("by_direction"):
+        return ""
+    bd = diag["by_direction"]
+
+    def tile(lab, s):
+        if not s:
+            return ""
+        exp = s.get("exp", 0)
+        tone = "buy" if exp > 0 else ("sell" if exp < 0 else "")
+        return (f'<div class="stat"><div class="l">{lab}</div>'
+                f'<div class="v {tone}">{round(s.get("wr", 0))}%</div>'
+                f'<div class="sub">win &middot; exp {exp:+.2f}% &middot; n={s.get("n", 0)}</div></div>')
+    dirg = (f'<div class="plangrid">{tile("Longs", bd.get("LONG"))}'
+            f'{tile("Shorts", bd.get("SHORT"))}{tile("All", bd.get("ALL"))}</div>')
+
+    rr_rows = ""
+    for k, b in (diag.get("rr_buckets_longs") or {}).items():
+        ret = b.get("avg_ret", 0)
+        cls = "buy" if ret >= 0 else "sell"
+        rr_rows += (f'<tr><td>R:R {k}</td><td style="text-align:right;">{b.get("target_hit_pct", 0)}%</td>'
+                    f'<td style="text-align:right;color:var(--muted);">{b.get("n", 0)}</td>'
+                    f'<td style="text-align:right;" class="{cls}">{ret:+.2f}%</td></tr>')
+    rr_tbl = (f'<table class="tbl"><thead><tr><th>Reward:risk</th><th style="text-align:right;">Target hit</th>'
+              f'<th style="text-align:right;">n</th><th style="text-align:right;">Avg</th></tr></thead>'
+              f'<tbody>{rr_rows}</tbody></table>') if rr_rows else ""
+
+    checks = diag.get("checks_longs_only") or {}
+    items = sorted(checks.items(), key=lambda kv: kv[1].get("win_delta", 0))
+    sel = (items[:3] + items[-3:][::-1]) if len(items) >= 6 else items
+    ck_rows = ""
+    for lab, c in sel:
+        wd = c.get("win_delta", 0)
+        cls = "buy" if wd > 0 else "sell"
+        ck_rows += (f'<tr><td>{lab}</td>'
+                    f'<td style="text-align:right;">{round(c.get("pass_wr", 0))}% vs {round(c.get("notpass_wr", 0))}%</td>'
+                    f'<td style="text-align:right;" class="{cls}">{wd:+.0f}pt {c.get("sig", "")}</td></tr>')
+    ck_tbl = (f'<table class="tbl"><thead><tr><th>Check (longs)</th><th style="text-align:right;">pass vs not</th>'
+              f'<th style="text-align:right;">edge</th></tr></thead><tbody>{ck_rows}</tbody></table>') if ck_rows else ""
+
+    verd = ""
+    if diag.get("setups_verdict"):
+        verd += f'<p class="shverd"><b>Setups:</b> {diag["setups_verdict"]}</p>'
+    if diag.get("timing_verdict"):
+        verd += f'<p class="shverd"><b>Timing:</b> {diag["timing_verdict"]}</p>'
+
+    return ('<div class="sec-eyebrow">Self-check</div>'
+            f'<div class="sec-head"><span class="sh-ico">{_svg("scale", 15)}</span><h2>System health</h2>'
+            f'<span class="sh-sub">nightly diagnostic &middot; {diag.get("resolved", 0)} trades</span></div>'
+            f'<div class="ovbox" style="padding:18px 20px;">{dirg}'
+            '<div class="shgrid">'
+            f'<div><div class="mdh">Where targets get reached (longs)</div>{rr_tbl}</div>'
+            f'<div><div class="mdh">Most &amp; least predictive checks (longs)</div>{ck_tbl}</div>'
+            f'</div>{verd}</div>')
+
+
 def _system_html(sysd: dict | None) -> str:
     """Live 'under the hood' status: every feed, AI layer, engine feature, execution toggle,
     scraper, alert channel and piece of infra — with an ON/OFF state read from the real config."""
@@ -3909,6 +3967,7 @@ def render_html(snap: dict) -> str:
     altdata_html = _altdata_html(snap)
     news_ideas_html = _news_ideas_html(snap.get("news_ideas"))
     system_html = _system_html(snap.get("system"))
+    sysdiag_html = _system_health_html(_load_json_safe("system_diagnostic.json"))
     whatsnew_html = _changelog_html(snap.get("changelog"))
     agents_html = _agent_web_html(snap) + _agent_universe_html(snap)
     regime_html = _regime_html(snap.get("regime"))
@@ -4848,6 +4907,10 @@ def render_html(snap: dict) -> str:
   .mbp-b .mbhl.up {{ color:var(--buy); font-weight:500; }}
   .mbp-b .mbhl.dn {{ color:var(--sell); font-weight:500; }}
   @media (max-width:640px) {{ .mb-quad {{ grid-template-columns:1fr; }} }}
+  /* system health panel */
+  .shgrid {{ display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:16px; }}
+  .shverd {{ color:var(--txt2); font-size:13px; margin:10px 0 0; line-height:1.6; }}
+  @media (max-width:760px) {{ .shgrid {{ grid-template-columns:1fr; }} }}
   /* xAI-style 2x2 section showcase — quiet cards */
   .showcase {{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:6px 0 4px; }}
   .sc-card {{ display:flex; flex-direction:column; background:var(--card); border:1px solid var(--line);
@@ -5563,6 +5626,7 @@ def render_html(snap: dict) -> str:
   {paper_section}
 
   <section class="page" id="page-system">
+{sysdiag_html}
 {system_html}
   </section>
 
