@@ -6663,8 +6663,8 @@ function renderGrokPulse() {{
   const el = document.getElementById('grokPulse'); if (!el) return;
   const items = (DATA.signals || []).filter(s => s.xai_sentiment);
   if (!items.length) {{
-    el.innerHTML = '<div class="gp-empty">' + _ico('ai',15) + ' Grok live sentiment is off right now. Turn on '
-      + '<code>xai_live_sentiment_enabled</code> and run a live build to populate the X + news pulse on the top names.</div>';
+    el.innerHTML = '<div class="gp-empty">' + _ico('ai',15) + ' No live Grok sentiment in this build yet. '
+      + 'It populates on the next <b>live build during market hours</b> — Grok reads X + news on the top actionable names.</div>';
     return;
   }}
   const cls = {{bullish:'gp-up', bearish:'gp-dn', mixed:'gp-mut', quiet:'gp-mut'}};
