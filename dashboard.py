@@ -474,6 +474,19 @@ def build_snapshot() -> dict:
                         0, f"{_svg('octagon',13)} Extended — price is stretched above its trend (chasing). Shown "
                            "as Watch, not a fresh entry: the edge is in non-extended entries (bases/pullbacks), not rips.")
 
+    # Volatility gate (diagnostic Jul 2026): "Calm enough?" longs win 60% (+1.21%) vs 15% (−2.50%)
+    # when too jumpy. Demote a fresh BUY on a too-volatile name to Watch — favour calm entries.
+    if getattr(CONFIG, "volatility_gate_enabled", True):
+        for r in shown:
+            if r.get("action") == "BUY":
+                _cks = {c.get("label"): c.get("status") for c in ((r.get("conviction") or {}).get("checks") or [])}
+                if _cks.get("Calm enough?") == "fail":
+                    r["action"] = "WATCH LONG"
+                    r["volatility_gated"] = True
+                    r.setdefault("reasons", []).insert(
+                        0, f"{_svg('octagon',13)} Too jumpy — daily swings are large. Shown as Watch, not a fresh "
+                           "entry: calm, low-volatility names have won far more (60% vs 15%).")
+
     # Pull news once for everything shown, from MULTIPLE feeds, then bucket per ticker.
     if live:
         import research as _rn

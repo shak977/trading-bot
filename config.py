@@ -302,6 +302,8 @@ class Config:
     # Evidence-based (diagnostic Jul 2026): momentum longs win 67% when NOT extended vs 40% when
     # chasing — demote extended fresh BUYs to Watch (buy bases/pullbacks, not rips).
     extension_gate_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("EXTENSION_GATE"), True))
+    # "Calm enough?" longs win 60% vs 15% when too jumpy — demote fresh BUYs on too-volatile names.
+    volatility_gate_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("VOLATILITY_GATE"), True))
     # A tight stop paired with a far (3-4R) target gets shaken out by noise before the target is
     # reached (our data: 19% hit / 70% stopped). When R:R exceeds the cap, WIDEN the stop to give
     # room (bounded by ATR) and hold $-risk constant by trimming size — rather than cutting targets.
