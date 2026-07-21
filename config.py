@@ -197,7 +197,7 @@ class Config:
     #   NB: the per-order sizer also caps qty at ~90% of available BUYING POWER, so the book
     #   self-limits — it stops opening when buying power runs low, even below these caps.
     paper_risk_pct: float = 0.005    # risk per position (fraction of equity to the stop) — small so many fit
-    paper_allow_shorts: bool = True  # also open shorts (set False for longs-only)
+    paper_allow_shorts: bool = False  # shorts off in the current risk-on tape (−4.47% over 133 trades); re-enable in a bear regime
     # Realized-record cutoff: after a manual cleanup/reset, set PAPER_RESET_DATE=YYYY-MM-DD so the
     # realized stats only count round-trips closed on/after that date (keeps manual closes + stale
     # history out of the strategy's record). Empty = count everything (default).
@@ -299,6 +299,15 @@ class Config:
     # --- Risk management ---
     starting_cash: float = 100_000.0
     risk_per_trade: float = 0.02     # fraction of equity risked per position
+    # Evidence-based (diagnostic Jul 2026): momentum longs win 67% when NOT extended vs 40% when
+    # chasing — demote extended fresh BUYs to Watch (buy bases/pullbacks, not rips).
+    extension_gate_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("EXTENSION_GATE"), True))
+    # A tight stop paired with a far (3-4R) target gets shaken out by noise before the target is
+    # reached (our data: 19% hit / 70% stopped). When R:R exceeds the cap, WIDEN the stop to give
+    # room (bounded by ATR) and hold $-risk constant by trimming size — rather than cutting targets.
+    rr_stop_widen_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("RR_STOP_WIDEN"), True))
+    rr_stop_widen_cap: float = 3.0        # widen the stop so R:R lands at ~this when it would exceed it
+    rr_stop_widen_max_atr: float = 3.5    # never widen the stop beyond this * ATR
     stop_loss_pct: float = 0.05      # 5% below entry
     take_profit_pct: float = 0.15    # absolute CEILING on the base target (never target more than this)
     target_swing_lookback: int = 30  # bars used to find the nearest structural resistance/support

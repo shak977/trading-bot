@@ -460,6 +460,20 @@ def build_snapshot() -> dict:
                        f"{_st['n']} settled trades, so new {_d.lower()}s are shown as Watch, not "
                        f"fresh entries, until that win rate recovers.")
 
+    # Extension gate (diagnostic Jul 2026): momentum/leading longs win 67% (+1.28%) when NOT
+    # extended vs 40% (+0.09%) when chasing. Demote a fresh BUY that's stretched above trend
+    # (the "Not chasing?" conviction check failing) to Watch — the edge is in bases/pullbacks.
+    if getattr(CONFIG, "extension_gate_enabled", True):
+        for r in shown:
+            if r.get("action") == "BUY":
+                _cks = {c.get("label"): c.get("status") for c in ((r.get("conviction") or {}).get("checks") or [])}
+                if _cks.get("Not chasing?") == "fail":
+                    r["action"] = "WATCH LONG"
+                    r["extension_gated"] = True
+                    r.setdefault("reasons", []).insert(
+                        0, f"{_svg('octagon',13)} Extended — price is stretched above its trend (chasing). Shown "
+                           "as Watch, not a fresh entry: the edge is in non-extended entries (bases/pullbacks), not rips.")
+
     # Pull news once for everything shown, from MULTIPLE feeds, then bucket per ticker.
     if live:
         import research as _rn

@@ -611,9 +611,25 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: st
         reward = target - entry
 
     shares = position_size(equity, entry, cfg)
+    rr = (reward / per_share_risk) if per_share_risk > 0 else None
+    # Dead-zone stop widening (diagnostic Jul 2026): a tight stop paired with a far (>cap R:R)
+    # target gets shaken out by noise before the target is reached (our data: 19% hit / 70%
+    # stopped at R:R 3-4). Widen the stop toward the target (bounded by ATR), holding $-risk
+    # constant by trimming size — rather than pairing a tight stop with an unreachable target.
+    if (getattr(cfg, "rr_stop_widen_enabled", True) and rr is not None
+            and per_share_risk > 0 and atr_val):
+        _cap = getattr(cfg, "rr_stop_widen_cap", 3.0)
+        if rr > _cap:
+            _new_risk = min(reward / _cap, getattr(cfg, "rr_stop_widen_max_atr", 3.5) * atr_val)
+            if _new_risk > per_share_risk:
+                _budget = (shares or 0) * per_share_risk          # keep $ risk constant
+                per_share_risk = _new_risk
+                working_stop = (entry + per_share_risk) if direction == "SHORT" else (entry - per_share_risk)
+                if _budget > 0:
+                    shares = int(_budget / per_share_risk)
+                rr = reward / per_share_risk
     dollar_risk = shares * per_share_risk if shares else 0.0
     exposure = shares * entry if shares else 0.0
-    rr = (reward / per_share_risk) if per_share_risk > 0 else None
 
     def r(x):
         return None if x is None else round(float(x), 2)
