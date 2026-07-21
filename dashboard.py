@@ -3071,6 +3071,43 @@ def _system_health_html(diag: dict | None) -> str:
             f'</div>{verd}</div>')
 
 
+def _metalabel_html(hist: list | None) -> str:
+    """Meta-label model health: current out-of-sample AUC vs the conviction baseline, the top-20%
+    win-rate lift, and a trend sparkline so you can watch it stabilise before it drives sizing."""
+    if not hist:
+        return ""
+    last = hist[-1]
+    am, ab = last.get("auc_meta"), last.get("auc_baseline")
+    if not isinstance(am, (int, float)):
+        return ""
+    tone = "buy" if am >= 0.60 else ("warn" if am >= 0.55 else "")
+    verdict = ("useful — beating the checklist" if am >= 0.60 else
+               "marginal — keep watching" if am >= 0.55 else "no edge yet")
+    xs = [h.get("auc_meta") for h in hist if isinstance(h.get("auc_meta"), (int, float))]
+    spark = ""
+    if len(xs) >= 2:
+        mn, mx = min(xs), max(xs)
+        rng = (mx - mn) or 1
+        w, h = 150, 28
+        pts = " ".join(f"{i / (len(xs) - 1) * w:.1f},{h - ((v - mn) / rng) * (h - 4) - 2:.1f}"
+                       for i, v in enumerate(xs))
+        spark = (f'<svg width="{w}" height="{h}" viewBox="0 0 {w} {h}" style="vertical-align:middle;">'
+                 f'<polyline points="{pts}" fill="none" stroke="var(--buy)" stroke-width="1.5"/></svg>')
+    t20m, t20b = last.get("top20_meta_wr"), last.get("top20_base_wr")
+    tiles = (f'<div class="stat"><div class="l">Meta-label AUC (out-of-sample)</div>'
+             f'<div class="v {tone}">{am:.2f}</div>'
+             f'<div class="sub">vs checklist baseline {ab:.2f} &middot; {verdict}</div></div>'
+             f'<div class="stat"><div class="l">Top-20% win rate</div>'
+             f'<div class="v buy">{t20m}%</div>'
+             f'<div class="sub">model vs checklist {t20b}% &middot; n={last.get("n_oos","—")}</div></div>')
+    return (f'<div class="ovbox" style="padding:18px 20px;margin-top:14px;">'
+            f'<div class="mdh" style="margin-top:0;display:flex;align-items:center;gap:12px;">'
+            f'Meta-label model — learned P(win) {spark}</div>'
+            f'<div class="plangrid" style="margin-top:10px;">{tiles}</div>'
+            '<p class="shverd">A learned P(win) that ranks winners better than the hand-tuned checklist. '
+            'Wire it into sizing once the AUC holds above ~0.60 across a few months of data.</p></div>')
+
+
 def _system_html(sysd: dict | None) -> str:
     """Live 'under the hood' status: every feed, AI layer, engine feature, execution toggle,
     scraper, alert channel and piece of infra — with an ON/OFF state read from the real config."""
@@ -3968,6 +4005,7 @@ def render_html(snap: dict) -> str:
     news_ideas_html = _news_ideas_html(snap.get("news_ideas"))
     system_html = _system_html(snap.get("system"))
     sysdiag_html = _system_health_html(_load_json_safe("system_diagnostic.json"))
+    metalabel_html = _metalabel_html(_load_json_safe("meta_history.json"))
     whatsnew_html = _changelog_html(snap.get("changelog"))
     agents_html = _agent_web_html(snap) + _agent_universe_html(snap)
     regime_html = _regime_html(snap.get("regime"))
@@ -5627,6 +5665,7 @@ def render_html(snap: dict) -> str:
 
   <section class="page" id="page-system">
 {sysdiag_html}
+{metalabel_html}
 {system_html}
   </section>
 
