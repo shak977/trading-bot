@@ -1,15 +1,15 @@
 {
   "signals": {
-    "CRWD": {
+    "CVS": {
       "action": "WATCH LONG",
       "label": "High",
       "score": 83,
       "dir": "LONG"
     },
-    "CVS": {
+    "CRWD": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 84,
+      "score": 83,
       "dir": "LONG"
     },
     "TRV": {
@@ -18,25 +18,31 @@
       "score": 81,
       "dir": "LONG"
     },
-    "WM": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 80,
-      "dir": "LONG"
-    },
     "EOG": {
       "action": "WATCH LONG",
       "label": "High",
       "score": 80,
       "dir": "LONG"
     },
-    "FTNT": {
+    "WM": {
       "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 71,
+      "label": "High",
+      "score": 79,
+      "dir": "LONG"
+    },
+    "CDNS": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 76,
       "dir": "LONG"
     },
     "PM": {
+      "action": "WATCH LONG",
+      "label": "Medium",
+      "score": 73,
+      "dir": "LONG"
+    },
+    "FTNT": {
       "action": "WATCH LONG",
       "label": "Medium",
       "score": 73,
@@ -69,13 +75,13 @@
     "MO": {
       "action": "WATCH LONG",
       "label": "Medium",
-      "score": 73,
+      "score": 75,
       "dir": "LONG"
     },
     "AMZN": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 77,
+      "score": 79,
       "dir": "LONG"
     },
     "AIG": {
@@ -93,19 +99,25 @@
     "BA": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 73,
+      "score": 72,
+      "dir": "SHORT"
+    },
+    "IBM": {
+      "action": "WATCH SHORT",
+      "label": "Medium",
+      "score": 74,
       "dir": "SHORT"
     },
     "NOC": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 63,
+      "score": 69,
       "dir": "SHORT"
     },
     "MCD": {
       "action": "WATCH SHORT",
-      "label": "Medium",
-      "score": 71,
+      "label": "High",
+      "score": 75,
       "dir": "SHORT"
     },
     "LMT": {
@@ -120,29 +132,35 @@
       "score": 77,
       "dir": "SHORT"
     },
-    "IBM": {
-      "action": "WATCH SHORT",
-      "label": "Medium",
-      "score": 59,
-      "dir": "SHORT"
-    },
     "VZ": {
       "action": "WATCH SHORT",
       "label": "High",
-      "score": 78,
+      "score": 80,
       "dir": "SHORT"
     },
     "NFLX": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 65,
+      "score": 67,
       "dir": "SHORT"
     },
     "AZO": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 58,
+      "score": 57,
       "dir": "SHORT"
+    },
+    "VLO": {
+      "action": "HOLD LONG",
+      "label": "High",
+      "score": 80,
+      "dir": "LONG"
+    },
+    "MPC": {
+      "action": "HOLD LONG",
+      "label": "High",
+      "score": 77,
+      "dir": "LONG"
     },
     "MCO": {
       "action": "HOLD LONG",
@@ -174,24 +192,6 @@
       "score": 70,
       "dir": "LONG"
     },
-    "MPC": {
-      "action": "HOLD LONG",
-      "label": "High",
-      "score": 77,
-      "dir": "LONG"
-    },
-    "NET": {
-      "action": "HOLD LONG",
-      "label": "High",
-      "score": 75,
-      "dir": "LONG"
-    },
-    "DLTR": {
-      "action": "HOLD LONG",
-      "label": "High",
-      "score": 76,
-      "dir": "LONG"
-    },
     "MET": {
       "action": "HOLD LONG",
       "label": "Medium",
@@ -204,6 +204,18 @@
       "score": 70,
       "dir": "LONG"
     },
+    "NET": {
+      "action": "HOLD LONG",
+      "label": "Medium",
+      "score": 72,
+      "dir": "LONG"
+    },
+    "DLTR": {
+      "action": "HOLD LONG",
+      "label": "High",
+      "score": 76,
+      "dir": "LONG"
+    },
     "DXCM": {
       "action": "HOLD LONG",
       "label": "Medium",
@@ -213,16 +225,10 @@
     "PNC": {
       "action": "HOLD LONG",
       "label": "Medium",
-      "score": 73,
+      "score": 69,
       "dir": "LONG"
     },
     "PANW": {
-      "action": "HOLD LONG",
-      "label": "Medium",
-      "score": 68,
-      "dir": "LONG"
-    },
-    "CI": {
       "action": "HOLD LONG",
       "label": "Medium",
       "score": 72,
@@ -233,21 +239,15 @@
       "label": "Medium",
       "score": 72,
       "dir": "LONG"
-    },
-    "AAPL": {
-      "action": "HOLD LONG",
-      "label": "Medium",
-      "score": 71,
-      "dir": "LONG"
     }
   },
   "sectors": {
-    "Financials": 89,
+    "Financials": 83,
+    "Healthcare": 80,
     "Energy": 75,
     "Index ETFs": 75,
-    "Healthcare": 73,
-    "Industrials": 67,
-    "Other / Movers": 59,
+    "Other / Movers": 57,
+    "Industrials": 56,
     "Consumer": 50,
     "Real Estate": 50,
     "Staples": 44,
