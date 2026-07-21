@@ -51,6 +51,9 @@ jobs:
       - name: Run the system diagnostic (direction / R:R / de-confounded checks)
         continue-on-error: true
         run: python system_diagnostic.py --json | tee -a analyst_out.txt
+      - name: Retrain meta-label model (walk-forward AUC vs conviction baseline)
+        continue-on-error: true
+        run: python meta_label.py --json | tee -a analyst_out.txt
       - name: Publish to the job summary
         run: |
           echo "### Nightly analyst" >> "$GITHUB_STEP_SUMMARY"
@@ -62,7 +65,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add analyst_report.json analyst_history.json analyst_memory.json benchmark.json benchmark_history.json timing_study.json setups_study.json system_diagnostic.json
+          git add analyst_report.json analyst_history.json analyst_memory.json benchmark.json benchmark_history.json timing_study.json setups_study.json system_diagnostic.json meta_model.json meta_history.json
           git diff --staged --quiet && exit 0
           git commit -m "nightly analyst report [skip ci]"
           git pull --rebase --autostash origin main || true
