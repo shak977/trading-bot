@@ -390478,7 +390478,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 50.02,
+    "exit_date": "2026-07-21",
+    "return_pct": -0.68,
+    "days_held": -1
   },
   {
     "id": "GD:2026-07-21",
@@ -392638,7 +392642,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 43.64,
+    "exit_date": "2026-07-21",
+    "return_pct": -0.62,
+    "days_held": -1
   },
   {
     "id": "UBER:2026-07-21",
@@ -396018,7 +396026,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 116.17,
+    "exit_date": "2026-07-21",
+    "return_pct": 0.1,
+    "days_held": -1
   },
   {
     "id": "WHK:2026-07-21",
@@ -397520,6 +397532,83 @@
       {
         "label": "Reward:risk worth it?",
         "status": "fail"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "VLO:2026-07-21",
+    "symbol": "VLO",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-21",
+    "advised_ts": "2026-07-21T19:34:38.139165",
+    "entry": 313.73,
+    "stop": 312.67,
+    "target": 318.05,
+    "rr": 4.1,
+    "conviction": "High",
+    "conviction_pct": 85,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "warn"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
       },
       {
         "label": "VCP base setup?",
