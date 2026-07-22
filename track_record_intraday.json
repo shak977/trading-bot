@@ -394214,7 +394214,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 25.01,
+    "exit_date": "2026-07-22",
+    "return_pct": -0.44,
+    "days_held": 0
   },
   {
     "id": "PLTR:2026-07-21",
@@ -400027,7 +400031,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "loss",
+    "exit": 104.41,
+    "exit_date": "2026-07-22",
+    "return_pct": -0.94,
+    "days_held": -1
   },
   {
     "id": "SSMR:2026-07-22",
@@ -400274,7 +400282,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 126.25,
+    "exit_date": "2026-07-22",
+    "return_pct": -0.64,
+    "days_held": -1
   },
   {
     "id": "WDC:2026-07-22",
@@ -403310,7 +403322,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "loss",
+    "exit": 645.11,
+    "exit_date": "2026-07-22",
+    "return_pct": -0.8,
+    "days_held": -1
   },
   {
     "id": "NOW:2026-07-22",
@@ -404452,7 +404468,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "loss",
+    "exit": 398.61,
+    "exit_date": "2026-07-22",
+    "return_pct": -0.46,
+    "days_held": -1
   },
   {
     "id": "GE:2026-07-22",
@@ -405511,6 +405531,91 @@
       {
         "label": "Reward:risk worth it?",
         "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "thin",
+    "status": "open"
+  },
+  {
+    "id": "QQQ:2026-07-22",
+    "symbol": "QQQ",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-07-22",
+    "advised_ts": "2026-07-22T13:03:43.763915",
+    "entry": 702.27,
+    "stop": 704.14,
+    "target": 701.65,
+    "rr": 0.33,
+    "conviction": "Medium",
+    "conviction_pct": 61,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "pass"
       }
     ],
     "tv_align": null,
