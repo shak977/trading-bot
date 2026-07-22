@@ -75,7 +75,7 @@
     "WM": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 79,
+      "score": 76,
       "dir": "LONG"
     },
     "GM": {
@@ -120,6 +120,12 @@
       "score": 83,
       "dir": "SHORT"
     },
+    "ONDS": {
+      "action": "WATCH SHORT",
+      "label": "Medium",
+      "score": 60,
+      "dir": "SHORT"
+    },
     "NFLX": {
       "action": "WATCH SHORT",
       "label": "Medium",
@@ -132,10 +138,10 @@
       "score": 68,
       "dir": "SHORT"
     },
-    "ONDS": {
+    "SMCI": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 56,
+      "score": 59,
       "dir": "SHORT"
     },
     "LMT": {
@@ -147,7 +153,7 @@
     "IBM": {
       "action": "WATCH SHORT",
       "label": "Medium",
-      "score": 68,
+      "score": 73,
       "dir": "SHORT"
     },
     "BA": {
@@ -168,16 +174,16 @@
       "score": 61,
       "dir": "SHORT"
     },
-    "NKE": {
-      "action": "WATCH SHORT",
-      "label": "Medium",
-      "score": 64,
-      "dir": "SHORT"
-    },
     "WMT": {
       "action": "WATCH SHORT",
       "label": "Medium",
       "score": 56,
+      "dir": "SHORT"
+    },
+    "NKE": {
+      "action": "WATCH SHORT",
+      "label": "Medium",
+      "score": 60,
       "dir": "SHORT"
     },
     "SNPS": {
@@ -231,20 +237,14 @@
     "AAPL": {
       "action": "HOLD LONG",
       "label": "Medium",
-      "score": 62,
-      "dir": "LONG"
-    },
-    "CI": {
-      "action": "HOLD LONG",
-      "label": "Medium",
-      "score": 72,
+      "score": 69,
       "dir": "LONG"
     }
   },
   "sectors": {
     "Utilities": 100,
+    "Financials": 89,
     "Healthcare": 80,
-    "Financials": 78,
     "Energy": 75,
     "Index ETFs": 75,
     "Industrials": 67,
