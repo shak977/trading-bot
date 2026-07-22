@@ -416075,7 +416075,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 168.46,
+    "exit_date": "2026-07-22",
+    "return_pct": -1.3,
+    "days_held": -1
   },
   {
     "id": "FRBT:2026-07-22",
@@ -416492,7 +416496,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 166.07,
+    "exit_date": "2026-07-22",
+    "return_pct": -0.43,
+    "days_held": -1
   },
   {
     "id": "SNPS:2026-07-22",
@@ -416575,6 +416583,95 @@
     ],
     "tv_align": null,
     "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "win",
+    "exit": 376.21,
+    "exit_date": "2026-07-22",
+    "return_pct": 0.22,
+    "days_held": -1
+  },
+  {
+    "id": "HUM:2026-07-22",
+    "symbol": "HUM",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-07-22",
+    "advised_ts": "2026-07-22T18:35:39.565310",
+    "entry": 398.82,
+    "stop": 400.76,
+    "target": 395.42,
+    "rr": 1.76,
+    "conviction": "Medium",
+    "conviction_pct": 58,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
     "status": "open"
