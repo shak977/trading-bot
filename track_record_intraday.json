@@ -412958,7 +412958,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 127.58,
+    "exit_date": "2026-07-22",
+    "return_pct": -0.78,
+    "days_held": -1
   },
   {
     "id": "ELV:2026-07-22",
@@ -414674,7 +414678,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 22.43,
+    "exit_date": "2026-07-22",
+    "return_pct": -1.13,
+    "days_held": -1
   },
   {
     "id": "PGR:2026-07-22",
@@ -415273,7 +415281,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 431.52,
+    "exit_date": "2026-07-22",
+    "return_pct": -0.42,
+    "days_held": -1
   },
   {
     "id": "SIND:2026-07-22",
@@ -416955,6 +416967,168 @@
       {
         "label": "Reward:risk worth it?",
         "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "FCBM:2026-07-22",
+    "symbol": "FCBM",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-07-22",
+    "advised_ts": "2026-07-22T20:05:27.775866",
+    "entry": 12.78,
+    "stop": 12.82,
+    "target": 12.7,
+    "rr": 1.75,
+    "conviction": "Medium",
+    "conviction_pct": 70,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "ACN:2026-07-22",
+    "symbol": "ACN",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-07-22",
+    "advised_ts": "2026-07-22T20:05:27.775866",
+    "entry": 139.41,
+    "stop": 140.18,
+    "target": 138.98,
+    "rr": 0.56,
+    "conviction": "Medium",
+    "conviction_pct": 71,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "warn"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
       }
     ],
     "tv_align": null,
