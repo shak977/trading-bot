@@ -1,56 +1,5 @@
 {
   "states": {
-    "neutral": {
-      "5": {
-        "n": 272,
-        "mean_pct": 0.283,
-        "hit_rate": 60.3
-      },
-      "10": {
-        "n": 272,
-        "mean_pct": 0.792,
-        "hit_rate": 63.2
-      },
-      "20": {
-        "n": 272,
-        "mean_pct": 1.826,
-        "hit_rate": 76.5
-      }
-    },
-    "rally_attempt": {
-      "5": {
-        "n": 18,
-        "mean_pct": -0.467,
-        "hit_rate": 44.4
-      },
-      "10": {
-        "n": 18,
-        "mean_pct": -0.138,
-        "hit_rate": 33.3
-      },
-      "20": {
-        "n": 18,
-        "mean_pct": 0.35,
-        "hit_rate": 55.6
-      }
-    },
-    "confirmed": {
-      "5": {
-        "n": 41,
-        "mean_pct": 2.142,
-        "hit_rate": 82.9
-      },
-      "10": {
-        "n": 41,
-        "mean_pct": 3.98,
-        "hit_rate": 82.9
-      },
-      "20": {
-        "n": 41,
-        "mean_pct": 4.098,
-        "hit_rate": 68.3
-      }
-    },
     "pressure": {
       "5": {
         "n": 202,
@@ -70,43 +19,94 @@
     },
     "correction": {
       "5": {
-        "n": 327,
-        "mean_pct": 0.25,
-        "hit_rate": 56.6
+        "n": 328,
+        "mean_pct": 0.254,
+        "hit_rate": 56.7
       },
       "10": {
-        "n": 327,
-        "mean_pct": 0.361,
-        "hit_rate": 56.9
+        "n": 328,
+        "mean_pct": 0.364,
+        "hit_rate": 57.0
       },
       "20": {
-        "n": 327,
-        "mean_pct": 1.085,
-        "hit_rate": 56.2
+        "n": 328,
+        "mean_pct": 1.087,
+        "hit_rate": 56.4
+      }
+    },
+    "neutral": {
+      "5": {
+        "n": 272,
+        "mean_pct": 0.283,
+        "hit_rate": 60.3
+      },
+      "10": {
+        "n": 272,
+        "mean_pct": 0.792,
+        "hit_rate": 63.2
+      },
+      "20": {
+        "n": 272,
+        "mean_pct": 1.826,
+        "hit_rate": 76.5
+      }
+    },
+    "confirmed": {
+      "5": {
+        "n": 42,
+        "mean_pct": 2.166,
+        "hit_rate": 83.3
+      },
+      "10": {
+        "n": 42,
+        "mean_pct": 3.878,
+        "hit_rate": 80.9
+      },
+      "20": {
+        "n": 42,
+        "mean_pct": 3.972,
+        "hit_rate": 66.7
+      }
+    },
+    "rally_attempt": {
+      "5": {
+        "n": 18,
+        "mean_pct": -0.467,
+        "hit_rate": 44.4
+      },
+      "10": {
+        "n": 18,
+        "mean_pct": -0.138,
+        "hit_rate": 33.3
+      },
+      "20": {
+        "n": 18,
+        "mean_pct": 0.35,
+        "hit_rate": 55.6
       }
     }
   },
   "per_index": {
     "S&P 500": {
       "horizon": 10,
-      "always_in_mean_pct": 0.632,
+      "always_in_mean_pct": 0.634,
       "gated_mean_pct": 1.034,
-      "days_gated_out": 295,
-      "days_total": 430
+      "days_gated_out": 296,
+      "days_total": 431
     },
     "NASDAQ": {
       "horizon": 10,
-      "always_in_mean_pct": 0.966,
-      "gated_mean_pct": 1.207,
+      "always_in_mean_pct": 0.963,
+      "gated_mean_pct": 1.2,
       "days_gated_out": 234,
-      "days_total": 430
+      "days_total": 431
     }
   },
-  "verdict": "Timing signal has separated outcomes: after a correction signal the index averaged +0.36% over the next 10 days (327 samples); after a Follow-Through Day it averaged +3.98% (41 samples).",
+  "verdict": "Timing signal has separated outcomes: after a correction signal the index averaged +0.36% over the next 10 days (328 samples); after a Follow-Through Day it averaged +3.88% (42 samples).",
   "horizons": [
     5,
     10,
     20
   ],
-  "generated_at": "2026-07-21 23:27 UTC"
+  "generated_at": "2026-07-22 23:28 UTC"
 }
