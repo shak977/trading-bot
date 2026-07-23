@@ -1,15 +1,27 @@
 {
   "signals": {
-    "JPM": {
+    "LMT": {
       "action": "WATCH LONG",
-      "label": "High",
+      "label": "Medium",
       "score": 82,
       "dir": "LONG"
     },
     "PANW": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 81,
+      "score": 84,
+      "dir": "LONG"
+    },
+    "CSX": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 85,
+      "dir": "LONG"
+    },
+    "JPM": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 82,
       "dir": "LONG"
     },
     "CRWD": {
@@ -33,19 +45,13 @@
     "FTNT": {
       "action": "WATCH LONG",
       "label": "Medium",
-      "score": 71,
+      "score": 74,
       "dir": "LONG"
     },
     "DDOG": {
       "action": "WATCH LONG",
       "label": "High",
       "score": 79,
-      "dir": "LONG"
-    },
-    "PM": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 80,
       "dir": "LONG"
     },
     "TGT": {
@@ -60,22 +66,16 @@
       "score": 80,
       "dir": "LONG"
     },
-    "LMT": {
-      "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 73,
-      "dir": "LONG"
-    },
     "UNP": {
       "action": "WATCH LONG",
       "label": "Medium",
       "score": 74,
       "dir": "LONG"
     },
-    "CSX": {
+    "ETN": {
       "action": "WATCH LONG",
-      "label": "High",
-      "score": 76,
+      "label": "Medium",
+      "score": 71,
       "dir": "LONG"
     },
     "AXP": {
@@ -88,12 +88,6 @@
       "action": "WATCH LONG",
       "label": "Medium",
       "score": 68,
-      "dir": "LONG"
-    },
-    "ETN": {
-      "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 71,
       "dir": "LONG"
     },
     "AAPL": {
@@ -126,6 +120,12 @@
       "score": 66,
       "dir": "LONG"
     },
+    "RTX": {
+      "action": "WATCH LONG",
+      "label": "Medium",
+      "score": 74,
+      "dir": "LONG"
+    },
     "GM": {
       "action": "WATCH LONG",
       "label": "High",
@@ -150,17 +150,23 @@
       "score": 70,
       "dir": "LONG"
     },
-    "RTX": {
-      "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 69,
-      "dir": "LONG"
-    },
     "ABNB": {
       "action": "WATCH LONG",
       "label": "Medium",
       "score": 64,
       "dir": "LONG"
+    },
+    "CMCSA": {
+      "action": "WATCH SHORT",
+      "label": "High",
+      "score": 91,
+      "dir": "SHORT"
+    },
+    "DIS": {
+      "action": "WATCH SHORT",
+      "label": "High",
+      "score": 85,
+      "dir": "SHORT"
     },
     "WMT": {
       "action": "WATCH SHORT",
@@ -180,18 +186,6 @@
       "score": 75,
       "dir": "SHORT"
     },
-    "CMCSA": {
-      "action": "WATCH SHORT",
-      "label": "High",
-      "score": 82,
-      "dir": "SHORT"
-    },
-    "DIS": {
-      "action": "WATCH SHORT",
-      "label": "High",
-      "score": 81,
-      "dir": "SHORT"
-    },
     "MCD": {
       "action": "WATCH SHORT",
       "label": "High",
@@ -204,10 +198,10 @@
       "score": 82,
       "dir": "SHORT"
     },
-    "IBM": {
+    "ISRG": {
       "action": "WATCH SHORT",
-      "label": "Medium",
-      "score": 68,
+      "label": "High",
+      "score": 78,
       "dir": "SHORT"
     },
     "TTD": {
@@ -239,21 +233,27 @@
       "label": "Medium",
       "score": 64,
       "dir": "SHORT"
+    },
+    "SNPS": {
+      "action": "WATCH SHORT",
+      "label": "Medium",
+      "score": 74,
+      "dir": "SHORT"
     }
   },
   "sectors": {
     "Utilities": 100,
     "Healthcare": 87,
-    "Financials": 78,
     "Industrials": 78,
+    "Financials": 78,
     "Energy": 75,
     "Other / Movers": 55,
     "Real Estate": 50,
     "Index ETFs": 50,
     "Technology": 33,
     "Consumer": 25,
-    "Staples": 22,
-    "Communication": 0,
+    "Communication": 12,
+    "Staples": 11,
     "Materials": 0
   },
   "catalysts": [],
