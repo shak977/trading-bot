@@ -413596,7 +413596,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 55.97,
+    "exit_date": "2026-07-23",
+    "return_pct": -0.92,
+    "days_held": 0
   },
   {
     "id": "STDN:2026-07-22",
@@ -435089,7 +435093,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 137.74,
+    "exit_date": "2026-07-23",
+    "return_pct": -0.49,
+    "days_held": -1
   },
   {
     "id": "BKNG:2026-07-23",
@@ -436004,7 +436012,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "loss",
+    "exit": 543.96,
+    "exit_date": "2026-07-23",
+    "return_pct": -1.96,
+    "days_held": -1
   },
   {
     "id": "TSLA:2026-07-23",
@@ -436344,7 +436356,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 352.56,
+    "exit_date": "2026-07-23",
+    "return_pct": 0.27,
+    "days_held": -1
   },
   {
     "id": "VRTX:2026-07-23",
@@ -436581,6 +436597,87 @@
       {
         "label": "Reward:risk worth it?",
         "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "UNH:2026-07-23",
+    "symbol": "UNH",
+    "name": "",
+    "direction": "SHORT",
+    "advised_date": "2026-07-23",
+    "advised_ts": "2026-07-23T20:33:35.278039",
+    "entry": 423.52,
+    "stop": 425.25,
+    "target": 420.56,
+    "rr": 1.72,
+    "conviction": "High",
+    "conviction_pct": 79,
+    "checks": [
+      {
+        "label": "Is it trending down?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to fall?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
       }
     ],
     "tv_align": null,
