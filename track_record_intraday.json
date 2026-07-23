@@ -399534,7 +399534,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 22.17,
+    "exit_date": "2026-07-23",
+    "return_pct": -2.85,
+    "days_held": 0
   },
   {
     "id": "EOG:2026-07-22",
@@ -428719,7 +428723,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 361.44,
+    "exit_date": "2026-07-23",
+    "return_pct": 0.8,
+    "days_held": -1
   },
   {
     "id": "PRU:2026-07-23",
@@ -433216,7 +433224,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 22.04,
+    "exit_date": "2026-07-23",
+    "return_pct": -2.69,
+    "days_held": -1
   },
   {
     "id": "SCHW:2026-07-23",
@@ -433475,7 +433487,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 314.46,
+    "exit_date": "2026-07-23",
+    "return_pct": -0.66,
+    "days_held": -1
   },
   {
     "id": "TQQQ:2026-07-23",
@@ -434398,7 +434414,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 321.78,
+    "exit_date": "2026-07-23",
+    "return_pct": -1.15,
+    "days_held": -1
   },
   {
     "id": "HAL:2026-07-23",
@@ -435368,6 +435388,83 @@
       {
         "label": "Reward:risk worth it?",
         "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "FDMMU:2026-07-23",
+    "symbol": "FDMMU",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-23",
+    "advised_ts": "2026-07-23T16:46:51.768803",
+    "entry": 9.98,
+    "stop": 9.97,
+    "target": 10.0,
+    "rr": 4.0,
+    "conviction": "Medium",
+    "conviction_pct": 74,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
       }
     ],
     "tv_align": null,
