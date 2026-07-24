@@ -21,7 +21,7 @@
     "GD": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 88,
+      "score": 85,
       "dir": "LONG"
     },
     "RTX": {
@@ -84,6 +84,12 @@
       "score": 80,
       "dir": "LONG"
     },
+    "THC": {
+      "action": "WATCH LONG",
+      "label": "Medium",
+      "score": 75,
+      "dir": "LONG"
+    },
     "EMR": {
       "action": "WATCH LONG",
       "label": "High",
@@ -99,13 +105,19 @@
     "ITW": {
       "action": "WATCH LONG",
       "label": "Medium",
-      "score": 73,
+      "score": 75,
       "dir": "LONG"
     },
     "PH": {
       "action": "WATCH LONG",
       "label": "Medium",
-      "score": 75,
+      "score": 73,
+      "dir": "LONG"
+    },
+    "MMM": {
+      "action": "WATCH LONG",
+      "label": "Medium",
+      "score": 74,
       "dir": "LONG"
     },
     "PM": {
@@ -141,13 +153,13 @@
     "MO": {
       "action": "WATCH LONG",
       "label": "Medium",
-      "score": 71,
+      "score": 67,
       "dir": "LONG"
     },
     "WM": {
       "action": "WATCH LONG",
       "label": "Medium",
-      "score": 70,
+      "score": 67,
       "dir": "LONG"
     },
     "ETN": {
@@ -228,18 +240,6 @@
       "score": 75,
       "dir": "LONG"
     },
-    "VLO": {
-      "action": "HOLD LONG",
-      "label": "Medium",
-      "score": 72,
-      "dir": "LONG"
-    },
-    "UNH": {
-      "action": "HOLD LONG",
-      "label": "Medium",
-      "score": 70,
-      "dir": "LONG"
-    },
     "KMI": {
       "action": "HOLD LONG",
       "label": "Medium",
@@ -255,7 +255,13 @@
     "CHTR": {
       "action": "AVOID",
       "label": "Medium",
-      "score": 71,
+      "score": 67,
+      "dir": "SHORT"
+    },
+    "DECK": {
+      "action": "AVOID",
+      "label": "Medium",
+      "score": 59,
       "dir": "SHORT"
     },
     "BAH": {
@@ -269,6 +275,12 @@
       "label": "Medium",
       "score": 66,
       "dir": "LONG"
+    },
+    "AMKR": {
+      "action": "FLAT",
+      "label": "Medium",
+      "score": 60,
+      "dir": "LONG"
     }
   },
   "sectors": {
@@ -277,8 +289,8 @@
     "Financials": 83,
     "Healthcare": 80,
     "Industrials": 67,
-    "Other / Movers": 56,
     "Staples": 56,
+    "Other / Movers": 55,
     "Real Estate": 50,
     "Consumer": 44,
     "Technology": 25,
