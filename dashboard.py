@@ -1015,6 +1015,17 @@ def build_snapshot() -> dict:
         except Exception:  # noqa: BLE001
             pass
 
+    # Grok pulse status — so the dashboard can say WHY it's empty instead of guessing.
+    _xai_n = sum(1 for r in shown if r.get("xai_sentiment"))
+    if not getattr(CONFIG, "xai_live_sentiment_enabled", False):
+        _xai_status = "off"
+    elif not getattr(CONFIG, "xai_api_key", ""):
+        _xai_status = "no_key"
+    elif not live:
+        _xai_status = "not_live"
+    else:
+        _xai_status = "ok" if _xai_n else "empty"
+
     # Regime-specific weighting: in a defensive / high-volatility regime, RAISE the conviction bar
     # a fresh entry must clear — so the bot makes fewer, higher-quality trades when the backdrop is
     # hostile. With-tape setups below the regime threshold are demoted to the Watch tier.
@@ -1349,6 +1360,7 @@ def build_snapshot() -> dict:
         "mode": mode,
         "scanned": len(rows),
         "diagnostics": list(scanner.LAST_ERRORS),
+        "xai_status": _xai_status,
         "audit_summary": None,  # filled by main() after the audit — kept early so it survives a truncated fetch
         "news_sources": dict(__import__("collections").Counter(
             (n.get("source") or "?") for n in news).most_common(14)),
@@ -6797,8 +6809,12 @@ function renderGrokPulse() {{
   const el = document.getElementById('grokPulse'); if (!el) return;
   const items = (DATA.signals || []).filter(s => s.xai_sentiment);
   if (!items.length) {{
-    el.innerHTML = '<div class="gp-empty">' + _ico('ai',15) + ' No live Grok sentiment in this build yet. '
-      + 'It populates on the next <b>live build during market hours</b> — Grok reads X + news on the top actionable names.</div>';
+    const st = (DATA.xai_status || 'empty');
+    const msg = (st === 'off') ? 'Grok live sentiment is off — set the <code>XAI_LIVE_SENTIMENT</code> repo variable to true.'
+      : (st === 'no_key') ? 'No <code>XAI_API_KEY</code> in this build — add it as a repo secret.'
+      : (st === 'not_live') ? 'Synthetic/offline build — Grok runs only on live builds with market data.'
+      : 'No Grok reads landed this build. It populates on a <b>live build during market hours</b> on the top names.';
+    el.innerHTML = '<div class="gp-empty">' + _ico('ai',15) + ' ' + msg + '</div>';
     return;
   }}
   const cls = {{bullish:'gp-up', bearish:'gp-dn', mixed:'gp-mut', quiet:'gp-mut'}};
