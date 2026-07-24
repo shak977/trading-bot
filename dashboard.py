@@ -996,7 +996,11 @@ def build_snapshot() -> dict:
         try:
             import xai as _xai
             _xcap = int(getattr(CONFIG, "xai_max_names", 6))
-            _xc = [r for r in shown if r.get("action") in ("BUY", "SHORT")][:_xcap]
+            # Top names by rank — include the WATCH tier so the pulse still populates after the
+            # extension/volatility/short gates demote fresh entries (they were starving this list).
+            _xtiers = ("BUY", "SHORT", "HOLD LONG", "HOLD SHORT", "WATCH LONG", "WATCH SHORT")
+            _xc = sorted((r for r in shown if r.get("action") in _xtiers),
+                         key=lambda r: -((r.get("rank_score") or (r.get("conviction") or {}).get("score_pct") or 0)))[:_xcap]
             for r in _xc:
                 _sent = _xai.live_sentiment(r["symbol"], r.get("name", ""), r.get("direction", "LONG"), CONFIG)
                 if _sent:
