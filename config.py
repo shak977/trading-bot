@@ -145,6 +145,10 @@ class Config:
     premium_selling_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("PREMIUM_SELLING"), True))
     premium_selling_max: int = 12            # curated optionable names scored per build (bounds cost)
 
+    # --- Journal → Engine bridge: your Obsidian ticker notes (via journal_sync.py → journal_overrides.json)
+    # seed your watchlist into the scan and suppress your avoid-list. Your judgment feeding the bot. ---
+    journal_overrides_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("JOURNAL_OVERRIDES"), True))
+
     # --- Real-time ORB executor (always-on runner; PAPER only by default, DISABLED by default) ---
     live_executor_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("LIVE_EXECUTOR_ENABLED"), False))
     executor_allow_real: bool = field(default_factory=lambda: _as_bool(os.getenv("LIVE_EXECUTOR_ALLOW_REAL"), False))

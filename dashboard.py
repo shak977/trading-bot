@@ -495,6 +495,38 @@ def build_snapshot() -> dict:
                 r["action"] = "AVOID"
                 r["shorts_disabled"] = True
 
+    # Journal → Engine overrides: your Obsidian judgment (via journal_sync.py → journal_overrides.json).
+    # Your **avoid** list suppresses names here; your **watchlist** is seeded into the next scan below.
+    _journal = _load_json_safe("journal_overrides.json") if getattr(CONFIG, "journal_overrides_enabled", True) else None
+    if _journal:
+        _avoid = {str(s).upper() for s in (_journal.get("avoid") or [])}
+        if _avoid:
+            for r in shown:
+                if (r.get("symbol") or "").upper() in _avoid and r.get("action") in ("BUY", "HOLD LONG", "WATCH LONG"):
+                    r["action"] = "AVOID"
+                    r["journal_avoided"] = True
+                    r.setdefault("reasons", []).insert(
+                        0, f"{_svg('octagon',13)} On your journal <b>avoid</b> list — suppressed by your own read.")
+        _watch = [str(s).upper() for s in (_journal.get("watchlist") or []) if str(s).upper() not in _avoid]
+        if _watch:                                    # pin your watchlist into the next scan for a full read
+            try:
+                import json as _jn
+                from datetime import timedelta as _tdj
+                _t0j = datetime.now(timezone.utc).date().isoformat()
+                try:
+                    with open("news_candidates.json") as _f:
+                        _ncj = _jn.load(_f)
+                except Exception:  # noqa: BLE001
+                    _ncj = {}
+                for _w in _watch:
+                    _ncj[_w] = _t0j
+                _oldj = (datetime.now(timezone.utc).date() - _tdj(days=5)).isoformat()
+                _ncj = {k: v for k, v in _ncj.items() if v >= _oldj}
+                with open("news_candidates.json", "w") as _f:
+                    _jn.dump(_ncj, _f, indent=2)
+            except Exception:  # noqa: BLE001
+                pass
+
     # Pull news once for everything shown, from MULTIPLE feeds, then bucket per ticker.
     if live:
         import research as _rn
