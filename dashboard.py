@@ -3295,12 +3295,26 @@ def _brain_html(snap: dict) -> str:
     ]
     stcls = {"live": "Live", "new": "New", "learn": "Learns", "gate": "Gate",
              "legacy": "Legacy", "planned": "Planned", "advisory": "Advisory"}
+    # each skill card links to the page where it actually lives, so the diagram doubles as navigation
+    GO = {
+        "Market data": "markets", "News & catalysts": "news", "Grok · X pulse": "signals",
+        "StockTwits trending": "signals", "Macro / FRED": "markets", "7 strategies": "analytics",
+        "Trade plan": "signals", "Screens": "signals", "Conviction checks": "analytics",
+        "AI committee": "agents", "Meta-label P(win)": "system", "Calibration audit": "system",
+        "Shorts cut": "system", "Extension gate": "system", "Volatility gate": "system",
+        "Hype-risk guard": "signals", "Adaptive rank": "portfolio", "Position sizing": "portfolio",
+        "Signals out": "signals", "Premium selling": "premium", "Portfolio book": "portfolio",
+        "All-weather": "allweather",
+    }
 
     def node(ic, nm, desc, st, tip):
-        return (f'<div class="bn bn-{st} hint" data-tip="{_esc_attr(tip)}">'
+        go = GO.get(nm)
+        click = f' onclick="window._showPage&&_showPage(\'{go}\')"' if go else ""
+        arrow = '<span class="bn-arrow">&rarr;</span>' if go else ""
+        return (f'<div class="bn bn-{st} hint{" bn-go" if go else ""}" data-tip="{_esc_attr(tip)}"{click}>'
                 f'<div class="bn-top"><span class="bn-ic">{_svg(ic, 15)}</span>'
                 f'<span class="bn-badge bn-b-{st}">{stcls.get(st, st)}</span></div>'
-                f'<div class="bn-nm">{nm}</div><div class="bn-desc">{desc}</div></div>')
+                f'<div class="bn-nm">{nm}{arrow}</div><div class="bn-desc">{desc}</div></div>')
 
     body = ""
     for num, name, sub, nodes in stages:
@@ -5522,6 +5536,10 @@ def render_html(snap: dict) -> str:
   .bn {{ width:190px; background:var(--card); border:1px solid var(--line); border-radius:13px;
     padding:14px 15px; cursor:help; transition:border-color .15s ease, transform .15s ease; position:relative; }}
   .bn:hover {{ border-color:rgba(255,255,255,.28); transform:translateY(-2px); }}
+  .bn-go {{ cursor:pointer; }}
+  .bn-arrow {{ opacity:0; margin-left:5px; color:var(--muted); transition:opacity .15s ease; }}
+  .bn-go:hover .bn-arrow {{ opacity:1; }}
+  .bn-go:hover {{ border-color:color-mix(in srgb,var(--accent) 45%,var(--line)); }}
   .bn-top {{ display:flex; align-items:center; justify-content:space-between; margin-bottom:9px; }}
   .bn-ic {{ color:var(--txt2); display:inline-flex; }}
   .bn-nm {{ font-size:14px; font-weight:650; color:var(--txt); }}
