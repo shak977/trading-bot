@@ -1481,6 +1481,7 @@ def _meganav() -> str:
         ("Research", [("intel", "Intel", "Data-driven signals", "text"),
                       ("news", "News", "Market-moving headlines", "text"),
                       ("track", "Track record", "How past calls did", "chartup"),
+                      ("analytics", "Edge explorer", "Waffle heatmaps of what wins", "donut"),
                       ("analyst", "Analyst", "Nightly self-review", "text")]),
         ("AI", [("agents", "Agents", "The agent ecosystem", "nodes")]),
         ("More", [("livetv", "Live TV", "Financial news streams", "tv"),
@@ -1557,11 +1558,11 @@ def _signals_hero(snap: dict) -> str:
         '</div>'
         '<div class="hx-kpis">'
         f'<div class="hx-kpi"><div class="v">{n_live}</div><div class="k">Live today</div></div>'
-        f'<div class="hx-kpi"><div class="v">{wr_txt}</div><div class="k">Win rate · {resolved} resolved</div></div>'
+        f'<div class="hx-kpi hint" data-tiphtml="{_esc_attr(_callout("Win rate — resolved calls", [("Win rate", (wr if isinstance(wr,(int,float)) else None), wr_txt, _tone_pct(wr if isinstance(wr,(int,float)) else None))], note=f"{resolved} calls resolved"))}"><div class="v">{wr_txt}</div><div class="k">Win rate · {resolved} resolved</div></div>'
         f'<div class="hx-kpi"><div class="v {tone}">{esc(reg_lab)}</div><div class="k">Regime</div></div>'
         f'<div class="hx-kpi"><div class="v">{n_long} / {n_short}</div><div class="k">Long / short</div></div>'
         f'<div class="hx-kpi"><div class="v">{avg_conv}</div><div class="k">Avg conviction</div></div>'
-        f'<div class="hx-kpi"><div class="v">{breadth_txt}</div><div class="k">Breadth</div></div>'
+        f'<div class="hx-kpi hint" data-tiphtml="{_esc_attr(_callout("Market breadth", [("Above trend", (_breadth if isinstance(_breadth,(int,float)) else None), breadth_txt, _tone_pct(_breadth if isinstance(_breadth,(int,float)) else None, 55))], note="share of scanned names in an uptrend"))}"><div class="v">{breadth_txt}</div><div class="k">Breadth</div></div>'
         f'<div class="hx-kpi"><div class="v">{rsi_txt}</div><div class="k">Avg momentum</div></div>'
         f'<div class="hx-kpi"><div class="v">{expo_txt}</div><div class="k">Position sizing</div></div>'
         f'<div class="hx-kpi"><div class="v">{top_txt}</div><div class="k">Top opportunity</div></div>'
@@ -1930,12 +1931,20 @@ def _portfolio_html(p: dict | None) -> str:
     rows = ""
     for q in p["positions"]:
         acol = "var(--sell)" if q["direction"] == "SHORT" else "var(--buy)"
-        rows += (f'<tr><td><b>{q["symbol"]}</b> <span style="color:var(--muted);font-weight:400;">{q["name"][:22]}</span></td>'
+        _ew = abs(q["exposure"]) / gross * 100
+        _rw = abs(q["risk"]) / (p["at_risk"] or 1) * 100
+        _cv = q["conviction"]
+        callout = _callout(f'{q["symbol"]} — {q["action"]}',
+                           [("Exposure", _ew, pct(q["exposure"]), "up" if q["direction"] != "SHORT" else "dn"),
+                            ("$ at risk", _rw, money(q["risk"]), "dn")],
+                           note=f'{q["sector"]} · conviction {_cv if _cv is not None else "—"}')
+        rows += (f'<tr class="hint" data-tiphtml="{_esc_attr(callout)}">'
+                 f'<td><b>{q["symbol"]}</b> <span style="color:var(--muted);font-weight:400;">{q["name"][:22]}</span></td>'
                  f'<td style="color:{acol};">{q["action"]}</td><td style="color:var(--muted);">{q["sector"]}</td>'
                  f'<td style="text-align:right;">{q["shares"] or "—"}</td>'
                  f'<td style="text-align:right;">{money(q["exposure"])}</td>'
                  f'<td style="text-align:right;">{money(q["risk"])}</td>'
-                 f'<td style="text-align:right;">{q["conviction"] if q["conviction"] is not None else "—"}</td></tr>')
+                 f'<td style="text-align:right;">{_cv if _cv is not None else "—"}</td></tr>')
     table = ('<table class="trackrec"><thead><tr><th>Position</th><th>Side</th><th>Sector</th>'
              '<th style="text-align:right;">Shares</th><th style="text-align:right;">Exposure</th>'
              '<th style="text-align:right;">$ risk</th><th style="text-align:right;">Conv</th></tr></thead>'
@@ -2082,7 +2091,16 @@ def _momentum_html(rows: list[dict]) -> str:
             r1m_cell = (f'<td style="text-align:right;font-variant-numeric:tabular-nums;" '
                         f'class="{"win" if r1m >= 0 else "loss"}">{"+" if r1m >= 0 else ""}{r1m}%</td>')
         new = ' <span class="chip mini bull" style="font-size:9px;padding:0 5px;">NEW</span>' if m.get("is_new") else ""
-        body += (f'<tr class="momrow" data-sym="{m["symbol"]}" style="cursor:pointer;">'
+        _r1 = m.get("r1m")
+        _mcall = _callout(f'{m["symbol"]} — momentum leader',
+                          [("12-1 momentum", min(100, m["score"]), f'+{m["score"]}%', "up"),
+                           ("vs 200-day", min(100, m.get("ext", 0)), f'+{m.get("ext", 0)}%', "mut"),
+                           ("1-month", (min(100, abs(_r1)) if isinstance(_r1, (int, float)) else None),
+                            (f'{"+" if (_r1 or 0) >= 0 else ""}{_r1}%' if _r1 is not None else "—"),
+                            "up" if (_r1 or 0) >= 0 else "dn")],
+                          note=f'{m.get("sector","")} · suggested weight {m.get("weight","—")}%')
+        body += (f'<tr class="momrow hint" data-sym="{m["symbol"]}" style="cursor:pointer;" '
+                 f'data-tiphtml="{_esc_attr(_mcall)}">'
                  f'<td>{i}</td><td><b>{m["symbol"]}</b>{nm}{new}</td>'
                  f'<td style="color:var(--muted);">{m.get("sector","")}</td>'
                  f'<td style="text-align:right;font-variant-numeric:tabular-nums;">${m["price"]:,.2f}</td>'
@@ -2114,11 +2132,16 @@ def _momentum_html(rows: list[dict]) -> str:
 def _sectors_html(secs: list[dict]) -> str:
     if not secs:
         return ""
-    rows = "".join(
-        f'<div class="secrow"><span class="secname">{s["sector"]}</span>'
-        f'<div class="secbar"><div class="secfill" style="width:{s["pct_up"]}%;"></div></div>'
-        f'<span class="secpct">{s["pct_up"]}% up · {s["count"]}</span></div>'
-        for s in secs)
+    def _srow(s):
+        pu = s["pct_up"]
+        callout = _callout(f'{s["sector"]} — sector breadth',
+                           [("Trending up", pu, f"{pu}%", _tone_pct(pu, 55))],
+                           note=f'{s["count"]} names tracked')
+        return (f'<div class="secrow hint" data-tiphtml="{_esc_attr(callout)}">'
+                f'<span class="secname">{s["sector"]}</span>'
+                f'<div class="secbar"><div class="secfill" style="width:{pu}%;"></div></div>'
+                f'<span class="secpct">{pu}% up · {s["count"]}</span></div>')
+    rows = "".join(_srow(s) for s in secs)
     return ('<div class="ovbox"><div class="ovhead">' + _svg('compass',14) + ' Sector strength '
             '<span style="font-weight:400;color:var(--muted);font-size:12px;">— share of each sector trending up</span></div>'
             f'{rows}</div>')
@@ -3029,6 +3052,126 @@ def _paper_spark(history: dict | None) -> str:
             f'stroke-linejoin="round" stroke-linecap="round"/></svg>')
 
 
+def _esc_attr(s) -> str:
+    """Escape a string for safe embedding inside a double-quoted HTML attribute (e.g. data-tiphtml)."""
+    return (str(s).replace("&", "&amp;").replace('"', "&quot;")
+            .replace("<", "&lt;").replace(">", "&gt;"))
+
+
+def _waffle(pct, cls="win", cells=100):
+    """A waffle heatmap: `cells` squares, first pct% filled with `cls`. Shares .an-waffle styling."""
+    try:
+        p = max(0, min(cells, int(round((pct or 0) * cells / 100.0))))
+    except (TypeError, ValueError):
+        p = 0
+    return ('<div class="an-waffle">'
+            + "".join(f'<div class="an-sq {cls if i < p else ""}"></div>' for i in range(cells))
+            + "</div>")
+
+
+def _wmini(pct, cls="win", cells=20):
+    """Compact single-row mini waffle for inline / table-cell use (each cell ≈ 100/cells %)."""
+    try:
+        p = max(0, min(cells, int(round((pct or 0) * cells / 100.0))))
+    except (TypeError, ValueError):
+        p = 0
+    return ('<span class="wmini">'
+            + "".join(f'<i class="{cls if i < p else ""}"></i>' for i in range(cells))
+            + "</span>")
+
+
+def _callout(title, rows=None, note="", sub=""):
+    """Build the dark hover-callout markup (returned RAW, not attr-escaped). `rows` is a list of
+    (label, pct_or_None, value_str, tone) → mini win-rate bars. Wrap with _esc_attr for data-tiphtml."""
+    parts = [f"<div class='cb-wrap'><div class='cb-h'>{title}</div>"]
+    if sub:
+        parts.append(f"<div class='cb-line'>{sub}</div>")
+    for label, pct, val, tone in (rows or []):
+        col = {"up": "var(--buy)", "dn": "var(--sell)", "mut": "var(--muted)"}.get(tone, "var(--buy)")
+        w = 6 if pct is None else max(0, min(100, pct))
+        parts.append(f"<div class='cb-row'><span class='cb-nm'>{label}</span>"
+                     f"<span class='cb-bar'><i style='width:{w}%;background:{col};'></i></span>"
+                     f"<span class='cb-v'>{val}</span></div>")
+    if note:
+        parts.append(f"<div class='cb-cm'>{note}</div>")
+    parts.append("</div>")
+    return "".join(parts)
+
+
+def _tone_pct(pct, hi=50):
+    """Green/red tone class for a percentage (win-rate style)."""
+    if pct is None:
+        return "mut"
+    return "up" if pct >= hi else "dn"
+
+
+def _analytics_html(snap: dict) -> str:
+    """Edge explorer — Anthropic-EconIndex-style left-rail tabs + waffle heatmaps of what actually
+    wins: strategy hit-rates, market breadth, and conviction tiers, from real data."""
+    reg = snap.get("regime") or {}
+    tk = (snap.get("track") or {}).get("by_conviction") or {}
+    setups = (_load_json_safe("setups_study.json") or {}).get("setups") or {}
+
+    def waffle(pct, cls="win"):
+        p = max(0, min(100, int(round(pct or 0))))
+        return '<div class="an-waffle">' + "".join(
+            f'<div class="an-sq {cls if i < p else ""}"></div>' for i in range(100)) + '</div>'
+
+    cards = ""
+    for k, d in sorted(setups.items(), key=lambda kv: -(((kv[1].get("stats") or {}).get("10") or {}).get("hit_rate") or 0)):
+        st = (d.get("stats") or {}).get("10") or {}
+        hit, n, edge = st.get("hit_rate"), st.get("n"), d.get("edge_pct")
+        if hit is None:
+            continue
+        tone = "anup" if (edge or 0) > 0 else "andn"
+        cards += (f'<div class="an-card"><div class="an-jt">{d.get("label", k)}</div>'
+                  f'<div class="an-js">{hit:.0f}% hit &middot; edge <span class="{tone}">{(edge or 0):+.2f}%</span> &middot; {n} fires</div>'
+                  f'{waffle(hit)}</div>')
+    strat_view = (f'<div class="an-legend"><span><i class="win"></i>hit</span><span><i class="muted"></i>miss</span></div>'
+                  f'<div class="an-grid">{cards}</div>') if cards else "<div class='an-empty'>Setup study not available yet.</div>"
+
+    tiles = ""
+    for s in (snap.get("sectors") or [])[:12]:
+        pu = s.get("pct_up", 0)
+        c = "anup" if pu >= 70 else ("andn" if pu < 50 else "anmut")
+        tiles += f'<span class="an-sect">{s.get("sector","")} <b class="{c}">{pu}%</b></span>'
+    br = reg.get("breadth")
+    sector_view = (f'<div class="an-card"><div class="an-jt">Market breadth</div>'
+                   f'<div class="an-js">{br}% of {reg.get("total","?")} scanned names above trend &middot; {reg.get("label","")}</div>'
+                   f'{waffle(br)}</div><div class="an-sects">{tiles}</div>') if br is not None else "<div class='an-empty'>No breadth data.</div>"
+
+    cc = ""
+    for tier in ("High", "Medium", "Low"):
+        d = tk.get(tier) or {}
+        wr, n = d.get("win_rate"), d.get("n", 0)
+        if not n:
+            continue
+        tone = "anup" if (wr or 0) >= 50 else "andn"
+        cc += (f'<div class="an-card"><div class="an-jt">{tier} conviction</div>'
+               f'<div class="an-js"><span class="{tone}">{wr:.0f}% win</span> &middot; {n} trades &middot; avg {d.get("avg_return",0):+.2f}%</div>'
+               f'{waffle(wr)}</div>')
+    conv_view = (f'<div class="an-legend"><span><i class="win"></i>win</span><span><i class="muted"></i>loss</span></div>'
+                 f'<div class="an-grid">{cc}</div>') if cc else "<div class='an-empty'>No conviction data yet.</div>"
+
+    report = ('<div class="an-report"><div class="an-report-ic">' + _svg("receipt", 20) + '</div>'
+              '<div class="an-report-t">System diagnostic</div>'
+              "<div class=\"an-report-d\">The nightly read on what's actually working — direction, R:R, meta-label AUC.</div>"
+              '<div class="an-report-lk" onclick="window._showPage&&_showPage(\'system\')">View report &rarr;</div></div>')
+
+    return (f'<div class="sec-eyebrow">Analytics</div>'
+            f'<div class="sec-head"><span class="sh-ico">{_svg("brick", 15)}</span><h2>Edge explorer</h2>'
+            '<span class="sh-sub">waffle heatmaps of what wins</span></div>'
+            '<div class="an-lay"><nav class="an-rail">'
+            '<button class="an-tab on" data-anview="strat">Strategy record</button>'
+            '<button class="an-tab" data-anview="sector">Sector map</button>'
+            '<button class="an-tab" data-anview="conv">Conviction</button>'
+            f'{report}</nav><div class="an-main">'
+            f'<div class="an-view on" data-anview="strat">{strat_view}</div>'
+            f'<div class="an-view" data-anview="sector">{sector_view}</div>'
+            f'<div class="an-view" data-anview="conv">{conv_view}</div>'
+            '</div></div>')
+
+
 def _system_health_html(diag: dict | None) -> str:
     """The nightly self-diagnostic surfaced on the dashboard: direction split, where targets get
     reached by R:R, the most/least predictive checks (longs-only), and the setup/timing verdicts."""
@@ -3040,9 +3183,14 @@ def _system_health_html(diag: dict | None) -> str:
         if not s:
             return ""
         exp = s.get("exp", 0)
+        wr = round(s.get("wr", 0))
         tone = "buy" if exp > 0 else ("sell" if exp < 0 else "")
-        return (f'<div class="stat"><div class="l">{lab}</div>'
-                f'<div class="v {tone}">{round(s.get("wr", 0))}%</div>'
+        callout = _callout(f"{lab} — resolved trades",
+                           [("Win rate", wr, f"{wr}%", _tone_pct(wr))],
+                           note=f"expectancy {exp:+.2f}% · n={s.get('n', 0)}")
+        return (f'<div class="stat hint" data-tiphtml="{_esc_attr(callout)}"><div class="l">{lab}</div>'
+                f'<div class="v {tone}">{wr}%</div>'
+                f'<div style="margin:6px 0 4px;">{_wmini(wr, "win", 22)}</div>'
                 f'<div class="sub">win &middot; exp {exp:+.2f}% &middot; n={s.get("n", 0)}</div></div>')
     dirg = (f'<div class="plangrid">{tile("Longs", bd.get("LONG"))}'
             f'{tile("Shorts", bd.get("SHORT"))}{tile("All", bd.get("ALL"))}</div>')
@@ -3051,7 +3199,12 @@ def _system_health_html(diag: dict | None) -> str:
     for k, b in (diag.get("rr_buckets_longs") or {}).items():
         ret = b.get("avg_ret", 0)
         cls = "buy" if ret >= 0 else "sell"
-        rr_rows += (f'<tr><td>R:R {k}</td><td style="text-align:right;">{b.get("target_hit_pct", 0)}%</td>'
+        th = b.get("target_hit_pct", 0)
+        callout = _callout(f"Reward:risk {k}",
+                           [("Target hit", th, f"{th}%", _tone_pct(th, 45))],
+                           note=f"{b.get('n', 0)} longs · avg {ret:+.2f}%")
+        rr_rows += (f'<tr class="hint" data-tiphtml="{_esc_attr(callout)}"><td>R:R {k}</td>'
+                    f'<td style="text-align:right;"><span class="wrcell">{_wmini(th, "win")}{th}%</span></td>'
                     f'<td style="text-align:right;color:var(--muted);">{b.get("n", 0)}</td>'
                     f'<td style="text-align:right;" class="{cls}">{ret:+.2f}%</td></tr>')
     rr_tbl = (f'<table class="tbl"><thead><tr><th>Reward:risk</th><th style="text-align:right;">Target hit</th>'
@@ -3065,8 +3218,13 @@ def _system_health_html(diag: dict | None) -> str:
     for lab, c in sel:
         wd = c.get("win_delta", 0)
         cls = "buy" if wd > 0 else "sell"
-        ck_rows += (f'<tr><td>{lab}</td>'
-                    f'<td style="text-align:right;">{round(c.get("pass_wr", 0))}% vs {round(c.get("notpass_wr", 0))}%</td>'
+        pw, npw = round(c.get("pass_wr", 0)), round(c.get("notpass_wr", 0))
+        callout = _callout(f"{lab} — predictiveness",
+                           [("Passed", pw, f"{pw}%", _tone_pct(pw)),
+                            ("Not passed", npw, f"{npw}%", _tone_pct(npw))],
+                           note=f"edge {wd:+.0f}pt {c.get('sig', '')}")
+        ck_rows += (f'<tr class="hint" data-tiphtml="{_esc_attr(callout)}"><td>{lab}</td>'
+                    f'<td style="text-align:right;">{pw}% vs {npw}%</td>'
                     f'<td style="text-align:right;" class="{cls}">{wd:+.0f}pt {c.get("sig", "")}</td></tr>')
     ck_tbl = (f'<table class="tbl"><thead><tr><th>Check (longs)</th><th style="text-align:right;">pass vs not</th>'
               f'<th style="text-align:right;">edge</th></tr></thead><tbody>{ck_rows}</tbody></table>') if ck_rows else ""
@@ -3398,12 +3556,13 @@ def _paper_html(p: dict | None) -> str:
     rz = p.get("realized") or {}
     wr = rz.get("win_rate")
     wr_v = "—" if wr is None else f"{wr:.0f}%"
+    _wr_sub = ((f"{rz.get('n_trades', 0)} closed since {rz.get('since')}" if rz.get('since')
+                else f"over {rz.get('n_trades', 0)} closed trades")
+               + (f'<div style="margin-top:6px;">{_wmini(wr, "win", 22)}</div>' if isinstance(wr, (int, float)) else ""))
     tiles = (tile("Equity", f"${p.get('equity',0):,.0f}", "", "paper account")
              + tile("Day P&amp;L", f"${dp:+,.0f}", tone, f"{p.get('day_pl_pct',0):+.2f}%")
              + tile("Open positions", str(p.get("n_open", 0)), "", f"of {p.get('tracked_total', 0)} tracked")
-             + tile("Realized win rate", wr_v, "",
-                    (f"{rz.get('n_trades', 0)} closed since {rz.get('since')}" if rz.get('since')
-                     else f"over {rz.get('n_trades', 0)} closed trades")))
+             + tile("Realized win rate", wr_v, "", _wr_sub))
     spark = _paper_spark(p.get("history"))
     spark_html = f'<div style="margin:6px 0 16px;">{spark}</div>' if spark else ""
 
@@ -3619,12 +3778,21 @@ def _track_html(track: dict | None) -> str:
     # per-direction / per-conviction breakdown (the live-performance read, as data accrues)
     def _brk(title, d, keys):
         cells = ""
+        _dim = title.split()[-1].lower()
         for k in keys:
             g = (d or {}).get(k) or {}
-            wrk = "—" if g.get("win_rate") is None else f"{g['win_rate']}%"
-            cells += (f'<tr><td>{k}</td><td style="text-align:right;">{g.get("n",0)}</td>'
-                      f'<td style="text-align:right;">{wrk}</td>'
-                      f'<td style="text-align:right;">{_pct(g.get("avg_return"))}</td></tr>')
+            wr_v = g.get("win_rate")
+            wrk = "—" if wr_v is None else f"{wr_v}%"
+            n = g.get("n", 0)
+            avg = g.get("avg_return")
+            wbar = _wmini(wr_v, "win") if wr_v is not None else ""
+            callout = _callout(f"{k} — {_dim}",
+                               [("Win rate", wr_v, wrk, _tone_pct(wr_v))],
+                               note=f"{n} resolved · avg return {_pct(avg)}")
+            cells += (f'<tr class="hint" data-tiphtml="{_esc_attr(callout)}"><td>{k}</td>'
+                      f'<td style="text-align:right;">{n}</td>'
+                      f'<td style="text-align:right;"><span class="wrcell">{wbar}{wrk}</span></td>'
+                      f'<td style="text-align:right;">{_pct(avg)}</td></tr>')
         return (f'<div class="sech" style="margin-top:14px;">{title}</div>'
                 '<table class="trackrec"><thead><tr><th>'+title.split()[-1]+'</th>'
                 '<th style="text-align:right;">Resolved</th><th style="text-align:right;">Win rate</th>'
@@ -3640,9 +3808,15 @@ def _track_html(track: dict | None) -> str:
         if (tv.get("agree", {}) or {}).get("n") or (tv.get("not_agree", {}) or {}).get("n"):
             def _tvrow(label, g):
                 g = g or {}
-                wrk = "—" if g.get("win_rate") is None else f"{g['win_rate']}%"
-                return (f'<tr><td>{label}</td><td style="text-align:right;">{g.get("n",0)}</td>'
-                        f'<td style="text-align:right;">{wrk}</td>'
+                wr_v = g.get("win_rate")
+                wrk = "—" if wr_v is None else f"{wr_v}%"
+                wbar = _wmini(wr_v, "win") if wr_v is not None else ""
+                callout = _callout(f"TradingView {label.lower()}",
+                                   [("Win rate", wr_v, wrk, _tone_pct(wr_v))],
+                                   note=f"{g.get('n',0)} resolved · avg {_pct(g.get('avg_return'))}")
+                return (f'<tr class="hint" data-tiphtml="{_esc_attr(callout)}"><td>{label}</td>'
+                        f'<td style="text-align:right;">{g.get("n",0)}</td>'
+                        f'<td style="text-align:right;"><span class="wrcell">{wbar}{wrk}</span></td>'
                         f'<td style="text-align:right;">{_pct(g.get("avg_return"))}</td></tr>')
             breakdown += ('<div class="sech" style="margin-top:14px;">Does TradingView help? '
                           '<span style="text-transform:none;color:var(--muted);font-weight:400;">'
@@ -3652,15 +3826,32 @@ def _track_html(track: dict | None) -> str:
                           '<th style="text-align:right;">Avg return</th></tr></thead><tbody>'
                           + _tvrow("Agreed", tv.get("agree")) + _tvrow("Disagreed / mixed", tv.get("not_agree"))
                           + '</tbody></table>')
+    # win-rate rate-hero: the headline number beside a full waffle of resolved outcomes
+    wr_hero = ""
+    _wrv = track.get("win_rate")
+    if _wrv is not None and track.get("resolved"):
+        _wcol = "var(--buy)" if _wrv >= 50 else ("var(--warn)" if _wrv >= 40 else "var(--sell)")
+        wr_hero = (f'<div class="rate-hero"><div><div class="rh-v" style="color:{_wcol};">{_wrv}%</div>'
+                   f'<div class="rh-k">win rate · {track.get("resolved",0)} resolved calls</div></div>'
+                   f'{_waffle(_wrv, "win")}</div>')
     rows = ""
     icon = {"win": f'<span class="win" style="color:var(--buy);">{_svg("check",13)} hit target</span>',
             "loss": f'<span class="loss" style="color:var(--sell);">{_svg("x",13)} hit stop</span>',
             "expired": f'<span class="exp" style="color:var(--muted);">{_svg("clock",13)} expired</span>'}
+    _outcome_word = {"win": "Hit target", "loss": "Hit stop", "expired": "Expired"}
     for t in track.get("recent", []):
         ret = t.get("return_pct")
         ret_s = "—" if ret is None else f"{'+' if ret > 0 else ''}{ret}%"
-        rows += (f"<tr><td>{t.get('symbol','')}</td><td>{t.get('advised_date','')}</td>"
-                 f"<td>{icon.get(t.get('status'), t.get('status',''))}</td>"
+        _st = t.get("status")
+        _tone = "up" if (ret or 0) > 0 else ("dn" if (ret or 0) < 0 else "mut")
+        _rmag = min(100, abs(ret) * 5) if isinstance(ret, (int, float)) else 6
+        callout = _callout(
+            f"{t.get('symbol','')} — {_outcome_word.get(_st, _st or 'open')}",
+            [("Return", _rmag, ret_s, _tone)],
+            note=f"Advised {t.get('advised_date','')} · held {t.get('days_held','—')}d")
+        rows += (f'<tr class="hint" data-tiphtml="{_esc_attr(callout)}"><td>{t.get("symbol","")}</td>'
+                 f"<td>{t.get('advised_date','')}</td>"
+                 f"<td>{icon.get(_st, _st or '')}</td>"
                  f"<td>{ret_s}</td><td>{t.get('days_held','—')}d</td></tr>")
     if rows:
         table = (f'<table class="trackrec"><tr><th>Stock</th><th>Advised</th><th>Outcome</th>'
@@ -3681,6 +3872,7 @@ def _track_html(track: dict | None) -> str:
     over time into an honest read on how reliable the calls are. It's a hypothetical record — no fees or
     slippage — so treat it as a rough guide, not a brokerage statement.</p>
     <div class="trackstats">{stats}</div>
+    {wr_hero}
     {table}
     {breakdown}
   </div>"""
@@ -4022,6 +4214,7 @@ def render_html(snap: dict) -> str:
     system_html = _system_html(snap.get("system"))
     sysdiag_html = _system_health_html(_load_json_safe("system_diagnostic.json"))
     metalabel_html = _metalabel_html(_load_json_safe("meta_history.json"))
+    analytics_html = _analytics_html(snap)
     whatsnew_html = _changelog_html(snap.get("changelog"))
     agents_html = _agent_web_html(snap) + _agent_universe_html(snap)
     regime_html = _regime_html(snap.get("regime"))
@@ -4282,6 +4475,52 @@ def render_html(snap: dict) -> str:
     background:var(--card); color:var(--txt); border:1px solid var(--line);
     border-radius:8px; box-shadow:var(--shadow-lg); font-size:12px; line-height:1.5;
     pointer-events:none; }}
+  html[data-theme="dark"] #tip {{ background:#0f0f12; border-color:rgba(255,255,255,.14); }}
+  #tip.rich {{ max-width:280px; padding:12px 14px; }}
+  .cb-wrap {{ min-width:190px; }}
+  .cb-h {{ font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin-bottom:9px; }}
+  .cb-row {{ display:grid; grid-template-columns:1fr 66px 32px; align-items:center; gap:8px; margin:5px 0; font-size:11.5px; }}
+  .cb-nm {{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--txt2); }}
+  .cb-bar {{ height:6px; background:var(--inset); border-radius:3px; overflow:hidden; }}
+  .cb-bar i {{ display:block; height:100%; border-radius:3px; }}
+  .cb-v {{ text-align:right; font-variant-numeric:tabular-nums; color:var(--txt); }}
+  .cb-empty {{ font-size:11.5px; color:var(--muted); }}
+  .cb-line {{ font-size:11.5px; line-height:1.5; color:var(--txt2); }}
+  .cb-line b {{ color:var(--txt); font-weight:600; }}
+  .cb-stack {{ display:flex; height:8px; border-radius:4px; overflow:hidden; background:var(--inset); margin-bottom:8px; }}
+  .cb-stack i {{ display:block; height:100%; }}
+  .cb-leg {{ display:flex; gap:12px; font-size:11px; color:var(--muted); }}
+  .cb-leg b {{ color:var(--txt); font-variant-numeric:tabular-nums; }}
+  .cb-cm {{ margin-top:8px; padding-top:8px; border-top:1px solid var(--line); font-size:11px; color:var(--txt2); }}
+  /* inline mini-waffle for table cells / rate metrics */
+  .wmini {{ display:inline-flex; gap:2px; vertical-align:middle; }}
+  .wmini i {{ width:6px; height:10px; border-radius:2px; background:var(--inset); display:inline-block; }}
+  .wmini i.win {{ background:var(--buy); }}
+  .wmini i.loss {{ background:var(--sell); }}
+  .wmini i.warn {{ background:var(--warn); }}
+  .wmini i.neu {{ background:var(--txt2); }}
+  .wrcell {{ display:inline-flex; align-items:center; gap:8px; justify-content:flex-end;
+    font-variant-numeric:tabular-nums; }}
+  tr.hint {{ cursor:help; }}
+  /* section rate-hero: a big number beside a full waffle (Track record / System) */
+  .rate-hero {{ display:flex; align-items:center; gap:22px; background:var(--card); border:1px solid var(--line);
+    border-radius:14px; padding:18px 20px; margin:14px 0; flex-wrap:wrap; }}
+  .rate-hero .rh-v {{ font-size:34px; font-weight:600; line-height:1; font-variant-numeric:tabular-nums; }}
+  .rate-hero .rh-k {{ font-size:12px; color:var(--muted); margin-top:6px; }}
+  .rate-hero .an-waffle {{ flex:1; min-width:210px; max-width:260px; }}
+  /* strategy-mix waffle on signal cards */
+  .sx-conf {{ margin-top:14px; cursor:help; }}
+  .sx-conf-h {{ display:flex; justify-content:space-between; font-size:10.5px; text-transform:uppercase;
+    letter-spacing:.05em; color:var(--muted); margin-bottom:8px; }}
+  .sx-conf-n {{ font-variant-numeric:tabular-nums; color:var(--txt2); }}
+  .sw-waffle {{ display:flex; flex-wrap:wrap; gap:5px; }}
+  .sw-sq {{ width:20px; height:20px; border-radius:5px; background:var(--inset);
+    transition:transform .12s ease; }}
+  .sx-conf:hover .sw-sq {{ transform:none; }}
+  .sw-sq.sw-on {{ background:color-mix(in srgb,var(--buy) 50%,transparent); }}
+  .sw-sq.sw-fresh {{ background:var(--buy); }}
+  .sx-conf.short .sw-sq.sw-on {{ background:color-mix(in srgb,var(--sell) 50%,transparent); }}
+  .sx-conf.short .sw-sq.sw-fresh {{ background:var(--sell); }}
   #newbuild {{ position:fixed; left:50%; transform:translateX(-50%); bottom:18px; z-index:9998;
     background:var(--accent); color:#fff; border:0; border-radius:999px; cursor:pointer;
     padding:9px 16px; font-size:13px; font-weight:600; box-shadow:var(--shadow-lg); }}
@@ -4961,6 +5200,41 @@ def render_html(snap: dict) -> str:
   .mbp-b .mbhl.up {{ color:var(--buy); font-weight:500; }}
   .mbp-b .mbhl.dn {{ color:var(--sell); font-weight:500; }}
   @media (max-width:640px) {{ .mb-quad {{ grid-template-columns:1fr; }} }}
+
+  /* Edge explorer — left-rail tabs + waffle heatmaps (Anthropic EconIndex style) */
+  .an-lay {{ display:grid; grid-template-columns:200px 1fr; gap:28px; margin-top:8px; align-items:start; }}
+  .an-rail {{ display:flex; flex-direction:column; position:sticky; top:66px; }}
+  .an-tab {{ text-align:left; background:none; border:0; border-top:1px solid var(--line); color:var(--txt2);
+    font-family:'Inter',-apple-system,sans-serif; font-size:14.5px; padding:13px 4px; cursor:pointer; transition:color .15s ease; }}
+  .an-tab:first-child {{ border-top:0; }}
+  .an-tab:hover {{ color:var(--txt); }}
+  .an-tab.on {{ color:var(--txt); font-weight:600; background:rgba(255,255,255,.05); border-radius:8px;
+    padding-left:12px; border-top-color:transparent; }}
+  .an-report {{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-top:18px; }}
+  .an-report-ic {{ color:var(--muted); }}
+  .an-report-t {{ font-size:14px; font-weight:600; margin:8px 0 4px; color:var(--txt); }}
+  .an-report-d {{ font-size:12.5px; color:var(--muted); line-height:1.5; }}
+  .an-report-lk {{ font-size:12.5px; color:var(--txt2); margin-top:10px; cursor:pointer; }}
+  .an-report-lk:hover {{ color:var(--txt); }}
+  .an-view {{ display:none; }} .an-view.on {{ display:block; }}
+  .an-grid {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:16px; }}
+  .an-card {{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; }}
+  .an-jt {{ font-size:15px; font-weight:600; color:var(--txt); }}
+  .an-js {{ font-size:12px; color:var(--muted); margin:2px 0 12px; }}
+  .an-waffle {{ display:grid; grid-template-columns:repeat(10,1fr); gap:4px; max-width:220px; }}
+  .an-sq {{ aspect-ratio:1; border-radius:3px; background:var(--inset); }}
+  .an-sq.win {{ background:var(--buy); }}
+  .an-legend {{ display:flex; gap:16px; font-size:12px; color:var(--muted); margin-bottom:14px; }}
+  .an-legend i {{ display:inline-block; width:9px; height:9px; border-radius:2px; vertical-align:-1px; margin-right:5px; }}
+  .an-legend i.win {{ background:var(--buy); }} .an-legend i.muted {{ background:var(--inset); }}
+  .an-sects {{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }}
+  .an-sect {{ font-size:12px; background:var(--inset); border-radius:999px; padding:4px 11px; color:var(--txt2); }}
+  .an-sect b {{ font-weight:600; font-variant-numeric:tabular-nums; }}
+  .anup {{ color:var(--buy); }} .andn {{ color:var(--sell); }} .anmut {{ color:var(--muted); }}
+  .an-empty {{ color:var(--muted); font-size:13px; padding:20px 0; }}
+  @media (max-width:760px) {{ .an-lay {{ grid-template-columns:1fr; }}
+    .an-rail {{ position:static; flex-direction:row; flex-wrap:wrap; gap:6px; }}
+    .an-tab {{ border-top:0; }} }}
   /* system health panel */
   .shgrid {{ display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:16px; }}
   .shverd {{ color:var(--txt2); font-size:13px; margin:10px 0 0; line-height:1.6; }}
@@ -5080,14 +5354,18 @@ def render_html(snap: dict) -> str:
   .sxcard .card-warn {{ margin-top:14px; }}
   /* ---- Markets sub-tab layout ---- */
   .mkt {{ display:grid; grid-template-columns:190px minmax(0,1fr); gap:18px; align-items:start; }}
-  .mkt-side {{ display:flex; flex-direction:column; gap:4px; position:sticky; top:66px; }}
-  .mkt-side button {{ text-align:left; background:none; border:none; color:var(--muted); font-size:14px;
-    font-weight:600; padding:10px 13px; border-radius:9px; cursor:pointer; }}
-  .mkt-side button:hover {{ background:var(--hover); color:var(--txt); }}
-  .mkt-side button.on {{ background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); }}
+  .mkt-side {{ display:flex; flex-direction:column; position:sticky; top:66px; }}
+  .mkt-side button {{ text-align:left; background:none; border:0; border-top:1px solid var(--line);
+    color:var(--txt2); font-family:'Inter',-apple-system,sans-serif; font-size:14px; font-weight:400;
+    padding:11px 4px; cursor:pointer; transition:color .15s ease; }}
+  .mkt-side button:first-child {{ border-top:0; }}
+  .mkt-side button:hover {{ color:var(--txt); }}
+  .mkt-side button.on {{ color:var(--txt); font-weight:600; background:rgba(255,255,255,.05);
+    border-radius:8px; padding-left:12px; border-top-color:transparent; }}
   .mkt-view {{ display:none; }} .mkt-view.on {{ display:block; }}
   @media (max-width:760px) {{ .mkt {{ grid-template-columns:1fr; }}
-    .mkt-side {{ flex-direction:row; flex-wrap:wrap; position:static; }} }}
+    .mkt-side {{ flex-direction:row; flex-wrap:wrap; position:static; }}
+    .mkt-side button {{ border-top:0; }} }}
   /* ---- modal sub-tab layout ---- */
   .modal-wide {{ max-width:880px; }}
   .mk-top {{ display:flex; gap:7px; flex-wrap:wrap; margin:18px 0 0; padding-bottom:2px; }}
@@ -5100,14 +5378,18 @@ def render_html(snap: dict) -> str:
   .mk-top button.on {{ color:#000; background:var(--txt); border-color:var(--txt); }}
   .mk-top button.on .ico {{ opacity:1; }}
   .mk {{ display:grid; grid-template-columns:158px minmax(0,1fr); gap:18px; margin-top:14px; align-items:start; }}
-  .mk-side {{ display:flex; flex-direction:column; gap:4px; position:sticky; top:0; }}
-  .mk-side button {{ text-align:left; background:none; border:none; color:var(--muted); font-size:13.5px;
-    font-weight:600; padding:9px 11px; border-radius:8px; cursor:pointer; }}
-  .mk-side button:hover {{ background:var(--hover); color:var(--txt); }}
-  .mk-side button.on {{ background:rgba(255,255,255,.06); color:var(--txt); font-weight:600; }}
+  .mk-side {{ display:flex; flex-direction:column; position:sticky; top:0; }}
+  .mk-side button {{ text-align:left; background:none; border:0; border-top:1px solid var(--line);
+    color:var(--txt2); font-family:'Inter',-apple-system,sans-serif; font-size:13.5px; font-weight:400;
+    padding:10px 4px; cursor:pointer; transition:color .15s ease; }}
+  .mk-side button:first-child {{ border-top:0; }}
+  .mk-side button:hover {{ color:var(--txt); }}
+  .mk-side button.on {{ color:var(--txt); font-weight:600; background:rgba(255,255,255,.05);
+    border-radius:8px; padding-left:11px; border-top-color:transparent; }}
   .mk-view {{ display:none; }} .mk-view.on {{ display:block; }}
   @media (max-width:680px) {{ .mk {{ grid-template-columns:1fr; }}
-    .mk-side {{ flex-direction:row; flex-wrap:wrap; position:static; }} }}
+    .mk-side {{ flex-direction:row; flex-wrap:wrap; position:static; }}
+    .mk-side button {{ border-top:0; }} }}
   /* favorites star */
   .favbtn {{ background:none; border:none; color:var(--flat); cursor:pointer; font-size:17px;
     line-height:1; padding:0 2px; flex:0 0 auto; }}
@@ -5164,18 +5446,16 @@ def render_html(snap: dict) -> str:
   /* controls — glass pill buttons */
   html[data-theme="dark"] .themebtn, html[data-theme="dark"] .ctlbtn, html[data-theme="dark"] .favbtn,
   html[data-theme="dark"] .more, html[data-theme="dark"] .tc-seg button, html[data-theme="dark"] .viewctl button,
-  html[data-theme="dark"] .chartctl button, html[data-theme="dark"] .mk-side button, html[data-theme="dark"] .mkt-side button,
+  html[data-theme="dark"] .chartctl button,
   html[data-theme="dark"] .ctlgrp button, html[data-theme="dark"] .tc-cmp, html[data-theme="dark"] .tc-clr {{
     background:rgba(255,255,255,.04); border:1px solid var(--glass-bd); border-radius:10px; color:var(--txt2);
     transition:background-color .15s ease, border-color .15s ease, color .15s ease; }}
   html[data-theme="dark"] .themebtn:hover, html[data-theme="dark"] .ctlbtn:hover, html[data-theme="dark"] .more:hover,
-  html[data-theme="dark"] .tc-seg button:hover, html[data-theme="dark"] .viewctl button:hover,
-  html[data-theme="dark"] .mk-side button:hover, html[data-theme="dark"] .mkt-side button:hover {{
+  html[data-theme="dark"] .tc-seg button:hover, html[data-theme="dark"] .viewctl button:hover {{
     background:rgba(255,255,255,.08); color:var(--txt);
     border-color:color-mix(in srgb,var(--accent) 34%,var(--glass-bd)); }}
   /* active segmented / side-view controls → gold */
   html[data-theme="dark"] .tc-seg button.on, html[data-theme="dark"] .viewctl button.on,
-  html[data-theme="dark"] .mk-side button.on, html[data-theme="dark"] .mkt-side button.on,
   html[data-theme="dark"] .ctltog.on {{
     background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 22%,transparent),color-mix(in srgb,var(--accent) 7%,transparent));
     color:var(--accent); border-color:color-mix(in srgb,var(--accent) 42%,transparent); }}
@@ -5678,6 +5958,10 @@ def render_html(snap: dict) -> str:
   </section>
 
   {paper_section}
+
+  <section class="page" id="page-analytics">
+{analytics_html}
+  </section>
 
   <section class="page" id="page-system">
 {sysdiag_html}
@@ -6385,19 +6669,77 @@ function makeCard(s) {{
   if (famLabel) _pills.push(`<span class="sx-pill">${{_esc(famLabel)}}</span>`);
   _agree.slice(0,2).forEach(n => _pills.push(`<span class="sx-pill">${{_esc(n)}}</span>`));
   if (s.catalyst) _pills.push(`<span class="sx-pill">Catalyst</span>`);
+  // ---- rich hover callouts for the plan rows (dark box + mini bars, Anthropic-style) ----
+  const _entryTip = (_p.entry!=null)
+    ? `<div class='cb-wrap'><div class='cb-h'>Entry</div><div class='cb-line'>Suggested fill near <b>${{_m2(_p.entry)}}</b>. Last <b>$${{_px.toLocaleString()}}</b>.</div></div>` : '';
+  const _tgtTip = (_p.target_pct!=null)
+    ? `<div class='cb-wrap'><div class='cb-h'>Target &middot; ${{_isShort?'−':'+'}}${{_p.target_pct}}%</div><div class='cb-line'>${{_esc(_p.target_basis || 'Nearest structural level, bounded by volatility & fundamentals.')}}</div></div>` : '';
+  const _stpTip = (_p.stop_pct!=null)
+    ? `<div class='cb-wrap'><div class='cb-h'>Stop &middot; ${{_isShort?'+':'−'}}${{_p.stop_pct}}%</div><div class='cb-line'>${{_esc(_p.stop_basis || 'Below the invalidation level — where the thesis breaks.')}}</div></div>` : '';
+  // reward:risk visualised as two stacked mini bars (reward green vs 1 unit of risk red)
+  let _rrTip = '';
+  if (_p.rr!=null) {{
+    const _rw = Math.min(100, (Number(_p.rr)||0) / (Math.max(1, Number(_p.rr)||1) + 1) * 100);
+    _rrTip = `<div class='cb-wrap'><div class='cb-h'>Reward : risk &middot; 1:${{_p.rr}}</div>`
+      + `<div class='cb-row'><span class='cb-nm'>Reward</span><span class='cb-bar'><i style='width:${{_rw}}%;background:var(--buy);'></i></span><span class='cb-v'>${{_p.rr}}R</span></div>`
+      + `<div class='cb-row'><span class='cb-nm'>Risk</span><span class='cb-bar'><i style='width:${{100/(Math.max(1,Number(_p.rr)||1)+1)}}%;background:var(--sell);'></i></span><span class='cb-v'>1R</span></div></div>`;
+  }}
+  // conviction callout: pass / warn / fail as a stacked mini bar + committee support
+  let _convTip = '';
+  if (conv.label) {{
+    const _ck = conv.checks || [], _tot = _ck.length || 1;
+    const _np = _ck.filter(c=>c.status==='pass').length, _nw = _ck.filter(c=>c.status==='warn').length, _nf = _ck.filter(c=>c.status==='fail').length;
+    _convTip = `<div class='cb-wrap'><div class='cb-h'>Conviction &middot; ${{cpct}} ${{_esc(conv.label)}}</div>`
+      + `<div class='cb-stack'><i style='width:${{100*_np/_tot}}%;background:var(--buy);'></i><i style='width:${{100*_nw/_tot}}%;background:var(--warn);'></i><i style='width:${{100*_nf/_tot}}%;background:var(--sell);'></i></div>`
+      + `<div class='cb-leg'><span><b>${{_np}}</b> pass</span><span><b>${{_nw}}</b> warn</span><span><b>${{_nf}}</b> fail</span></div>`
+      + (s.committee ? `<div class='cb-cm'>Committee &middot; ${{s.committee.support}}/4 support</div>` : '')
+      + `</div>`;
+  }}
+  const _rowVal = (v, tip) => tip ? `<span class="hint" data-tiphtml="${{_esc(tip)}}">${{v}}</span>` : v;
   const _rows = [];
-  if (_p.entry!=null) _rows.push(['Entry', _m2(_p.entry)]);
-  if (_p.target_pct!=null) _rows.push(['Target', `<span class="sx-up">${{_isShort?'−':'+'}}${{_p.target_pct}}%</span>`]);
-  if (_p.stop_pct!=null) _rows.push(['Stop', `<span class="sx-dn">${{_isShort?'+':'−'}}${{_p.stop_pct}}%</span>`]);
-  if (_p.rr!=null) _rows.push(['R : R', '1:'+_p.rr]);
-  if (conv.label) _rows.push(['Conviction', `<span style="color:${{ccol}}; font-weight:700;">${{cpct}} · ${{_esc(conv.label)}}</span>`]);
+  if (_p.entry!=null) _rows.push(['Entry', _rowVal(_m2(_p.entry), _entryTip)]);
+  if (_p.target_pct!=null) _rows.push(['Target', _rowVal(`<span class="sx-up">${{_isShort?'−':'+'}}${{_p.target_pct}}%</span>`, _tgtTip)]);
+  if (_p.stop_pct!=null) _rows.push(['Stop', _rowVal(`<span class="sx-dn">${{_isShort?'+':'−'}}${{_p.stop_pct}}%</span>`, _stpTip)]);
+  if (_p.rr!=null) _rows.push(['R : R', _rowVal('1:'+_p.rr, _rrTip)]);
+  if (conv.label) _rows.push(['Conviction', _rowVal(`<span style="color:${{ccol}}; font-weight:700;">${{cpct}} · ${{_esc(conv.label)}}</span>`, _convTip)]);
   const _rightMeta = `<div class="sx-meta"><span class="sx-meta-l">Last</span> <span class="sx-meta-v" data-px="${{s.symbol}}">$${{_px.toLocaleString()}}</span>${{dchg?`<div class="sx-meta-chg">${{dchg}}</div>`:''}}</div>`;
+  // ---- strategy-mix waffle: one square per independent strategy, filled = agrees with this signal.
+  // Hovering the strip pops a dark callout with a mini win-rate bar breakdown of the agreeing methods.
+  let confWaffle = '';
+  if (_co && _co.results) {{
+    const _res = _co.results, _keys = Object.keys(_res);
+    if (_keys.length) {{
+      const _fresh = _co.fresh || [];
+      const _edges = ((s.strategies||{{}}).edges||{{}}).by || {{}};
+      const _agreeK = _keys.filter(k => _isShort ? _res[k].short : _res[k].long);
+      const _sq = _keys.map(k => {{
+        const r = _res[k], agrees = _isShort ? r.short : r.long;
+        const cls = agrees ? (_fresh.includes(r.label) ? 'sw-fresh' : 'sw-on') : 'sw-off';
+        const st = agrees ? (_fresh.includes(r.label) ? 'fresh trigger' : (_isShort ? 'short' : 'long')) : 'flat';
+        return `<span class="sw-sq ${{cls}}" data-tip="${{_esc(r.label + ' — ' + st)}}"></span>`;
+      }}).join('');
+      let cbRows = '';
+      _agreeK.forEach(k => {{
+        const r = _res[k], e = _edges[k] || {{}}, wr = (e.win_rate==null) ? null : e.win_rate;
+        const bcol = (wr==null) ? 'var(--muted)' : (wr>=50 ? 'var(--buy)' : 'var(--sell)');
+        cbRows += `<div class="cb-row"><span class="cb-nm">${{_esc(r.label)}}</span>`
+          + `<span class="cb-bar"><i style="width:${{wr==null?6:wr}}%;background:${{bcol}};"></i></span>`
+          + `<span class="cb-v">${{wr==null?'–':wr+'%'}}</span></div>`;
+      }});
+      const callout = `<div class='cb-wrap'><div class='cb-h'>Strategy confluence &middot; ${{_agreeK.length}}/${{_keys.length}} agree</div>`
+        + (cbRows || "<div class='cb-empty'>Per-strategy backtests pending.</div>") + `</div>`;
+      confWaffle = `<div class="sx-conf${{_isShort?' short':''}} hint" data-tiphtml="${{_esc(callout)}}">`
+        + `<div class="sx-conf-h"><span>Strategy confluence</span><span class="sx-conf-n">${{_agreeK.length}}/${{_keys.length}}</span></div>`
+        + `<div class="sw-waffle">${{_sq}}</div></div>`;
+    }}
+  }}
   el.innerHTML = `
     <button class="favbtn ${{FAVS.has(s.symbol)?'on':''}}" title="Save to favorites" aria-label="Save to favorites">${{_ico(FAVS.has(s.symbol)?'star-fill':'star',17)}}</button>
     <div class="sx-head"><div class="sx-hl">${{logo}}<div class="sx-hid"><div class="sx-title">${{s.symbol}}</div><div class="sx-sub">${{s.name||s.exchange||''}}</div></div></div>${{_rightMeta}}</div>
     ${{_desc ? `<div class="sx-desc">${{_esc(_desc)}}</div>` : ''}}
     ${{_pills.length ? `<div class="sx-pills">${{_pills.join('')}}</div>` : ''}}
     ${{_rows.length ? `<div class="sx-div"></div><div class="sx-rows">${{_rows.map(r=>`<div class="sx-row"><span class="sx-l">${{r[0]}}</span><span class="sx-v">${{r[1]}}</span></div>`).join('')}}</div>` : ''}}
+    ${{confWaffle}}
     ${{edWarn}}`;
   const _fb = el.querySelector('.favbtn');
   if (_fb) _fb.addEventListener('click', (e) => {{
@@ -6783,6 +7125,17 @@ function renderCards() {{
     lbar.appendChild(b);
   }});
   renderCards();
+}})();
+
+// --- Edge explorer: left-rail tab switching ---
+(function setupEdgeTabs() {{
+  document.querySelectorAll('.an-tab').forEach(function(btn) {{
+    btn.addEventListener('click', function() {{
+      const v = btn.dataset.anview;
+      document.querySelectorAll('.an-tab').forEach(function(b) {{ b.classList.toggle('on', b.dataset.anview === v); }});
+      document.querySelectorAll('.an-view').forEach(function(x) {{ x.classList.toggle('on', x.dataset.anview === v); }});
+    }});
+  }});
 }})();
 
 // --- Live-signals horizontal scroll arrows + expand-all toggle ---
@@ -7648,6 +8001,7 @@ function _tvInit() {{
     a.addEventListener('click', () => {{
       const b = document.querySelector('#sideNav [data-area="' + a.dataset.go + '"]');
       if (b) b.click();
+      else if (window._showPage && document.getElementById('page-' + a.dataset.go)) window._showPage(a.dataset.go);
     }});
   }});
 }})();
@@ -7659,7 +8013,7 @@ function _tvInit() {{
     ['markets', [['markets','Markets'],['heatmap','Heatmap'],['momentum','Momentum']]],
     ['portfolio', [['portfolio','Portfolio'],['paper','Paper account'],['allweather','All Weather']]],
     ['intel', [['altdata','Data signals']]],
-    ['track', [['track','Track record']]],
+    ['track', [['track','Track record'],['analytics','Edge explorer']]],
     ['analyst', [['analyst','Analyst']]],
     ['news', [['news','Market news'],['ipos','IPO watch']]],
     ['livetv', [['livetv','Live TV']]],

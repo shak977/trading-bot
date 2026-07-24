@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json as _json
 import os
+import sys as _sys
 
 import requests
 
@@ -43,29 +44,55 @@ def reset_budget() -> None:
     _cache.clear()
 
 
-def _chat(prompt: str, cfg, *, live: bool = True, timeout: int = 45, max_tokens: int = 700) -> dict:
-    """One JSON call to Grok with real-time search enabled. Returns a parsed dict, or {} on any
-    failure / when no key / when the per-run budget is spent. Never raises."""
+def _extract_text(resp: dict) -> str:
+    """Pull the assistant's text out of a Responses-API reply (skips reasoning items), with
+    fallbacks to a flattened output_text and to the legacy chat/completions shape."""
+    out = resp.get("output")
+    if isinstance(out, list):
+        texts = []
+        for item in out:
+            if not isinstance(item, dict):
+                continue
+            for c in (item.get("content") or []):
+                if isinstance(c, dict) and c.get("type") in ("output_text", "text") and c.get("text"):
+                    texts.append(c["text"])
+        if texts:
+            return "\n".join(texts).strip()
+    if isinstance(resp.get("output_text"), str):
+        return resp["output_text"].strip()
+    try:
+        return (resp["choices"][0]["message"]["content"] or "").strip()
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def _chat(prompt: str, cfg, *, live: bool = True, timeout: int = 45, max_tokens: int = 1800) -> dict:
+    """One JSON call to Grok via the xAI Responses API with real-time X + web search. Returns a parsed
+    dict, or {} on any failure / no key / spent budget. Never raises — but logs the HTTP status/error
+    to stderr so a build's logs reveal WHY a read came back empty instead of hiding it."""
     key = _key(cfg)
     if not key or not _budget_ok(cfg):
         return {}
-    model = getattr(cfg, "xai_model", "grok-4.1-fast")
-    body = {"model": model, "temperature": 0, "max_tokens": max_tokens,
-            "messages": [{"role": "user", "content": prompt}]}
+    model = getattr(cfg, "xai_model", "grok-4.3")
+    # Responses API: `input` (not `messages`), `max_output_tokens`; reasoning models reject temperature.
+    body = {"model": model, "max_output_tokens": max_tokens,
+            "input": [{"role": "user", "content": prompt}]}
     if live:
-        # Server-side real-time search over X + the web (xAI "tools" / function-calling feature that
-        # replaced the old Live Search API). tool_choice auto lets Grok decide when to search.
+        # Server-side real-time search over X + the web. These tool types are ONLY supported on the
+        # Responses API (/v1/responses), not the legacy /v1/chat/completions endpoint.
         body["tools"] = [{"type": "x_search"}, {"type": "web_search"}]
-        body["tool_choice"] = "auto"
     try:
         _calls["n"] += 1
-        r = requests.post(f"{_BASE}/chat/completions",
+        r = requests.post(f"{_BASE}/responses",
                           headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
                           json=body, timeout=timeout)
-        r.raise_for_status()
-        txt = (r.json()["choices"][0]["message"]["content"] or "").strip()
-        return _parse_json(txt)
-    except Exception:  # noqa: BLE001
+        if r.status_code >= 400:
+            print(f"[xai] HTTP {r.status_code} from /responses (model={model}): {r.text[:240]}",
+                  file=_sys.stderr)
+            return {}
+        return _parse_json(_extract_text(r.json()))
+    except Exception as e:  # noqa: BLE001
+        print(f"[xai] request failed (model={model}): {e}", file=_sys.stderr)
         return {}
 
 

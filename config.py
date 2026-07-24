@@ -122,7 +122,7 @@ class Config:
     # Direct xAI API (OpenAI-compatible) — needed for the server-side x_search tool that OpenRouter
     # doesn't expose. All opt-in + fail-silent; nothing runs without a key.
     xai_api_key: str = field(default_factory=lambda: os.getenv("XAI_API_KEY", ""))
-    xai_model: str = field(default_factory=lambda: os.getenv("XAI_MODEL", "grok-4.1-fast"))  # cheap, real-time
+    xai_model: str = field(default_factory=lambda: os.getenv("XAI_MODEL", "grok-4.3"))  # current, real-time search
     xai_daily_call_cap: int = 40            # hard per-run cap on Grok calls (bounds cost)
     xai_max_names: int = 6                  # live-sentiment only the top N actionable names per build
     # (1) live X/web social read as a self-grading conviction check
