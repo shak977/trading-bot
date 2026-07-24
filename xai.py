@@ -108,21 +108,45 @@ def _parse_json(txt: str) -> dict:
         return {}
 
 
+def _clean_list(v, n_max: int, w_max: int) -> list[str]:
+    """Sanitize a model-returned list of short strings (bounded count + length)."""
+    if not isinstance(v, list):
+        return []
+    out: list[str] = []
+    for it in v:
+        s = str(it).strip()
+        if s:
+            out.append(s[:w_max])
+        if len(out) >= n_max:
+            break
+    return out
+
+
 def normalize_sentiment(d: dict) -> dict | None:
     """Coerce a raw Grok reply into our sentiment shape. None if it isn't usable. (Split out so tests
-    can exercise the parsing without the network.)"""
+    can exercise the parsing without the network.) Includes the richer live-conversation fields
+    (themes / bull / bear / momentum / watch) when present — all optional + backward compatible."""
     if not isinstance(d, dict) or not d.get("stance"):
         return None
     stance = str(d.get("stance", "")).lower().strip()
     if stance not in ("bullish", "bearish", "mixed", "quiet"):
         return None
+    mom = str(d.get("momentum", "")).lower().strip()
+    if mom not in ("rising", "steady", "fading"):
+        mom = ""
     return {
         "stance": stance,
+        "momentum": mom,                                          # is attention rising RIGHT NOW?
         "fresh_catalyst": bool(d.get("fresh_catalyst")),
         "catalyst": str(d.get("catalyst", ""))[:80],
+        "catalyst_time": str(d.get("catalyst_time", ""))[:40],    # when (today / Jul 23 / pre-market)
         "social_volume": str(d.get("social_volume", "normal")).lower().strip() or "normal",
         "confidence": int(max(0, min(100, int(d.get("confidence", 50) or 50)))),
         "note": str(d.get("note", ""))[:140],
+        "themes": _clean_list(d.get("themes"), 4, 60),            # what people are discussing now
+        "bull": _clean_list(d.get("bull"), 3, 90),               # bullish arguments being made
+        "bear": _clean_list(d.get("bear"), 3, 90),               # bearish arguments being made
+        "watch": str(d.get("watch", ""))[:160],                  # concrete thing to watch for entry
         "source": "grok-live-x",
     }
 
@@ -136,13 +160,19 @@ def live_sentiment(symbol: str, name: str, direction: str, cfg) -> dict | None:
         return _cache[sym]
     side = "short" if str(direction).upper() == "SHORT" else "long"
     prompt = (
-        f"Using ONLY real-time data from X (Twitter) and the web from the LAST 3 DAYS, assess the live "
-        f"social + news picture for {sym} ({name}). We are weighing a {side} trade. Do NOT predict "
-        "price or invent events — report only what is actually being said and whether there is a fresh, "
-        "specific catalyst. Return ONLY JSON: "
-        '{"stance":"bullish|bearish|mixed|quiet","fresh_catalyst":true|false,'
-        '"catalyst":"<=10 words or empty","social_volume":"high|normal|low",'
-        '"confidence":0-100,"note":"<=16 words"}')
+        f"Using ONLY real-time data from X (Twitter) and the web from the LAST 48 HOURS, give a LIVE read "
+        f"on what people are saying about {sym} ({name}) RIGHT NOW. We are weighing a {side} trade. Do NOT "
+        "predict price or invent events — report only what is actually being discussed, whether attention "
+        "is rising, the specific bull and bear arguments being made, any fresh catalyst with its timing, "
+        "and one concrete thing to watch for a potential entry. Return ONLY JSON: "
+        '{"stance":"bullish|bearish|mixed|quiet",'
+        '"momentum":"rising|steady|fading",'
+        '"fresh_catalyst":true|false,"catalyst":"<=10 words or empty","catalyst_time":"<=6 words e.g. today/Jul 23",'
+        '"social_volume":"high|normal|low","confidence":0-100,"note":"<=16 words",'
+        '"themes":["up to 4 short phrases (<=6 words) people are discussing now"],'
+        '"bull":["up to 3 bullish points being made (<=10 words each)"],'
+        '"bear":["up to 3 bearish points being made (<=10 words each)"],'
+        '"watch":"<=18 words - a concrete trigger/level/event to watch for entry"}')
     out = normalize_sentiment(_chat(prompt, cfg))
     _cache[sym] = out
     return out

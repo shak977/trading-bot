@@ -5688,7 +5688,40 @@ def render_html(snap: dict) -> str:
   .gp-note {{ color:var(--txt2); font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
   .gp-cat {{ color:var(--muted); }}
   .gp-meta {{ color:var(--muted); font-size:12px; white-space:nowrap; font-variant-numeric:tabular-nums; }}
+  .gp-mom-mini {{ font-variant-numeric:tabular-nums; }}
   @media (max-width:600px) {{ .gp-row {{ grid-template-columns:56px 84px 1fr; }} .gp-meta {{ display:none; }} }}
+  /* ---- Grok deep-dive modal: what X is saying about a name right now ---- */
+  .gk-modal {{ max-width:560px; padding:26px 28px; }}
+  .gk-head {{ display:flex; align-items:center; gap:12px; }}
+  .gk-tick {{ font-size:22px; font-weight:800; letter-spacing:-.01em; }}
+  .gk-modal .sx-pill {{ text-transform:capitalize; }}
+  .gk-mom {{ font-size:12.5px; font-variant-numeric:tabular-nums; }}
+  .gk-sub {{ font-size:13px; color:var(--muted); margin:5px 0 0; }}
+  .gk-cat {{ font-size:13.5px; color:var(--txt2); margin-top:15px; }}
+  .gk-cat b {{ color:var(--txt); font-weight:600; }}
+  .gk-when {{ color:var(--muted); }}
+  .gk-fresh {{ font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--buy);
+    border:1px solid color-mix(in srgb,var(--buy) 40%,transparent); border-radius:999px; padding:1px 7px; margin-left:4px; }}
+  .gk-lead {{ font-size:14.5px; line-height:1.5; color:var(--txt); margin-top:14px; }}
+  .gk-sec {{ margin-top:20px; }}
+  .gk-h {{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted);
+    margin-bottom:10px; display:flex; align-items:center; gap:6px; }}
+  .gk-h.up {{ color:var(--buy); }} .gk-h.dn {{ color:var(--sell); }}
+  .gk-chips {{ display:flex; flex-wrap:wrap; gap:8px; }}
+  .gk-chip {{ font-size:12.5px; background:var(--inset); color:var(--txt2); border-radius:999px; padding:5px 12px; }}
+  .gk-args {{ display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:20px; }}
+  .gk-ul {{ margin:0; padding-left:16px; }}
+  .gk-ul li {{ font-size:13px; line-height:1.55; color:var(--txt2); margin-bottom:5px; }}
+  .gk-none {{ color:var(--muted); list-style:none; margin-left:-16px; }}
+  .gk-watch {{ margin-top:20px; background:var(--inset); border-radius:12px; padding:14px 16px;
+    font-size:13.5px; line-height:1.5; color:var(--txt2); }}
+  .gk-foot {{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:22px;
+    padding-top:16px; border-top:1px solid var(--line); flex-wrap:wrap; }}
+  .gk-src {{ font-size:11.5px; color:var(--muted); display:inline-flex; align-items:center; gap:6px; }}
+  .gk-open {{ background:var(--txt); color:#000; border:0; border-radius:999px; font-size:12.5px; font-weight:600;
+    padding:8px 15px; cursor:pointer; }}
+  .gk-open:hover {{ filter:brightness(1.1); }}
+  @media (max-width:560px) {{ .gk-args {{ grid-template-columns:1fr; gap:14px; }} }}
   /* ---- stage 3: hairline signal rows ---- */
   .rowswrap {{ margin-top:2px; }}
   .rowsig {{ display:grid; grid-template-columns:30px 28px 1.5fr 96px 170px 1fr 20px; align-items:center;
@@ -6207,6 +6240,13 @@ def render_html(snap: dict) -> str:
     fees and slippage. Verify before acting and never risk money you can't afford to lose.
   </div>
     </div>
+  </div>
+</div>
+
+<div class="overlay gk-overlay" id="grokOverlay">
+  <div class="modal gk-modal" role="dialog" aria-modal="true">
+    <button class="mclose" id="grokClose" aria-label="Close">{_svg('x',18)}</button>
+    <div id="grokBody"></div>
   </div>
 </div>
 
@@ -7222,18 +7262,62 @@ function renderGrokPulse() {{
     const vol = x.social_volume ? (x.social_volume + ' volume') : '';
     const cat = x.catalyst ? ('<span class="gp-cat">' + _ico('bolt',11) + ' ' + _esc(x.catalyst) + '</span>') : '';
     const note = x.note ? _esc(x.note) : '';
+    const momMap = {{rising:'&#8599; rising', steady:'&#8594; steady', fading:'&#8600; fading'}};
+    const momc = x.momentum === 'rising' ? 'gp-up' : (x.momentum === 'fading' ? 'gp-dn' : 'gp-mut');
+    const mom = x.momentum ? ('<span class="gp-mom-mini ' + momc + '">' + momMap[x.momentum] + '</span>') : '';
     return '<div class="gp-row" data-sym="' + s.symbol + '">'
       + '<span class="gp-sym">' + s.symbol + '</span>'
       + '<span class="sx-pill ' + (cls[st] || 'gp-mut') + '">' + st + '</span>'
       + '<span class="gp-note">' + note + ' ' + cat + '</span>'
-      + '<span class="gp-meta">' + vol + (conf !== '' ? (' · ' + conf) : '') + '</span>'
+      + '<span class="gp-meta">' + mom + ' ' + vol + (conf !== '' ? (' · ' + conf) : '') + '</span>'
       + '</div>';
   }}).join('') + '</div>';
   el.querySelectorAll('.gp-row').forEach(r => r.addEventListener('click', () => {{
-    const sig = (DATA.signals || []).find(s => s.symbol === r.dataset.sym); if (sig) openModal(sig);
+    const sig = (DATA.signals || []).find(s => s.symbol === r.dataset.sym); if (sig) openGrokModal(sig);
   }}));
 }}
 try {{ renderGrokPulse(); }} catch (e) {{}}
+
+// --- Grok deep-dive modal: what X is really saying about a name RIGHT NOW ---
+const _gkOverlay = document.getElementById('grokOverlay');
+function openGrokModal(sig) {{
+  const body = document.getElementById('grokBody'); if (!body || !_gkOverlay) return;
+  const x = sig.xai_sentiment || {{}};
+  const st = x.stance || 'quiet';
+  const scls = {{bullish:'gp-up', bearish:'gp-dn', mixed:'gp-mut', quiet:'gp-mut'}}[st] || 'gp-mut';
+  const mom = {{rising:'&#8599; rising attention', steady:'&#8594; steady attention', fading:'&#8600; fading attention'}}[x.momentum] || '';
+  const momc = x.momentum === 'rising' ? 'gp-up' : (x.momentum === 'fading' ? 'gp-dn' : 'gp-mut');
+  const meta = [x.social_volume ? (x.social_volume + ' volume') : '', (x.confidence != null ? x.confidence + '% confidence' : '')].filter(Boolean).join(' &middot; ');
+  const chips = (x.themes || []).map(t => `<span class="gk-chip">${{_esc(t)}}</span>`).join('');
+  const bull = (x.bull || []).map(b => `<li>${{_esc(b)}}</li>`).join('');
+  const bear = (x.bear || []).map(b => `<li>${{_esc(b)}}</li>`).join('');
+  const cat = x.catalyst ? `<div class="gk-cat">${{_ico('bolt',13)}} <b>Catalyst:</b> ${{_esc(x.catalyst)}}${{x.catalyst_time ? ` <span class="gk-when">&middot; ${{_esc(x.catalyst_time)}}</span>` : ''}}${{x.fresh_catalyst ? ' <span class="gk-fresh">fresh</span>' : ''}}</div>` : '';
+  const asof = (DATA.generated_at || DATA.as_of || '');
+  body.innerHTML =
+      `<div class="gk-head"><span class="gk-tick">${{sig.symbol}}</span>`
+    + `<span class="sx-pill ${{scls}}">${{st}}</span>`
+    + (mom ? `<span class="gk-mom ${{momc}}">${{mom}}</span>` : '')
+    + `</div>`
+    + `<div class="gk-sub">${{_esc(sig.name || '')}}${{meta ? ` &middot; ${{meta}}` : ''}}</div>`
+    + cat
+    + (x.note ? `<div class="gk-lead">${{_esc(x.note)}}</div>` : '')
+    + (chips ? `<div class="gk-sec"><div class="gk-h">${{_ico('chat',13)}} What people are talking about now</div><div class="gk-chips">${{chips}}</div></div>` : '')
+    + ((bull || bear) ? `<div class="gk-args"><div class="gk-col"><div class="gk-h up">Bull chatter</div><ul class="gk-ul">${{bull || '<li class="gk-none">nothing notable</li>'}}</ul></div>`
+        + `<div class="gk-col"><div class="gk-h dn">Bear chatter</div><ul class="gk-ul">${{bear || '<li class="gk-none">nothing notable</li>'}}</ul></div></div>` : '')
+    + (x.watch ? `<div class="gk-watch"><div class="gk-h">${{_ico('target',13)}} Watch for entry</div><div>${{_esc(x.watch)}}</div></div>` : '')
+    + `<div class="gk-foot"><span class="gk-src">${{_ico('ai',12)}} Grok &middot; live X + web read${{asof ? ' &middot; as of ' + _esc(asof) : ''}}</span>`
+    + `<button class="gk-open" data-sym="${{sig.symbol}}">Open full signal &rarr;</button></div>`;
+  const ob = body.querySelector('.gk-open');
+  if (ob) ob.addEventListener('click', () => {{ closeGrokModal(); openModal(sig); }});
+  _gkOverlay.classList.add('open');
+}}
+function closeGrokModal() {{ if (_gkOverlay) _gkOverlay.classList.remove('open'); }}
+if (_gkOverlay) {{
+  const gc = document.getElementById('grokClose');
+  if (gc) gc.addEventListener('click', closeGrokModal);
+  _gkOverlay.addEventListener('click', e => {{ if (e.target === _gkOverlay) closeGrokModal(); }});
+  document.addEventListener('keydown', e => {{ if (e.key === 'Escape' && _gkOverlay.classList.contains('open')) closeGrokModal(); }});
+}}
 
 // --- Intraday tab: render the intraday-bar signals (reuses the same card UI) ---
 function renderIntraday() {{
