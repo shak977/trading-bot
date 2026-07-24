@@ -1606,7 +1606,8 @@ def _meganav() -> str:
                       ("track", "Track record", "How past calls did", "chartup"),
                       ("analytics", "Edge explorer", "Waffle heatmaps of what wins", "donut"),
                       ("analyst", "Analyst", "Nightly self-review", "text")]),
-        ("AI", [("agents", "Agents", "The agent ecosystem", "nodes")]),
+        ("AI", [("brain", "Engine brain", "See the mechanics visually", "nodes"),
+                ("agents", "Agents", "The agent ecosystem", "nodes")]),
         ("More", [("livetv", "Live TV", "Financial news streams", "tv"),
                   ("whatsnew", "What's new", "Latest changes", "text"),
                   ("about", "About", "How it works", "text"),
@@ -3228,6 +3229,123 @@ def _tone_pct(pct, hi=50):
     return "up" if pct >= hi else "dn"
 
 
+def _brain_html(snap: dict) -> str:
+    """The 'Engine brain' — a visual, animated flow of every stage and skill in the pipeline: how raw
+    data becomes a scored, gated, sized signal, and how the nightly loop makes it learn. Mostly a fixed
+    schematic, with a few live numbers wired in so it breathes."""
+    reg = (snap.get("regime") or {}).get("label", "—")
+    n_sig = sum(1 for s in (snap.get("signals") or []) if s.get("action") in ("BUY", "WATCH LONG", "HOLD LONG"))
+    _mh = _load_json_safe("meta_history.json") or []
+    auc = _mh[-1].get("auc_meta") if _mh else None
+    auc_txt = f"AUC {auc}" if isinstance(auc, (int, float)) else "training"
+
+    # (icon, name, one-liner, status, hover-detail)
+    stages = [
+        ("01", "Ingest", "live data in", [
+            ("bank", "Market data", "Alpaca bars, quotes, movers", "live",
+             "Settled daily bars for signals + live quotes/movers intraday. The factual backbone."),
+            ("text", "News & catalysts", "multi-feed headlines + ideas", "live",
+             "Alpaca/Benzinga + free feeds (Google/Yahoo). Fresh catalysts get pinned into the scan."),
+            ("ai", "Grok · X pulse", "live social read + buzz scan", "live",
+             "Grok searches X + web in real time: per-name sentiment, and a 'where's the buzz' discovery scan."),
+            ("chat", "StockTwits trending", "retail crowd, most-active", "new",
+             "Ported from fintwit-bot: the most-discussed retail names right now, seeded into the scan."),
+            ("compass", "Macro / FRED", "regime, NFCI, curve", "live",
+             "Risk-on/off regime, financial conditions (NFCI), yield curve — sets the whole-book posture."),
+        ]),
+        ("02", "Scan & setup", "find the shape", [
+            ("brick", "7 strategies", "independent methods → confluence", "live",
+             "Trend, momentum, breakout, mean-reversion, VCP, episodic pivot, parabolic — how many agree."),
+            ("target", "Trade plan", "entry · ATR stop · target · R:R", "live",
+             "ATR-based stops, structural targets, and dead-zone stop-widening to escape the R:R 3-4 trap."),
+            ("scale", "Screens", "liquidity + earnings", "live",
+             "Liquidity tiering and an earnings-window check before anything is taken seriously."),
+        ]),
+        ("03", "Score", "how good is it?", [
+            ("receipt", "Conviction checks", "~27 checks → score", "legacy",
+             "The hand-tuned checklist. Diagnostic showed it's near-random (AUC 0.23) — now superseded by the learned model."),
+            ("nodes", "AI committee", "multi-model vote", "live",
+             "An LLM swarm each votes accept/reduce/reject; the tally tilts size, graded by outcomes."),
+        ]),
+        ("04", "The learned brain", "what actually wins", [
+            ("donut", "Meta-label P(win)", f"walk-forward model · {auc_txt}", "learn",
+             "López de Prado meta-labeling: a model trained on your real outcomes predicts P(this long wins). "
+             "OOS it ranks winners far better than the checklist (0.77 vs 0.23). Drives filter + size."),
+            ("chartup", "Calibration audit", "is 70% really 70%?", "planned",
+             "From Quant-toolkit: checks whether the model's stated probability matches reality before we trust it."),
+        ]),
+        ("05", "Gates", "discipline that keeps you alive", [
+            ("octagon", "Shorts cut", "long-only in this regime", "gate",
+             "Shorts won 7% at −4% expectancy — cut at the source. Downtrends show as AVOID, not tradeable."),
+            ("octagon", "Extension gate", "no chasing", "gate",
+             "Stretched-above-trend BUYs demoted to Watch — the edge is in bases/pullbacks, not rips."),
+            ("octagon", "Volatility gate", "calm entries only", "gate",
+             "Too-jumpy names demoted — calm names won 60% vs 15%."),
+            ("octagon", "Hype-risk guard", "no coordinated pumps", "gate",
+             "Grok flags pump/promo buzz; high-hype names are never seeded as trades."),
+        ]),
+        ("06", "Size & output", "act with discipline", [
+            ("chartup", "Adaptive rank", "best setups first", "live",
+             "Ranks by quality/reward/macro-fit/liquidity/momentum so limited capital goes to the best names."),
+            ("donut", "Position sizing", "risk% × P(win) × Kelly × regime", "learn",
+             "Base risk-per-trade, tilted by the meta-label P(win), fractional-Kelly, and macro exposure."),
+            ("rows", "Signals out", f"{n_sig} live · BUY / Watch", "live",
+             "The surfaced calls. Paper execution is advisory; you place any real trade yourself."),
+        ]),
+    ]
+    stcls = {"live": "Live", "new": "New", "learn": "Learns", "gate": "Gate",
+             "legacy": "Legacy", "planned": "Planned", "advisory": "Advisory"}
+
+    def node(ic, nm, desc, st, tip):
+        return (f'<div class="bn bn-{st} hint" data-tip="{_esc_attr(tip)}">'
+                f'<div class="bn-top"><span class="bn-ic">{_svg(ic, 15)}</span>'
+                f'<span class="bn-badge bn-b-{st}">{stcls.get(st, st)}</span></div>'
+                f'<div class="bn-nm">{nm}</div><div class="bn-desc">{desc}</div></div>')
+
+    body = ""
+    for num, name, sub, nodes in stages:
+        cards = "".join(node(*n) for n in nodes)
+        body += (f'<div class="bstage"><div class="bstage-h"><span class="bstage-num">{num}</span>'
+                 f'<div><div class="bstage-nm">{name}</div><div class="bstage-sub">{sub}</div></div></div>'
+                 f'<div class="bstage-nodes">{cards}</div></div>'
+                 f'<div class="bconn"><span class="bflow"></span></div>')
+
+    loop = ('<div class="bloop"><div class="bloop-h"><span class="bn-ic">' + _svg("chartup", 16)
+            + '</span> Learns every night</div>'
+            '<div class="bloop-body">Every call is logged and graded against real prices → the '
+            '<b>nightly analyst</b> reviews what worked → the <b>meta-label model retrains</b> + the '
+            '<b>system diagnostic</b> runs → conviction weights and P(win) update. The brain gets sharper '
+            'as your track record grows — it tunes itself, you approve the direction.</div>'
+            '<div class="bloop-steps"><span>Track record</span><span>&rarr;</span><span>Nightly analyst</span>'
+            '<span>&rarr;</span><span>Meta-label retrain</span><span>&rarr;</span><span>Diagnostic</span>'
+            '<span>&rarr;</span><span>Weights + P(win) update</span><span class="bloop-back">&#8630; back into the brain</span></div></div>')
+
+    advisory = ('<div class="badv"><div class="bstage-nm" style="margin-bottom:10px;">Advisory branches '
+                '<span class="bstage-sub" style="font-weight:400;">— read-outs, never auto-executed</span></div>'
+                '<div class="bstage-nodes">'
+                + node("scale", "Premium selling", "options income edge 0–100", "advisory",
+                       "Theta Harvest-style: scores where selling options premium is favourable, with hard gates. You place any trade.")
+                + node("donut", "Portfolio book", "hypothetical allocation", "advisory",
+                       "Assembles every actionable signal into a risk-sized book so you can see exposure + concentration.")
+                + node("candles", "All-weather", "defensive sleeve", "advisory",
+                       "A classic all-weather allocation for the steadier, lower-drawdown part of a portfolio.")
+                + '</div></div>')
+
+    legend = ('<div class="blegend">'
+              + "".join(f'<span class="bn-badge bn-b-{k}">{v}</span>' for k, v in
+                        [("live", "Live"), ("new", "New"), ("learn", "Learns"), ("gate", "Gate"),
+                         ("legacy", "Legacy"), ("planned", "Planned"), ("advisory", "Advisory")])
+              + '</div>')
+
+    return ('<div class="sec-eyebrow">Under the hood</div>'
+            f'<div class="sec-head"><span class="sh-ico">{_svg("nodes", 15)}</span><h2>Engine brain</h2>'
+            f'<span class="sh-sub">regime: {reg} &middot; the full pipeline, live</span></div>'
+            '<p style="color:var(--muted);font-size:13px;margin:2px 0 16px;max-width:720px;">How a raw ticker '
+            'becomes a scored, gated, sized signal — every skill in the stack, in the order it fires. Hover any '
+            'block for what it does. Data flows top to bottom; the brain retrains on the loop at the end.</p>'
+            + legend + '<div class="brain">' + body + '</div>' + loop + advisory)
+
+
 def _premium_selling_html(snap: dict) -> str:
     """Premium-selling advisory (Theta Harvest-style) — a 0-100 read on WHERE selling options premium
     is favourable, with hard gates. Advisory only; never a trade instruction."""
@@ -4397,6 +4515,7 @@ def render_html(snap: dict) -> str:
     metalabel_html = _metalabel_html(_load_json_safe("meta_history.json"))
     analytics_html = _analytics_html(snap)
     premium_html = _premium_selling_html(snap)
+    brain_html = _brain_html(snap)
     whatsnew_html = _changelog_html(snap.get("changelog"))
     agents_html = _agent_web_html(snap) + _agent_universe_html(snap)
     regime_html = _regime_html(snap.get("regime"))
@@ -5391,6 +5510,54 @@ def render_html(snap: dict) -> str:
   .ps-reg-n {{ font-size:12.5px; color:var(--muted); }}
   .ps-verd {{ display:inline-block; font-size:11px; font-weight:700; letter-spacing:.03em;
     border:1px solid; border-radius:999px; padding:2px 10px; }}
+  /* ===== Engine brain — visual pipeline ===== */
+  .brain {{ margin-top:8px; }}
+  .bstage {{ display:grid; grid-template-columns:150px minmax(0,1fr); gap:20px; align-items:start; }}
+  .bstage-h {{ display:flex; align-items:center; gap:12px; position:sticky; }}
+  .bstage-num {{ font-size:26px; font-weight:800; color:var(--muted); opacity:.5;
+    font-variant-numeric:tabular-nums; letter-spacing:-.02em; }}
+  .bstage-nm {{ font-size:15px; font-weight:700; color:var(--txt); }}
+  .bstage-sub {{ font-size:11.5px; color:var(--muted); }}
+  .bstage-nodes {{ display:flex; flex-wrap:wrap; gap:12px; }}
+  .bn {{ width:190px; background:var(--card); border:1px solid var(--line); border-radius:13px;
+    padding:14px 15px; cursor:help; transition:border-color .15s ease, transform .15s ease; position:relative; }}
+  .bn:hover {{ border-color:rgba(255,255,255,.28); transform:translateY(-2px); }}
+  .bn-top {{ display:flex; align-items:center; justify-content:space-between; margin-bottom:9px; }}
+  .bn-ic {{ color:var(--txt2); display:inline-flex; }}
+  .bn-nm {{ font-size:14px; font-weight:650; color:var(--txt); }}
+  .bn-desc {{ font-size:12px; color:var(--muted); line-height:1.45; margin-top:3px; }}
+  .bn-badge {{ font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+    padding:2px 7px; border-radius:999px; border:1px solid; }}
+  .bn-b-live {{ color:var(--buy); border-color:color-mix(in srgb,var(--buy) 40%,transparent); }}
+  .bn-b-new {{ color:#6ea8ff; border-color:color-mix(in srgb,#6ea8ff 45%,transparent); }}
+  .bn-b-learn {{ color:var(--accent); border-color:color-mix(in srgb,var(--accent) 45%,transparent); }}
+  .bn-b-gate {{ color:var(--sell); border-color:color-mix(in srgb,var(--sell) 40%,transparent); }}
+  .bn-b-legacy {{ color:var(--muted); border-color:var(--line); }}
+  .bn-b-planned {{ color:var(--muted); border-color:var(--line); border-style:dashed; }}
+  .bn-b-advisory {{ color:var(--txt2); border-color:var(--line); }}
+  .bn-gate {{ border-left:2px solid color-mix(in srgb,var(--sell) 45%,var(--line)); }}
+  .bn-learn {{ border-left:2px solid color-mix(in srgb,var(--accent) 55%,var(--line)); }}
+  .bn-new {{ border-left:2px solid color-mix(in srgb,#6ea8ff 55%,var(--line)); }}
+  .bconn {{ grid-column:1 / -1; height:26px; margin-left:74px; position:relative; }}
+  .bconn::before {{ content:""; position:absolute; left:0; top:0; bottom:0; width:2px;
+    background:linear-gradient(var(--line), var(--line)); }}
+  .bflow {{ position:absolute; left:-3px; width:8px; height:8px; border-radius:50%;
+    background:var(--accent); box-shadow:0 0 8px var(--accent); animation:bflow 2.2s linear infinite; opacity:.85; }}
+  @keyframes bflow {{ 0% {{ top:-4px; opacity:0; }} 15% {{ opacity:.9; }} 85% {{ opacity:.9; }} 100% {{ top:26px; opacity:0; }} }}
+  @media (prefers-reduced-motion: reduce) {{ .bflow {{ animation:none; opacity:0; }} }}
+  .blegend {{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }}
+  .bloop {{ margin-top:12px; background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 8%,var(--card)),var(--card));
+    border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line)); border-radius:14px; padding:18px 20px; }}
+  .bloop-h {{ display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700; color:var(--txt); }}
+  .bloop-h .bn-ic {{ color:var(--accent); }}
+  .bloop-body {{ font-size:13px; line-height:1.55; color:var(--txt2); margin:9px 0 12px; max-width:760px; }}
+  .bloop-steps {{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:11.5px; color:var(--muted); }}
+  .bloop-steps span {{ background:var(--inset); border-radius:999px; padding:3px 10px; }}
+  .bloop-steps span:nth-child(even) {{ background:none; padding:0; }}
+  .bloop-back {{ color:var(--accent) !important; background:none !important; font-weight:600; }}
+  .badv {{ margin-top:20px; padding-top:18px; border-top:1px solid var(--line); }}
+  @media (max-width:760px) {{ .bstage {{ grid-template-columns:1fr; gap:10px; }}
+    .bconn {{ margin-left:20px; }} .bn {{ width:100%; }} }}
   /* Edge explorer — left-rail tabs + waffle heatmaps (Anthropic EconIndex style) */
   .an-lay {{ display:grid; grid-template-columns:200px 1fr; gap:28px; margin-top:8px; align-items:start; }}
   .an-rail {{ display:flex; flex-direction:column; position:sticky; top:66px; }}
@@ -6205,6 +6372,10 @@ def render_html(snap: dict) -> str:
 
   <section class="page" id="page-premium">
 {premium_html}
+  </section>
+
+  <section class="page" id="page-brain">
+{brain_html}
   </section>
 
   <section class="page" id="page-system">
@@ -8354,7 +8525,7 @@ function _tvInit() {{
     ['livetv', [['livetv','Live TV']]],
     ['about', [['method','How it works']]],
     ['system', [['system','System']]],
-    ['agents', [['agents','Agent universe']]],
+    ['agents', [['brain','Engine brain'],['agents','Agent universe']]],
     ['whatsnew', [['whatsnew',"What's new"]]]
   ];
   AREAS.forEach(a => a[1] = a[1].filter(p => document.getElementById('page-' + p[0])));
