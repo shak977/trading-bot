@@ -1,6 +1,7 @@
 {
   "watchlist": [
     "AAPL",
+    "AMD",
     "AMZN",
     "GOOGL",
     "META",
@@ -8,12 +9,10 @@
     "NVDA",
     "TSLA"
   ],
-  "avoid": [
-    "AMD"
-  ],
+  "avoid": [],
   "bias": {
     "AAPL": "watch",
-    "AMD": "avoid",
+    "AMD": "watch",
     "AMZN": "watch",
     "GOOGL": "watch",
     "META": "watch",
@@ -21,5 +20,25 @@
     "NVDA": "watch",
     "TSLA": "watch"
   },
-  "generated": "2026-07-24 23:14 GMT"
+  "trades": [
+    {
+      "symbol": "NVDA",
+      "status": "closed",
+      "direction": "long",
+      "outcome": "win",
+      "return_pct": 5.8,
+      "opened": "2026-07-21",
+      "closed": "2026-07-24"
+    }
+  ],
+  "journal_record": {
+    "n": 1,
+    "wins": 1,
+    "win_rate": 100.0,
+    "avg_return": 5.8,
+    "avg_win": 5.8,
+    "avg_loss": 0.0,
+    "open": 0
+  },
+  "generated": "2026-07-24 23:21 GMT"
 }

@@ -4171,6 +4171,26 @@ def _track_html(track: dict | None) -> str:
                           '<th style="text-align:right;">Avg return</th></tr></thead><tbody>'
                           + _tvrow("Agreed", tv.get("agree")) + _tvrow("Disagreed / mixed", tv.get("not_agree"))
                           + '</tbody></table>')
+    # Your REAL journal record (from Obsidian via journal_sync) shown beside the engine's hypothetical
+    # one — your actual trading vs what the bot flagged. Display only; never fed into the model.
+    journal_rec = ""
+    _jr = (_load_json_safe("journal_overrides.json") or {}).get("journal_record") or {}
+    if _jr.get("n"):
+        _jwr, _jav = _jr.get("win_rate"), _jr.get("avg_return")
+        _jc = "var(--buy)" if (_jwr or 0) >= 50 else ("var(--warn)" if (_jwr or 0) >= 40 else "var(--sell)")
+        _eng_wr = track.get("win_rate")
+        _cmp = (f' &middot; engine (hypothetical): {_eng_wr}% over {track.get("resolved",0)}'
+                if isinstance(_eng_wr, (int, float)) else "")
+        journal_rec = (
+            '<div class="jrec"><div class="jrec-h">' + _svg("receipt", 14)
+            + ' Your journal — real trades you logged <span class="jrec-sub">(from Obsidian)</span></div>'
+            f'<div class="jrec-row"><div class="jrec-stat"><div class="v" style="color:{_jc};">{_jwr}%</div><div class="k">win rate</div></div>'
+            f'<div class="jrec-stat"><div class="v">{_jr.get("n")}</div><div class="k">closed &middot; {_jr.get("open",0)} open</div></div>'
+            f'<div class="jrec-stat"><div class="v" style="color:{"var(--buy)" if (_jav or 0)>0 else "var(--sell)"};">{"+" if (_jav or 0)>0 else ""}{_jav}%</div><div class="k">avg return</div></div>'
+            f'<div class="jrec-stat"><div class="v" style="color:var(--buy);">+{_jr.get("avg_win")}%</div><div class="k">avg win</div></div>'
+            f'<div class="jrec-stat"><div class="v" style="color:var(--sell);">{_jr.get("avg_loss")}%</div><div class="k">avg loss</div></div></div>'
+            f'<div class="jrec-note">Your own record{_cmp}. Log trades in Obsidian; the watcher syncs them here. Not fed into the model.</div></div>')
+
     # win-rate rate-hero: the headline number beside a full waffle of resolved outcomes
     wr_hero = ""
     _wrv = track.get("win_rate")
@@ -4217,6 +4237,7 @@ def _track_html(track: dict | None) -> str:
     over time into an honest read on how reliable the calls are. It's a hypothetical record — no fees or
     slippage — so treat it as a rough guide, not a brokerage statement.</p>
     <div class="trackstats">{stats}</div>
+    {journal_rec}
     {wr_hero}
     {table}
     {breakdown}
@@ -4855,6 +4876,16 @@ def render_html(snap: dict) -> str:
   .rate-hero .rh-v {{ font-size:34px; font-weight:600; line-height:1; font-variant-numeric:tabular-nums; }}
   .rate-hero .rh-k {{ font-size:12px; color:var(--muted); margin-top:6px; }}
   .rate-hero .an-waffle {{ flex:1; min-width:210px; max-width:260px; }}
+  /* Your real journal record (from Obsidian) */
+  .jrec {{ background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 7%,var(--card)),var(--card));
+    border:1px solid color-mix(in srgb,var(--accent) 28%,var(--line)); border-radius:14px; padding:16px 18px; margin:14px 0; }}
+  .jrec-h {{ font-size:13px; font-weight:700; color:var(--txt); display:flex; align-items:center; gap:7px; }}
+  .jrec-h .ico {{ color:var(--accent); }}
+  .jrec-sub {{ font-weight:400; color:var(--muted); font-size:11.5px; }}
+  .jrec-row {{ display:flex; flex-wrap:wrap; gap:26px; margin:12px 0 6px; }}
+  .jrec-stat .v {{ font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; line-height:1.1; }}
+  .jrec-stat .k {{ font-size:11px; color:var(--muted); margin-top:2px; }}
+  .jrec-note {{ font-size:11.5px; color:var(--muted); }}
   /* strategy-mix waffle on signal cards */
   .sx-conf {{ margin-top:14px; cursor:help; }}
   .sx-conf-h {{ display:flex; justify-content:space-between; font-size:10.5px; text-transform:uppercase;

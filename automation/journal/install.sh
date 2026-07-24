@@ -21,7 +21,7 @@ cat > "$PLIST" <<PL
     <key>JOURNAL_VAULT</key><string>$VAULT</string>
   </dict>
   <key>WatchPaths</key>
-  <array><string>$VAULT/Journal/Tickers</string></array>
+  <array><string>$VAULT/Journal/Tickers</string><string>$VAULT/Journal/Trades</string></array>
   <key>RunAtLoad</key><true/>
 </dict>
 </plist>
