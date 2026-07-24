@@ -487,6 +487,14 @@ def build_snapshot() -> dict:
                         0, f"{_svg('octagon',13)} Too jumpy — daily swings are large. Shown as Watch, not a fresh "
                            "entry: calm, low-volatility names have won far more (60% vs 15%).")
 
+    # Safety net: shorts are cut at the source in scanner._classify, but neutralise any short that
+    # slips in via a forced-include / intraday path so it never trades or pollutes the record.
+    if not getattr(CONFIG, "allow_shorts", False):
+        for r in shown:
+            if r.get("direction") == "SHORT" and r.get("action") in ("SHORT", "HOLD SHORT", "WATCH SHORT"):
+                r["action"] = "AVOID"
+                r["shorts_disabled"] = True
+
     # Pull news once for everything shown, from MULTIPLE feeds, then bucket per ticker.
     if live:
         import research as _rn
@@ -1025,6 +1033,32 @@ def build_snapshot() -> dict:
         _xai_status = "not_live"
     else:
         _xai_status = "ok" if _xai_n else "empty"
+
+    # Meta-label P(win) — the nightly walk-forward model ranks winners far better (OOS AUC 0.77) than
+    # the hand-tuned conviction (0.23). Attach P(win) to every long, demote fresh BUYs below the floor
+    # to Watch (the dropped cohort wins only ~27% OOS), and expose P(win) for size tilt + display.
+    # Fail-safe: no-ops without a model file. Long-only (the model is trained on resolved longs).
+    if getattr(CONFIG, "meta_pwin_enabled", True):
+        try:
+            import meta_score as _ms
+            if _ms.load_model():
+                _floor = float(getattr(CONFIG, "meta_pwin_floor", 0.45))
+                for r in shown:
+                    if r.get("direction") != "LONG":
+                        continue
+                    _pw = _ms.p_win(r)
+                    if _pw is None:
+                        continue
+                    r["p_win"] = round(_pw, 3)
+                    if r.get("action") == "BUY" and _pw < _floor:
+                        r["action"] = "WATCH LONG"
+                        r["meta_gated"] = True
+                        r.setdefault("reasons", []).insert(
+                            0, f"{_svg('octagon',13)} Low model win-probability ({_pw*100:.0f}%) — the learned "
+                               "meta-label ranks this below the quality floor. Shown as Watch, not a fresh entry: "
+                               "trades below this line have won only ~27% out-of-sample.")
+        except Exception:  # noqa: BLE001
+            pass
 
     # Regime-specific weighting: in a defensive / high-volatility regime, RAISE the conviction bar
     # a fresh entry must clear — so the bot makes fewer, higher-quality trades when the backdrop is
@@ -6702,6 +6736,16 @@ function makeCard(s) {{
   if (_p.stop_pct!=null) _rows.push(['Stop', _rowVal(`<span class="sx-dn">${{_isShort?'+':'−'}}${{_p.stop_pct}}%</span>`, _stpTip)]);
   if (_p.rr!=null) _rows.push(['R : R', _rowVal('1:'+_p.rr, _rrTip)]);
   if (conv.label) _rows.push(['Conviction', _rowVal(`<span style="color:${{ccol}}; font-weight:700;">${{cpct}} · ${{_esc(conv.label)}}</span>`, _convTip)]);
+  // Model win-probability (meta-label) — the learned P(this long wins), OOS-validated to rank winners
+  // far better than the conviction score. Shown for longs only (the model is long-only).
+  if (typeof s.p_win === 'number') {{
+    const _pwp = Math.round(s.p_win*100);
+    const _pwc = _pwp>=55 ? 'var(--buy)' : (_pwp>=45 ? 'var(--warn)' : 'var(--sell)');
+    const _pwTip = `<div class='cb-wrap'><div class='cb-h'>Model win-probability</div>`
+      + `<div class='cb-row'><span class='cb-nm'>P(win)</span><span class='cb-bar'><i style='width:${{_pwp}}%;background:${{_pwc}};'></i></span><span class='cb-v'>${{_pwp}}%</span></div>`
+      + `<div class='cb-cm'>Learned meta-label (OOS AUC 0.77). ${{s.meta_gated ? 'Below the quality floor — shown as Watch.' : 'Ranks winners better than the conviction score.'}}</div></div>`;
+    _rows.push(['Model P(win)', _rowVal(`<span style="color:${{_pwc}}; font-weight:700;">${{_pwp}}%</span>`, _pwTip)]);
+  }}
   const _rightMeta = `<div class="sx-meta"><span class="sx-meta-l">Last</span> <span class="sx-meta-v" data-px="${{s.symbol}}">$${{_px.toLocaleString()}}</span>${{dchg?`<div class="sx-meta-chg">${{dchg}}</div>`:''}}</div>`;
   // ---- strategy-mix waffle: one square per independent strategy, filled = agrees with this signal.
   // Hovering the strip pops a dark callout with a mini win-rate bar breakdown of the agreeing methods.

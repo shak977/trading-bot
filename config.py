@@ -198,6 +198,19 @@ class Config:
     #   self-limits — it stops opening when buying power runs low, even below these caps.
     paper_risk_pct: float = 0.005    # risk per position (fraction of equity to the stop) — small so many fit
     paper_allow_shorts: bool = False  # shorts off in the current risk-on tape (−4.47% over 133 trades); re-enable in a bear regime
+    # Shorts are OFF at the source (not just in the paper book). Diagnostic Jul 2026: 140 shorts won
+    # 7.1% at −4.0% expectancy vs longs 56% / +0.88% — they single-handedly dragged the book to
+    # breakeven. The scanner surfaces strong-downtrend names as AVOID instead of tradeable shorts.
+    # Flip to True (or set ALLOW_SHORTS=true) to re-enable, ideally only in a validated bear regime.
+    allow_shorts: bool = field(default_factory=lambda: _as_bool(os.getenv("ALLOW_SHORTS"), False))
+    # --- Meta-label P(win): the nightly walk-forward model (meta_model.json) drives live filtering +
+    # sizing. OOS validation (466 longs): keeping P(win) >= floor lifts longs 56%->70% win and
+    # +0.82%->+1.21% expectancy; the dropped cohort wins only 27%. Sizing by P(win) adds ~+0.2%. ---
+    meta_pwin_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("META_PWIN"), True))
+    meta_pwin_floor: float = 0.45    # demote fresh BUYs below this P(win) to Watch (the ~breakeven cut)
+    meta_size_k: float = 2.0         # size tilt slope: mult = 1 + (p_win - 0.5)*k, then clamped
+    meta_size_min: float = 0.6       # floor on the P(win) size multiplier
+    meta_size_max: float = 1.5       # cap on the P(win) size multiplier
     # Realized-record cutoff: after a manual cleanup/reset, set PAPER_RESET_DATE=YYYY-MM-DD so the
     # realized stats only count round-trips closed on/after that date (keeps manual closes + stale
     # history out of the strategy's record). Empty = count everything (default).

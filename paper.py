@@ -313,6 +313,12 @@ def run(signals: list[dict], cfg: Config, today: str, exposure_mult: float = 1.0
             mult *= float(exposure_mult or 1.0)          # macro-regime exposure scalar (risk-on/off)
             mult *= _meta_size                           # meta-signal verdict (reduce → half size)
             mult *= _kelly_mult                          # half-Kelly scalar from the book's own edge
+            if getattr(cfg, "meta_pwin_enabled", True):  # meta-label P(win) size tilt (guardrailed)
+                try:
+                    import meta_score
+                    mult *= meta_score.size_mult(s.get("p_win"), cfg)
+                except Exception:  # noqa: BLE001
+                    pass
             qty = _qty(equity, buying_power, entry, stop, cfg.paper_risk_pct, mult=mult)
             # concentration cap: never let one position exceed max_position_pct of equity
             try:

@@ -388,14 +388,19 @@ def _classify(bull: dict, bear: dict, uptrend: bool, downtrend: bool,
     exactly 2 = WATCH; a long that just broke = EXIT; weak bearish = AVOID; nothing = FLAT."""
     bc, bf = bull["count"], len(bull["fresh"])
     sc, sf = bear["count"], len(bear["fresh"])
+    # Shorts are off at the source unless explicitly re-enabled (diagnostic: 7% win / −4% expectancy).
+    # A strong-downtrend name is surfaced as AVOID (informational "stay away"), never a tradeable short.
+    allow_shorts = getattr(cfg, "allow_shorts", False)
     if uptrend and bc >= 3:
         return ("BUY", "LONG") if bf > 0 else ("HOLD LONG", "LONG")
     if downtrend and sc >= 3:
-        return ("SHORT", "SHORT") if sf > 0 else ("HOLD SHORT", "SHORT")
+        if allow_shorts:
+            return ("SHORT", "SHORT") if sf > 0 else ("HOLD SHORT", "SHORT")
+        return ("AVOID", "SHORT")
     if uptrend and bc == 2:
         return ("WATCH LONG", "LONG")
     if downtrend and sc == 2:
-        return ("WATCH SHORT", "SHORT")
+        return ("WATCH SHORT", "SHORT") if allow_shorts else ("AVOID", "SHORT")
     if recent_long_exit:
         return ("EXIT", "LONG")
     if downtrend and sc >= 1:
