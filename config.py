@@ -134,6 +134,10 @@ class Config:
     # per build, powers the Grok pulse as a discovery feed (independent of what the scanner surfaced).
     xai_buzz_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("XAI_BUZZ"), True))
     xai_buzz_max: int = 10                   # how many buzzy names to surface in the pulse
+    # (4) StockTwits trending discovery (ported from fintwit-bot) — the most-discussed retail names
+    # right now, free + no key. An independent crowd source that seeds candidates for the next scan.
+    stocktwits_trending_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("STOCKTWITS_TRENDING"), True))
+    stocktwits_trending_max: int = 12
 
     # --- Real-time ORB executor (always-on runner; PAPER only by default, DISABLED by default) ---
     live_executor_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("LIVE_EXECUTOR_ENABLED"), False))

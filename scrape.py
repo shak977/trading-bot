@@ -141,6 +141,54 @@ def stocktwits_buzz(symbols: list[str], proxy: str | None = None, max_symbols: i
     return out
 
 
+def stocktwits_trending(proxy: str | None = None, keyword: str = "ts", limit: int = 12) -> list[dict]:
+    """The most-discussed tickers on StockTwits RIGHT NOW — a free, no-key crowd-discovery feed
+    (ported from fintwit-bot). keyword: 'ts'=trending score, 'm_day'=most active today,
+    'wl_ct_day'=most watch-listed. Routes via the Worker (`{proxy}/?stchart=KW`) when given, since
+    StockTwits blocks datacenter IPs; falls back to a direct call. Returns a ranked list; [] on any
+    failure (fail-silent — never blocks a build)."""
+    data = None
+    if proxy:
+        try:
+            r = requests.get(proxy.rstrip("/") + "/?stchart=" + keyword, timeout=12)
+            if r.status_code == 200:
+                data = r.json()
+        except Exception:  # noqa: BLE001
+            data = None
+    if data is None:
+        try:
+            r = requests.get("https://api.stocktwits.com/api/2/charts/" + keyword,
+                             headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}, timeout=12)
+            if r.status_code == 200:
+                data = r.json()
+        except Exception:  # noqa: BLE001
+            data = None
+    if not isinstance(data, dict):
+        return []
+    try:
+        table = (data.get("table") or {}).get(keyword) or []
+        stocks = data.get("stocks") or {}
+        out: list[dict] = []
+        for row in table:
+            meta = stocks.get(str(row.get("stock_id"))) or {}
+            sym = str(meta.get("symbol", "")).upper().strip()
+            if not sym or not sym.replace(".", "").isalpha() or len(sym) > 5:
+                continue
+            out.append({
+                "symbol": sym,
+                "name": str(meta.get("name", ""))[:60],
+                "price": meta.get("price"),
+                "change": meta.get("change"),
+                "score": row.get("val"),
+                "source": "stocktwits-trending",
+            })
+            if len(out) >= limit:
+                break
+        return out
+    except Exception:  # noqa: BLE001
+        return []
+
+
 def insider_activity(symbols: list[str], lookback_days: int = 90,
                      max_symbols: int = 12, max_forms: int = 5) -> dict:
     """Return {symbol: {buys, sells, buy_shares, sell_shares, cluster_buy, last_date, n_filings}}.

@@ -1079,6 +1079,34 @@ def build_snapshot() -> dict:
         except Exception:  # noqa: BLE001
             pass
 
+    # StockTwits trending discovery (ported from fintwit-bot) — the most-discussed retail names right
+    # now, from a free no-key endpoint. An independent crowd source: the top names seed the next scan
+    # for a full technical + meta-label read (crowd attention opens the door, the edge still decides).
+    retail_trending = []
+    if live and getattr(CONFIG, "stocktwits_trending_enabled", True):
+        try:
+            import scrape as _scrape2
+            retail_trending = _scrape2.stocktwits_trending(
+                proxy=CONFIG.live_quotes_url or None,
+                limit=int(getattr(CONFIG, "stocktwits_trending_max", 12)))
+            if retail_trending:
+                import json as _json3
+                from datetime import timedelta as _td3
+                _t0b = datetime.now(timezone.utc).date().isoformat()
+                try:
+                    with open("news_candidates.json") as _f:
+                        _nc3 = _json3.load(_f)
+                except Exception:  # noqa: BLE001
+                    _nc3 = {}
+                for _rt in retail_trending[:8]:
+                    _nc3[_rt["symbol"]] = _t0b
+                _oldc3 = (datetime.now(timezone.utc).date() - _td3(days=5)).isoformat()
+                _nc3 = {k: v for k, v in _nc3.items() if v >= _oldc3}
+                with open("news_candidates.json", "w") as _f:
+                    _json3.dump(_nc3, _f, indent=2)
+        except Exception:  # noqa: BLE001
+            pass
+
     # Meta-label P(win) — the nightly walk-forward model ranks winners far better (OOS AUC 0.77) than
     # the hand-tuned conviction (0.23). Attach P(win) to every long, demote fresh BUYs below the floor
     # to Watch (the dropped cohort wins only ~27% OOS), and expose P(win) for size tilt + display.
@@ -1441,6 +1469,7 @@ def build_snapshot() -> dict:
         "diagnostics": list(scanner.LAST_ERRORS),
         "xai_status": _xai_status,
         "xai_buzz": xai_buzz,
+        "retail_trending": retail_trending,
         "audit_summary": None,  # filled by main() after the audit — kept early so it survives a truncated fetch
         "news_sources": dict(__import__("collections").Counter(
             (n.get("source") or "?") for n in news).most_common(14)),
@@ -5738,6 +5767,14 @@ def render_html(snap: dict) -> str:
   .gp-sigbadge {{ font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
     color:var(--buy); border:1px solid color-mix(in srgb,var(--buy) 38%,transparent); border-radius:999px;
     padding:1px 6px; margin-left:7px; vertical-align:middle; }}
+  .gp-trend {{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:14px;
+    padding-top:14px; border-top:1px solid var(--line); }}
+  .gp-trend-l {{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted);
+    display:inline-flex; align-items:center; gap:6px; margin-right:4px; }}
+  .gp-trend-chip {{ font-size:12px; font-weight:600; background:var(--inset); color:var(--txt2);
+    border-radius:999px; padding:4px 11px; }}
+  .gp-trend-chip.sig {{ color:var(--buy); cursor:pointer; }}
+  .gp-trend-chip.sig:hover {{ background:color-mix(in srgb,var(--buy) 14%,var(--inset)); }}
   @media (max-width:600px) {{ .gp-row {{ grid-template-columns:56px 84px 1fr; }} .gp-meta {{ display:none; }} }}
   /* ---- Grok deep-dive modal: what X is saying about a name right now ---- */
   .gk-modal {{ max-width:560px; padding:26px 28px; }}
@@ -7335,8 +7372,21 @@ function renderGrokPulse() {{
       + '<span class="gp-meta">' + mom + ' ' + vol + (conf !== '' ? (' · ' + conf) : '') + '</span>'
       + '</div>';
   }}).join('') + '</div>';
+  // Independent crowd source: the most-discussed retail names on StockTwits right now (ported feed).
+  const trend = (DATA.retail_trending || []);
+  if (trend.length) {{
+    el.innerHTML += '<div class="gp-trend"><span class="gp-trend-l">' + _ico('chat',12)
+      + ' Also trending on StockTwits</span>'
+      + trend.slice(0,12).map(t => {{
+          const isSig = (DATA.signals || []).some(s => s.symbol === t.symbol);
+          return '<span class="gp-trend-chip' + (isSig ? ' sig' : '') + '" data-sym="' + t.symbol + '">' + t.symbol + '</span>';
+        }}).join('') + '</div>';
+  }}
   el.querySelectorAll('.gp-row').forEach(r => r.addEventListener('click', () => {{
     const it = _GK_BUZZ[r.dataset.sym]; if (it) openGrokModal(it);
+  }}));
+  el.querySelectorAll('.gp-trend-chip').forEach(c => c.addEventListener('click', () => {{
+    const sig = (DATA.signals || []).find(s => s.symbol === c.dataset.sym); if (sig) openModal(sig);
   }}));
 }}
 try {{ renderGrokPulse(); }} catch (e) {{}}
