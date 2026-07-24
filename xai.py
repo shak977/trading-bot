@@ -134,9 +134,13 @@ def normalize_sentiment(d: dict) -> dict | None:
     mom = str(d.get("momentum", "")).lower().strip()
     if mom not in ("rising", "steady", "fading"):
         mom = ""
+    hype = str(d.get("hype_risk", "")).lower().strip()
+    if hype not in ("low", "medium", "high"):
+        hype = ""
     return {
         "stance": stance,
         "momentum": mom,                                          # is attention rising RIGHT NOW?
+        "hype_risk": hype,                                        # coordinated pump/promo risk (low/med/high)
         "fresh_catalyst": bool(d.get("fresh_catalyst")),
         "catalyst": str(d.get("catalyst", ""))[:80],
         "catalyst_time": str(d.get("catalyst_time", ""))[:40],    # when (today / Jul 23 / pre-market)
@@ -164,9 +168,12 @@ def live_sentiment(symbol: str, name: str, direction: str, cfg) -> dict | None:
         f"on what people are saying about {sym} ({name}) RIGHT NOW. We are weighing a {side} trade. Do NOT "
         "predict price or invent events — report only what is actually being discussed, whether attention "
         "is rising, the specific bull and bear arguments being made, any fresh catalyst with its timing, "
-        "and one concrete thing to watch for a potential entry. Return ONLY JSON: "
+        "and one concrete thing to watch for a potential entry. Weight credible/verified financial-news "
+        "and analyst accounts and organic discussion MORE heavily than anonymous hype; and judge whether "
+        "the attention looks like a coordinated pump/promotion rather than genuine news (hype_risk). "
+        "Return ONLY JSON: "
         '{"stance":"bullish|bearish|mixed|quiet",'
-        '"momentum":"rising|steady|fading",'
+        '"momentum":"rising|steady|fading","hype_risk":"low|medium|high",'
         '"fresh_catalyst":true|false,"catalyst":"<=10 words or empty","catalyst_time":"<=6 words e.g. today/Jul 23",'
         '"social_volume":"high|normal|low","confidence":0-100,"note":"<=16 words",'
         '"themes":["up to 4 short phrases (<=6 words) people are discussing now"],'
@@ -198,6 +205,66 @@ def normalize_catalysts(d: dict, limit: int = 8) -> list[dict]:
         if len(out) >= limit:
             break
     return out
+
+
+def normalize_buzz(d: dict, limit: int = 10) -> list[dict]:
+    """Coerce a raw buzz-scan reply into a clean, ranked list of the most-talked-about names."""
+    names = d.get("names") if isinstance(d, dict) else None
+    out: list[dict] = []
+    if not isinstance(names, list):
+        return out
+    seen = set()
+    for it in names:
+        if not isinstance(it, dict):
+            continue
+        sym = str(it.get("symbol", "")).upper().strip().lstrip("$")
+        if not sym or not sym.isalpha() or len(sym) > 5 or sym in seen:
+            continue
+        stance = str(it.get("stance", "")).lower().strip()
+        if stance not in ("bullish", "bearish", "mixed", "quiet"):
+            stance = "quiet"
+        mom = str(it.get("momentum", "")).lower().strip()
+        if mom not in ("rising", "steady", "fading"):
+            mom = ""
+        hype = str(it.get("hype_risk", "")).lower().strip()
+        if hype not in ("low", "medium", "high"):
+            hype = ""
+        seen.add(sym)
+        out.append({
+            "symbol": sym, "stance": stance, "momentum": mom, "hype_risk": hype,
+            "social_volume": str(it.get("social_volume", "normal")).lower().strip() or "normal",
+            "confidence": int(max(0, min(100, int(it.get("confidence", 50) or 50)))),
+            "catalyst": str(it.get("catalyst", ""))[:80],
+            "catalyst_time": str(it.get("catalyst_time", ""))[:40],
+            "note": str(it.get("note", ""))[:140],
+            "themes": _clean_list(it.get("themes"), 4, 60),
+            "watch": str(it.get("watch", ""))[:160],
+            "source": "grok-buzz",
+        })
+        if len(out) >= limit:
+            break
+    return out
+
+
+def buzz_scan(cfg, limit: int = 10) -> list[dict]:
+    """Discovery sweep: the US-listed stocks generating the MOST social + news buzz on X RIGHT NOW,
+    ranked by how much they're being talked about. One call → a whole feed. [] when disabled / no key.
+    This is 'where's the buzz', independent of what the scanner already surfaced."""
+    if not getattr(cfg, "xai_live_sentiment_enabled", False) or not _key(cfg):
+        return []
+    prompt = (
+        "Using ONLY real-time data from X (Twitter) and the web from the LAST 24 HOURS, list the US-listed "
+        "stocks generating the MOST unusual social + news buzz RIGHT NOW — the tickers people are talking "
+        "about most this moment, ranked by how much attention/discussion they are getting. For each, capture "
+        "what is driving it and whether attention is rising. Weight credible/verified financial accounts and "
+        "organic discussion over anonymous hype, and flag names where the buzz looks like a coordinated "
+        "pump/promotion rather than genuine news (hype_risk). Do NOT predict price or invent events. Return "
+        'ONLY JSON: {"names":[{"symbol":"AAPL","stance":"bullish|bearish|mixed|quiet",'
+        '"momentum":"rising|steady|fading","hype_risk":"low|medium|high","social_volume":"high|normal|low","confidence":0-100,'
+        '"catalyst":"<=10 words","catalyst_time":"<=6 words e.g. today/pre-market","note":"<=16 words",'
+        '"themes":["up to 3 short phrases people are discussing"],"watch":"<=16 words to watch for entry"}]}. '
+        f"At most {limit} names, most-talked-about first.")
+    return normalize_buzz(_chat(prompt, cfg, max_tokens=2400), limit=limit)
 
 
 def premarket_catalysts(cfg, limit: int = 8) -> list[dict]:

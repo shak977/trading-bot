@@ -1034,6 +1034,51 @@ def build_snapshot() -> dict:
     else:
         _xai_status = "ok" if _xai_n else "empty"
 
+    # Grok BUZZ scan — "where's the buzz": the most talked-about US stocks on X right now. Powers the
+    # pulse as a live discovery feed, AND pins high-buzz bullish/rising names into the next scan so
+    # social sentiment can TRIGGER trades — gated by the same technicals + meta-label + risk as
+    # everything else. (Blind sentiment-trading is a known trap; sentiment surfaces candidates, the
+    # edge decides whether any become an actual signal.)
+    xai_buzz = []
+    if live and getattr(CONFIG, "xai_live_sentiment_enabled", False) and getattr(CONFIG, "xai_buzz_enabled", True):
+        try:
+            import xai as _xaib
+            xai_buzz = _xaib.buzz_scan(CONFIG, int(getattr(CONFIG, "xai_buzz_max", 10)))
+            _bysym = {s.get("symbol"): s for s in shown}
+            for _b in xai_buzz:
+                _sig = _bysym.get(_b["symbol"])
+                if _sig:                                  # this buzzy name is also one we flagged
+                    _b["is_signal"] = True
+                    _b["signal_action"] = _sig.get("action")
+                    _b["p_win"] = _sig.get("p_win")
+            # Trade trigger: pin bullish + rising/high-volume buzz names into the candidate pool so the
+            # NEXT scan gives them a full technical + conviction + meta-label read (they only become
+            # trades if the edge agrees — social buzz opens the door, it doesn't pull the trigger alone).
+            try:
+                import json as _json2
+                from datetime import timedelta as _td2
+                _t0 = datetime.now(timezone.utc).date().isoformat()
+                try:
+                    with open("news_candidates.json") as _f:
+                        _nc2 = _json2.load(_f)
+                except Exception:  # noqa: BLE001
+                    _nc2 = {}
+                for _b in xai_buzz:
+                    # Never let a suspected coordinated pump seed a trade (avoid getting pumped into).
+                    if _b.get("hype_risk") == "high":
+                        continue
+                    if _b.get("stance") == "bullish" and (_b.get("momentum") == "rising"
+                                                          or _b.get("social_volume") == "high"):
+                        _nc2[_b["symbol"]] = _t0
+                _oldc = (datetime.now(timezone.utc).date() - _td2(days=5)).isoformat()
+                _nc2 = {k: v for k, v in _nc2.items() if v >= _oldc}
+                with open("news_candidates.json", "w") as _f:
+                    _json2.dump(_nc2, _f, indent=2)
+            except Exception:  # noqa: BLE001
+                pass
+        except Exception:  # noqa: BLE001
+            pass
+
     # Meta-label P(win) — the nightly walk-forward model ranks winners far better (OOS AUC 0.77) than
     # the hand-tuned conviction (0.23). Attach P(win) to every long, demote fresh BUYs below the floor
     # to Watch (the dropped cohort wins only ~27% OOS), and expose P(win) for size tilt + display.
@@ -1395,6 +1440,7 @@ def build_snapshot() -> dict:
         "scanned": len(rows),
         "diagnostics": list(scanner.LAST_ERRORS),
         "xai_status": _xai_status,
+        "xai_buzz": xai_buzz,
         "audit_summary": None,  # filled by main() after the audit — kept early so it survives a truncated fetch
         "news_sources": dict(__import__("collections").Counter(
             (n.get("source") or "?") for n in news).most_common(14)),
@@ -5689,6 +5735,9 @@ def render_html(snap: dict) -> str:
   .gp-cat {{ color:var(--muted); }}
   .gp-meta {{ color:var(--muted); font-size:12px; white-space:nowrap; font-variant-numeric:tabular-nums; }}
   .gp-mom-mini {{ font-variant-numeric:tabular-nums; }}
+  .gp-sigbadge {{ font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
+    color:var(--buy); border:1px solid color-mix(in srgb,var(--buy) 38%,transparent); border-radius:999px;
+    padding:1px 6px; margin-left:7px; vertical-align:middle; }}
   @media (max-width:600px) {{ .gp-row {{ grid-template-columns:56px 84px 1fr; }} .gp-meta {{ display:none; }} }}
   /* ---- Grok deep-dive modal: what X is saying about a name right now ---- */
   .gk-modal {{ max-width:560px; padding:26px 28px; }}
@@ -5713,6 +5762,12 @@ def render_html(snap: dict) -> str:
   .gk-ul {{ margin:0; padding-left:16px; }}
   .gk-ul li {{ font-size:13px; line-height:1.55; color:var(--txt2); margin-bottom:5px; }}
   .gk-none {{ color:var(--muted); list-style:none; margin-left:-16px; }}
+  .gk-hype {{ margin-top:14px; font-size:12.5px; line-height:1.5; color:var(--sell);
+    background:color-mix(in srgb,var(--sell) 10%,transparent); border:1px solid color-mix(in srgb,var(--sell) 30%,transparent);
+    border-radius:10px; padding:10px 13px; }}
+  .gk-hype.med {{ color:var(--warn); background:color-mix(in srgb,var(--warn) 10%,transparent);
+    border-color:color-mix(in srgb,var(--warn) 30%,transparent); }}
+  .gk-hype b {{ font-weight:700; }}
   .gk-watch {{ margin-top:20px; background:var(--inset); border-radius:12px; padding:14px 16px;
     font-size:13.5px; line-height:1.5; color:var(--txt2); }}
   .gk-foot {{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:22px;
@@ -7242,47 +7297,59 @@ function renderCards() {{
 }})();
 
 // --- Grok · X pulse: live social/news read on top names (populated on live builds) ---
+const _GK_BUZZ = {{}};   // symbol -> buzz item, so the modal can find it on click
 function renderGrokPulse() {{
   const el = document.getElementById('grokPulse'); if (!el) return;
-  const items = (DATA.signals || []).filter(s => s.xai_sentiment);
+  // Primary: the live BUZZ feed (most talked-about names right now). Fallback: sentiment on our signals.
+  let items = (DATA.xai_buzz || []).slice();
+  if (!items.length) {{
+    items = (DATA.signals || []).filter(s => s.xai_sentiment)
+      .map(s => Object.assign({{symbol: s.symbol, is_signal: true, signal_action: s.action, p_win: s.p_win}}, s.xai_sentiment));
+  }}
   if (!items.length) {{
     const st = (DATA.xai_status || 'empty');
     const msg = (st === 'off') ? 'Grok live sentiment is off — set the <code>XAI_LIVE_SENTIMENT</code> repo variable to true.'
       : (st === 'no_key') ? 'No <code>XAI_API_KEY</code> in this build — add it as a repo secret.'
       : (st === 'not_live') ? 'Synthetic/offline build — Grok runs only on live builds with market data.'
-      : 'No Grok reads landed this build. It populates on a <b>live build during market hours</b> on the top names.';
+      : 'No buzz landed this build. It populates on a <b>live build during market hours</b> — the most talked-about names on X right now.';
     el.innerHTML = '<div class="gp-empty">' + _ico('ai',15) + ' ' + msg + '</div>';
     return;
   }}
   const cls = {{bullish:'gp-up', bearish:'gp-dn', mixed:'gp-mut', quiet:'gp-mut'}};
-  el.innerHTML = '<div class="gp-list">' + items.slice(0,12).map(s => {{
-    const x = s.xai_sentiment || {{}};
+  const momMap = {{rising:'&#8599; rising', steady:'&#8594; steady', fading:'&#8600; fading'}};
+  for (const k in _GK_BUZZ) delete _GK_BUZZ[k];
+  el.innerHTML = '<div class="gp-list">' + items.slice(0,12).map((x, i) => {{
+    _GK_BUZZ[x.symbol] = x;
     const st = (x.stance || 'quiet');
     const conf = (x.confidence != null) ? x.confidence : '';
     const vol = x.social_volume ? (x.social_volume + ' volume') : '';
     const cat = x.catalyst ? ('<span class="gp-cat">' + _ico('bolt',11) + ' ' + _esc(x.catalyst) + '</span>') : '';
     const note = x.note ? _esc(x.note) : '';
-    const momMap = {{rising:'&#8599; rising', steady:'&#8594; steady', fading:'&#8600; fading'}};
     const momc = x.momentum === 'rising' ? 'gp-up' : (x.momentum === 'fading' ? 'gp-dn' : 'gp-mut');
     const mom = x.momentum ? ('<span class="gp-mom-mini ' + momc + '">' + momMap[x.momentum] + '</span>') : '';
-    return '<div class="gp-row" data-sym="' + s.symbol + '">'
-      + '<span class="gp-sym">' + s.symbol + '</span>'
+    const badge = x.is_signal ? ('<span class="gp-sigbadge" title="Also one of our signals">' + _esc(x.signal_action || 'signal') + '</span>') : '';
+    return '<div class="gp-row" data-sym="' + x.symbol + '">'
+      + '<span class="gp-sym">' + x.symbol + badge + '</span>'
       + '<span class="sx-pill ' + (cls[st] || 'gp-mut') + '">' + st + '</span>'
       + '<span class="gp-note">' + note + ' ' + cat + '</span>'
       + '<span class="gp-meta">' + mom + ' ' + vol + (conf !== '' ? (' · ' + conf) : '') + '</span>'
       + '</div>';
   }}).join('') + '</div>';
   el.querySelectorAll('.gp-row').forEach(r => r.addEventListener('click', () => {{
-    const sig = (DATA.signals || []).find(s => s.symbol === r.dataset.sym); if (sig) openGrokModal(sig);
+    const it = _GK_BUZZ[r.dataset.sym]; if (it) openGrokModal(it);
   }}));
 }}
 try {{ renderGrokPulse(); }} catch (e) {{}}
 
 // --- Grok deep-dive modal: what X is really saying about a name RIGHT NOW ---
 const _gkOverlay = document.getElementById('grokOverlay');
-function openGrokModal(sig) {{
+function openGrokModal(item) {{
   const body = document.getElementById('grokBody'); if (!body || !_gkOverlay) return;
-  const x = sig.xai_sentiment || {{}};
+  // `item` is either a buzz entry (fields at top level) or a signal (fields under .xai_sentiment).
+  const x = item.xai_sentiment || item || {{}};
+  const sym = item.symbol;
+  const sig = (DATA.signals || []).find(s => s.symbol === sym);
+  const dispName = (sig && sig.name) || item.name || '';
   const st = x.stance || 'quiet';
   const scls = {{bullish:'gp-up', bearish:'gp-dn', mixed:'gp-mut', quiet:'gp-mut'}}[st] || 'gp-mut';
   const mom = {{rising:'&#8599; rising attention', steady:'&#8594; steady attention', fading:'&#8600; fading attention'}}[x.momentum] || '';
@@ -7294,21 +7361,25 @@ function openGrokModal(sig) {{
   const cat = x.catalyst ? `<div class="gk-cat">${{_ico('bolt',13)}} <b>Catalyst:</b> ${{_esc(x.catalyst)}}${{x.catalyst_time ? ` <span class="gk-when">&middot; ${{_esc(x.catalyst_time)}}</span>` : ''}}${{x.fresh_catalyst ? ' <span class="gk-fresh">fresh</span>' : ''}}</div>` : '';
   const asof = (DATA.generated_at || DATA.as_of || '');
   body.innerHTML =
-      `<div class="gk-head"><span class="gk-tick">${{sig.symbol}}</span>`
+      `<div class="gk-head"><span class="gk-tick">${{sym}}</span>`
     + `<span class="sx-pill ${{scls}}">${{st}}</span>`
     + (mom ? `<span class="gk-mom ${{momc}}">${{mom}}</span>` : '')
+    + (item.is_signal ? `<span class="gp-sigbadge">${{_esc(item.signal_action || (sig && sig.action) || 'signal')}}</span>` : '')
     + `</div>`
-    + `<div class="gk-sub">${{_esc(sig.name || '')}}${{meta ? ` &middot; ${{meta}}` : ''}}</div>`
+    + `<div class="gk-sub">${{_esc(dispName)}}${{meta ? ` &middot; ${{meta}}` : ''}}</div>`
     + cat
     + (x.note ? `<div class="gk-lead">${{_esc(x.note)}}</div>` : '')
+    + (x.hype_risk === 'high' ? `<div class="gk-hype">${{_ico('octagon',13)}} <b>High hype risk</b> — buzz looks like a coordinated pump/promotion, not genuine news. Not seeded as a trade.</div>`
+        : (x.hype_risk === 'medium' ? `<div class="gk-hype med">${{_ico('warn',13)}} Medium hype risk — some promotional noise; weigh the source.</div>` : ''))
     + (chips ? `<div class="gk-sec"><div class="gk-h">${{_ico('chat',13)}} What people are talking about now</div><div class="gk-chips">${{chips}}</div></div>` : '')
     + ((bull || bear) ? `<div class="gk-args"><div class="gk-col"><div class="gk-h up">Bull chatter</div><ul class="gk-ul">${{bull || '<li class="gk-none">nothing notable</li>'}}</ul></div>`
         + `<div class="gk-col"><div class="gk-h dn">Bear chatter</div><ul class="gk-ul">${{bear || '<li class="gk-none">nothing notable</li>'}}</ul></div></div>` : '')
     + (x.watch ? `<div class="gk-watch"><div class="gk-h">${{_ico('target',13)}} Watch for entry</div><div>${{_esc(x.watch)}}</div></div>` : '')
     + `<div class="gk-foot"><span class="gk-src">${{_ico('ai',12)}} Grok &middot; live X + web read${{asof ? ' &middot; as of ' + _esc(asof) : ''}}</span>`
-    + `<button class="gk-open" data-sym="${{sig.symbol}}">Open full signal &rarr;</button></div>`;
+    + (sig ? `<button class="gk-open">Open full signal &rarr;</button>` : '')
+    + `</div>`;
   const ob = body.querySelector('.gk-open');
-  if (ob) ob.addEventListener('click', () => {{ closeGrokModal(); openModal(sig); }});
+  if (ob && sig) ob.addEventListener('click', () => {{ closeGrokModal(); openModal(sig); }});
   _gkOverlay.classList.add('open');
 }}
 function closeGrokModal() {{ if (_gkOverlay) _gkOverlay.classList.remove('open'); }}

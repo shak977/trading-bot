@@ -130,6 +130,10 @@ class Config:
     xai_sentiment_conviction_weight: float = 1.0   # base weight; the learned loop re-weights it from outcomes
     # (2) pre-market catalyst sweep -> seeds the next scan via news_candidates.json
     xai_premarket_scan_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("XAI_PREMARKET_SCAN"), False))
+    # (3) live BUZZ scan -> 'where's the buzz': the most talked-about US stocks on X right now. One call
+    # per build, powers the Grok pulse as a discovery feed (independent of what the scanner surfaced).
+    xai_buzz_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("XAI_BUZZ"), True))
+    xai_buzz_max: int = 10                   # how many buzzy names to surface in the pulse
 
     # --- Real-time ORB executor (always-on runner; PAPER only by default, DISABLED by default) ---
     live_executor_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("LIVE_EXECUTOR_ENABLED"), False))
