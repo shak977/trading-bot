@@ -1107,6 +1107,18 @@ def build_snapshot() -> dict:
         except Exception:  # noqa: BLE001
             pass
 
+    # Premium-selling advisory (Theta Harvest-style) — scores where SELLING options premium is
+    # favourable, 0-100, with hard gates. ADVISORY ONLY; needs live Alpaca options data for implied
+    # vol and fails soft (empty) without it.
+    premium_selling = {}
+    if live and getattr(CONFIG, "premium_selling_enabled", True):
+        try:
+            import premium_selling as _psell
+            premium_selling = _psell.run(CONFIG, breadth=(regime or {}).get("breadth"),
+                                         max_names=int(getattr(CONFIG, "premium_selling_max", 12)))
+        except Exception:  # noqa: BLE001
+            premium_selling = {}
+
     # Meta-label P(win) — the nightly walk-forward model ranks winners far better (OOS AUC 0.77) than
     # the hand-tuned conviction (0.23). Attach P(win) to every long, demote fresh BUYs below the floor
     # to Watch (the dropped cohort wins only ~27% OOS), and expose P(win) for size tilt + display.
@@ -1470,6 +1482,7 @@ def build_snapshot() -> dict:
         "xai_status": _xai_status,
         "xai_buzz": xai_buzz,
         "retail_trending": retail_trending,
+        "premium_selling": premium_selling,
         "audit_summary": None,  # filled by main() after the audit — kept early so it survives a truncated fetch
         "news_sources": dict(__import__("collections").Counter(
             (n.get("source") or "?") for n in news).most_common(14)),
@@ -1586,7 +1599,8 @@ def _meganav() -> str:
     groups = [
         ("Trading", [("signals", "Signals", "Live conviction-scored ideas", "rows"),
                      ("markets", "Markets", "Charts, sectors, macro", "candles"),
-                     ("portfolio", "Portfolio", "Positions & allocation", "donut")]),
+                     ("portfolio", "Portfolio", "Positions & allocation", "donut"),
+                     ("premium", "Premium selling", "Where selling options premium pays", "candles")]),
         ("Research", [("intel", "Intel", "Data-driven signals", "text"),
                       ("news", "News", "Market-moving headlines", "text"),
                       ("track", "Track record", "How past calls did", "chartup"),
@@ -3214,6 +3228,64 @@ def _tone_pct(pct, hi=50):
     return "up" if pct >= hi else "dn"
 
 
+def _premium_selling_html(snap: dict) -> str:
+    """Premium-selling advisory (Theta Harvest-style) — a 0-100 read on WHERE selling options premium
+    is favourable, with hard gates. Advisory only; never a trade instruction."""
+    ps = snap.get("premium_selling") or {}
+    names = ps.get("names") or []
+    reg = ps.get("regime") or "—"
+    _regcol = {"THE FINALS": "var(--buy)", "THE PLAYOFFS": "var(--txt)",
+               "REGULAR SEASON": "var(--warn)", "OFF SEASON": "var(--sell)"}.get(reg, "var(--muted)")
+    _regnote = {"THE FINALS": "widest edge — conditions favour selling premium",
+                "THE PLAYOFFS": "normal harvesting conditions",
+                "REGULAR SEASON": "elevated vol — defined-risk only",
+                "OFF SEASON": "go to cash — realised vol can outrun implied"}.get(reg, "")
+    head = ('<div class="sec-eyebrow">Options income</div>'
+            f'<div class="sec-head"><span class="sh-ico">{_svg("scale", 15)}</span><h2>Premium selling</h2>'
+            '<span class="sh-sub">where selling options premium pays &mdash; advisory only</span></div>'
+            '<p style="color:var(--muted);font-size:13px;margin:2px 0 14px;max-width:720px;">Scores how '
+            'favourable it is to <b>sell</b> options premium on each name (0&ndash;100) by fusing volatility '
+            'signals &mdash; is implied vol genuinely rich vs realised (the core edge), expensive vs its own '
+            'history, and does the term structure support harvesting? Hard gates veto dangerous setups. It '
+            'measures conditions; it does <b>not</b> place trades or predict direction.</p>')
+    if not names:
+        return head + ('<div class="ovbox"><div class="gp-empty">' + _svg("scale", 15)
+                       + ' No premium-selling scores yet. This needs live <b>options (implied-vol)</b> data '
+                       'and populates on a live build &mdash; if your Alpaca plan includes options data. '
+                       'Realised-vol and the scoring engine are ready; it lights up as implied vol flows.</div></div>')
+    banner = (f'<div class="ps-regime" style="border-color:{_regcol};"><span class="ps-reg-l">Market regime</span>'
+              f'<span class="ps-reg-v" style="color:{_regcol};">{reg}</span>'
+              f'<span class="ps-reg-n">{_regnote}</span></div>')
+    vcol = {"GO": "var(--buy)", "OK": "var(--warn)", "SKIP": "var(--muted)", "AVOID": "var(--sell)"}
+    rows = ""
+    for r in names:
+        sc = r.get("score", 0)
+        vd = r.get("verdict", "")
+        vc = vcol.get(vd, "var(--muted)")
+        _iv = r.get("iv"); _rv = r.get("realized"); _vrp = r.get("vrp"); _ivp = r.get("iv_pct")
+        gate = (r.get("gates") or [None])[0]
+        callout = _callout(f'{r["symbol"]} &middot; {vd}',
+                           [("Edge score", sc, f"{sc:.0f}", "up" if sc >= 65 else ("dn" if sc < 50 else "mut"))],
+                           note=(gate or f'IV {(_iv or 0)*100:.0f}% vs realised {(_rv or 0)*100:.0f}% &middot; VRP {(_vrp or 0)*100:+.0f} bp'))
+        rows += (f'<tr class="hint" data-tiphtml="{_esc_attr(callout)}"><td><b>{r["symbol"]}</b></td>'
+                 f'<td style="text-align:right;"><span class="wrcell">{_wmini(sc, "win")}{sc:.0f}</span></td>'
+                 f'<td><span class="ps-verd" style="color:{vc};border-color:{vc};">{vd}</span></td>'
+                 f'<td style="text-align:right;">{(_iv or 0)*100:.0f}%</td>'
+                 f'<td style="text-align:right;">{(_rv or 0)*100:.0f}%</td>'
+                 f'<td style="text-align:right;color:{"var(--buy)" if (_vrp or 0) > 0 else "var(--sell)"};">{(_vrp or 0)*100:+.0f}</td>'
+                 f'<td style="text-align:right;">{(f"{_ivp:.0f}" if _ivp is not None else "&mdash;")}</td>'
+                 f'<td style="color:var(--muted);font-size:12px;">{gate or ""}</td></tr>')
+    table = ('<table class="trackrec"><thead><tr><th>Name</th><th style="text-align:right;">Edge</th><th>Verdict</th>'
+             '<th style="text-align:right;">IV</th><th style="text-align:right;">Realised</th>'
+             '<th style="text-align:right;" title="volatility risk premium (IV − realised), basis points">VRP</th>'
+             '<th style="text-align:right;" title="IV vs its own 1-yr history">IV %ile</th><th>Gate</th></tr></thead>'
+             f'<tbody>{rows}</tbody></table>')
+    disc = ('<p style="color:var(--muted);font-size:11.5px;margin-top:12px;">Advisory only &mdash; not a '
+            'recommendation to trade. Selling options carries risk that can exceed the premium collected. '
+            'IV percentile bootstraps as history accrues. Verify in your broker; you place any trade yourself.</p>')
+    return head + banner + table + disc
+
+
 def _analytics_html(snap: dict) -> str:
     """Edge explorer — Anthropic-EconIndex-style left-rail tabs + waffle heatmaps of what actually
     wins: strategy hit-rates, market breadth, and conviction tiers, from real data."""
@@ -4324,6 +4396,7 @@ def render_html(snap: dict) -> str:
     sysdiag_html = _system_health_html(_load_json_safe("system_diagnostic.json"))
     metalabel_html = _metalabel_html(_load_json_safe("meta_history.json"))
     analytics_html = _analytics_html(snap)
+    premium_html = _premium_selling_html(snap)
     whatsnew_html = _changelog_html(snap.get("changelog"))
     agents_html = _agent_web_html(snap) + _agent_universe_html(snap)
     regime_html = _regime_html(snap.get("regime"))
@@ -5310,6 +5383,14 @@ def render_html(snap: dict) -> str:
   .mbp-b .mbhl.dn {{ color:var(--sell); font-weight:500; }}
   @media (max-width:640px) {{ .mb-quad {{ grid-template-columns:1fr; }} }}
 
+  /* Premium selling — regime banner + verdict pills */
+  .ps-regime {{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; background:var(--card);
+    border:1px solid var(--line); border-left-width:3px; border-radius:12px; padding:14px 18px; margin-bottom:16px; }}
+  .ps-reg-l {{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }}
+  .ps-reg-v {{ font-size:16px; font-weight:700; letter-spacing:.01em; }}
+  .ps-reg-n {{ font-size:12.5px; color:var(--muted); }}
+  .ps-verd {{ display:inline-block; font-size:11px; font-weight:700; letter-spacing:.03em;
+    border:1px solid; border-radius:999px; padding:2px 10px; }}
   /* Edge explorer — left-rail tabs + waffle heatmaps (Anthropic EconIndex style) */
   .an-lay {{ display:grid; grid-template-columns:200px 1fr; gap:28px; margin-top:8px; align-items:start; }}
   .an-rail {{ display:flex; flex-direction:column; position:sticky; top:66px; }}
@@ -6120,6 +6201,10 @@ def render_html(snap: dict) -> str:
 
   <section class="page" id="page-analytics">
 {analytics_html}
+  </section>
+
+  <section class="page" id="page-premium">
+{premium_html}
   </section>
 
   <section class="page" id="page-system">
@@ -8263,6 +8348,7 @@ function _tvInit() {{
     ['portfolio', [['portfolio','Portfolio'],['paper','Paper account'],['allweather','All Weather']]],
     ['intel', [['altdata','Data signals']]],
     ['track', [['track','Track record'],['analytics','Edge explorer']]],
+    ['premium', [['premium','Premium selling']]],
     ['analyst', [['analyst','Analyst']]],
     ['news', [['news','Market news'],['ipos','IPO watch']]],
     ['livetv', [['livetv','Live TV']]],

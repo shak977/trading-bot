@@ -139,6 +139,12 @@ class Config:
     stocktwits_trending_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("STOCKTWITS_TRENDING"), True))
     stocktwits_trending_max: int = 12
 
+    # --- Premium-selling advisory (Theta Harvest-style) — scores WHERE selling options premium is
+    # favorable, 0-100, with hard gates. ADVISORY ONLY (never executes). Needs live Alpaca options
+    # data for implied vol; fail-soft without it. ---
+    premium_selling_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("PREMIUM_SELLING"), True))
+    premium_selling_max: int = 12            # curated optionable names scored per build (bounds cost)
+
     # --- Real-time ORB executor (always-on runner; PAPER only by default, DISABLED by default) ---
     live_executor_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("LIVE_EXECUTOR_ENABLED"), False))
     executor_allow_real: bool = field(default_factory=lambda: _as_bool(os.getenv("LIVE_EXECUTOR_ALLOW_REAL"), False))
