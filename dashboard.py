@@ -4970,6 +4970,10 @@ def render_html(snap: dict) -> str:
   .tvw-frame {{ position:relative; width:100%; padding-bottom:56.25%; height:0; margin-top:10px;
     border-radius:8px; overflow:hidden; background:#000; }}
   .tvw-frame iframe {{ position:absolute; inset:0; width:100%; height:100%; border:0; }}
+  /* solo TV (S&P chart removed) — a big panel that fills the hero's right column */
+  .hero-tv-solo {{ display:flex; flex-direction:column; }}
+  .hero-tv-solo .tvw-frame {{ padding-bottom:0; height:540px; margin-top:12px; flex:1 1 auto; min-height:420px; }}
+  @media (max-width:900px) {{ .hero-tv-solo .tvw-frame {{ height:0; padding-bottom:56.25%; min-height:0; }} }}
   .lanes {{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; align-items:start; }}
   .lanehd {{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; }}
   .lcard {{ background:var(--card); border:1px solid var(--line); border-left:3px solid var(--muted);
@@ -6079,7 +6083,7 @@ def render_html(snap: dict) -> str:
   /* hero right column: chart + Live TV */
   .hero-row {{ display:grid; grid-template-columns:minmax(0,1fr) minmax(400px,520px); gap:32px; align-items:stretch; }}
   .hero-row .hero-x {{ padding-right:0; }}
-  .hero-side {{ display:flex; flex-direction:column; gap:14px; padding-top:6px; min-width:0; align-self:start; }}
+  .hero-side {{ display:flex; flex-direction:column; gap:14px; padding-top:6px; min-width:0; align-self:stretch; }}
   .hero-chart {{ border:1px solid var(--line); border-radius:14px; background:var(--card); overflow:hidden; }}
   .hero-chart-h {{ font-size:12.5px; color:var(--muted); padding:12px 14px 8px; display:flex; align-items:center; gap:6px; }}
   .hero-chart-frame {{ width:100%; height:190px; display:block; border:0; }}
@@ -6368,11 +6372,7 @@ def render_html(snap: dict) -> str:
     <div class="hero-row">
       {signals_hero_html}
       <div class="hero-side">
-        <div class="hero-chart">
-          <div class="hero-chart-h">{_svg('trend-up',13)} S&amp;P 500 · SPY</div>
-          <iframe class="hero-chart-frame" src="https://s.tradingview.com/widgetembed/?symbol=AMEX%3ASPY&amp;interval=D&amp;theme=dark&amp;style=3&amp;hidetoptoolbar=1&amp;hidesidetoolbar=1&amp;withdateranges=0&amp;saveimage=0&amp;toolbarbg=0b0b0c" title="S&amp;P 500 chart" frameborder="0" scrolling="no"></iframe>
-        </div>
-        <details class="tvwidget" open>
+        <details class="tvwidget hero-tv-solo" open>
           <summary>{_svg('tv',15)} Live market TV
             <span class="ctlgrp wtvgrp">
               <button data-wtv="KQp-e_XQnDE" class="on" onclick="event.preventDefault();event.stopPropagation();_wtvSet(this);">Yahoo Finance</button>
@@ -6385,7 +6385,7 @@ def render_html(snap: dict) -> str:
     </div>
     {showcase_html}
     {bento_home_html}
-    <div class="strat-badge"><span class="k">Strategy type</span><span class="v">Multi-strategy confluence · 7 long + 7 short, trend-gated</span></div>
+    <div class="strat-badge"><span class="k">Strategy type</span><span class="v">Multi-strategy confluence · long-only, meta-label filtered &amp; sized</span></div>
     <div id="concWarn"></div>
     <div class="sec-eyebrow">Live social</div>
     <div class="sec-head"><span class="sh-ico">{_svg('sparkle',15)}</span><h2>Grok · X pulse</h2><span class="sh-sub">real-time X + news read on the top names</span></div>
