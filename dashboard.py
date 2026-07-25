@@ -1683,6 +1683,16 @@ def _signals_hero(snap: dict) -> str:
     rsi_txt = f'{reg.get("avg_rsi")}' if reg.get("avg_rsi") is not None else "—"
     _expo = mp.get("exposure_mult")
     expo_txt = f'{_expo:.2f}×' if _expo else "—"
+    # extra stat-board metrics (fill the hero + reflect the learned engine)
+    _pw = [s.get("p_win") for s in sigs if isinstance(s.get("p_win"), (int, float))]
+    avg_pwin = f'{round(100 * sum(_pw) / len(_pw))}%' if _pw else "—"
+    _pwc = _tone_pct(round(100 * sum(_pw) / len(_pw)) if _pw else None)
+    _tg = [(s.get("plan") or {}).get("target_pct") for s in sigs]
+    _tg = [t for t in _tg if isinstance(t, (int, float))]
+    avg_tgt = f'+{round(sum(_tg) / len(_tg), 1)}%' if _tg else "—"
+    scanned_txt = str(snap.get("scanned") or len(sigs))
+    n_buy = sum(1 for s in sigs if s.get("action") == "BUY")
+    n_watch = sum(1 for s in sigs if str(s.get("action") or "").startswith("WATCH LONG"))
 
     def _lv(x):
         a = x.get("action") or ""
@@ -1716,11 +1726,14 @@ def _signals_hero(snap: dict) -> str:
         f'<div class="hx-kpi"><div class="v">{n_live}</div><div class="k">Live today</div></div>'
         f'<div class="hx-kpi hint" data-tiphtml="{_esc_attr(_callout("Win rate — resolved calls", [("Win rate", (wr if isinstance(wr,(int,float)) else None), wr_txt, _tone_pct(wr if isinstance(wr,(int,float)) else None))], note=f"{resolved} calls resolved"))}"><div class="v">{wr_txt}</div><div class="k">Win rate · {resolved} resolved</div></div>'
         f'<div class="hx-kpi"><div class="v {tone}">{esc(reg_lab)}</div><div class="k">Regime</div></div>'
-        f'<div class="hx-kpi"><div class="v">{n_long} / {n_short}</div><div class="k">Long / short</div></div>'
+        f'<div class="hx-kpi"><div class="v">{n_buy}</div><div class="k">Fresh buys</div></div>'
         f'<div class="hx-kpi"><div class="v">{avg_conv}</div><div class="k">Avg conviction</div></div>'
+        f'<div class="hx-kpi hint" data-tiphtml="{_esc_attr(_callout("Model win-probability", [("Avg P(win)", (round(100*sum(_pw)/len(_pw)) if _pw else None), avg_pwin, _pwc)], note="learned meta-label read on live longs"))}"><div class="v" style="color:var(--accent);">{avg_pwin}</div><div class="k">Avg P(win)</div></div>'
         f'<div class="hx-kpi hint" data-tiphtml="{_esc_attr(_callout("Market breadth", [("Above trend", (_breadth if isinstance(_breadth,(int,float)) else None), breadth_txt, _tone_pct(_breadth if isinstance(_breadth,(int,float)) else None, 55))], note="share of scanned names in an uptrend"))}"><div class="v">{breadth_txt}</div><div class="k">Breadth</div></div>'
         f'<div class="hx-kpi"><div class="v">{rsi_txt}</div><div class="k">Avg momentum</div></div>'
+        f'<div class="hx-kpi"><div class="v">{avg_tgt}</div><div class="k">Avg target</div></div>'
         f'<div class="hx-kpi"><div class="v">{expo_txt}</div><div class="k">Position sizing</div></div>'
+        f'<div class="hx-kpi"><div class="v">{scanned_txt}</div><div class="k">Scanned today</div></div>'
         f'<div class="hx-kpi"><div class="v">{top_txt}</div><div class="k">Top opportunity</div></div>'
         '</div></div>'
     )
@@ -6057,7 +6070,8 @@ def render_html(snap: dict) -> str:
   .hx-btn.solid {{ background:var(--txt); color:#000; border-color:var(--txt); }}
   .hx-btn.solid:hover {{ background:#d8d8d8; border-color:#d8d8d8; }}
   .hx-btn.ghost:hover {{ border-color:var(--txt); }}
-  .hx-kpis {{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:24px 28px; margin-top:30px; }}
+  .hx-kpis {{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:26px 30px; margin-top:28px;
+    flex:1 1 auto; align-content:space-between; }}
   .hx-kpi .v {{ font-size:32px; font-weight:600; letter-spacing:-.02em; line-height:1; font-variant-numeric:tabular-nums; }}
   .hx-kpi .k {{ font-size:12px; color:var(--muted); margin-top:8px; }}
   .hx-kpi .v.buy {{ color:var(--buy); }} .hx-kpi .v.sell {{ color:var(--sell); }} .hx-kpi .v.warn {{ color:var(--warn); }}
