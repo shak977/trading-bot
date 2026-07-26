@@ -464220,5 +464220,86 @@
     "regime_score": null,
     "liquidity_tier": "illiquid",
     "status": "open"
+  },
+  {
+    "id": "UA:2026-07-26",
+    "symbol": "UA",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-26",
+    "advised_ts": "2026-07-26T14:04:07.090423",
+    "entry": 6.85,
+    "stop": 6.8,
+    "target": 6.89,
+    "rr": 0.87,
+    "conviction": "High",
+    "conviction_pct": 75,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
   }
 ]
