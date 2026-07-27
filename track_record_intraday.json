@@ -451103,7 +451103,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "expired",
+    "exit": 26.2,
+    "exit_date": "2026-07-27",
+    "return_pct": -0.19,
+    "days_held": 2
   },
   {
     "id": "WDAY:2026-07-24",
@@ -465009,7 +465013,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 45.36,
+    "exit_date": "2026-07-27",
+    "return_pct": 4.56,
+    "days_held": 0
   },
   {
     "id": "RH:2026-07-26",
@@ -466332,7 +466340,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 45.36,
+    "exit_date": "2026-07-27",
+    "return_pct": 4.56,
+    "days_held": -1
   },
   {
     "id": "ROK:2026-07-27",
@@ -470843,7 +470855,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 107.77,
+    "exit_date": "2026-07-27",
+    "return_pct": 6.59,
+    "days_held": -1
   },
   {
     "id": "QQQ:2026-07-27",
@@ -481553,7 +481569,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 490.02,
+    "exit_date": "2026-07-27",
+    "return_pct": 0.91,
+    "days_held": -1
   },
   {
     "id": "TRV:2026-07-27",
@@ -482388,7 +482408,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 55.9,
+    "exit_date": "2026-07-27",
+    "return_pct": -0.75,
+    "days_held": -1
   },
   {
     "id": "SGML:2026-07-27",
@@ -482771,6 +482795,302 @@
       {
         "label": "VCP base setup?",
         "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "AXP:2026-07-27",
+    "symbol": "AXP",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-27",
+    "advised_ts": "2026-07-27T18:09:30.627247",
+    "entry": 335.44,
+    "stop": 334.14,
+    "target": 335.7,
+    "rr": 0.2,
+    "conviction": "Medium",
+    "conviction_pct": 74,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "Momentum burst?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "ORCL:2026-07-27",
+    "symbol": "ORCL",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-27",
+    "advised_ts": "2026-07-27T18:09:30.627247",
+    "entry": 120.3,
+    "stop": 119.21,
+    "target": 121.94,
+    "rr": 1.51,
+    "conviction": "Medium",
+    "conviction_pct": 74,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "SSMR:2026-07-27",
+    "symbol": "SSMR",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-27",
+    "advised_ts": "2026-07-27T18:09:30.627247",
+    "entry": 14.91,
+    "stop": 14.47,
+    "target": 15.03,
+    "rr": 0.28,
+    "conviction": "Medium",
+    "conviction_pct": 68,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "BMNR:2026-07-27",
+    "symbol": "BMNR",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-27",
+    "advised_ts": "2026-07-27T18:09:30.627247",
+    "entry": 17.7,
+    "stop": 17.47,
+    "target": 18.01,
+    "rr": 1.35,
+    "conviction": "Medium",
+    "conviction_pct": 66,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
       }
     ],
     "tv_align": null,
