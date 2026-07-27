@@ -448129,7 +448129,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "expired",
+    "exit": 71.15,
+    "exit_date": "2026-07-27",
+    "return_pct": 2.26,
+    "days_held": 2
   },
   {
     "id": "EOG:2026-07-24",
@@ -449278,7 +449282,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "expired",
+    "exit": 193.07,
+    "exit_date": "2026-07-27",
+    "return_pct": 0.73,
+    "days_held": 2
   },
   {
     "id": "CCCTU:2026-07-24",
@@ -454021,7 +454029,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 10.15,
+    "exit_date": "2026-07-27",
+    "return_pct": 2.22,
+    "days_held": 2
   },
   {
     "id": "ADI:2026-07-24",
@@ -454357,7 +454369,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 89.24,
+    "exit_date": "2026-07-27",
+    "return_pct": -0.46,
+    "days_held": 2
   },
   {
     "id": "KKR:2026-07-24",
@@ -471414,7 +471430,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 60.91,
+    "exit_date": "2026-07-27",
+    "return_pct": -2.59,
+    "days_held": -1
   },
   {
     "id": "ACN:2026-07-27",
@@ -471827,7 +471847,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 117.93,
+    "exit_date": "2026-07-27",
+    "return_pct": 1.44,
+    "days_held": -1
   },
   {
     "id": "ADBE:2026-07-27",
@@ -474874,7 +474898,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 128.45,
+    "exit_date": "2026-07-27",
+    "return_pct": 0.53,
+    "days_held": -1
   },
   {
     "id": "SBUX:2026-07-27",
@@ -476768,7 +476796,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 341.69,
+    "exit_date": "2026-07-27",
+    "return_pct": 0.54,
+    "days_held": -1
   },
   {
     "id": "MS:2026-07-27",
@@ -477545,7 +477577,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 212.84,
+    "exit_date": "2026-07-27",
+    "return_pct": -0.8,
+    "days_held": -1
   },
   {
     "id": "C:2026-07-27",
@@ -479358,7 +479394,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "win",
+    "exit": 193.89,
+    "exit_date": "2026-07-27",
+    "return_pct": 1.56,
+    "days_held": -1
   },
   {
     "id": "AZO:2026-07-27",
@@ -480136,7 +480176,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 978.54,
+    "exit_date": "2026-07-27",
+    "return_pct": -0.58,
+    "days_held": -1
   },
   {
     "id": "NFLX:2026-07-27",
@@ -480914,7 +480958,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 129.94,
+    "exit_date": "2026-07-27",
+    "return_pct": -0.41,
+    "days_held": -1
   },
   {
     "id": "CME:2026-07-27",
@@ -480995,7 +481043,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 256.36,
+    "exit_date": "2026-07-27",
+    "return_pct": 0.15,
+    "days_held": -1
   },
   {
     "id": "ABBV:2026-07-27",
@@ -481026,6 +481078,152 @@
       {
         "label": "Are people trading it?",
         "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "SKIL:2026-07-27",
+    "symbol": "SKIL",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-27",
+    "advised_ts": "2026-07-27T15:43:18.367540",
+    "entry": 6.63,
+    "stop": 6.38,
+    "target": 7.38,
+    "rr": 3.0,
+    "conviction": "High",
+    "conviction_pct": 83,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "MET:2026-07-27",
+    "symbol": "MET",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-27",
+    "advised_ts": "2026-07-27T15:43:18.367540",
+    "entry": 95.57,
+    "stop": 95.22,
+    "target": 95.83,
+    "rr": 0.75,
+    "conviction": "Medium",
+    "conviction_pct": 55,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
       },
       {
         "label": "Worth the risk?",
