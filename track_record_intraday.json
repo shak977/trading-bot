@@ -449444,7 +449444,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "expired",
+    "exit": 6.76,
+    "exit_date": "2026-07-27",
+    "return_pct": 7.14,
+    "days_held": 2
   },
   {
     "id": "CDNS:2026-07-24",
@@ -470750,7 +470754,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 215.42,
+    "exit_date": "2026-07-27",
+    "return_pct": -1.23,
+    "days_held": -1
   },
   {
     "id": "NOW:2026-07-27",
@@ -475764,7 +475772,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 60.4,
+    "exit_date": "2026-07-27",
+    "return_pct": 0.35,
+    "days_held": -1
   },
   {
     "id": "PEP:2026-07-27",
@@ -480901,7 +480913,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 6.09,
+    "exit_date": "2026-07-27",
+    "return_pct": -1.62,
+    "days_held": -1
   },
   {
     "id": "DUK:2026-07-27",
@@ -481888,6 +481904,225 @@
       {
         "label": "VCP base setup?",
         "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "DPC:2026-07-27",
+    "symbol": "DPC",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-27",
+    "advised_ts": "2026-07-27T16:38:38.122824",
+    "entry": 48.78,
+    "stop": 48.06,
+    "target": 50.97,
+    "rr": 3.0,
+    "conviction": "High",
+    "conviction_pct": 91,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "CNC:2026-07-27",
+    "symbol": "CNC",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-27",
+    "advised_ts": "2026-07-27T16:38:38.122824",
+    "entry": 64.47,
+    "stop": 63.81,
+    "target": 67.09,
+    "rr": 4.0,
+    "conviction": "High",
+    "conviction_pct": 83,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "AIR:2026-07-27",
+    "symbol": "AIR",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-27",
+    "advised_ts": "2026-07-27T16:38:38.122824",
+    "entry": 134.66,
+    "stop": 132.99,
+    "target": 141.34,
+    "rr": 4.0,
+    "conviction": "High",
+    "conviction_pct": 79,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
       }
     ],
     "tv_align": null,
