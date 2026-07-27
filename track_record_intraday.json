@@ -453561,7 +453561,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "loss",
+    "exit": 384.73,
+    "exit_date": "2026-07-27",
+    "return_pct": -0.34,
+    "days_held": 2
   },
   {
     "id": "SHOP:2026-07-24",
@@ -454808,7 +454812,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "loss",
+    "exit": 740.12,
+    "exit_date": "2026-07-27",
+    "return_pct": -0.22,
+    "days_held": 2
   },
   {
     "id": "JPM:2026-07-24",
@@ -469665,6 +469673,265 @@
       {
         "label": "Smart-money footprint?",
         "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "MSFT:2026-07-27",
+    "symbol": "MSFT",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-27",
+    "advised_ts": "2026-07-27T13:05:23.953319",
+    "entry": 387.45,
+    "stop": 384.05,
+    "target": 401.04,
+    "rr": 4.0,
+    "conviction": "High",
+    "conviction_pct": 80,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "thin",
+    "status": "open"
+  },
+  {
+    "id": "DIA:2026-07-27",
+    "symbol": "DIA",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-27",
+    "advised_ts": "2026-07-27T13:05:23.953319",
+    "entry": 524.28,
+    "stop": 522.56,
+    "target": 527.88,
+    "rr": 2.1,
+    "conviction": "Medium",
+    "conviction_pct": 71,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "IBM:2026-07-27",
+    "symbol": "IBM",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-27",
+    "advised_ts": "2026-07-27T13:05:23.953319",
+    "entry": 218.11,
+    "stop": 215.42,
+    "target": 228.87,
+    "rr": 4.0,
+    "conviction": "Medium",
+    "conviction_pct": 69,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
       }
     ],
     "tv_align": null,
