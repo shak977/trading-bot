@@ -490876,7 +490876,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 103.01,
+    "exit_date": "2026-07-28",
+    "return_pct": -0.1,
+    "days_held": -1
   },
   {
     "id": "KMX:2026-07-28",
@@ -493424,7 +493428,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 383.06,
+    "exit_date": "2026-07-28",
+    "return_pct": -1.54,
+    "days_held": -1
   },
   {
     "id": "VRTX:2026-07-28",
@@ -498839,7 +498847,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 482.84,
+    "exit_date": "2026-07-28",
+    "return_pct": -0.64,
+    "days_held": -1
   },
   {
     "id": "AAL:2026-07-28",
@@ -500468,7 +500480,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 5.93,
+    "exit_date": "2026-07-28",
+    "return_pct": -1.98,
+    "days_held": -1
   },
   {
     "id": "MRNA:2026-07-28",
@@ -500541,7 +500557,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 55.21,
+    "exit_date": "2026-07-28",
+    "return_pct": -0.68,
+    "days_held": -1
   },
   {
     "id": "ORC:2026-07-28",
@@ -500681,6 +500701,160 @@
       {
         "label": "Reward:risk worth it?",
         "status": "pass"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "BOT:2026-07-28",
+    "symbol": "BOT",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-28",
+    "advised_ts": "2026-07-28T19:06:14.018401",
+    "entry": 27.36,
+    "stop": 26.12,
+    "target": 31.46,
+    "rr": 3.31,
+    "conviction": "High",
+    "conviction_pct": 81,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum burst?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "ORCL:2026-07-28",
+    "symbol": "ORCL",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-28",
+    "advised_ts": "2026-07-28T19:06:14.018401",
+    "entry": 121.14,
+    "stop": 120.27,
+    "target": 121.56,
+    "rr": 0.47,
+    "conviction": "Medium",
+    "conviction_pct": 66,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
       },
       {
         "label": "VCP base setup?",
