@@ -485323,7 +485323,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 178.18,
+    "exit_date": "2026-07-28",
+    "return_pct": -0.99,
+    "days_held": -1
   },
   {
     "id": "UA:2026-07-28",
@@ -491423,7 +491427,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 394.48,
+    "exit_date": "2026-07-28",
+    "return_pct": -0.72,
+    "days_held": -1
   },
   {
     "id": "RGEN:2026-07-28",
@@ -494056,7 +494064,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 6.42,
+    "exit_date": "2026-07-28",
+    "return_pct": 3.88,
+    "days_held": -1
   },
   {
     "id": "ROST:2026-07-28",
@@ -499447,7 +499459,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 181.9,
+    "exit_date": "2026-07-28",
+    "return_pct": -0.4,
+    "days_held": -1
   },
   {
     "id": "SPCX:2026-07-28",
@@ -499893,7 +499909,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 151.66,
+    "exit_date": "2026-07-28",
+    "return_pct": -0.66,
+    "days_held": -1
   },
   {
     "id": "UFO:2026-07-28",
@@ -499966,7 +499986,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 43.66,
+    "exit_date": "2026-07-28",
+    "return_pct": -0.55,
+    "days_held": -1
   },
   {
     "id": "OMER:2026-07-28",
@@ -500043,7 +500067,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 11.02,
+    "exit_date": "2026-07-28",
+    "return_pct": -1.25,
+    "days_held": -1
   },
   {
     "id": "BCRX:2026-07-28",
@@ -500266,7 +500294,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 56.68,
+    "exit_date": "2026-07-28",
+    "return_pct": -1.29,
+    "days_held": -1
   },
   {
     "id": "GM:2026-07-28",
@@ -500337,6 +500369,160 @@
       {
         "label": "VCP base setup?",
         "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "loss",
+    "exit": 89.63,
+    "exit_date": "2026-07-28",
+    "return_pct": -0.65,
+    "days_held": -1
+  },
+  {
+    "id": "JBLU:2026-07-28",
+    "symbol": "JBLU",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-28",
+    "advised_ts": "2026-07-28T18:15:38.647286",
+    "entry": 6.05,
+    "stop": 5.93,
+    "target": 6.2,
+    "rr": 1.21,
+    "conviction": "Medium",
+    "conviction_pct": 59,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "MRNA:2026-07-28",
+    "symbol": "MRNA",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-28",
+    "advised_ts": "2026-07-28T18:15:38.647286",
+    "entry": 55.59,
+    "stop": 55.21,
+    "target": 55.93,
+    "rr": 0.86,
+    "conviction": "Medium",
+    "conviction_pct": 56,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
       }
     ],
     "tv_align": null,
