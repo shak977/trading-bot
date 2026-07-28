@@ -287,6 +287,24 @@
           "decided": 0
         }
       }
+    },
+    {
+      "ts": "2026-07-28 23:28 GMT",
+      "date": "2026-07-28",
+      "buckets": {
+        "daily": {
+          "win_rate": 46.5,
+          "decided": 724
+        },
+        "intraday": {
+          "win_rate": 43.2,
+          "decided": 6057
+        },
+        "orb": {
+          "win_rate": null,
+          "decided": 0
+        }
+      }
     }
   ],
   "ledger": {
@@ -299,8 +317,8 @@
     "Daily / swing: check 'Are people trading it?'": {
       "first_seen": "2026-07-07",
       "first_wr": 49.0,
-      "times": 6,
-      "last_seen": "2026-07-27"
+      "times": 7,
+      "last_seen": "2026-07-28"
     },
     "Daily / swing: check 'Intraday on side?'": {
       "first_seen": "2026-07-07",
@@ -365,8 +383,8 @@
     "Intraday: check 'Right setups for this tape?'": {
       "first_seen": "2026-07-22",
       "first_wr": 41.3,
-      "times": 4,
-      "last_seen": "2026-07-27"
+      "times": 5,
+      "last_seen": "2026-07-28"
     }
   }
 }
