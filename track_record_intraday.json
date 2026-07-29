@@ -472267,7 +472267,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 45.17,
+    "exit_date": "2026-07-29",
+    "return_pct": -1.33,
+    "days_held": 1
   },
   {
     "id": "RIVN:2026-07-27",
@@ -491674,7 +491678,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 5.95,
+    "exit_date": "2026-07-29",
+    "return_pct": 3.84,
+    "days_held": 0
   },
   {
     "id": "AMGN:2026-07-28",
@@ -503470,7 +503478,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 198.19,
+    "exit_date": "2026-07-29",
+    "return_pct": -0.51,
+    "days_held": -1
   },
   {
     "id": "CB:2026-07-29",
@@ -505921,7 +505933,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 5.94,
+    "exit_date": "2026-07-29",
+    "return_pct": 0.68,
+    "days_held": -1
   },
   {
     "id": "UCO:2026-07-29",
@@ -506079,6 +506095,156 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
+    "status": "open"
+  },
+  {
+    "id": "NVD:2026-07-29",
+    "symbol": "NVD",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-29",
+    "advised_ts": "2026-07-29T13:37:44.578556",
+    "entry": 5.25,
+    "stop": 5.19,
+    "target": 5.44,
+    "rr": 3.12,
+    "conviction": "High",
+    "conviction_pct": 77,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "BITO:2026-07-29",
+    "symbol": "BITO",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-29",
+    "advised_ts": "2026-07-29T13:37:44.578556",
+    "entry": 8.7,
+    "stop": 8.67,
+    "target": 8.71,
+    "rr": 0.36,
+    "conviction": "Medium",
+    "conviction_pct": 56,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
     "status": "open"
   }
 ]
