@@ -482345,7 +482345,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "expired",
+    "exit": 138.1,
+    "exit_date": "2026-07-30",
+    "return_pct": 2.55,
+    "days_held": 2
   },
   {
     "id": "MGTX:2026-07-27",
@@ -520079,7 +520083,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 7.3,
+    "exit_date": "2026-07-30",
+    "return_pct": 1.25,
+    "days_held": -1
   },
   {
     "id": "AVGO:2026-07-30",
@@ -522624,7 +522632,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "win",
+    "exit": 323.14,
+    "exit_date": "2026-07-30",
+    "return_pct": 0.7,
+    "days_held": -1
   },
   {
     "id": "XOM:2026-07-30",
@@ -524353,6 +524365,91 @@
       {
         "label": "Reward:risk worth it?",
         "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "loss",
+    "exit": 21.35,
+    "exit_date": "2026-07-30",
+    "return_pct": -1.16,
+    "days_held": -1
+  },
+  {
+    "id": "LYFT:2026-07-30",
+    "symbol": "LYFT",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-30",
+    "advised_ts": "2026-07-30T18:09:12.630537",
+    "entry": 15.43,
+    "stop": 15.31,
+    "target": 15.88,
+    "rr": 3.89,
+    "conviction": "High",
+    "conviction_pct": 79,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "pass"
       }
     ],
     "tv_align": null,
