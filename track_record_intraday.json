@@ -522348,7 +522348,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 368.47,
+    "exit_date": "2026-07-30",
+    "return_pct": -1.7,
+    "days_held": -1
   },
   {
     "id": "SPDN:2026-07-30",
@@ -523033,7 +523037,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 199.83,
+    "exit_date": "2026-07-30",
+    "return_pct": 1.48,
+    "days_held": -1
   },
   {
     "id": "BMY:2026-07-30",
@@ -525343,7 +525351,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 32.28,
+    "exit_date": "2026-07-30",
+    "return_pct": -2.15,
+    "days_held": -1
   },
   {
     "id": "COF:2026-07-30",
@@ -525493,7 +525505,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 45.61,
+    "exit_date": "2026-07-30",
+    "return_pct": -0.65,
+    "days_held": -1
   },
   {
     "id": "KKR:2026-07-30",
@@ -525716,7 +525732,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 521.26,
+    "exit_date": "2026-07-30",
+    "return_pct": -0.11,
+    "days_held": -1
   },
   {
     "id": "IWM:2026-07-30",
@@ -525939,7 +525959,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 46.68,
+    "exit_date": "2026-07-30",
+    "return_pct": 0.5,
+    "days_held": -1
   },
   {
     "id": "COIN:2026-07-30",
@@ -526012,7 +526036,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 163.05,
+    "exit_date": "2026-07-30",
+    "return_pct": -0.63,
+    "days_held": -1
   },
   {
     "id": "ENPH:2026-07-30",
@@ -526089,7 +526117,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 37.32,
+    "exit_date": "2026-07-30",
+    "return_pct": 0.38,
+    "days_held": -1
   },
   {
     "id": "EROC:2026-07-30",
@@ -526312,6 +526344,83 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "NFLX:2026-07-30",
+    "symbol": "NFLX",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-30",
+    "advised_ts": "2026-07-30T20:34:27.341929",
+    "entry": 73.16,
+    "stop": 72.77,
+    "target": 73.32,
+    "rr": 0.41,
+    "conviction": "Medium",
+    "conviction_pct": 74,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "Momentum burst?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "thin",
     "status": "open"
   }
 ]
