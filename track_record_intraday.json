@@ -519836,7 +519836,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 62.31,
+    "exit_date": "2026-07-30",
+    "return_pct": -1.92,
+    "days_held": -1
   },
   {
     "id": "REGN:2026-07-30",
@@ -519990,7 +519994,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 9.14,
+    "exit_date": "2026-07-30",
+    "return_pct": -1.72,
+    "days_held": -1
   },
   {
     "id": "IBRX:2026-07-30",
@@ -520983,7 +520991,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 309.48,
+    "exit_date": "2026-07-30",
+    "return_pct": 0.45,
+    "days_held": -1
   },
   {
     "id": "TSLA:2026-07-30",
@@ -521141,7 +521153,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 281.09,
+    "exit_date": "2026-07-30",
+    "return_pct": 0.66,
+    "days_held": -1
   },
   {
     "id": "MRNA:2026-07-30",
@@ -521591,6 +521607,375 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "MPC:2026-07-30",
+    "symbol": "MPC",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-30",
+    "advised_ts": "2026-07-30T15:11:52.183946",
+    "entry": 313.48,
+    "stop": 310.03,
+    "target": 325.99,
+    "rr": 3.63,
+    "conviction": "High",
+    "conviction_pct": 87,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "warn"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "MU:2026-07-30",
+    "symbol": "MU",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-30",
+    "advised_ts": "2026-07-30T15:11:52.183946",
+    "entry": 840.86,
+    "stop": 817.82,
+    "target": 867.82,
+    "rr": 1.17,
+    "conviction": "High",
+    "conviction_pct": 80,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "warn"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "moderate",
+    "status": "open"
+  },
+  {
+    "id": "AAOI:2026-07-30",
+    "symbol": "AAOI",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-30",
+    "advised_ts": "2026-07-30T15:11:52.183946",
+    "entry": 86.73,
+    "stop": 83.56,
+    "target": 90.31,
+    "rr": 1.13,
+    "conviction": "Medium",
+    "conviction_pct": 71,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "warn"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "TQQQ:2026-07-30",
+    "symbol": "TQQQ",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-30",
+    "advised_ts": "2026-07-30T15:11:52.183946",
+    "entry": 62.37,
+    "stop": 61.21,
+    "target": 63.46,
+    "rr": 0.94,
+    "conviction": "Medium",
+    "conviction_pct": 60,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "warn"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "NVDA:2026-07-30",
+    "symbol": "NVDA",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-07-30",
+    "advised_ts": "2026-07-30T15:11:52.183946",
+    "entry": 194.86,
+    "stop": 192.46,
+    "target": 197.24,
+    "rr": 0.99,
+    "conviction": "Medium",
+    "conviction_pct": 58,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "warn"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "warn"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "moderate",
     "status": "open"
   }
 ]
