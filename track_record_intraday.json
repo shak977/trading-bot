@@ -540197,5 +540197,82 @@
     "regime_score": null,
     "liquidity_tier": "illiquid",
     "status": "open"
+  },
+  {
+    "id": "XLY:2026-08-02",
+    "symbol": "XLY",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-02",
+    "advised_ts": "2026-08-02T16:05:56.032409",
+    "entry": 116.04,
+    "stop": 115.74,
+    "target": 116.39,
+    "rr": 1.14,
+    "conviction": "Medium",
+    "conviction_pct": 70,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
   }
 ]
