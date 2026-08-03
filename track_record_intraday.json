@@ -551934,7 +551934,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "loss",
+    "exit": 61.88,
+    "exit_date": "2026-08-03",
+    "return_pct": -0.43,
+    "days_held": -1
   },
   {
     "id": "HD:2026-08-03",
@@ -552963,7 +552967,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 479.69,
+    "exit_date": "2026-08-03",
+    "return_pct": -0.91,
+    "days_held": -1
   },
   {
     "id": "PURR:2026-08-03",
@@ -553818,7 +553826,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 562.84,
+    "exit_date": "2026-08-03",
+    "return_pct": -1.09,
+    "days_held": -1
   },
   {
     "id": "IBM:2026-08-03",
@@ -555147,7 +555159,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 146.42,
+    "exit_date": "2026-08-03",
+    "return_pct": -0.5,
+    "days_held": -1
   },
   {
     "id": "HAL:2026-08-03",
@@ -555824,7 +555840,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 209.31,
+    "exit_date": "2026-08-03",
+    "return_pct": -0.59,
+    "days_held": -1
   },
   {
     "id": "SERV:2026-08-03",
@@ -556560,6 +556580,241 @@
       {
         "label": "Reward:risk worth it?",
         "status": "fail"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "CRWV:2026-08-03",
+    "symbol": "CRWV",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-03",
+    "advised_ts": "2026-08-03T17:09:49.486552",
+    "entry": 82.77,
+    "stop": 81.26,
+    "target": 84.39,
+    "rr": 1.07,
+    "conviction": "Medium",
+    "conviction_pct": 68,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "SYK:2026-08-03",
+    "symbol": "SYK",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-03",
+    "advised_ts": "2026-08-03T17:09:49.486552",
+    "entry": 337.66,
+    "stop": 335.88,
+    "target": 339.04,
+    "rr": 0.77,
+    "conviction": "Medium",
+    "conviction_pct": 66,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "Momentum burst?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "HYMC:2026-08-03",
+    "symbol": "HYMC",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-03",
+    "advised_ts": "2026-08-03T17:09:49.486552",
+    "entry": 20.03,
+    "stop": 19.82,
+    "target": 20.44,
+    "rr": 1.92,
+    "conviction": "Medium",
+    "conviction_pct": 66,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
       },
       {
         "label": "VCP base setup?",
