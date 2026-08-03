@@ -518376,7 +518376,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "expired",
+    "exit": 182.16,
+    "exit_date": "2026-08-03",
+    "return_pct": 1.03,
+    "days_held": 3
   },
   {
     "id": "IONQ:2026-07-30",
@@ -519296,7 +519300,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "expired",
+    "exit": 1170.28,
+    "exit_date": "2026-08-03",
+    "return_pct": -4.32,
+    "days_held": 3
   },
   {
     "id": "WDC:2026-07-30",
@@ -531190,7 +531198,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "loss",
+    "exit": 187.09,
+    "exit_date": "2026-08-03",
+    "return_pct": -2.88,
+    "days_held": 2
   },
   {
     "id": "WDC:2026-07-31",
@@ -534257,7 +534269,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "loss",
+    "exit": 1197.76,
+    "exit_date": "2026-08-03",
+    "return_pct": -2.85,
+    "days_held": 2
   },
   {
     "id": "KMI:2026-07-31",
@@ -538039,7 +538055,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 162.46,
+    "exit_date": "2026-08-03",
+    "return_pct": 0.35,
+    "days_held": 0
   },
   {
     "id": "BMY:2026-08-02",
@@ -538428,7 +538448,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 191.65,
+    "exit_date": "2026-08-03",
+    "return_pct": 0.41,
+    "days_held": 0
   },
   {
     "id": "REF:2026-08-02",
@@ -539101,7 +539125,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "win",
+    "exit": 273.22,
+    "exit_date": "2026-08-03",
+    "return_pct": 0.65,
+    "days_held": 0
   },
   {
     "id": "CNC:2026-08-02",
@@ -542323,7 +542351,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 162.46,
+    "exit_date": "2026-08-03",
+    "return_pct": 0.35,
+    "days_held": -1
   },
   {
     "id": "ILMN:2026-08-03",
@@ -542789,7 +542821,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 191.65,
+    "exit_date": "2026-08-03",
+    "return_pct": 0.41,
+    "days_held": -1
   },
   {
     "id": "AVGO:2026-08-03",
@@ -543851,7 +543887,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "win",
+    "exit": 273.22,
+    "exit_date": "2026-08-03",
+    "return_pct": 0.65,
+    "days_held": -1
   },
   {
     "id": "SHEL:2026-08-03",
@@ -545249,6 +545289,83 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "META:2026-08-03",
+    "symbol": "META",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-03",
+    "advised_ts": "2026-08-03T13:40:48.077665",
+    "entry": 564.99,
+    "stop": 561.04,
+    "target": 568.23,
+    "rr": 0.82,
+    "conviction": "Medium",
+    "conviction_pct": 66,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "thin",
     "status": "open"
   }
 ]
