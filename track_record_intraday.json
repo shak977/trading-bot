@@ -554960,7 +554960,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 371.89,
+    "exit_date": "2026-08-03",
+    "return_pct": 0.91,
+    "days_held": -1
   },
   {
     "id": "PBLS:2026-08-03",
@@ -558315,7 +558319,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 133.45,
+    "exit_date": "2026-08-03",
+    "return_pct": 0.58,
+    "days_held": -1
   },
   {
     "id": "GILD:2026-08-03",
@@ -558917,6 +558925,83 @@
       {
         "label": "Reward:risk worth it?",
         "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "PGY:2026-08-03",
+    "symbol": "PGY",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-03",
+    "advised_ts": "2026-08-03T20:36:53.892084",
+    "entry": 22.23,
+    "stop": 21.81,
+    "target": 23.95,
+    "rr": 4.0,
+    "conviction": "High",
+    "conviction_pct": 88,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
       }
     ],
     "tv_align": null,
