@@ -546833,7 +546833,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 63.42,
+    "exit_date": "2026-08-03",
+    "return_pct": -2.27,
+    "days_held": -1
   },
   {
     "id": "SHW:2026-08-03",
@@ -548324,7 +548328,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 68.77,
+    "exit_date": "2026-08-03",
+    "return_pct": -1.74,
+    "days_held": -1
   },
   {
     "id": "CCXI:2026-08-03",
@@ -556990,7 +556998,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 6.22,
+    "exit_date": "2026-08-03",
+    "return_pct": -1.11,
+    "days_held": -1
   },
   {
     "id": "LMT:2026-08-03",
@@ -557910,7 +557922,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 7.43,
+    "exit_date": "2026-08-03",
+    "return_pct": -0.54,
+    "days_held": -1
   },
   {
     "id": "MCHP:2026-08-03",
@@ -558218,7 +558234,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 105.18,
+    "exit_date": "2026-08-03",
+    "return_pct": -0.3,
+    "days_held": -1
   },
   {
     "id": "C:2026-08-03",
@@ -558591,7 +558611,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 17.95,
+    "exit_date": "2026-08-03",
+    "return_pct": 0.5,
+    "days_held": -1
   },
   {
     "id": "UAMY:2026-08-03",
@@ -558731,6 +558755,156 @@
       {
         "label": "Worked here before?",
         "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "SPCX:2026-08-03",
+    "symbol": "SPCX",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-03",
+    "advised_ts": "2026-08-03T20:09:10.486613",
+    "entry": 113.28,
+    "stop": 111.46,
+    "target": 120.57,
+    "rr": 4.0,
+    "conviction": "High",
+    "conviction_pct": 85,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum burst?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "thin",
+    "status": "open"
+  },
+  {
+    "id": "IONQ:2026-08-03",
+    "symbol": "IONQ",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-03",
+    "advised_ts": "2026-08-03T20:09:10.486613",
+    "entry": 39.06,
+    "stop": 38.62,
+    "target": 40.14,
+    "rr": 2.44,
+    "conviction": "High",
+    "conviction_pct": 75,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
       },
       {
         "label": "Strategies agree?",
