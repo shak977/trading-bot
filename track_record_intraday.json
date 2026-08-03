@@ -556435,7 +556435,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 87.53,
+    "exit_date": "2026-08-03",
+    "return_pct": 0.61,
+    "days_held": -1
   },
   {
     "id": "MSLE:2026-08-03",
@@ -556905,7 +556909,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 20.44,
+    "exit_date": "2026-08-03",
+    "return_pct": 2.05,
+    "days_held": -1
   },
   {
     "id": "RUM:2026-08-03",
@@ -558657,6 +558665,83 @@
       },
       {
         "label": "Smart-money footprint?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "win",
+    "exit": 5.68,
+    "exit_date": "2026-08-03",
+    "return_pct": 0.89,
+    "days_held": -1
+  },
+  {
+    "id": "WM:2026-08-03",
+    "symbol": "WM",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-03",
+    "advised_ts": "2026-08-03T19:48:24.576954",
+    "entry": 226.34,
+    "stop": 225.82,
+    "target": 227.77,
+    "rr": 2.69,
+    "conviction": "High",
+    "conviction_pct": 79,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "fail"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
         "status": "pass"
       }
     ],
