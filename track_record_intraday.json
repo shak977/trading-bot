@@ -553347,7 +553347,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 161.3,
+    "exit_date": "2026-08-04",
+    "return_pct": 13.39,
+    "days_held": 0
   },
   {
     "id": "CAT:2026-08-03",
@@ -565016,7 +565020,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 93.02,
+    "exit_date": "2026-08-04",
+    "return_pct": 7.91,
+    "days_held": -1
   },
   {
     "id": "MU:2026-08-04",
@@ -569982,7 +569990,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 7.29,
+    "exit_date": "2026-08-04",
+    "return_pct": 1.53,
+    "days_held": -1
   },
   {
     "id": "WFC:2026-08-04",
@@ -571991,7 +572003,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "win",
+    "exit": 326.89,
+    "exit_date": "2026-08-04",
+    "return_pct": 0.95,
+    "days_held": -1
   },
   {
     "id": "AAPL:2026-08-04",
@@ -575621,7 +575637,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 29.36,
+    "exit_date": "2026-08-04",
+    "return_pct": 0.44,
+    "days_held": -1
   },
   {
     "id": "CADL:2026-08-04",
@@ -576545,7 +576565,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 57.35,
+    "exit_date": "2026-08-04",
+    "return_pct": -0.1,
+    "days_held": -1
   },
   {
     "id": "AMT:2026-08-04",
@@ -576849,7 +576873,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 65.69,
+    "exit_date": "2026-08-04",
+    "return_pct": 0.29,
+    "days_held": -1
   },
   {
     "id": "COIN:2026-08-04",
@@ -577301,6 +577329,87 @@
     ],
     "tv_align": null,
     "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "T:2026-08-04",
+    "symbol": "T",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-04",
+    "advised_ts": "2026-08-04T17:39:28.551649",
+    "entry": 23.41,
+    "stop": 23.32,
+    "target": 23.62,
+    "rr": 2.5,
+    "conviction": "Medium",
+    "conviction_pct": 68,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "fail"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
     "status": "open"
