@@ -558637,7 +558637,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 25.81,
+    "exit_date": "2026-08-04",
+    "return_pct": -0.46,
+    "days_held": 0
   },
   {
     "id": "GUT:2026-08-03",
@@ -565477,7 +565481,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "loss",
+    "exit": 495.51,
+    "exit_date": "2026-08-04",
+    "return_pct": -1.95,
+    "days_held": -1
   },
   {
     "id": "SKHY:2026-08-04",
@@ -576223,7 +576231,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 7.22,
+    "exit_date": "2026-08-04",
+    "return_pct": -4.75,
+    "days_held": -1
   },
   {
     "id": "DHR:2026-08-04",
@@ -578742,6 +578754,79 @@
       {
         "label": "Worked here before?",
         "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "TGTX:2026-08-04",
+    "symbol": "TGTX",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-04",
+    "advised_ts": "2026-08-04T20:37:21.722007",
+    "entry": 48.78,
+    "stop": 48.27,
+    "target": 48.98,
+    "rr": 0.4,
+    "conviction": "Medium",
+    "conviction_pct": 67,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
       },
       {
         "label": "Strategies agree?",
