@@ -548838,7 +548838,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 23.85,
+    "exit_date": "2026-08-04",
+    "return_pct": -2.13,
+    "days_held": 0
   },
   {
     "id": "PLTR:2026-08-03",
@@ -566717,7 +566721,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 19.59,
+    "exit_date": "2026-08-04",
+    "return_pct": 1.77,
+    "days_held": -1
   },
   {
     "id": "CLF:2026-08-04",
@@ -567746,7 +567754,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 122.24,
+    "exit_date": "2026-08-04",
+    "return_pct": -1.47,
+    "days_held": -1
   },
   {
     "id": "PURR:2026-08-04",
@@ -573692,7 +573704,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 168.25,
+    "exit_date": "2026-08-04",
+    "return_pct": 1.87,
+    "days_held": -1
   },
   {
     "id": "KLAC:2026-08-04",
@@ -573842,7 +573858,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 56.74,
+    "exit_date": "2026-08-04",
+    "return_pct": -1.2,
+    "days_held": -1
   },
   {
     "id": "ORLY:2026-08-04",
@@ -573996,7 +574016,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 156.34,
+    "exit_date": "2026-08-04",
+    "return_pct": 2.0,
+    "days_held": -1
   },
   {
     "id": "BTCI:2026-08-04",
@@ -575426,7 +575450,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 13.39,
+    "exit_date": "2026-08-04",
+    "return_pct": -0.45,
+    "days_held": -1
   },
   {
     "id": "CPRT:2026-08-04",
@@ -576196,7 +576224,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 196.03,
+    "exit_date": "2026-08-04",
+    "return_pct": -0.61,
+    "days_held": -1
   },
   {
     "id": "RTX:2026-08-04",
@@ -576816,7 +576848,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 22.13,
+    "exit_date": "2026-08-04",
+    "return_pct": 2.45,
+    "days_held": -1
   },
   {
     "id": "BMY:2026-08-04",
@@ -577709,6 +577745,164 @@
       },
       {
         "label": "Smart-money footprint?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "AUR:2026-08-04",
+    "symbol": "AUR",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-04",
+    "advised_ts": "2026-08-04T19:07:00.016347",
+    "entry": 7.09,
+    "stop": 7.02,
+    "target": 7.4,
+    "rr": 4.0,
+    "conviction": "High",
+    "conviction_pct": 79,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "warn"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Momentum burst?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "HYMC:2026-08-04",
+    "symbol": "HYMC",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-04",
+    "advised_ts": "2026-08-04T19:07:00.016347",
+    "entry": 22.1,
+    "stop": 21.97,
+    "target": 22.23,
+    "rr": 1.0,
+    "conviction": "Medium",
+    "conviction_pct": 59,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "VCP base setup?",
         "status": "warn"
       }
     ],
