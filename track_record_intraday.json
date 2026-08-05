@@ -587747,7 +587747,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 125.49,
+    "exit_date": "2026-08-05",
+    "return_pct": -0.83,
+    "days_held": -1
   },
   {
     "id": "SCHW:2026-08-05",
@@ -588699,7 +588703,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 13.01,
+    "exit_date": "2026-08-05",
+    "return_pct": -1.06,
+    "days_held": -1
   },
   {
     "id": "ONDS:2026-08-05",
@@ -588861,7 +588869,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 317.92,
+    "exit_date": "2026-08-05",
+    "return_pct": -1.2,
+    "days_held": -1
   },
   {
     "id": "FUBO:2026-08-05",
@@ -589019,7 +589031,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 33.45,
+    "exit_date": "2026-08-05",
+    "return_pct": -2.45,
+    "days_held": -1
   },
   {
     "id": "NOC:2026-08-05",
@@ -589578,7 +589594,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 17.76,
+    "exit_date": "2026-08-05",
+    "return_pct": -1.06,
+    "days_held": -1
   },
   {
     "id": "USB:2026-08-05",
@@ -591011,6 +591031,160 @@
       {
         "label": "VCP base setup?",
         "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "AAPL:2026-08-05",
+    "symbol": "AAPL",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-05",
+    "advised_ts": "2026-08-05T15:14:52.813398",
+    "entry": 311.31,
+    "stop": 307.76,
+    "target": 325.5,
+    "rr": 4.0,
+    "conviction": "High",
+    "conviction_pct": 80,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "warn"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "moderate",
+    "status": "open"
+  },
+  {
+    "id": "PGR:2026-08-05",
+    "symbol": "PGR",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-05",
+    "advised_ts": "2026-08-05T15:14:52.813398",
+    "entry": 212.06,
+    "stop": 210.9,
+    "target": 213.79,
+    "rr": 1.49,
+    "conviction": "Medium",
+    "conviction_pct": 59,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "pass"
       }
     ],
     "tv_align": null,
