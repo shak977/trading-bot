@@ -566931,7 +566931,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 16.18,
+    "exit_date": "2026-08-05",
+    "return_pct": 5.89,
+    "days_held": 0
   },
   {
     "id": "FTNT:2026-08-04",
@@ -582901,7 +582905,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 71.61,
+    "exit_date": "2026-08-05",
+    "return_pct": -0.54,
+    "days_held": -1
   },
   {
     "id": "BCRX:2026-08-05",
@@ -583363,6 +583371,87 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "moderate",
+    "status": "open"
+  },
+  {
+    "id": "MSFT:2026-08-05",
+    "symbol": "MSFT",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-05",
+    "advised_ts": "2026-08-05T13:36:40.141800",
+    "entry": 498.81,
+    "stop": 496.22,
+    "target": 499.34,
+    "rr": 0.2,
+    "conviction": "Medium",
+    "conviction_pct": 65,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "thin",
     "status": "open"
   }
 ]
