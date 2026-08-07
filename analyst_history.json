@@ -2372,5 +2372,71 @@
         "proposal": "Keep accruing; treat current weights as provisional."
       }
     ]
+  },
+  {
+    "generated_at": "2026-08-07 23:03 GMT",
+    "n_actions": 1,
+    "findings": [
+      {
+        "severity": "act",
+        "area": "Intraday: check 'Right setups for this tape?'",
+        "proposal": "Down-weight or retire 'Right setups for this tape?' (currently \u00d71.0)."
+      },
+      {
+        "severity": "watch",
+        "area": "setup:burst",
+        "proposal": "'Momentum Burst' edge is marginal \u2014 keep watching; don't lean on it yet."
+      },
+      {
+        "severity": "watch",
+        "area": "setup:ep",
+        "proposal": "'Episodic Pivot (technical)' edge is marginal \u2014 keep watching; don't lean on it yet."
+      },
+      {
+        "severity": "info",
+        "area": "Daily / swing: check 'Is it trending up?'",
+        "proposal": "Keep / consider up-weighting 'Is it trending up?'."
+      },
+      {
+        "severity": "info",
+        "area": "Daily / swing: check 'Intraday on side?'",
+        "proposal": "Already retired (weight \u00d70.0) \u2014 the engine dropped it; no action needed."
+      },
+      {
+        "severity": "info",
+        "area": "Daily / swing: check 'Sector trending right?'",
+        "proposal": "Already retired (weight \u00d70.0) \u2014 the engine dropped it; no action needed."
+      },
+      {
+        "severity": "info",
+        "area": "Daily / swing: check 'Leading the market?'",
+        "proposal": "Already retired (weight \u00d70.0) \u2014 the engine dropped it; no action needed."
+      },
+      {
+        "severity": "info",
+        "area": "Daily / swing: check 'Worth the risk?'",
+        "proposal": "Leave 'Worth the risk?' as-is; the win-rate loop is held off it on purpose."
+      },
+      {
+        "severity": "info",
+        "area": "Daily / swing: check 'Reward:risk worth it?'",
+        "proposal": "Leave 'Reward:risk worth it?' as-is; the win-rate loop is held off it on purpose."
+      },
+      {
+        "severity": "info",
+        "area": "Intraday: check 'Worth the risk?'",
+        "proposal": "Leave 'Worth the risk?' as-is; the win-rate loop is held off it on purpose."
+      },
+      {
+        "severity": "info",
+        "area": "Intraday: check 'Reward:risk worth it?'",
+        "proposal": "Leave 'Reward:risk worth it?' as-is; the win-rate loop is held off it on purpose."
+      },
+      {
+        "severity": "info",
+        "area": "ORB day-trade: maturity",
+        "proposal": "Keep accruing; treat current weights as provisional."
+      }
+    ]
   }
 ]
