@@ -1,18 +1,18 @@
 {
-  "generated_at": "2026-08-11 23:10 GMT",
+  "generated_at": "2026-08-12 23:08 GMT",
   "buckets": {
     "daily": {
       "label": "Daily / swing",
       "stats": {
-        "logged": 875,
-        "resolved": 849,
-        "decided": 764,
-        "open": 26,
-        "win_rate": 46.3,
+        "logged": 905,
+        "resolved": 856,
+        "decided": 765,
+        "open": 49,
+        "win_rate": 46.4,
         "by_regime": {
           "Risk-on": {
-            "n": 555,
-            "win_rate": 51.5
+            "n": 556,
+            "win_rate": 51.6
           },
           "Neutral": {
             "n": 146,
@@ -21,7 +21,7 @@
         },
         "streak": {
           "kind": "win",
-          "n": 2
+          "n": 3
         },
         "learned_weights": {
           "Intraday on side?": 0.0,
@@ -33,15 +33,15 @@
     "intraday": {
       "label": "Intraday",
       "stats": {
-        "logged": 7800,
-        "resolved": 7748,
-        "decided": 7669,
-        "open": 52,
-        "win_rate": 43.7,
+        "logged": 7968,
+        "resolved": 7901,
+        "decided": 7822,
+        "open": 67,
+        "win_rate": 43.6,
         "by_regime": {
           "Risk-on": {
-            "n": 2960,
-            "win_rate": 45.7
+            "n": 3113,
+            "win_rate": 45.5
           },
           "Neutral": {
             "n": 4605,
@@ -49,8 +49,8 @@
           }
         },
         "streak": {
-          "kind": "win",
-          "n": 3
+          "kind": "loss",
+          "n": 2
         },
         "learned_weights": {}
       }
@@ -73,28 +73,28 @@
     {
       "severity": "act",
       "area": "Intraday: check 'Right setups for this tape?'",
-      "observation": "Win rate 38.9% when it passes vs 69.2% when it fails (edge -30pts) \u2014 it's not separating winners.",
+      "observation": "Win rate 39.0% when it passes vs 69.2% when it fails (edge -30pts) \u2014 it's not separating winners.",
       "proposal": "Down-weight or retire 'Right setups for this tape?' (currently \u00d71.0).",
       "history": {
-        "times_raised": 15,
+        "times_raised": 16,
         "since": "2026-07-22",
         "before_wr": 41.1,
-        "after_wr": 48.0,
-        "after_n": 2814,
-        "delta": 6.9,
+        "after_wr": 47.7,
+        "after_n": 2967,
+        "delta": 6.6,
         "status": "improved"
       }
     },
     {
       "severity": "watch",
       "area": "setup:burst",
-      "observation": "Momentum Burst edge vs baseline is -0.18% over 10d (1637 fires, hit 52.2%).",
+      "observation": "Momentum Burst edge vs baseline is -0.18% over 10d (1636 fires, hit 52.3%).",
       "proposal": "'Momentum Burst' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
       "severity": "watch",
       "area": "setup:ep",
-      "observation": "Episodic Pivot (technical) edge vs baseline is -0.55% over 10d (129 fires, hit 55.0%).",
+      "observation": "Episodic Pivot (technical) edge vs baseline is -0.63% over 10d (130 fires, hit 54.6%).",
       "proposal": "'Episodic Pivot (technical)' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
@@ -136,13 +136,13 @@
     {
       "severity": "info",
       "area": "Intraday: check 'Worth the risk?'",
-      "observation": "Win rate 28.4% when it passes vs 55.7% when it fails (edge -27pts) \u2014 it's not separating winners. Expected for a payoff check \u2014 it's judged on expectancy (size of wins), not hit rate.",
+      "observation": "Win rate 28.4% when it passes vs 55.8% when it fails (edge -27pts) \u2014 it's not separating winners. Expected for a payoff check \u2014 it's judged on expectancy (size of wins), not hit rate.",
       "proposal": "Leave 'Worth the risk?' as-is; the win-rate loop is held off it on purpose."
     },
     {
       "severity": "info",
       "area": "Intraday: check 'Reward:risk worth it?'",
-      "observation": "Win rate 28.4% when it passes vs 55.7% when it fails (edge -27pts) \u2014 it's not separating winners. Expected for a payoff check \u2014 it's judged on expectancy (size of wins), not hit rate.",
+      "observation": "Win rate 28.4% when it passes vs 55.8% when it fails (edge -27pts) \u2014 it's not separating winners. Expected for a payoff check \u2014 it's judged on expectancy (size of wins), not hit rate.",
       "proposal": "Leave 'Reward:risk worth it?' as-is; the win-rate loop is held off it on purpose."
     },
     {
@@ -154,13 +154,13 @@
     {
       "severity": "info",
       "area": "setup:vcp",
-      "observation": "VCP (Minervini) edge vs baseline is +0.83% over 10d (716 fires, hit 64.7%).",
+      "observation": "VCP (Minervini) edge vs baseline is +0.80% over 10d (713 fires, hit 64.5%).",
       "proposal": "'VCP (Minervini)' is beating baseline \u2014 keep, and let the self-weighting lean into it."
     },
     {
       "severity": "info",
       "area": "timing",
-      "observation": "Timing separates outcomes: after an FTD the index averaged +2.96% vs +0.37% after a correction (10d).",
+      "observation": "Timing separates outcomes: after an FTD the index averaged +2.96% vs +0.36% after a correction (10d).",
       "proposal": "The FTD/distribution gate is predictive \u2014 keep it blocking new longs in a confirmed correction."
     }
   ],
@@ -169,20 +169,20 @@
     {
       "kind": "trend",
       "scope": "daily",
-      "delta": -22.8,
-      "text": "daily: last-7d win rate 29.4% vs prior 52.2% (-23pts) \u2014 deteriorating."
+      "delta": 10.0,
+      "text": "daily: last-7d win rate 50.0% vs prior 40.0% (+10pts) \u2014 improving."
     },
     {
       "kind": "trend",
       "scope": "intraday",
-      "delta": 1.0,
-      "text": "intraday: last-7d win rate 46.7% vs prior 45.7% (+1pts) \u2014 steady."
+      "delta": -3.6,
+      "text": "intraday: last-7d win rate 43.1% vs prior 46.7% (-4pts) \u2014 steady."
     },
     {
       "kind": "proposal_grade",
       "scope": "intraday",
-      "delta": 6.9,
-      "text": "intraday: since we began acting (2026-07-22), win rate on trades closed since is 48.0% vs 41.1% before (+7pts, n=2814) \u2014 improved."
+      "delta": 6.6,
+      "text": "intraday: since we began acting (2026-07-22), win rate on trades closed since is 47.7% vs 41.1% before (+7pts, n=2967) \u2014 improved."
     }
   ],
   "self_confidence": {
