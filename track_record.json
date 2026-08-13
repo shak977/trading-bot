@@ -90677,5 +90677,94 @@
     "regime_score": 0.69,
     "liquidity_tier": "moderate",
     "status": "open"
+  },
+  {
+    "id": "WFC:2026-08-13",
+    "symbol": "WFC",
+    "name": "Wells Fargo & Co.",
+    "direction": "LONG",
+    "advised_date": "2026-08-13",
+    "advised_ts": "2026-08-13",
+    "entry": 88.6,
+    "stop": 85.05,
+    "target": 89.83,
+    "rr": 0.35,
+    "conviction": "Medium",
+    "conviction_pct": 74,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Intraday on side?",
+        "status": "warn"
+      },
+      {
+        "label": "Sector trending right?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "pass"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": 0.69,
+    "liquidity_tier": "high",
+    "status": "open"
   }
 ]
