@@ -669854,7 +669854,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 1169.24,
+    "exit_date": "2026-08-14",
+    "return_pct": -0.38,
+    "days_held": -1
   },
   {
     "id": "BA:2026-08-14",
@@ -674383,7 +674387,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 124.18,
+    "exit_date": "2026-08-14",
+    "return_pct": -1.09,
+    "days_held": -1
   },
   {
     "id": "ADSK:2026-08-14",
@@ -675886,7 +675894,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 202.01,
+    "exit_date": "2026-08-14",
+    "return_pct": -0.36,
+    "days_held": -1
   },
   {
     "id": "ROK:2026-08-14",
@@ -676879,7 +676891,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 64.36,
+    "exit_date": "2026-08-14",
+    "return_pct": -0.22,
+    "days_held": -1
   },
   {
     "id": "KKR:2026-08-14",
@@ -677410,6 +677426,241 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "FDX:2026-08-14",
+    "symbol": "FDX",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-14",
+    "advised_ts": "2026-08-14T20:33:27.070332",
+    "entry": 334.68,
+    "stop": 333.27,
+    "target": 340.31,
+    "rr": 4.0,
+    "conviction": "High",
+    "conviction_pct": 88,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "fail"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "QQQ:2026-08-14",
+    "symbol": "QQQ",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-14",
+    "advised_ts": "2026-08-14T20:33:27.070332",
+    "entry": 730.68,
+    "stop": 729.63,
+    "target": 734.13,
+    "rr": 3.29,
+    "conviction": "Medium",
+    "conviction_pct": 74,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "fail"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "thin",
+    "status": "open"
+  },
+  {
+    "id": "DRAM:2026-08-14",
+    "symbol": "DRAM",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-14",
+    "advised_ts": "2026-08-14T20:33:27.070332",
+    "entry": 57.44,
+    "stop": 56.99,
+    "target": 58.79,
+    "rr": 3.0,
+    "conviction": "Medium",
+    "conviction_pct": 68,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "fail"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "thin",
     "status": "open"
   }
 ]
