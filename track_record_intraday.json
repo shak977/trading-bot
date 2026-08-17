@@ -653676,7 +653676,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "expired",
+    "exit": 776.23,
+    "exit_date": "2026-08-17",
+    "return_pct": -0.09,
+    "days_held": 3
   },
   {
     "id": "PSX:2026-08-13",
@@ -655203,7 +655207,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "expired",
+    "exit": 732.22,
+    "exit_date": "2026-08-17",
+    "return_pct": 0.22,
+    "days_held": 3
   },
   {
     "id": "NET:2026-08-13",
@@ -677580,7 +677588,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "win",
+    "exit": 734.13,
+    "exit_date": "2026-08-17",
+    "return_pct": 0.47,
+    "days_held": 2
   },
   {
     "id": "DRAM:2026-08-14",
@@ -677661,7 +677673,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "win",
+    "exit": 58.79,
+    "exit_date": "2026-08-17",
+    "return_pct": 2.35,
+    "days_held": 2
   },
   {
     "id": "TRGP:2026-08-14",
@@ -677896,7 +677912,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 8.66,
+    "exit_date": "2026-08-17",
+    "return_pct": -1.25,
+    "days_held": -1
   },
   {
     "id": "FDX:2026-08-17",
@@ -680205,7 +680225,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "win",
+    "exit": 58.79,
+    "exit_date": "2026-08-17",
+    "return_pct": 2.35,
+    "days_held": -1
   },
   {
     "id": "THEOU:2026-08-17",
@@ -680898,7 +680922,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 5.38,
+    "exit_date": "2026-08-17",
+    "return_pct": -0.74,
+    "days_held": -1
   },
   {
     "id": "SLS:2026-08-17",
@@ -681060,6 +681088,83 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "thin",
+    "status": "win",
+    "exit": 278.6,
+    "exit_date": "2026-08-17",
+    "return_pct": 0.46,
+    "days_held": -1
+  },
+  {
+    "id": "CADL:2026-08-17",
+    "symbol": "CADL",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-17",
+    "advised_ts": "2026-08-17T13:00:03.245932",
+    "entry": 11.71,
+    "stop": 11.58,
+    "target": 11.91,
+    "rr": 1.46,
+    "conviction": "Medium",
+    "conviction_pct": 71,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
     "status": "open"
   }
 ]
