@@ -30,12 +30,6 @@
       "score": 88,
       "dir": "LONG"
     },
-    "DIS": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 78,
-      "dir": "LONG"
-    },
     "VLO": {
       "action": "WATCH LONG",
       "label": "High",
@@ -57,7 +51,7 @@
     "AMZN": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 81,
+      "score": 84,
       "dir": "LONG"
     },
     "PYPL": {
@@ -70,6 +64,12 @@
       "action": "WATCH LONG",
       "label": "High",
       "score": 83,
+      "dir": "LONG"
+    },
+    "DIS": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 78,
       "dir": "LONG"
     },
     "MPC": {
@@ -93,7 +93,7 @@
     "USB": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 86,
+      "score": 85,
       "dir": "LONG"
     },
     "VRTX": {
@@ -134,20 +134,26 @@
     },
     "JPM": {
       "action": "BUY",
-      "label": "High",
-      "score": 77,
+      "label": "Medium",
+      "score": 73,
       "dir": "LONG"
     },
     "BAC": {
       "action": "BUY",
       "label": "Medium",
-      "score": 73,
+      "score": 68,
       "dir": "LONG"
     },
     "CRWD": {
       "action": "BUY",
       "label": "High",
       "score": 77,
+      "dir": "LONG"
+    },
+    "NBIS": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 75,
       "dir": "LONG"
     },
     "MDLZ": {
@@ -188,20 +194,14 @@
     },
     "BA": {
       "action": "BUY",
-      "label": "High",
-      "score": 76,
+      "label": "Medium",
+      "score": 74,
       "dir": "LONG"
     },
     "ICE": {
       "action": "WATCH LONG",
       "label": "Medium",
       "score": 74,
-      "dir": "LONG"
-    },
-    "ITW": {
-      "action": "BUY",
-      "label": "Medium",
-      "score": 67,
       "dir": "LONG"
     },
     "EOG": {
@@ -219,7 +219,13 @@
     "MA": {
       "action": "BUY",
       "label": "Medium",
-      "score": 69,
+      "score": 66,
+      "dir": "LONG"
+    },
+    "ITW": {
+      "action": "BUY",
+      "label": "Medium",
+      "score": 67,
       "dir": "LONG"
     },
     "WDAY": {
@@ -231,13 +237,85 @@
     "COF": {
       "action": "HOLD LONG",
       "label": "High",
-      "score": 76,
+      "score": 86,
       "dir": "LONG"
     },
-    "SPY": {
+    "CCXI": {
       "action": "HOLD LONG",
       "label": "High",
-      "score": 81,
+      "score": 75,
+      "dir": "LONG"
+    },
+    "MSFT": {
+      "action": "HOLD LONG",
+      "label": "Medium",
+      "score": 71,
+      "dir": "LONG"
+    },
+    "NVDA": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 77,
+      "dir": "LONG"
+    },
+    "SLS": {
+      "action": "WATCH LONG",
+      "label": "Medium",
+      "score": 67,
+      "dir": "LONG"
+    },
+    "NUAI": {
+      "action": "WATCH LONG",
+      "label": "Medium",
+      "score": 65,
+      "dir": "LONG"
+    },
+    "TSLA": {
+      "action": "AVOID",
+      "label": "High",
+      "score": 77,
+      "dir": "SHORT"
+    },
+    "CRMD": {
+      "action": "AVOID",
+      "label": "Medium",
+      "score": 73,
+      "dir": "SHORT"
+    },
+    "META": {
+      "action": "AVOID",
+      "label": "Medium",
+      "score": 63,
+      "dir": "SHORT"
+    },
+    "AMD": {
+      "action": "FLAT",
+      "label": "High",
+      "score": 78,
+      "dir": "LONG"
+    },
+    "VIK": {
+      "action": "FLAT",
+      "label": "Medium",
+      "score": 66,
+      "dir": "LONG"
+    },
+    "SNAP": {
+      "action": "FLAT",
+      "label": "Medium",
+      "score": 63,
+      "dir": "SHORT"
+    },
+    "AAPL": {
+      "action": "FLAT",
+      "label": "Medium",
+      "score": 64,
+      "dir": "LONG"
+    },
+    "GOOGL": {
+      "action": "FLAT",
+      "label": "Medium",
+      "score": 62,
       "dir": "LONG"
     }
   },
@@ -248,9 +326,9 @@
     "Financials": 78,
     "Staples": 78,
     "Industrials": 78,
-    "Communication": 75,
     "Consumer": 75,
-    "Other / Movers": 71,
+    "Communication": 75,
+    "Other / Movers": 70,
     "Materials": 67,
     "Technology": 58,
     "Real Estate": 50,
