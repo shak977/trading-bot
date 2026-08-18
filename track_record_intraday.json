@@ -695422,7 +695422,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 47.87,
+    "exit_date": "2026-08-18",
+    "return_pct": -0.73,
+    "days_held": -1
   },
   {
     "id": "NFLX:2026-08-18",
@@ -696046,7 +696050,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 7.83,
+    "exit_date": "2026-08-18",
+    "return_pct": -1.76,
+    "days_held": -1
   },
   {
     "id": "PM:2026-08-18",
@@ -696119,7 +696127,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 187.6,
+    "exit_date": "2026-08-18",
+    "return_pct": -0.5,
+    "days_held": -1
   },
   {
     "id": "TMUS:2026-08-18",
@@ -696350,7 +696362,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 608.67,
+    "exit_date": "2026-08-18",
+    "return_pct": -0.5,
+    "days_held": -1
   },
   {
     "id": "AMT:2026-08-18",
@@ -696512,7 +696528,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 816.26,
+    "exit_date": "2026-08-18",
+    "return_pct": -0.38,
+    "days_held": -1
   },
   {
     "id": "ORLY:2026-08-18",
@@ -697447,7 +697467,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 120.04,
+    "exit_date": "2026-08-18",
+    "return_pct": -0.51,
+    "days_held": -1
   },
   {
     "id": "GILD:2026-08-18",
@@ -698220,7 +698244,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 25.06,
+    "exit_date": "2026-08-18",
+    "return_pct": -0.24,
+    "days_held": -1
   },
   {
     "id": "ZS:2026-08-18",
@@ -699068,6 +699096,160 @@
       {
         "label": "Smart-money footprint?",
         "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "JNJ:2026-08-18",
+    "symbol": "JNJ",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-18",
+    "advised_ts": "2026-08-18T19:21:41.683261",
+    "entry": 270.64,
+    "stop": 270.08,
+    "target": 271.72,
+    "rr": 1.92,
+    "conviction": "High",
+    "conviction_pct": 75,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "TGT:2026-08-18",
+    "symbol": "TGT",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-18",
+    "advised_ts": "2026-08-18T19:21:41.683261",
+    "entry": 153.61,
+    "stop": 152.81,
+    "target": 154.22,
+    "rr": 0.76,
+    "conviction": "Medium",
+    "conviction_pct": 60,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
       }
     ],
     "tv_align": null,
