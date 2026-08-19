@@ -705519,7 +705519,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 483.35,
+    "exit_date": "2026-08-19",
+    "return_pct": 0.44,
+    "days_held": -1
   },
   {
     "id": "ORLY:2026-08-19",
@@ -707656,7 +707660,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 348.07,
+    "exit_date": "2026-08-19",
+    "return_pct": -0.63,
+    "days_held": -1
   },
   {
     "id": "LLY:2026-08-19",
@@ -711072,7 +711080,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 68.58,
+    "exit_date": "2026-08-19",
+    "return_pct": -1.17,
+    "days_held": -1
   },
   {
     "id": "GOOGL:2026-08-19",
@@ -711388,7 +711400,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 149.9,
+    "exit_date": "2026-08-19",
+    "return_pct": -0.37,
+    "days_held": -1
   },
   {
     "id": "VLO:2026-08-19",
@@ -712409,7 +712425,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 270.56,
+    "exit_date": "2026-08-19",
+    "return_pct": -0.31,
+    "days_held": -1
   },
   {
     "id": "IBIT:2026-08-19",
@@ -712630,6 +712650,160 @@
       {
         "label": "Reward:risk worth it?",
         "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "BDX:2026-08-19",
+    "symbol": "BDX",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-19",
+    "advised_ts": "2026-08-19T18:02:40.527418",
+    "entry": 186.45,
+    "stop": 185.87,
+    "target": 187.84,
+    "rr": 2.42,
+    "conviction": "High",
+    "conviction_pct": 81,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "SNAP:2026-08-19",
+    "symbol": "SNAP",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-19",
+    "advised_ts": "2026-08-19T18:02:40.527418",
+    "entry": 5.25,
+    "stop": 5.2,
+    "target": 5.26,
+    "rr": 0.44,
+    "conviction": "Medium",
+    "conviction_pct": 55,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
       }
     ],
     "tv_align": null,
