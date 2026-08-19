@@ -1,9 +1,15 @@
 {
   "signals": {
+    "ETN": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 90,
+      "dir": "LONG"
+    },
     "KEYS": {
       "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 85,
+      "label": "High",
+      "score": 89,
       "dir": "LONG"
     },
     "DVN": {
@@ -18,12 +24,6 @@
       "score": 91,
       "dir": "LONG"
     },
-    "ETN": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 88,
-      "dir": "LONG"
-    },
     "OCUL": {
       "action": "WATCH LONG",
       "label": "High",
@@ -31,7 +31,7 @@
       "dir": "LONG"
     },
     "AMZN": {
-      "action": "BUY",
+      "action": "WATCH LONG",
       "label": "High",
       "score": 86,
       "dir": "LONG"
@@ -63,7 +63,7 @@
     "AUR": {
       "action": "WATCH LONG",
       "label": "Medium",
-      "score": 73,
+      "score": 75,
       "dir": "LONG"
     },
     "VLO": {
@@ -91,7 +91,7 @@
       "dir": "LONG"
     },
     "MDLZ": {
-      "action": "BUY",
+      "action": "WATCH LONG",
       "label": "High",
       "score": 86,
       "dir": "LONG"
@@ -99,19 +99,13 @@
     "PH": {
       "action": "BUY",
       "label": "High",
-      "score": 86,
+      "score": 85,
       "dir": "LONG"
     },
     "MSFT": {
       "action": "BUY",
-      "label": "Medium",
-      "score": 74,
-      "dir": "LONG"
-    },
-    "EMR": {
-      "action": "BUY",
       "label": "High",
-      "score": 85,
+      "score": 84,
       "dir": "LONG"
     },
     "HUM": {
@@ -127,27 +121,33 @@
       "dir": "LONG"
     },
     "GILD": {
-      "action": "BUY",
+      "action": "WATCH LONG",
       "label": "High",
       "score": 87,
       "dir": "LONG"
     },
     "VOO": {
       "action": "BUY",
-      "label": "Medium",
-      "score": 72,
+      "label": "High",
+      "score": 77,
       "dir": "LONG"
     },
-    "EOG": {
-      "action": "BUY",
+    "EMR": {
+      "action": "WATCH LONG",
       "label": "High",
-      "score": 80,
+      "score": 82,
       "dir": "LONG"
     },
     "GM": {
       "action": "WATCH LONG",
       "label": "High",
       "score": 76,
+      "dir": "LONG"
+    },
+    "EOG": {
+      "action": "BUY",
+      "label": "High",
+      "score": 78,
       "dir": "LONG"
     },
     "ITW": {
@@ -183,7 +183,7 @@
     "ICE": {
       "action": "BUY",
       "label": "High",
-      "score": 76,
+      "score": 77,
       "dir": "LONG"
     },
     "TMO": {
@@ -234,22 +234,10 @@
       "score": 67,
       "dir": "LONG"
     },
-    "OXY": {
-      "action": "HOLD LONG",
-      "label": "High",
-      "score": 92,
-      "dir": "LONG"
-    },
     "SCHW": {
       "action": "HOLD LONG",
       "label": "High",
-      "score": 83,
-      "dir": "LONG"
-    },
-    "CRWD": {
-      "action": "HOLD LONG",
-      "label": "Medium",
-      "score": 72,
+      "score": 85,
       "dir": "LONG"
     },
     "TGT": {
@@ -265,24 +253,6 @@
       "dir": "LONG"
     },
     "IWM": {
-      "action": "HOLD LONG",
-      "label": "Medium",
-      "score": 63,
-      "dir": "LONG"
-    },
-    "DLTR": {
-      "action": "HOLD LONG",
-      "label": "Medium",
-      "score": 68,
-      "dir": "LONG"
-    },
-    "WFC": {
-      "action": "HOLD LONG",
-      "label": "Medium",
-      "score": 69,
-      "dir": "LONG"
-    },
-    "COP": {
       "action": "HOLD LONG",
       "label": "Medium",
       "score": 70,
@@ -309,13 +279,13 @@
     "NBIS": {
       "action": "WATCH LONG",
       "label": "Medium",
-      "score": 64,
+      "score": 72,
       "dir": "LONG"
     },
     "AVGO": {
       "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 74,
+      "label": "High",
+      "score": 76,
       "dir": "LONG"
     },
     "ALAB": {
@@ -333,7 +303,7 @@
     "MU": {
       "action": "WATCH LONG",
       "label": "Medium",
-      "score": 61,
+      "score": 68,
       "dir": "LONG"
     },
     "SLS": {
@@ -417,7 +387,7 @@
     "TNON": {
       "action": "AVOID",
       "label": "Medium",
-      "score": 69,
+      "score": 61,
       "dir": "SHORT"
     },
     "BYND": {
@@ -447,7 +417,7 @@
     "WULF": {
       "action": "AVOID",
       "label": "Medium",
-      "score": 72,
+      "score": 68,
       "dir": "SHORT"
     },
     "CRMD": {
@@ -471,7 +441,7 @@
     "TLT": {
       "action": "AVOID",
       "label": "Medium",
-      "score": 61,
+      "score": 59,
       "dir": "SHORT"
     },
     "LULU": {
@@ -513,7 +483,7 @@
     "MRVL": {
       "action": "FLAT",
       "label": "Medium",
-      "score": 61,
+      "score": 69,
       "dir": "LONG"
     },
     "CRWV": {
@@ -537,19 +507,19 @@
     "AAPL": {
       "action": "FLAT",
       "label": "Medium",
-      "score": 71,
+      "score": 72,
       "dir": "LONG"
     },
     "HD": {
       "action": "FLAT",
       "label": "Medium",
-      "score": 65,
+      "score": 61,
       "dir": "SHORT"
     },
     "WYFI": {
       "action": "FLAT",
       "label": "Medium",
-      "score": 60,
+      "score": 65,
       "dir": "LONG"
     },
     "CMPS": {
@@ -561,7 +531,7 @@
     "GOOGL": {
       "action": "FLAT",
       "label": "Medium",
-      "score": 60,
+      "score": 64,
       "dir": "LONG"
     }
   },
@@ -581,5 +551,5 @@
     "Real Estate": 0
   },
   "catalysts": [],
-  "generated_at": "2026-08-18"
+  "generated_at": "2026-08-19"
 }
