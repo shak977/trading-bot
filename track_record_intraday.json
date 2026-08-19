@@ -702710,7 +702710,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 15.67,
+    "exit_date": "2026-08-19",
+    "return_pct": 4.82,
+    "days_held": -1
   },
   {
     "id": "CMPS:2026-08-19",
@@ -705175,7 +705179,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 367.3,
+    "exit_date": "2026-08-19",
+    "return_pct": -0.53,
+    "days_held": -1
   },
   {
     "id": "PYPL:2026-08-19",
@@ -705940,7 +705948,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 842.29,
+    "exit_date": "2026-08-19",
+    "return_pct": 0.38,
+    "days_held": -1
   },
   {
     "id": "DIS:2026-08-19",
@@ -708146,7 +708158,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 50.78,
+    "exit_date": "2026-08-19",
+    "return_pct": -0.67,
+    "days_held": -1
   },
   {
     "id": "TMUS:2026-08-19",
@@ -708535,7 +708551,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 8.34,
+    "exit_date": "2026-08-19",
+    "return_pct": 2.33,
+    "days_held": -1
   },
   {
     "id": "JMKE:2026-08-19",
@@ -710711,7 +710731,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 130.68,
+    "exit_date": "2026-08-19",
+    "return_pct": -0.48,
+    "days_held": -1
   },
   {
     "id": "VRTX:2026-08-19",
@@ -710946,7 +710970,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 441.91,
+    "exit_date": "2026-08-19",
+    "return_pct": 1.08,
+    "days_held": -1
   },
   {
     "id": "SPGI:2026-08-19",
@@ -711343,7 +711371,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 500.72,
+    "exit_date": "2026-08-19",
+    "return_pct": -0.4,
+    "days_held": -1
   },
   {
     "id": "EOG:2026-08-19",
@@ -712060,7 +712092,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "exit": 8.54,
+    "exit_date": "2026-08-19",
+    "return_pct": 1.67,
+    "days_held": -1
   },
   {
     "id": "TTD:2026-08-19",
@@ -712376,7 +712412,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 59.24,
+    "exit_date": "2026-08-19",
+    "return_pct": -0.45,
+    "days_held": -1
   },
   {
     "id": "CME:2026-08-19",
@@ -712684,7 +712724,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 60.13,
+    "exit_date": "2026-08-19",
+    "return_pct": -0.36,
+    "days_held": -1
   },
   {
     "id": "BDX:2026-08-19",
@@ -713205,6 +713249,83 @@
       {
         "label": "Smart-money footprint?",
         "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "PLTR:2026-08-19",
+    "symbol": "PLTR",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-19",
+    "advised_ts": "2026-08-19T19:07:56.491814",
+    "entry": 174.66,
+    "stop": 173.59,
+    "target": 176.79,
+    "rr": 1.99,
+    "conviction": "Medium",
+    "conviction_pct": 74,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "pass"
       }
     ],
     "tv_align": null,
