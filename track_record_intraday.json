@@ -707825,7 +707825,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "loss",
+    "exit": 1256.73,
+    "exit_date": "2026-08-20",
+    "return_pct": -1.2,
+    "days_held": 0
   },
   {
     "id": "BMY:2026-08-19",
@@ -718790,7 +718794,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 151.74,
+    "exit_date": "2026-08-20",
+    "return_pct": -0.58,
+    "days_held": -1
   },
   {
     "id": "IOND:2026-08-20",
@@ -718948,7 +718956,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 366.29,
+    "exit_date": "2026-08-20",
+    "return_pct": -0.52,
+    "days_held": -1
   },
   {
     "id": "ZTS:2026-08-20",
@@ -719811,7 +719823,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 162.27,
+    "exit_date": "2026-08-20",
+    "return_pct": -0.81,
+    "days_held": -1
   },
   {
     "id": "UPS:2026-08-20",
@@ -721391,7 +721407,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 134.23,
+    "exit_date": "2026-08-20",
+    "return_pct": -0.42,
+    "days_held": -1
   },
   {
     "id": "ICE:2026-08-20",
@@ -722236,6 +722256,83 @@
       {
         "label": "Smart-money footprint?",
         "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "loss",
+    "exit": 61.29,
+    "exit_date": "2026-08-20",
+    "return_pct": -0.47,
+    "days_held": -1
+  },
+  {
+    "id": "CME:2026-08-20",
+    "symbol": "CME",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-20",
+    "advised_ts": "2026-08-20T18:40:07.431748",
+    "entry": 272.74,
+    "stop": 271.97,
+    "target": 273.18,
+    "rr": 0.57,
+    "conviction": "High",
+    "conviction_pct": 79,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
       }
     ],
     "tv_align": null,
