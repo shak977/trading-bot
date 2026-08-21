@@ -114018,5 +114018,98 @@
     "regime_score": 0.45,
     "liquidity_tier": "illiquid",
     "status": "open"
+  },
+  {
+    "id": "GD:2026-08-21",
+    "symbol": "GD",
+    "name": "General Dynamics Corporation",
+    "direction": "LONG",
+    "advised_date": "2026-08-21",
+    "advised_ts": "2026-08-21",
+    "entry": 383.19,
+    "stop": 369.99,
+    "target": 397.95,
+    "rr": 1.12,
+    "conviction": "Medium",
+    "conviction_pct": 74,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Intraday on side?",
+        "status": "warn"
+      },
+      {
+        "label": "Sector trending right?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "warn"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": 0.45,
+    "liquidity_tier": "moderate",
+    "status": "open"
   }
 ]
