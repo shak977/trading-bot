@@ -747260,7 +747260,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 152.01,
+    "exit_date": "2026-08-24",
+    "return_pct": -0.87,
+    "days_held": -1
   },
   {
     "id": "DXCM:2026-08-24",
@@ -749286,7 +749290,11 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 77.28,
+    "exit_date": "2026-08-24",
+    "return_pct": -0.34,
+    "days_held": -1
   },
   {
     "id": "CDNS:2026-08-24",
@@ -749803,6 +749811,87 @@
       {
         "label": "Reward:risk worth it?",
         "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "GILD:2026-08-24",
+    "symbol": "GILD",
+    "name": "",
+    "direction": "LONG",
+    "advised_date": "2026-08-24",
+    "advised_ts": "2026-08-24T20:49:03.821485",
+    "entry": 146.82,
+    "stop": 146.3,
+    "target": 148.91,
+    "rr": 3.99,
+    "conviction": "High",
+    "conviction_pct": 86,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Momentum burst?",
+        "status": "warn"
       }
     ],
     "tv_align": null,
