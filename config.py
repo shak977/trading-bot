@@ -225,7 +225,8 @@ class Config:
     # sizing. OOS validation (466 longs): keeping P(win) >= floor lifts longs 56%->70% win and
     # +0.82%->+1.21% expectancy; the dropped cohort wins only 27%. Sizing by P(win) adds ~+0.2%. ---
     meta_pwin_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("META_PWIN"), True))
-    meta_pwin_floor: float = 0.45    # demote fresh BUYs below this P(win) to Watch (the ~breakeven cut)
+    meta_pwin_floor: float = 0.52    # demote fresh BUYs below this P(win) to Watch (balanced ~70% target)
+    meta_buy_cap: int = 6            # keep only the top-N fresh BUYs by P(win) per build; rest → Watch
     meta_size_k: float = 2.0         # size tilt slope: mult = 1 + (p_win - 0.5)*k, then clamped
     meta_size_min: float = 0.6       # floor on the P(win) size multiplier
     meta_size_max: float = 1.5       # cap on the P(win) size multiplier

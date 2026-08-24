@@ -61,6 +61,15 @@ def run(track_path="track_record.json"):
     sh = [t for t in res if t.get("direction") == "SHORT"]
     out["by_direction"] = {"LONG": _stats(lo), "SHORT": _stats(sh), "ALL": _stats(res)}
 
+    # 1b. ACTIONABLE win rate — only the fresh BUYs we'd actually take (needs 'action' recorded at entry,
+    # so this populates forward). This is the number that matters, vs the raw all-longs book above.
+    buys = [t for t in lo if t.get("action") == "BUY"]
+    if buys:
+        out["buy_only"] = _stats(buys)
+        hp = [t for t in buys if isinstance(t.get("p_win"), (int, float)) and t["p_win"] >= 0.52]
+        if hp:
+            out["buy_only_pwin52"] = _stats(hp)
+
     # 2. R:R buckets (longs incl. expired for exit mix)
     lo_all = [t for t in tr if t.get("direction") == "LONG" and t.get("status") in ("win", "loss", "expired")
               and isinstance(t.get("rr"), (int, float))]

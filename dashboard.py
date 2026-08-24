@@ -1174,6 +1174,16 @@ def build_snapshot() -> dict:
                             0, f"{_svg('octagon',13)} Low model win-probability ({_pw*100:.0f}%) — the learned "
                                "meta-label ranks this below the quality floor. Shown as Watch, not a fresh entry: "
                                "trades below this line have won only ~27% out-of-sample.")
+                # Keep only the top-N fresh BUYs by P(win) — a defined, high-quality actionable list; rest → Watch.
+                _cap = int(getattr(CONFIG, "meta_buy_cap", 6))
+                _fresh_buys = sorted([r for r in shown if r.get("action") == "BUY"],
+                                     key=lambda r: -(r.get("p_win") or 0))
+                for r in _fresh_buys[_cap:]:
+                    r["action"] = "WATCH LONG"
+                    r["meta_capped"] = True
+                    r.setdefault("reasons", []).insert(
+                        0, f"{_svg('octagon',13)} Beyond today's top {_cap} by model win-probability — shown as "
+                           "Watch to keep the actionable list tight and the win rate high.")
         except Exception:  # noqa: BLE001
             pass
 
@@ -1665,9 +1675,18 @@ def _signals_hero(snap: dict) -> str:
     sigs = snap.get("signals") or []
     n_live = sum(1 for s in sigs if s.get("action") in ("BUY", "SHORT"))
     tk = snap.get("track") or {}
-    wr = tk.get("win_rate")
+    # Shorts are cut, so the honest headline is the LONG (active) book — not the blend that still
+    # averages in the dead short trades. Fall back to blended only if shorts are re-enabled.
+    _ldir = (tk.get("by_direction") or {}).get("LONG") or {}
+    if not getattr(CONFIG, "allow_shorts", False) and isinstance(_ldir.get("win_rate"), (int, float)):
+        wr = _ldir.get("win_rate")
+        resolved = _ldir.get("n", tk.get("resolved", 0))
+        wr_label = f"Win rate · {resolved} long"
+    else:
+        wr = tk.get("win_rate")
+        resolved = tk.get("resolved", 0)
+        wr_label = f"Win rate · {resolved} resolved"
     wr_txt = f'{wr}%' if isinstance(wr, (int, float)) else "—"
-    resolved = tk.get("resolved", 0)
     def _is_long(s): return s.get("direction") == "LONG" or s.get("action") in ("BUY", "HOLD LONG", "WATCH LONG")
     def _is_short(s): return s.get("direction") == "SHORT" or s.get("action") in ("SHORT", "HOLD SHORT", "WATCH SHORT")
     n_long = sum(1 for s in sigs if _is_long(s))
@@ -1724,7 +1743,7 @@ def _signals_hero(snap: dict) -> str:
         '</div>'
         '<div class="hx-kpis">'
         f'<div class="hx-kpi"><div class="v">{n_live}</div><div class="k">Live today</div></div>'
-        f'<div class="hx-kpi hint" data-tiphtml="{_esc_attr(_callout("Win rate — resolved calls", [("Win rate", (wr if isinstance(wr,(int,float)) else None), wr_txt, _tone_pct(wr if isinstance(wr,(int,float)) else None))], note=f"{resolved} calls resolved"))}"><div class="v">{wr_txt}</div><div class="k">Win rate · {resolved} resolved</div></div>'
+        f'<div class="hx-kpi hint" data-tiphtml="{_esc_attr(_callout("Win rate — resolved calls", [("Win rate", (wr if isinstance(wr,(int,float)) else None), wr_txt, _tone_pct(wr if isinstance(wr,(int,float)) else None))], note=f"{resolved} calls resolved"))}"><div class="v">{wr_txt}</div><div class="k">{wr_label}</div></div>'
         f'<div class="hx-kpi"><div class="v {tone}">{esc(reg_lab)}</div><div class="k">Regime</div></div>'
         f'<div class="hx-kpi"><div class="v">{n_buy}</div><div class="k">Fresh buys</div></div>'
         f'<div class="hx-kpi"><div class="v">{avg_conv}</div><div class="k">Avg conviction</div></div>'
@@ -3274,6 +3293,35 @@ def _tone_pct(pct, hi=50):
     return "up" if pct >= hi else "dn"
 
 
+def _ticker_tape_html() -> str:
+    """A full-width TradingView ticker tape — live scrolling quotes for indices + the core names.
+    Reliable embed (no rotating video IDs like the old Live-TV panel had)."""
+    import json as _jt
+    cfg = {
+        "symbols": [
+            {"description": "S&P 500", "proxy": "AMEX:SPY"},
+            {"description": "Nasdaq 100", "proxy": "NASDAQ:QQQ"},
+            {"description": "Dow", "proxy": "AMEX:DIA"},
+            {"description": "Russell 2000", "proxy": "AMEX:IWM"},
+            {"description": "Apple", "proxy": "NASDAQ:AAPL"},
+            {"description": "Microsoft", "proxy": "NASDAQ:MSFT"},
+            {"description": "Nvidia", "proxy": "NASDAQ:NVDA"},
+            {"description": "Amazon", "proxy": "NASDAQ:AMZN"},
+            {"description": "Meta", "proxy": "NASDAQ:META"},
+            {"description": "Tesla", "proxy": "NASDAQ:TSLA"},
+            {"description": "Gold", "proxy": "TVC:GOLD"},
+            {"description": "Bitcoin", "proxy": "CRYPTO:BTCUSD"},
+        ],
+        "showSymbolLogo": True, "isTransparent": True, "displayMode": "adaptive",
+        "colorTheme": "dark", "locale": "en",
+    }
+    return ('<div class="ticker-band"><div class="tradingview-widget-container">'
+            '<div class="tradingview-widget-container__widget"></div>'
+            '<script type="text/javascript" '
+            'src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>'
+            + _jt.dumps(cfg) + '</script></div></div>')
+
+
 def _brain_html(snap: dict) -> str:
     """The 'Engine brain' — a visual, animated flow of every stage and skill in the pipeline: how raw
     data becomes a scored, gated, sized signal, and how the nightly loop makes it learn. Mostly a fixed
@@ -4615,6 +4663,7 @@ def render_html(snap: dict) -> str:
     kpi_html = _kpi_html(snap.get("regime"), snap)
     bento_home_html = _bento_home(snap)
     signals_hero_html = _signals_hero(snap)
+    ticker_tape_html = _ticker_tape_html()
     showcase_html = _showcase(snap)
     meganav_html = _meganav()
     _brief = (snap.get("market_brief") or "").strip()
@@ -6076,6 +6125,15 @@ def render_html(snap: dict) -> str:
   .hx-btn.ghost:hover {{ border-color:var(--txt); }}
   .hx-kpis {{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:26px 30px; margin-top:28px;
     flex:1 1 auto; align-content:space-between; }}
+  /* full-width hero (S&P chart + Live-TV removed → ticker tape band below) */
+  .hero-row.hero-solo {{ display:block; }}
+  .hero-solo .hx-kpis {{ grid-template-columns:repeat(6,minmax(0,1fr)); }}
+  @media (max-width:1100px) {{ .hero-solo .hx-kpis {{ grid-template-columns:repeat(4,minmax(0,1fr)); }} }}
+  @media (max-width:680px) {{ .hero-solo .hx-kpis {{ grid-template-columns:repeat(3,minmax(0,1fr)); }} }}
+  /* full-width TradingView ticker tape band */
+  .ticker-band {{ margin:22px 0 8px; border:1px solid var(--line); border-radius:12px; overflow:hidden;
+    background:var(--card); }}
+  .ticker-band .tradingview-widget-container {{ width:100%; }}
   .hx-kpi .v {{ font-size:32px; font-weight:600; letter-spacing:-.02em; line-height:1; font-variant-numeric:tabular-nums; }}
   .hx-kpi .k {{ font-size:12px; color:var(--muted); margin-top:8px; }}
   .hx-kpi .v.buy {{ color:var(--buy); }} .hx-kpi .v.sell {{ color:var(--sell); }} .hx-kpi .v.warn {{ color:var(--warn); }}
@@ -6375,14 +6433,15 @@ def render_html(snap: dict) -> str:
         <details class="tvwidget hero-tv-solo" open>
           <summary>{_svg('tv',15)} Live market TV
             <span class="ctlgrp wtvgrp">
-              <button data-wtv="KQp-e_XQnDE" class="on" onclick="event.preventDefault();event.stopPropagation();_wtvSet(this);">Yahoo Finance</button>
-              <button data-wtv="vKOd3v8VTYo" onclick="event.preventDefault();event.stopPropagation();_wtvSet(this);">Schwab Network</button>
+              <button class="on" onclick="event.preventDefault();event.stopPropagation();_heroTV(this,'UCEAZeUIeJs0IjQiqTCdVSIg');">Yahoo Finance</button>
+              <button onclick="event.preventDefault();event.stopPropagation();_heroTV(this,'UCIALMKvObZNtJ6AmdCLP7Lg');">Bloomberg</button>
             </span>
             <a class="tvw-open" href="#" onclick="event.preventDefault();event.stopPropagation();_gotoTab('livetv');return false;">more channels →</a></summary>
-          <div class="tvw-frame"><iframe id="wtvFrame" src="https://www.youtube.com/embed/KQp-e_XQnDE?autoplay=1&amp;mute=1" title="Live market TV" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+          <div class="tvw-frame"><iframe id="heroTVFrame" src="https://www.youtube.com/embed/live_stream?channel=UCEAZeUIeJs0IjQiqTCdVSIg&amp;autoplay=1&amp;mute=1" title="Live market TV" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
         </details>
       </div>
     </div>
+    {ticker_tape_html}
     {showcase_html}
     {bento_home_html}
     <div class="strat-badge"><span class="k">Strategy type</span><span class="v">Multi-strategy confluence · long-only, meta-label filtered &amp; sized</span></div>
@@ -7298,6 +7357,13 @@ function _wtvSet(btn) {{
   const f = document.getElementById('wtvFrame');
   if (f) f.src = `https://www.youtube.com/embed/${{btn.dataset.wtv}}?autoplay=1&mute=1`;
   document.querySelectorAll('.wtvgrp button').forEach(b => b.classList.toggle('on', b === btn));
+}}
+// Hero Live TV — channel-based live stream (always plays the channel's CURRENT live, so no dead video IDs).
+function _heroTV(btn, channel) {{
+  const f = document.getElementById('heroTVFrame');
+  if (f) f.src = `https://www.youtube.com/embed/live_stream?channel=${{channel}}&autoplay=1&mute=1`;
+  const grp = btn.parentElement;
+  if (grp) grp.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === btn));
 }}
 
 // Scraped alt-data (SEC insiders / analyst rating change / StockTwits buzz) as a normalised list.
