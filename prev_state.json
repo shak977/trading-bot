@@ -48,16 +48,16 @@
       "score": 84,
       "dir": "LONG"
     },
-    "ETHA": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 87,
-      "dir": "LONG"
-    },
     "KO": {
       "action": "WATCH LONG",
       "label": "High",
       "score": 88,
+      "dir": "LONG"
+    },
+    "TGT": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 78,
       "dir": "LONG"
     },
     "BITO": {
@@ -66,22 +66,28 @@
       "score": 81,
       "dir": "LONG"
     },
+    "CRM": {
+      "action": "WATCH LONG",
+      "label": "Medium",
+      "score": 81,
+      "dir": "LONG"
+    },
+    "HUM": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 86,
+      "dir": "LONG"
+    },
     "DLTR": {
       "action": "WATCH LONG",
       "label": "High",
       "score": 83,
       "dir": "LONG"
     },
-    "ADBE": {
+    "MA": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 82,
-      "dir": "LONG"
-    },
-    "TGT": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 78,
+      "score": 84,
       "dir": "LONG"
     },
     "CSX": {
@@ -102,6 +108,12 @@
       "score": 79,
       "dir": "LONG"
     },
+    "ADBE": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 80,
+      "dir": "LONG"
+    },
     "ICE": {
       "action": "WATCH LONG",
       "label": "High",
@@ -109,15 +121,9 @@
       "dir": "LONG"
     },
     "RTX": {
-      "action": "WATCH LONG",
+      "action": "BUY",
       "label": "High",
-      "score": 80,
-      "dir": "LONG"
-    },
-    "BKNG": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 79,
+      "score": 82,
       "dir": "LONG"
     },
     "PRU": {
@@ -129,29 +135,23 @@
     "DHR": {
       "action": "BUY",
       "label": "High",
-      "score": 77,
+      "score": 80,
       "dir": "LONG"
     },
     "UNP": {
       "action": "BUY",
       "label": "High",
-      "score": 80,
+      "score": 81,
       "dir": "LONG"
     },
-    "HUM": {
-      "action": "WATCH LONG",
+    "GD": {
+      "action": "BUY",
       "label": "High",
       "score": 78,
       "dir": "LONG"
     },
     "LLY": {
       "action": "WATCH LONG",
-      "label": "High",
-      "score": 80,
-      "dir": "LONG"
-    },
-    "GD": {
-      "action": "BUY",
       "label": "Medium",
       "score": 74,
       "dir": "LONG"
@@ -164,17 +164,17 @@
     },
     "EOG": {
       "action": "BUY",
-      "label": "Medium",
-      "score": 74,
+      "label": "High",
+      "score": 77,
       "dir": "LONG"
     },
-    "SLS": {
+    "ETHA": {
       "action": "WATCH LONG",
       "label": "Medium",
       "score": 69,
       "dir": "LONG"
     },
-    "TMO": {
+    "SLS": {
       "action": "WATCH LONG",
       "label": "Medium",
       "score": 69,
@@ -210,13 +210,13 @@
       "score": 71,
       "dir": "LONG"
     },
-    "CRM": {
+    "BKNG": {
       "action": "BUY",
       "label": "Medium",
-      "score": 67,
+      "score": 70,
       "dir": "LONG"
     },
-    "MA": {
+    "TMO": {
       "action": "WATCH LONG",
       "label": "Medium",
       "score": 65,
@@ -248,14 +248,14 @@
     },
     "MSFT": {
       "action": "HOLD LONG",
-      "label": "Medium",
-      "score": 72,
+      "label": "High",
+      "score": 76,
       "dir": "LONG"
     },
     "AMZN": {
       "action": "HOLD LONG",
       "label": "Medium",
-      "score": 70,
+      "score": 73,
       "dir": "LONG"
     },
     "EMR": {
@@ -285,19 +285,25 @@
     "XPEV": {
       "action": "AVOID",
       "label": "High",
-      "score": 80,
+      "score": 77,
       "dir": "SHORT"
     },
     "META": {
       "action": "AVOID",
       "label": "Medium",
-      "score": 71,
+      "score": 60,
+      "dir": "SHORT"
+    },
+    "RGNX": {
+      "action": "AVOID",
+      "label": "High",
+      "score": 77,
       "dir": "SHORT"
     },
     "CIFR": {
       "action": "AVOID",
       "label": "Medium",
-      "score": 70,
+      "score": 66,
       "dir": "SHORT"
     },
     "MSTR": {
@@ -321,7 +327,7 @@
     "TSLA": {
       "action": "FLAT",
       "label": "Medium",
-      "score": 72,
+      "score": 60,
       "dir": "SHORT"
     },
     "CEG": {
@@ -333,7 +339,7 @@
     "AAPL": {
       "action": "FLAT",
       "label": "Medium",
-      "score": 67,
+      "score": 70,
       "dir": "LONG"
     },
     "AMD": {
@@ -382,11 +388,11 @@
   "sectors": {
     "Energy": 100,
     "Healthcare": 87,
-    "Consumer": 75,
     "Communication": 75,
     "Index ETFs": 75,
     "Materials": 67,
     "Other / Movers": 64,
+    "Consumer": 62,
     "Financials": 61,
     "Staples": 56,
     "Real Estate": 50,
