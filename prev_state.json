@@ -18,22 +18,22 @@
       "score": 86,
       "dir": "LONG"
     },
+    "TGT": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 80,
+      "dir": "LONG"
+    },
     "BITO": {
       "action": "WATCH LONG",
       "label": "High",
       "score": 84,
       "dir": "LONG"
     },
-    "HUM": {
+    "CRM": {
       "action": "WATCH LONG",
-      "label": "High",
-      "score": 87,
-      "dir": "LONG"
-    },
-    "ASST": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 86,
+      "label": "Medium",
+      "score": 83,
       "dir": "LONG"
     },
     "NET": {
@@ -48,40 +48,28 @@
       "score": 84,
       "dir": "LONG"
     },
-    "TGT": {
+    "HUM": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 80,
+      "score": 86,
       "dir": "LONG"
     },
-    "CRM": {
-      "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 81,
-      "dir": "LONG"
-    },
-    "DLTR": {
+    "CSX": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 83,
+      "score": 87,
       "dir": "LONG"
     },
     "MA": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 84,
+      "score": 85,
       "dir": "LONG"
     },
     "COF": {
       "action": "BUY",
       "label": "High",
-      "score": 88,
-      "dir": "LONG"
-    },
-    "CSX": {
-      "action": "BUY",
-      "label": "High",
-      "score": 83,
+      "score": 87,
       "dir": "LONG"
     },
     "BAC": {
@@ -94,6 +82,18 @@
       "action": "WATCH LONG",
       "label": "High",
       "score": 80,
+      "dir": "LONG"
+    },
+    "CME": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 90,
+      "dir": "LONG"
+    },
+    "DLTR": {
+      "action": "BUY",
+      "label": "High",
+      "score": 81,
       "dir": "LONG"
     },
     "ICE": {
@@ -116,12 +116,6 @@
     },
     "BKNG": {
       "action": "WATCH LONG",
-      "label": "High",
-      "score": 79,
-      "dir": "LONG"
-    },
-    "PRU": {
-      "action": "BUY",
       "label": "High",
       "score": 79,
       "dir": "LONG"
@@ -153,7 +147,13 @@
     "ABBV": {
       "action": "BUY",
       "label": "High",
-      "score": 75,
+      "score": 80,
+      "dir": "LONG"
+    },
+    "SCHW": {
+      "action": "WATCH LONG",
+      "label": "Medium",
+      "score": 71,
       "dir": "LONG"
     },
     "GD": {
@@ -172,6 +172,18 @@
       "action": "BUY",
       "label": "Medium",
       "score": 74,
+      "dir": "LONG"
+    },
+    "ASST": {
+      "action": "WATCH LONG",
+      "label": "Medium",
+      "score": 69,
+      "dir": "LONG"
+    },
+    "TMO": {
+      "action": "WATCH LONG",
+      "label": "Medium",
+      "score": 69,
       "dir": "LONG"
     },
     "SLS": {
@@ -198,12 +210,6 @@
       "score": 72,
       "dir": "LONG"
     },
-    "SCHW": {
-      "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 67,
-      "dir": "LONG"
-    },
     "DE": {
       "action": "BUY",
       "label": "Medium",
@@ -214,12 +220,6 @@
       "action": "BUY",
       "label": "Medium",
       "score": 71,
-      "dir": "LONG"
-    },
-    "TMO": {
-      "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 65,
       "dir": "LONG"
     },
     "PYPL": {
@@ -234,16 +234,10 @@
       "score": 81,
       "dir": "LONG"
     },
-    "WDAY": {
+    "HPQ": {
       "action": "HOLD LONG",
       "label": "High",
-      "score": 82,
-      "dir": "LONG"
-    },
-    "RUM": {
-      "action": "HOLD LONG",
-      "label": "High",
-      "score": 82,
+      "score": 80,
       "dir": "LONG"
     },
     "MSFT": {
@@ -252,10 +246,28 @@
       "score": 76,
       "dir": "LONG"
     },
-    "AMZN": {
+    "RUM": {
+      "action": "HOLD LONG",
+      "label": "Medium",
+      "score": 71,
+      "dir": "LONG"
+    },
+    "PRU": {
       "action": "HOLD LONG",
       "label": "Medium",
       "score": 73,
+      "dir": "LONG"
+    },
+    "AMZN": {
+      "action": "HOLD LONG",
+      "label": "Medium",
+      "score": 74,
+      "dir": "LONG"
+    },
+    "GILD": {
+      "action": "HOLD LONG",
+      "label": "Medium",
+      "score": 64,
       "dir": "LONG"
     },
     "NVDA": {
@@ -294,6 +306,12 @@
       "score": 77,
       "dir": "SHORT"
     },
+    "ASTS": {
+      "action": "AVOID",
+      "label": "Medium",
+      "score": 71,
+      "dir": "SHORT"
+    },
     "MSTR": {
       "action": "AVOID",
       "label": "Medium",
@@ -318,16 +336,22 @@
       "score": 69,
       "dir": "SHORT"
     },
-    "ASTS": {
+    "UAMY": {
       "action": "AVOID",
       "label": "Medium",
-      "score": 67,
+      "score": 69,
       "dir": "SHORT"
     },
     "CIFR": {
       "action": "AVOID",
       "label": "Medium",
       "score": 66,
+      "dir": "SHORT"
+    },
+    "COIN": {
+      "action": "AVOID",
+      "label": "Medium",
+      "score": 68,
       "dir": "SHORT"
     },
     "DJT": {
@@ -357,7 +381,7 @@
     "CEG": {
       "action": "FLAT",
       "label": "Medium",
-      "score": 70,
+      "score": 68,
       "dir": "SHORT"
     },
     "DIA": {
@@ -417,15 +441,15 @@
   },
   "sectors": {
     "Energy": 100,
+    "Real Estate": 100,
     "Healthcare": 87,
+    "Consumer": 75,
     "Communication": 75,
     "Index ETFs": 75,
-    "Consumer": 69,
+    "Staples": 67,
     "Materials": 67,
-    "Other / Movers": 63,
+    "Other / Movers": 62,
     "Financials": 61,
-    "Staples": 56,
-    "Real Estate": 50,
     "Technology": 46,
     "Industrials": 44,
     "Utilities": 0
