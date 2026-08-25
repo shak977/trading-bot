@@ -258,12 +258,12 @@ STRATEGIES: dict[str, tuple] = {
                      "50-day average above the 200-day — a long, positional regime."),
     "donchian": ("Donchian breakout", donchian_breakout, "breakout",
                  "Buys a fresh 20-day high; exits on a 10-day low (turtle-style)."),
-    # NB: "macd_trend" (MACD momentum) was RETIRED Aug 2026 — its own walk-forward record was
-    # 34.8% win / -1.13% avg return over 347 trades, i.e. it was actively losing money and dragging
-    # down the confluence count. Replaced by "pullback" below, a swing-horizon entry.
-    "pullback": ("Pullback in uptrend", pullback_uptrend, "trend",
-                 "Buys a controlled dip to the 20-day EMA inside an established uptrend; "
-                 "holds until the 50-day breaks."),
+    # RETIRED Aug 2026, both on their own evidence (see strategy_backtest.py):
+    #  · "macd_trend" (MACD momentum) — 34.8% win / -1.13% avg return over 347 trades.
+    #  · "pullback" (Pullback in uptrend) — added as a swing entry, then backtested under the live
+    #    exit model across 59 symbols: -1.12% expectancy, payoff 1.09, -85% max drawdown on its own
+    #    equity curve, and flagged FRAGILE (expectancy worsened when the trail was nudged either way).
+    #    The function is kept below for reference//re-testing but is NOT in the live panel.
     "rsi2_meanrev": ("Dip buy (RSI-2)", rsi2_meanrev, "mean-reversion",
                      "Buys a sharp oversold dip inside an uptrend (Connors RSI-2)."),
     "bollinger": ("Squeeze breakout", bollinger_breakout, "breakout",

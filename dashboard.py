@@ -6989,7 +6989,7 @@ const STRAT_INFO = {{
   'Trend crossover': 'A short-term average price crosses ABOVE a longer-term one — a classic early sign an uptrend is starting.',
   'Golden cross': 'The 50-day average rises above the 200-day — a slow, big-picture signal the long-term trend has turned up.',
   'Donchian breakout': 'Price pushes above its highest level of the last 20 days — buyers breaking it out to fresh short-term highs.',
-  'Pullback in uptrend': 'A stock in a healthy uptrend dips back to its 20-day average and turns up again — buying the rest rather than chasing the rip. Holds until the 50-day breaks.',
+  'Dip buy (RSI-2)': 'A short, sharp dip inside an uptrend — buying weakness in a strong name rather than chasing strength.',
   'Dip buy (RSI-2)': 'Inside an existing uptrend, price dips hard for a day or two — a chance to buy the pullback before it resumes.',
   'Squeeze breakout': 'After a quiet, low-volatility stretch, price pops out of its range — pent-up energy releasing into a move up.',
   'EMA momentum stack': 'Fast averages line up above slow ones (8 > 21 > 50) — a tidy, healthy uptrend with momentum behind it.',
