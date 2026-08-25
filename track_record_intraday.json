@@ -747491,7 +747491,7 @@
     "regime_score": null,
     "liquidity_tier": "illiquid",
     "status": "open",
-    "high_water": 178.82
+    "high_water": 178.87
   },
   {
     "id": "IBIT:2026-08-24",
@@ -756444,7 +756444,7 @@
     "regime_score": null,
     "liquidity_tier": "illiquid",
     "status": "open",
-    "high_water": 25.82,
+    "high_water": 25.87,
     "target_exceeded": true
   },
   {
@@ -756680,7 +756680,7 @@
     "regime_score": null,
     "liquidity_tier": "illiquid",
     "status": "open",
-    "high_water": 42.35
+    "high_water": 42.36
   },
   {
     "id": "ELV:2026-08-25",
@@ -756839,7 +756839,7 @@
     "regime_score": null,
     "liquidity_tier": "illiquid",
     "status": "open",
-    "high_water": 31.29
+    "high_water": 31.3
   },
   {
     "id": "USB:2026-08-25",
@@ -758028,7 +758028,7 @@
     "regime_score": null,
     "liquidity_tier": "illiquid",
     "status": "open",
-    "high_water": 50.22
+    "high_water": 50.27
   },
   {
     "id": "MSFT:2026-08-25",
@@ -758348,8 +758348,12 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
-    "high_water": 374.33
+    "status": "win",
+    "high_water": 374.33,
+    "exit": 372.89589965505445,
+    "exit_date": "2026-08-25",
+    "return_pct": 0.03,
+    "days_held": -1
   },
   {
     "id": "GOOGL:2026-08-25",
@@ -758738,7 +758742,8 @@
     "regime_score": null,
     "liquidity_tier": "illiquid",
     "status": "open",
-    "high_water": 62.3
+    "high_water": 62.38,
+    "target_exceeded": true
   },
   {
     "id": "KO:2026-08-25",
@@ -759227,8 +759232,12 @@
     "regime": "Risk-on",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
-    "high_water": 10.57
+    "status": "loss",
+    "high_water": 10.57,
+    "exit": 10.28,
+    "exit_date": "2026-08-25",
+    "return_pct": -2.65,
+    "days_held": -1
   },
   {
     "id": "DUK:2026-08-25",
@@ -760034,7 +760043,7 @@
     "regime_score": null,
     "liquidity_tier": "illiquid",
     "status": "open",
-    "high_water": 84.52
+    "high_water": 84.55
   },
   {
     "id": "PURR:2026-08-25",
@@ -760785,7 +760794,7 @@
     "regime_score": null,
     "liquidity_tier": "illiquid",
     "status": "open",
-    "high_water": 333.66
+    "high_water": 334.16
   },
   {
     "id": "DLTR:2026-08-25",
@@ -760945,7 +760954,7 @@
     "regime_score": null,
     "liquidity_tier": "illiquid",
     "status": "open",
-    "high_water": 222.4
+    "high_water": 222.46
   },
   {
     "id": "NVDA:2026-08-25",
@@ -761750,6 +761759,170 @@
       },
       {
         "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "RTX:2026-08-25",
+    "symbol": "RTX",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-08-25",
+    "advised_ts": "2026-08-25T19:38:28.974755",
+    "entry": 210.38,
+    "stop": 209.75,
+    "target": 212.89,
+    "rr": 4.0,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 83,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "PATH:2026-08-25",
+    "symbol": "PATH",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-08-25",
+    "advised_ts": "2026-08-25T19:38:28.974755",
+    "entry": 16.53,
+    "stop": 16.42,
+    "target": 16.77,
+    "rr": 2.15,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 79,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "fail"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Momentum burst?",
         "status": "warn"
       }
     ],
