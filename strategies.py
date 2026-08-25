@@ -108,6 +108,27 @@ def ema_stack(df: pd.DataFrame, cfg: Config) -> pd.Series:
     return _state(entry, exit_)
 
 
+def pullback_uptrend(df: pd.DataFrame, cfg: Config) -> pd.Series:
+    """Swing pullback: in a healthy uptrend, buy the controlled dip back to the 20-day EMA rather
+    than chasing strength. The complement to the breakout strategies — they buy highs, this buys the
+    rest *within* a trend, which is where the data says the edge is (non-extended entries won 64%
+    vs 40% when chasing). Holds while the trend holds: exits only when the 50-day is lost.
+
+    Entry: price above the 50-day AND 200-day (trend intact), pulls back to within ~1% of the
+    20-day EMA (or briefly under it) without breaking the 50-day, then closes back up.
+    Exit: close below the 50-day SMA — a genuine trend break, not noise. That long exit is what
+    makes this a SWING strategy rather than a 2-5 day mean-reversion scalp.
+    """
+    c = df["close"]
+    e20, s50, s200 = ind.ema(c, 20), ind.sma(c, 50), ind.sma(c, 200)
+    uptrend = (c > s50) & (s50 > s200)
+    near20 = c <= e20 * 1.01                      # dipped to/through the 20-day
+    reclaim = c > c.shift(1)                      # and turned back up
+    entry = uptrend & near20.shift(1, fill_value=False) & reclaim & (c > s50)
+    exit_ = c < s50
+    return _state(entry, exit_)
+
+
 # ---- short-side mirrors: each returns a 0/1 position Series (1 = short active) ----
 # Same state-machine convention as the long side, but the triggers are the bearish
 # mirror image. "1" means "a short is on" so confluence counting stays uniform.
@@ -237,8 +258,12 @@ STRATEGIES: dict[str, tuple] = {
                      "50-day average above the 200-day — a long, positional regime."),
     "donchian": ("Donchian breakout", donchian_breakout, "breakout",
                  "Buys a fresh 20-day high; exits on a 10-day low (turtle-style)."),
-    "macd_trend": ("MACD momentum", macd_trend, "momentum",
-                   "MACD crossing up through its signal line while above zero."),
+    # NB: "macd_trend" (MACD momentum) was RETIRED Aug 2026 — its own walk-forward record was
+    # 34.8% win / -1.13% avg return over 347 trades, i.e. it was actively losing money and dragging
+    # down the confluence count. Replaced by "pullback" below, a swing-horizon entry.
+    "pullback": ("Pullback in uptrend", pullback_uptrend, "trend",
+                 "Buys a controlled dip to the 20-day EMA inside an established uptrend; "
+                 "holds until the 50-day breaks."),
     "rsi2_meanrev": ("Dip buy (RSI-2)", rsi2_meanrev, "mean-reversion",
                      "Buys a sharp oversold dip inside an uptrend (Connors RSI-2)."),
     "bollinger": ("Squeeze breakout", bollinger_breakout, "breakout",
@@ -257,8 +282,7 @@ SHORT_STRATEGIES: dict[str, tuple] = {
                     "50-day average below the 200-day — a long, positional downtrend."),
     "donchian_dn": ("Donchian breakdown", donchian_breakdown, "breakdown",
                     "Shorts a fresh 20-day low; covers on a 10-day high (turtle mirror)."),
-    "macd_trend_dn": ("MACD momentum (down)", macd_trend_down, "momentum",
-                      "MACD crossing down through its signal line while below zero."),
+    # "macd_trend_dn" retired alongside its long twin (see note above) to keep the panels symmetric.
     "rsi2_short": ("Rip-sell (RSI-2)", rsi2_short, "mean-reversion",
                    "Shorts a sharp overbought rip inside a downtrend (Connors RSI-2 mirror)."),
     "bollinger_dn": ("Squeeze breakdown", bollinger_breakdown, "breakdown",
