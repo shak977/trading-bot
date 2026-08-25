@@ -487,6 +487,19 @@ def build_snapshot() -> dict:
                         0, f"{_svg('octagon',13)} Too jumpy — daily swings are large. Shown as Watch, not a fresh "
                            "entry: calm, low-volatility names have won far more (60% vs 15%).")
 
+    # Dashboard control panel (dashboard_controls.json, written by the Control tab's "Apply to engine"
+    # export). Lets you tune settings + accept/reject from the browser; the engine respects them next build.
+    _ctrl = _load_json_safe("dashboard_controls.json") or {}
+    for _ck, _cv in (_ctrl.get("settings") or {}).items():
+        if _ck in ("meta_pwin_floor", "meta_buy_cap", "extension_gate_enabled",
+                   "volatility_gate_enabled", "allow_shorts") and _cv is not None:
+            try:
+                setattr(CONFIG, _ck, _cv)
+            except Exception:  # noqa: BLE001
+                pass
+    _ctrl_reject = {str(s).upper() for s in (_ctrl.get("rejected") or [])}
+    _ctrl_accept = {str(s).upper() for s in (_ctrl.get("accepted") or [])}
+
     # Safety net: shorts are cut at the source in scanner._classify, but neutralise any short that
     # slips in via a forced-include / intraday path so it never trades or pollutes the record.
     if not getattr(CONFIG, "allow_shorts", False):
@@ -507,6 +520,14 @@ def build_snapshot() -> dict:
                     r["journal_avoided"] = True
                     r.setdefault("reasons", []).insert(
                         0, f"{_svg('octagon',13)} On your journal <b>avoid</b> list — suppressed by your own read.")
+    # Dashboard rejections — names you hit "Reject" on in the browser.
+    if _ctrl_reject:
+        for r in shown:
+            if (r.get("symbol") or "").upper() in _ctrl_reject and r.get("action") in ("BUY", "HOLD LONG", "WATCH LONG"):
+                r["action"] = "AVOID"
+                r["user_rejected"] = True
+                r.setdefault("reasons", []).insert(
+                    0, f"{_svg('octagon',13)} You <b>rejected</b> this on the dashboard — suppressed.")
         _watch = [str(s).upper() for s in (_journal.get("watchlist") or []) if str(s).upper() not in _avoid]
         if _watch:                                    # pin your watchlist into the next scan for a full read
             try:
@@ -1167,7 +1188,7 @@ def build_snapshot() -> dict:
                     if _pw is None:
                         continue
                     r["p_win"] = round(_pw, 3)
-                    if r.get("action") == "BUY" and _pw < _floor:
+                    if r.get("action") == "BUY" and _pw < _floor and (r.get("symbol") or "").upper() not in _ctrl_accept:
                         r["action"] = "WATCH LONG"
                         r["meta_gated"] = True
                         r.setdefault("reasons", []).insert(
@@ -1176,7 +1197,9 @@ def build_snapshot() -> dict:
                                "trades below this line have won only ~27% out-of-sample.")
                 # Keep only the top-N fresh BUYs by P(win) — a defined, high-quality actionable list; rest → Watch.
                 _cap = int(getattr(CONFIG, "meta_buy_cap", 6))
-                _fresh_buys = sorted([r for r in shown if r.get("action") == "BUY"],
+                # accepted names are never capped away — your explicit picks always stay actionable
+                _fresh_buys = sorted([r for r in shown if r.get("action") == "BUY"
+                                      and (r.get("symbol") or "").upper() not in _ctrl_accept],
                                      key=lambda r: -(r.get("p_win") or 0))
                 for r in _fresh_buys[_cap:]:
                     r["action"] = "WATCH LONG"
@@ -1640,6 +1663,7 @@ def _meganav() -> str:
     }
     groups = [
         ("Trading", [("signals", "Signals", "Live conviction-scored ideas", "rows"),
+                     ("control", "Control", "Tune the engine · accept/reject", "donut"),
                      ("markets", "Markets", "Charts, sectors, macro", "candles"),
                      ("portfolio", "Portfolio", "Positions & allocation", "donut"),
                      ("premium", "Premium selling", "Where selling options premium pays", "candles")]),
@@ -3293,6 +3317,42 @@ def _tone_pct(pct, hi=50):
     return "up" if pct >= hi else "dn"
 
 
+def _control_html(snap: dict) -> str:
+    """Control panel — tune the engine in plain terms + review your accept/reject decisions, then export
+    a file the engine reads next build. All the interactivity is client-side JS; this is the shell."""
+    return ('<div class="sec-eyebrow">Control</div>'
+            f'<div class="sec-head"><span class="sh-ico">{_svg("scale", 15)}</span><h2>Control panel</h2>'
+            '<span class="sh-sub">tune it &middot; accept / reject &middot; apply</span></div>'
+            '<p style="color:var(--muted);font-size:13px;margin:2px 0 16px;max-width:680px;">Adjust the engine '
+            'in plain terms and it updates what you see instantly. Hit <b>Accept</b>/<b>Reject</b> on any signal '
+            'card. When ready, <b>Apply to engine</b> saves your choices to a file the bot reads on its next build.</p>'
+            '<div class="ctrl-grid">'
+            '<div class="ctrl-card"><h3>Settings</h3>'
+            '<div class="ctrl-row"><div class="ctrl-lbl">Minimum win-probability to BUY <b id="cFloorV">52%</b></div>'
+            '<input type="range" id="cFloor" min="40" max="75" step="1"></div>'
+            '<div class="ctrl-hint">Higher = fewer, higher-quality trades. ~55% targets a 70% win rate.</div>'
+            '<div class="ctrl-row"><div class="ctrl-lbl">Max fresh BUYs per day <b id="cCapV">6</b></div>'
+            '<input type="range" id="cCap" min="1" max="20" step="1"></div>'
+            '<div class="ctrl-hint">Caps the actionable list to the top N by win-probability.</div>'
+            '<label class="ctrl-tog"><input type="checkbox" id="cExt"> <span>No chasing — demote stretched entries (extension gate)</span></label>'
+            '<label class="ctrl-tog"><input type="checkbox" id="cVol"> <span>Calm only — demote too-jumpy entries (volatility gate)</span></label>'
+            '<label class="ctrl-tog"><input type="checkbox" id="cShorts"> <span>Allow shorts (off = long-only)</span></label>'
+            '<div class="ctrl-preview" id="cPreview">—</div>'
+            '</div>'
+            '<div class="ctrl-card"><h3>Your decisions</h3>'
+            '<div class="ctrl-dec-h">Accepted</div><div class="ctrl-chips" id="cAccepted"></div>'
+            '<div class="ctrl-dec-h" style="margin-top:14px;">Rejected</div><div class="ctrl-chips" id="cRejected"></div>'
+            '<button class="ctrl-clear" id="cClear">Clear all decisions</button>'
+            '</div></div>'
+            '<div class="ctrl-apply">'
+            '<button class="ctrl-apply-btn" id="cApply">Apply to engine &darr;</button>'
+            '<button class="ctrl-copy" id="cCopy">Copy</button>'
+            '<span class="ctrl-apply-note">Downloads <code>dashboard_controls.json</code> — drop it in your '
+            '<code>trading_bot</code> folder and push (or let the watcher sync). The preview above is instant; '
+            'the engine applies it on the next build.</span></div>'
+            '<div class="ctrl-reset"><button id="cReset">Reset settings to defaults</button></div>')
+
+
 def _ticker_tape_html() -> str:
     """A full-width TradingView ticker tape — live scrolling quotes for indices + the core names.
     Reliable embed (no rotating video IDs like the old Live-TV panel had)."""
@@ -4644,6 +4704,7 @@ def render_html(snap: dict) -> str:
     analytics_html = _analytics_html(snap)
     premium_html = _premium_selling_html(snap)
     brain_html = _brain_html(snap)
+    control_html = _control_html(snap)
     whatsnew_html = _changelog_html(snap.get("changelog"))
     agents_html = _agent_web_html(snap) + _agent_universe_html(snap)
     regime_html = _regime_html(snap.get("regime"))
@@ -6134,6 +6195,51 @@ def render_html(snap: dict) -> str:
   .ticker-band {{ margin:22px 0 8px; border:1px solid var(--line); border-radius:12px; overflow:hidden;
     background:var(--card); }}
   .ticker-band .tradingview-widget-container {{ width:100%; }}
+  /* ===== Accept / Reject on cards ===== */
+  .ar-btns {{ position:absolute; top:14px; right:44px; display:flex; gap:5px; opacity:0; transition:opacity .15s ease; z-index:3; }}
+  .sxcard:hover .ar-btns, .sxcard.accepted .ar-btns, .sxcard.rejected .ar-btns {{ opacity:1; }}
+  .ar-btn {{ width:26px; height:26px; border-radius:7px; border:1px solid var(--line); background:var(--card);
+    color:var(--muted); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; padding:0; }}
+  .ar-yes:hover, .sxcard.accepted .ar-yes {{ color:var(--buy); border-color:color-mix(in srgb,var(--buy) 45%,var(--line)); background:color-mix(in srgb,var(--buy) 12%,var(--card)); }}
+  .ar-no:hover, .sxcard.rejected .ar-no {{ color:var(--sell); border-color:color-mix(in srgb,var(--sell) 45%,var(--line)); background:color-mix(in srgb,var(--sell) 12%,var(--card)); }}
+  .sxcard.accepted {{ border-color:color-mix(in srgb,var(--buy) 45%,var(--line)); box-shadow:0 0 0 1px color-mix(in srgb,var(--buy) 30%,transparent); }}
+  .sxcard.rejected {{ border-color:color-mix(in srgb,var(--sell) 40%,var(--line)); }}
+  .sxcard.ctrl-dim {{ opacity:.38; filter:grayscale(.3); }}
+  .sxcard.accepted.ctrl-dim {{ opacity:1; filter:none; }}
+  /* ===== Control panel ===== */
+  .ctrl-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:8px; align-items:start; }}
+  .ctrl-card {{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px 22px; }}
+  .ctrl-card h3 {{ margin:0 0 14px; font-size:15px; font-weight:700; }}
+  .ctrl-row {{ margin-top:16px; }}
+  .ctrl-lbl {{ font-size:13.5px; color:var(--txt2); display:flex; justify-content:space-between; margin-bottom:7px; }}
+  .ctrl-lbl b {{ color:var(--accent); font-variant-numeric:tabular-nums; }}
+  .ctrl-hint {{ font-size:11.5px; color:var(--muted); margin-top:5px; }}
+  .ctrl-card input[type=range] {{ width:100%; accent-color:var(--accent); cursor:pointer; }}
+  .ctrl-tog {{ display:flex; align-items:flex-start; gap:9px; margin-top:15px; font-size:13px; color:var(--txt2); cursor:pointer; line-height:1.4; }}
+  .ctrl-tog input {{ margin-top:2px; accent-color:var(--accent); cursor:pointer; }}
+  .ctrl-preview {{ margin-top:18px; padding-top:14px; border-top:1px solid var(--line); font-size:12.5px; color:var(--txt); font-weight:600; }}
+  .ctrl-dec-h {{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin-bottom:8px; }}
+  .ctrl-chips {{ display:flex; flex-wrap:wrap; gap:7px; }}
+  .ctrl-chip {{ display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600; border-radius:999px; padding:3px 6px 3px 11px; }}
+  .ctrl-chip.acc {{ color:var(--buy); background:color-mix(in srgb,var(--buy) 14%,transparent); }}
+  .ctrl-chip.rej {{ color:var(--sell); background:color-mix(in srgb,var(--sell) 14%,transparent); }}
+  .ctrl-chip button {{ background:none; border:0; color:inherit; cursor:pointer; font-size:14px; line-height:1; opacity:.7; padding:0 2px; }}
+  .ctrl-chip button:hover {{ opacity:1; }}
+  .ctrl-none {{ font-size:12px; color:var(--muted); }}
+  .ctrl-clear {{ margin-top:18px; background:none; border:1px solid var(--line); color:var(--muted); border-radius:8px;
+    padding:7px 13px; font-size:12px; cursor:pointer; }}
+  .ctrl-clear:hover {{ color:var(--txt); border-color:var(--txt); }}
+  .ctrl-apply {{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:20px; }}
+  .ctrl-apply-btn {{ background:var(--txt); color:#000; border:0; border-radius:999px; font-size:14px; font-weight:600;
+    padding:11px 22px; cursor:pointer; }}
+  .ctrl-apply-btn:hover {{ filter:brightness(1.1); }}
+  .ctrl-copy {{ background:none; border:1px solid var(--line); color:var(--txt2); border-radius:999px; padding:10px 16px; font-size:13px; cursor:pointer; }}
+  .ctrl-copy:hover {{ border-color:var(--txt); color:var(--txt); }}
+  .ctrl-apply-note {{ font-size:11.5px; color:var(--muted); flex:1; min-width:200px; line-height:1.5; }}
+  .ctrl-apply-note code {{ font-family:var(--tape); background:var(--inset); padding:1px 5px; border-radius:4px; }}
+  .ctrl-reset {{ margin-top:14px; }}
+  .ctrl-reset button {{ background:none; border:0; color:var(--muted); font-size:11.5px; cursor:pointer; text-decoration:underline; }}
+  @media (max-width:760px) {{ .ctrl-grid {{ grid-template-columns:1fr; }} }}
   .hx-kpi .v {{ font-size:32px; font-weight:600; letter-spacing:-.02em; line-height:1; font-variant-numeric:tabular-nums; }}
   .hx-kpi .k {{ font-size:12px; color:var(--muted); margin-top:8px; }}
   .hx-kpi .v.buy {{ color:var(--buy); }} .hx-kpi .v.sell {{ color:var(--sell); }} .hx-kpi .v.warn {{ color:var(--warn); }}
@@ -6532,6 +6638,10 @@ def render_html(snap: dict) -> str:
 {brain_html}
   </section>
 
+  <section class="page" id="page-control">
+{control_html}
+  </section>
+
   <section class="page" id="page-system">
 {sysdiag_html}
 {metalabel_html}
@@ -6893,6 +7003,26 @@ function _toggleFav(sym) {{
   if (FAVS.has(sym)) FAVS.delete(sym); else FAVS.add(sym);
   try {{ localStorage.setItem('tb-favs', JSON.stringify([...FAVS])); }} catch (e) {{}}
 }}
+// ---- Control panel state (browser-side): settings + accept/reject decisions ----
+const _CTRL_DEFAULTS = {{ floor: 52, cap: 6, ext: true, vol: true, shorts: false }};
+let _CONTROLS = Object.assign({{}}, _CTRL_DEFAULTS);
+let _DEC = {{ accepted: [], rejected: [] }};
+try {{ _CONTROLS = Object.assign({{}}, _CTRL_DEFAULTS, JSON.parse(localStorage.getItem('tb-controls') || '{{}}')); }} catch (e) {{}}
+try {{ _DEC = Object.assign({{accepted:[],rejected:[]}}, JSON.parse(localStorage.getItem('tb-decisions') || '{{}}')); }} catch (e) {{}}
+function _saveCtrl() {{ try {{ localStorage.setItem('tb-controls', JSON.stringify(_CONTROLS)); }} catch (e) {{}} }}
+function _saveDec() {{ try {{ localStorage.setItem('tb-decisions', JSON.stringify(_DEC)); }} catch (e) {{}} }}
+function _decide(sym, verdict) {{
+  _DEC.accepted = _DEC.accepted.filter(s => s !== sym);
+  _DEC.rejected = _DEC.rejected.filter(s => s !== sym);
+  if (verdict === 'accept') _DEC.accepted.push(sym);
+  else if (verdict === 'reject') _DEC.rejected.push(sym);
+  _saveDec();
+  document.querySelectorAll('[data-sym="' + sym + '"]').forEach(el => {{
+    el.classList.toggle('accepted', verdict === 'accept');
+    el.classList.toggle('rejected', verdict === 'reject');
+  }});
+  if (window._renderControl) _renderControl();
+}}
 // Plain-English explanations shown on hover for every strategy + type, across the app.
 const STRAT_INFO = {{
   'Trend crossover': 'A short-term average price crosses ABOVE a longer-term one — a classic early sign an uptrend is starting.',
@@ -7149,6 +7279,10 @@ function _intradayBit(s) {{
 }}
 function makeCard(s) {{
   const el = document.createElement('div'); el.className='card sxcard';
+  el.dataset.sym = s.symbol; el.dataset.action = s.action || '';
+  el.dataset.dir = s.direction || ''; if (typeof s.p_win === 'number') el.dataset.pwin = s.p_win;
+  if (_DEC.rejected.includes(s.symbol)) el.classList.add('rejected');
+  if (_DEC.accepted.includes(s.symbol)) el.classList.add('accepted');
   const cls = (s.action||'').replace(' ','');
   const conv = s.conviction || {{}};
   const cpct = conv.score_pct || 0;
@@ -7274,6 +7408,10 @@ function makeCard(s) {{
   const _rowVal = (v, tip) => tip ? `<span class="hint" data-tiphtml="${{_esc(tip)}}">${{v}}</span>` : v;
   const _rows = [];
   if (_p.entry!=null) _rows.push(['Entry', _rowVal(_m2(_p.entry), _entryTip)]);
+  if (_p.t1_pct!=null) {{
+    const _t1Tip = `<div class='cb-wrap'><div class='cb-h'>Partial exit &middot; T1</div><div class='cb-line'>Book <b>${{Math.round((_p.t1_frac||0.5)*100)}}%</b> at <b>${{_m2(_p.t1)}}</b> (+${{_p.t1_pct}}%), then move the stop to breakeven and let the rest run to target.</div><div class='cb-cm'>Turns a round-trip into a booked win — far targets get noise-stopped ~60% of the time.</div></div>`;
+    _rows.push(['Take partial', _rowVal(`<span class="sx-up">${{_isShort?'−':'+'}}${{_p.t1_pct}}%</span> <span style="color:var(--muted);font-weight:400;">· ${{Math.round((_p.t1_frac||0.5)*100)}}%</span>`, _t1Tip)]);
+  }}
   if (_p.target_pct!=null) _rows.push(['Target', _rowVal(`<span class="sx-up">${{_isShort?'−':'+'}}${{_p.target_pct}}%</span>`, _tgtTip)]);
   if (_p.stop_pct!=null) _rows.push(['Stop', _rowVal(`<span class="sx-dn">${{_isShort?'+':'−'}}${{_p.stop_pct}}%</span>`, _stpTip)]);
   if (_p.rr!=null) _rows.push(['R : R', _rowVal('1:'+_p.rr, _rrTip)]);
@@ -7321,6 +7459,7 @@ function makeCard(s) {{
   }}
   el.innerHTML = `
     <button class="favbtn ${{FAVS.has(s.symbol)?'on':''}}" title="Save to favorites" aria-label="Save to favorites">${{_ico(FAVS.has(s.symbol)?'star-fill':'star',17)}}</button>
+    <div class="ar-btns"><button class="ar-btn ar-yes" title="Accept — keep this trade" aria-label="Accept">${{_ico('check',15)}}</button><button class="ar-btn ar-no" title="Reject — suppress this trade" aria-label="Reject">${{_ico('x',15)}}</button></div>
     <div class="sx-head"><div class="sx-hl">${{logo}}<div class="sx-hid"><div class="sx-title">${{s.symbol}}</div><div class="sx-sub">${{s.name||s.exchange||''}}</div></div></div>${{_rightMeta}}</div>
     ${{_desc ? `<div class="sx-desc">${{_esc(_desc)}}</div>` : ''}}
     ${{_pills.length ? `<div class="sx-pills">${{_pills.join('')}}</div>` : ''}}
@@ -7333,6 +7472,9 @@ function makeCard(s) {{
     _fb.innerHTML = _ico(FAVS.has(s.symbol) ? 'star-fill' : 'star', 17); _fb.classList.toggle('on', FAVS.has(s.symbol));
     if (_curFilter === 'favs') renderCards();
   }});
+  const _ay = el.querySelector('.ar-yes'), _an = el.querySelector('.ar-no');
+  if (_ay) _ay.addEventListener('click', (e) => {{ e.stopPropagation(); _decide(s.symbol, _DEC.accepted.includes(s.symbol) ? 'clear' : 'accept'); }});
+  if (_an) _an.addEventListener('click', (e) => {{ e.stopPropagation(); _decide(s.symbol, _DEC.rejected.includes(s.symbol) ? 'clear' : 'reject'); }});
   el.addEventListener('click', () => openModal(s));
   return el;
 }}
@@ -7670,6 +7812,7 @@ function renderCards() {{
     const p = (typeof LIVE !== 'undefined') ? LIVE[el.dataset.px] : null;
     if (p != null) el.textContent = _fmtPx(p);
   }});
+  if (window._applyControls) try {{ window._applyControls(); }} catch (e) {{}}
 }}
 (function setupViews() {{
   // Sort = how the SAME set of cards is ordered (sector grouping, conviction, etc.)
@@ -7729,6 +7872,55 @@ function renderCards() {{
       document.querySelectorAll('.an-view').forEach(function(x) {{ x.classList.toggle('on', x.dataset.anview === v); }});
     }});
   }});
+}})();
+
+// ---- Control panel: settings sliders + accept/reject + apply-to-engine export ----
+(function setupControl() {{
+  const $ = id => document.getElementById(id);
+  const floor = $('cFloor'); if (!floor) return;
+  function paint() {{
+    $('cFloor').value = _CONTROLS.floor; $('cFloorV').textContent = _CONTROLS.floor + '%';
+    $('cCap').value = _CONTROLS.cap; $('cCapV').textContent = _CONTROLS.cap;
+    $('cExt').checked = _CONTROLS.ext; $('cVol').checked = _CONTROLS.vol; $('cShorts').checked = _CONTROLS.shorts;
+  }}
+  function chips(el, arr, kind) {{
+    el.innerHTML = arr.length ? arr.map(s => '<span class="ctrl-chip ' + kind + '">' + s + '<button data-sym="' + s + '">&times;</button></span>').join('') : '<span class="ctrl-none">none yet</span>';
+    el.querySelectorAll('button').forEach(b => b.addEventListener('click', () => _decide(b.dataset.sym, 'clear')));
+  }}
+  function apply() {{
+    const cards = [...document.querySelectorAll('#cards [data-sym]')];
+    const floorF = _CONTROLS.floor / 100;
+    let buys = cards.filter(c => c.dataset.action === 'BUY' && c.dataset.dir !== 'SHORT');
+    buys.sort((a, b) => (parseFloat(b.dataset.pwin) || 0) - (parseFloat(a.dataset.pwin) || 0));
+    cards.forEach(c => c.classList.remove('ctrl-dim'));
+    let kept = 0;
+    buys.forEach(c => {{
+      const pw = parseFloat(c.dataset.pwin);
+      const rej = _DEC.rejected.includes(c.dataset.sym), acc = _DEC.accepted.includes(c.dataset.sym);
+      const ok = !rej && (acc || ((isNaN(pw) || pw >= floorF) && kept < _CONTROLS.cap));
+      if (ok) kept++; else c.classList.add('ctrl-dim');
+    }});
+    cards.forEach(c => {{ if (_DEC.rejected.includes(c.dataset.sym)) c.classList.add('ctrl-dim'); }});
+    const pv = $('cPreview'); if (pv) pv.textContent = 'Preview: ' + kept + ' actionable BUY' + (kept === 1 ? '' : 's') + ' under these settings (of ' + buys.length + ' flagged today).';
+  }}
+  window._applyControls = apply;
+  window._renderControl = function() {{ paint(); chips($('cAccepted'), _DEC.accepted, 'acc'); chips($('cRejected'), _DEC.rejected, 'rej'); apply(); }};
+  floor.addEventListener('input', () => {{ _CONTROLS.floor = +floor.value; $('cFloorV').textContent = floor.value + '%'; _saveCtrl(); apply(); }});
+  $('cCap').addEventListener('input', () => {{ _CONTROLS.cap = +$('cCap').value; $('cCapV').textContent = $('cCap').value; _saveCtrl(); apply(); }});
+  [['cExt', 'ext'], ['cVol', 'vol'], ['cShorts', 'shorts']].forEach(([id, k]) => $(id).addEventListener('change', e => {{ _CONTROLS[k] = e.target.checked; _saveCtrl(); apply(); }}));
+  $('cClear').addEventListener('click', () => {{ _DEC = {{accepted: [], rejected: []}}; _saveDec(); document.querySelectorAll('.accepted, .rejected').forEach(el => el.classList.remove('accepted', 'rejected')); window._renderControl(); }});
+  $('cReset').addEventListener('click', () => {{ _CONTROLS = Object.assign({{}}, _CTRL_DEFAULTS); _saveCtrl(); window._renderControl(); }});
+  function payload() {{
+    return {{ settings: {{ meta_pwin_floor: +(_CONTROLS.floor / 100).toFixed(2), meta_buy_cap: _CONTROLS.cap,
+      extension_gate_enabled: _CONTROLS.ext, volatility_gate_enabled: _CONTROLS.vol, allow_shorts: _CONTROLS.shorts }},
+      accepted: _DEC.accepted, rejected: _DEC.rejected, generated: new Date().toISOString() }};
+  }}
+  $('cApply').addEventListener('click', () => {{
+    const blob = new Blob([JSON.stringify(payload(), null, 2)], {{type: 'application/json'}});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'dashboard_controls.json'; a.click();
+  }});
+  $('cCopy').addEventListener('click', () => {{ try {{ navigator.clipboard.writeText(JSON.stringify(payload(), null, 2)); $('cCopy').textContent = 'Copied'; setTimeout(() => $('cCopy').textContent = 'Copy', 1200); }} catch (e) {{}} }});
+  window._renderControl();
 }})();
 
 // --- Live-signals horizontal scroll arrows + expand-all toggle ---
@@ -8675,7 +8867,7 @@ function _tvInit() {{
 (function setupTabs() {{
   // primary areas (sidebar) -> pages (top tabs). Pages not present in the DOM are filtered out.
   const AREAS = [
-    ['signals', [['signals','Signals'],['intraday','Intraday'],['orb','ORB day-trade'],['pairs','Pairs']]],
+    ['signals', [['signals','Signals'],['control','Control'],['intraday','Intraday'],['orb','ORB day-trade'],['pairs','Pairs']]],
     ['markets', [['markets','Markets'],['heatmap','Heatmap'],['momentum','Momentum']]],
     ['portfolio', [['portfolio','Portfolio'],['paper','Paper account'],['allweather','All Weather']]],
     ['intel', [['altdata','Data signals']]],

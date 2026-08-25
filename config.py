@@ -227,6 +227,15 @@ class Config:
     meta_pwin_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("META_PWIN"), True))
     meta_pwin_floor: float = 0.52    # demote fresh BUYs below this P(win) to Watch (balanced ~70% target)
     meta_buy_cap: int = 6            # keep only the top-N fresh BUYs by P(win) per build; rest → Watch
+
+    # --- Partial-profit exits: book part of the position at a near target (T1), then move the stop to
+    # breakeven. Diagnostic: far targets get noise-stopped ~60% of the time in the R:R 3-4 dead zone, so
+    # taking something off at 1R turns many would-be round-trips into small BOOKED wins. Raises win rate
+    # and cuts give-back; costs a little on the runners (half the position rides to the full target). ---
+    partial_exit_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("PARTIAL_EXIT"), True))
+    partial_exit_r: float = 1.0      # T1 distance in R (1.0 = one unit of risk above entry)
+    partial_exit_frac: float = 0.5   # fraction of the position booked at T1
+    partial_move_stop_be: bool = True  # after T1 fills, move the stop to breakeven on the remainder
     meta_size_k: float = 2.0         # size tilt slope: mult = 1 + (p_win - 0.5)*k, then clamped
     meta_size_min: float = 0.6       # floor on the P(win) size multiplier
     meta_size_max: float = 1.5       # cap on the P(win) size multiplier

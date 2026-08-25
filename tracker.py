@@ -86,6 +86,8 @@ def run(signals: list[dict], cfg: Config, live: bool, today: str, *,
                 "advised_ts": (now_ts.isoformat() if (intraday and now_ts is not None) else today),
                 "entry": p["entry"], "stop": p["stop"],
                 "target": p["target"], "rr": p.get("rr"),
+                # partial-profit plan captured at entry (None = ride the full target only)
+                "t1": p.get("t1"), "t1_frac": p.get("t1_frac"),
                 "conviction": (s.get("conviction") or {}).get("label"),
                 "conviction_pct": (s.get("conviction") or {}).get("score_pct"),
                 "checks": [{"label": c.get("label"), "status": c.get("status")}
@@ -126,6 +128,13 @@ def run(signals: list[dict], cfg: Config, live: bool, today: str, *,
                 #  - exclude the advised day's own bar (look-ahead) and today's forming bar.
                 after = df[(df.index.normalize() > cutoff) & (df.index.normalize() < run_day)]
             is_short = t.get("direction") == "SHORT"
+            # Partial-profit plan: once T1 fills we book part of the position and (optionally) trail the
+            # remainder's stop to breakeven — so a trade that runs to 1R then reverses ends as a small
+            # BOOKED win instead of a full loss.
+            _t1 = t.get("t1")
+            _t1_hit = bool(t.get("t1_hit"))
+            _be = bool(getattr(cfg, "partial_move_stop_be", True))
+            _eff_stop = t["entry"] if (_t1_hit and _be) else t["stop"]
             for ts, row in after.iterrows():
                 hi, lo = float(row["high"]), float(row["low"])
                 # skip implausible single-bar prints (e.g. >35% intraday range) so a bad
@@ -135,16 +144,27 @@ def run(signals: list[dict], cfg: Config, live: bool, today: str, *,
                 # Stop is checked first on an ambiguous day (conservative). For a SHORT the
                 # geometry inverts: stop is ABOVE entry (hi hits it), target is BELOW (lo hits it).
                 if is_short:
-                    if hi >= t["stop"]:
-                        t.update(status="loss", exit=t["stop"], exit_date=str(ts.date()))
+                    if hi >= _eff_stop:
+                        t.update(status="loss", exit=_eff_stop, exit_date=str(ts.date()))
                         break
+                else:
+                    if lo <= _eff_stop:
+                        t.update(status="loss", exit=_eff_stop, exit_date=str(ts.date()))
+                        break
+                # T1 fill (checked after the stop, before the target). The breakeven stop only applies
+                # from the NEXT bar — this bar's low may have printed before T1 was tagged.
+                if _t1 is not None and not _t1_hit:
+                    if (lo <= _t1) if is_short else (hi >= _t1):
+                        _t1_hit = True
+                        t["t1_hit"] = True
+                        t["t1_date"] = str(ts.date())
+                        if _be:
+                            _eff_stop = t["entry"]
+                if is_short:
                     if lo <= t["target"]:
                         t.update(status="win", exit=t["target"], exit_date=str(ts.date()))
                         break
                 else:
-                    if lo <= t["stop"]:
-                        t.update(status="loss", exit=t["stop"], exit_date=str(ts.date()))
-                        break
                     if hi >= t["target"]:
                         t.update(status="win", exit=t["target"], exit_date=str(ts.date()))
                         break
@@ -156,7 +176,16 @@ def run(signals: list[dict], cfg: Config, live: bool, today: str, *,
             if t["status"] != "open" and "exit" in t:
                 # Long profits when price rises; short profits when it falls.
                 gain = (t["entry"] - t["exit"]) if is_short else (t["exit"] - t["entry"])
+                # Blend in the booked partial: frac of the position exited at T1, the rest at the exit.
+                if t.get("t1_hit") and t.get("t1"):
+                    _frac = float(t.get("t1_frac") or 0.5)
+                    _g1 = (t["entry"] - t["t1"]) if is_short else (t["t1"] - t["entry"])
+                    gain = _frac * _g1 + (1.0 - _frac) * gain
                 t["return_pct"] = round(gain / t["entry"] * 100, 2)
+                # Honest outcome: with partials, "did it make money?" — a trade that books T1 then stops
+                # at breakeven is a genuine small win, not a loss. (Expired trades keep their own label.)
+                if t["status"] in ("win", "loss"):
+                    t["status"] = "win" if t["return_pct"] > 0 else "loss"
                 t["days_held"] = (pd.Timestamp(t["exit_date"]) - cutoff).days
         except Exception:  # noqa: BLE001 - never let one symbol break the whole tracker
             continue

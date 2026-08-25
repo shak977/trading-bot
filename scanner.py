@@ -654,6 +654,16 @@ def _trade_plan(df, sig, cfg: Config, price: float, equity: float, direction: st
         "dollar_risk": r(dollar_risk),
         "exposure": r(exposure),
     }
+    # Partial-profit level (T1): book part of the position one unit of risk out, then ride the rest with
+    # the stop at breakeven. Only meaningful when T1 sits comfortably inside the full target.
+    if getattr(cfg, "partial_exit_enabled", True) and per_share_risk and per_share_risk > 0:
+        _pr = float(getattr(cfg, "partial_exit_r", 1.0) or 1.0)
+        _t1 = (entry - per_share_risk * _pr) if direction == "SHORT" else (entry + per_share_risk * _pr)
+        _inside = (_t1 > target * 1.02) if direction == "SHORT" else (_t1 < target * 0.98)
+        if _inside:
+            plan["t1"] = r(_t1)
+            plan["t1_pct"] = round(abs(_t1 - entry) / entry * 100, 1)
+            plan["t1_frac"] = float(getattr(cfg, "partial_exit_frac", 0.5) or 0.5)
     # Three exit scenarios (display only — the order still uses plan["target"] as the base case).
     plan["targets"] = _target_scenarios(direction, entry, working_stop, target, df)
 
