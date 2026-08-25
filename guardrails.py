@@ -313,6 +313,199 @@ def check_stale_refs(out, sources):
                              f"Retired strategy '{key}' is still referenced in a live path.", f"{f}:{i}")
 
 
+# ---------------------------------------------------------------- AUTONOMOUS DISCOVERY
+# The checks above encode failures we already knew about. These find NEW ones without being told
+# what to look for: derive what the engine decides ON from the source, measure what actually
+# predicts outcomes from the record, and flag anything that drives decisions without earning it.
+
+# fields that are bookkeeping, not decision inputs — never flag these
+_IGNORE_FIELDS = {
+    "symbol", "name", "id", "advised_date", "advised_ts", "exit_date", "status", "entry", "exit",
+    "stop", "target", "return_pct", "days_held", "t1", "t1_frac", "t1_hit", "t1_date", "high_water",
+    "target_exceeded", "checks", "action", "direction", "regime_score",
+}
+
+
+def discover_decision_fields(sources: dict) -> dict:
+    """Parse the source for places the engine FILTERS, RANKS or GATES, and pull out which signal
+    fields those decisions read. No hardcoded field names — whatever the code keys on, we find."""
+    found: dict[str, set] = {}
+    # e.g.  s.get("p_win")   (r.get("conviction") or {}).get("label")   x["rank_score"]
+    getters = re.compile(r"""(?:\.get\(|\[)\s*["']([a-z0-9_]{3,30})["']""")
+    # Resolve one level of aliasing: `conv = s.get("conviction")` then `conv.get("label")` must still
+    # be attributed to *conviction*, or splitting a gate across two lines hides it from the audit.
+    alias_def = re.compile(r"""^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*\(?\s*[A-Za-z_][A-Za-z0-9_]*\.get\(\s*["']([a-z0-9_]{3,30})["']""")
+    decisionish = re.compile(r"\bif\b|\bfilter\b|sort\(|sorted\(|key\s*=|>=|<=|==|\band\b")
+    for fname, text in sources.items():
+        lines = text.splitlines()
+        aliases: dict[str, str] = {}
+        for i, line in enumerate(lines, 1):
+            am = alias_def.match(line)
+            if am:
+                aliases[am.group(1)] = am.group(2)
+            s = line.strip()
+            if s.startswith("#") or s.startswith("//") or len(s) < 8:
+                continue
+            if not decisionish.search(s):
+                continue
+            # only count lines that look like they act on a signal/trade row
+            if not re.search(r"\b[srtxq]\b\.get\(|\brow\.get\(|\bsig\.get\(|\.get\(", s):
+                continue
+            hits = {m for m in getters.findall(s) if m not in _IGNORE_FIELDS}
+            # attribute alias uses back to the parent field (conv.get("label") -> conviction)
+            for var, parent in aliases.items():
+                if re.search(rf"\b{re.escape(var)}\.get\(", s) and parent not in _IGNORE_FIELDS:
+                    hits.add(parent)
+            for m in hits:
+                found.setdefault(m, set()).add(f"{fname}:{i}")
+    return found
+
+
+def measure_field_edge(field: str, rows: list) -> dict | None:
+    """Does this field actually separate winners from losers in the real record? Works for numbers
+    (split at the median) and categories (best vs worst tier). Returns None if unmeasurable."""
+    vals = [(t.get(field), t) for t in rows if t.get(field) is not None]
+    if len(vals) < 60:
+        return None
+    nums = [v for v, _ in vals if isinstance(v, (int, float)) and not isinstance(v, bool)]
+    if len(nums) >= len(vals) * 0.8:                       # numeric field
+        import statistics as _st
+        med = _st.median(nums)
+        hi = [t for v, t in vals if isinstance(v, (int, float)) and v > med]
+        lo = [t for v, t in vals if isinstance(v, (int, float)) and v <= med]
+        if len(hi) < 25 or len(lo) < 25:
+            return None
+        wr = lambda g: 100 * sum(1 for t in g if t["status"] == "win") / len(g)
+        return {"kind": "numeric", "n": len(vals), "delta": wr(hi) - wr(lo),
+                "detail": f"above-median {wr(hi):.1f}% vs below {wr(lo):.1f}%"}
+    groups: dict = {}
+    for v, t in vals:
+        groups.setdefault(str(v), []).append(t)
+    groups = {k: g for k, g in groups.items() if len(g) >= 25}
+    if len(groups) < 2:
+        return None
+    wr = {k: 100 * sum(1 for t in g if t["status"] == "win") / len(g) for k, g in groups.items()}
+    best, worst = max(wr, key=wr.get), min(wr, key=wr.get)
+    return {"kind": "categorical", "n": len(vals), "delta": wr[best] - wr[worst],
+            "detail": f"{best} {wr[best]:.1f}% vs {worst} {wr[worst]:.1f}%",
+            "ranked": sorted(wr.items(), key=lambda kv: -kv[1])}
+
+
+def check_autonomous(out, sources):
+    """Cross-reference: every field the code makes decisions on, measured against the real record.
+    This is what makes the sweep self-discovering — it would have caught the conviction bug with no
+    prior knowledge of 'conviction', and will catch the next one the same way."""
+    tr = _load("track_record.json") or []
+    rows = [t for t in tr if t.get("status") in ("win", "loss")]
+    if len(rows) < 120:
+        return
+    fields = discover_decision_fields(sources)
+    if not fields:
+        return
+    # Only audit fields that genuinely live on a SIGNAL row. Without this the sweep drowns in
+    # plumbing ('msg', 'title', 'headline'...) and becomes noise you learn to ignore — which is
+    # how a real finding gets missed.
+    snap = _load("signals.json") or {}
+    sig_fields: set = set()
+    for s in (snap.get("signals") or [])[:40]:
+        sig_fields |= set(s.keys())
+        for sub in ("conviction", "plan", "liquidity", "context", "factors"):
+            v = s.get(sub)
+            if isinstance(v, dict):
+                sig_fields |= set(v.keys())
+    fields = {k: v for k, v in fields.items() if k in sig_fields} or fields
+    measured = unmeasurable = 0
+    blind: list[str] = []
+    for field, sites in sorted(fields.items()):
+        edge = measure_field_edge(field, rows)
+        if edge is None:
+            # the code decides on something the record never captures -> we can never audit it.
+            # Collected and reported as ONE summary line: a wall of per-field warnings is noise,
+            # and noise is what makes a real finding get scrolled past.
+            if len(sites) >= 2 and not any(t.get(field) is not None for t in rows[-200:]):
+                unmeasurable += 1
+                blind.append(field)
+            continue
+        measured += 1
+        d = edge["delta"]
+        # categorical: is the tier the code PREFERS actually the best one?
+        if edge["kind"] == "categorical" and d >= 8:
+            ranked = edge.get("ranked") or []
+            best = ranked[0][0] if ranked else None
+            for site in sorted(sites):
+                f, ln = site.rsplit(":", 1)
+                if f not in sources:
+                    continue
+                lines = sources[f].splitlines()
+                i = int(ln)
+                line = lines[i - 1]
+                # The line is already attributed to this field (directly or via an alias), so just
+                # read which value it compares against.
+                m = re.search(r"""==\s*["']([^"']+)["']""", line)
+                if not (m and best and m.group(1) != best) or "p_win" in line:
+                    continue
+                if m.group(1) not in (edge.get("ranked") and dict(edge["ranked"]) or {}):
+                    continue      # comparing against something that isn't one of the measured tiers
+                # guarded fallback (only reached when the model score is missing) is acceptable
+                if "p_win" in "\n".join(lines[max(0, i - 8):i + 3]):
+                    continue
+                _finding(out, CRITICAL, "AUTO_WRONG_TIER",
+                         f"Code selects '{field} == {m.group(1)}' but the record says "
+                         f"'{best}' is the best-performing tier ({edge['detail']}, n={edge['n']}).",
+                         site)
+        # numeric: a field that ranks/sorts but has no separating power
+        if edge["kind"] == "numeric" and abs(d) < 2 and any("key=" in sources.get(s.rsplit(":", 1)[0], "")
+                                                            .splitlines()[int(s.rsplit(":", 1)[1]) - 1]
+                                                            for s in sites
+                                                            if s.rsplit(":", 1)[0] in sources):
+            _finding(out, INFO, "AUTO_WEAK_RANKER",
+                     f"'{field}' is used to rank but barely separates outcomes ({edge['detail']}, "
+                     f"n={edge['n']}) — ranking on it is close to arbitrary.",
+                     "; ".join(sorted(sites)[:3]))
+        if d <= -12:
+            _finding(out, CRITICAL if d <= -20 else WARN, "AUTO_INVERTED_FIELD",
+                     f"'{field}' is used in decisions but is INVERTED in the record "
+                     f"({edge['detail']}, n={edge['n']}) — higher/preferred values do WORSE.",
+                     "; ".join(sorted(sites)[:3]))
+    if blind:
+        _finding(out, INFO, "AUTO_BLIND_SPOTS",
+                 f"{len(blind)} field(s) drive decisions but are never logged at entry, so their "
+                 "effect on outcomes can't be audited. Worth logging the ones that gate trades.",
+                 ", ".join(sorted(blind)[:12]))
+    _finding(out, INFO, "AUTO_SWEEP_COVERAGE",
+             f"Autonomous pass: {len(fields)} decision fields discovered in source, {measured} had "
+             f"enough history to audit, {unmeasurable} unmeasurable.")
+
+
+def check_auto_cohorts(out):
+    """Unsupervised outcome scan: slice the record by every categorical field and surface any cohort
+    that materially underperforms. Finds problems nobody thought to look for."""
+    tr = _load("track_record.json") or []
+    rows = [t for t in tr if t.get("status") in ("win", "loss")]
+    if len(rows) < 150:
+        return
+    base = 100 * sum(1 for t in rows if t["status"] == "win") / len(rows)
+    keys = set()
+    for t in rows[-400:]:
+        keys |= {k for k, v in t.items()
+                 if k not in _IGNORE_FIELDS and isinstance(v, (str, bool)) and str(v)[:1]}
+    for k in sorted(keys):
+        groups: dict = {}
+        for t in rows:
+            v = t.get(k)
+            if v is None:
+                continue
+            groups.setdefault(str(v), []).append(t)
+        for val, g in groups.items():
+            if len(g) < 40:
+                continue
+            wr = 100 * sum(1 for t in g if t["status"] == "win") / len(g)
+            if wr < base - 15:
+                _finding(out, WARN, "AUTO_WEAK_COHORT",
+                         f"Cohort '{k}={val}' wins {wr:.1f}% vs {base:.1f}% overall "
+                         f"(n={len(g)}) — materially worse than the book.")
+
+
 # ---------------------------------------------------------------- driver
 def sweep() -> dict:
     out: list[dict] = []
@@ -344,6 +537,9 @@ def sweep() -> dict:
                  if age is not None else "Could not date signals.json; skipped live-output checks.")
     check_drift(out)
     check_stale_refs(out, sources)
+    # autonomous passes — these need no prior knowledge of what to look for
+    check_autonomous(out, sources)
+    check_auto_cohorts(out)
 
     rank = {CRITICAL: 0, WARN: 1, INFO: 2}
     out.sort(key=lambda f: rank.get(f["severity"], 3))
