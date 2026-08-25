@@ -1684,6 +1684,7 @@ def _meganav() -> str:
                       ("analytics", "Edge explorer", "Waffle heatmaps of what wins", "donut"),
                       ("analyst", "Analyst", "Nightly self-review", "text")]),
         ("AI", [("brain", "Engine brain", "See the mechanics visually", "nodes"),
+                ("guardrails", "Guardrails", "The engine policing itself", "scale"),
                 ("agents", "Agents", "The agent ecosystem", "nodes")]),
         ("More", [("livetv", "Live TV", "Financial news streams", "tv"),
                   ("whatsnew", "What's new", "Latest changes", "text"),
@@ -3742,6 +3743,90 @@ def _analytics_html(snap: dict) -> str:
             '</div></div>')
 
 
+def _guardrails_page_html(rep: dict | None, rem: dict | None, log: list | None) -> str:
+    """Dedicated Guardrails page — the self-policing pipeline, visualised: what it found, what the
+    evidence said, what was auto-fixed vs what needs your approval, and the history."""
+    c = (rep or {}).get("counts") or {}
+    rc = (rem or {}).get("counts") or {}
+    ncrit, nwarn = c.get("CRITICAL", 0), c.get("WARN", 0)
+    props = (rem or {}).get("proposals") or []
+
+    # --- pipeline diagram (mirrors remediate.py) ---
+    stages = [
+        ("scan", "Detect", "guardrails.py", f"{(rep or {}).get('counts',{}).get('CRITICAL',0) + nwarn} issues",
+         "Sweeps the engine's own logic: is it deciding on metrics the record proves wrong, is every "
+         "automatic decision graded, does live output match config?"),
+        ("scale", "Triage", "blast radius", f"{rc.get('proposals',0)} risky",
+         "Classifies each finding by what a wrong fix could cost. Anything touching gates, sizing, "
+         "strategies or exits is RISKY by default."),
+        ("receipt", "Validate", "evidence", f"{rc.get('held',0)} held",
+         "Re-checks the finding against the real track record / backtest. Findings that can't be "
+         "corroborated are held, never acted on. Evidence, not a second opinion."),
+        ("check", "Act", "tiered", f"{rc.get('auto_fixed',0)} auto-fixed",
+         "SAFE fixes (logging, stale refs) applied automatically. RISKY fixes are queued as proposals "
+         "for you — never auto-applied to trading logic."),
+        ("brick", "Log", "audit trail", f"{len(log or [])} runs",
+         "Every finding, verdict and action recorded, so nothing can quietly regress again."),
+    ]
+    flow = ""
+    for i, (ic, name, sub, stat, tip) in enumerate(stages):
+        flow += (f'<div class="gp-stage hint" data-tip="{_esc_attr(tip)}">'
+                 f'<div class="gp-ic">{_svg(ic, 16)}</div><div class="gp-nm">{name}</div>'
+                 f'<div class="gp-sub">{sub}</div><div class="gp-stat">{stat}</div></div>')
+        if i < len(stages) - 1:
+            flow += '<div class="gp-arrow">&rarr;</div>'
+
+    # --- proposals awaiting approval ---
+    if props:
+        prows = ""
+        for p in props:
+            prows += (f'<div class="gp-prop"><div class="gp-prop-h">'
+                      f'<span class="gp-tier">{p.get("tier","")}</span>'
+                      f'<span class="gp-conf">{p.get("confidence","")} confidence</span></div>'
+                      f'<div class="gp-prop-m">{p.get("message","")}</div>'
+                      f'<div class="gp-prop-p"><b>Evidence:</b> {p.get("proof","")}</div>'
+                      f'<div class="gp-prop-w">Why it needs you: {p.get("why_tier","")}</div></div>')
+        proposals = (f'<h4 class="gp-h">Awaiting your approval <span class="gp-count">{len(props)}</span></h4>'
+                     '<p class="gp-note">Confirmed by evidence, but touches trading logic — so it is '
+                     '<b>not</b> applied automatically.</p>' + prows)
+    else:
+        proposals = ('<h4 class="gp-h">Awaiting your approval</h4>'
+                     '<p class="gp-note">Nothing queued — no confirmed issue currently needs a decision.</p>')
+
+    # --- findings ---
+    sev_c = {"CRITICAL": "var(--sell)", "WARN": "var(--warn)", "INFO": "var(--muted)"}
+    rows = ""
+    for f in ((rep or {}).get("findings") or [])[:16]:
+        s = f.get("severity", "INFO")
+        ev = f'<div class="gr-ev">{f["evidence"]}</div>' if f.get("evidence") else ""
+        rows += (f'<div class="gr-row"><span class="gr-sev" style="color:{sev_c.get(s)};'
+                 f'border-color:{sev_c.get(s)};">{s}</span>'
+                 f'<div><div class="gr-msg">{f.get("message","")}</div>{ev}'
+                 f'<div class="gr-code">{f.get("code","")}</div></div></div>')
+
+    hist = ""
+    for h in (log or [])[-6:][::-1]:
+        hc = h.get("counts") or {}
+        hist += (f'<div class="gp-hrow"><span class="gp-hdate">{h.get("run","")}</span>'
+                 f'<span>{hc.get("auto_fixed",0)} fixed &middot; {hc.get("proposals",0)} proposed '
+                 f'&middot; {hc.get("held",0)} held</span></div>')
+
+    tone = "var(--sell)" if ncrit else ("var(--warn)" if nwarn else "var(--buy)")
+    head = f"{ncrit} critical · {nwarn} warnings" if (ncrit or nwarn) else "All clear"
+    return ('<div class="sec-eyebrow">Self-policing</div>'
+            f'<div class="sec-head"><span class="sh-ico">{_svg("scale",15)}</span><h2>Guardrails</h2>'
+            f'<span class="sh-sub">nightly &middot; <b style="color:{tone};">{head}</b></span></div>'
+            '<p class="gp-lead">The engine audits its own decision logic every night — checking it isn\'t '
+            'trading on metrics the record has proven wrong, that every automatic decision is graded, and '
+            'that live behaviour matches the config. Built after an inverted-conviction gate quietly drove '
+            'the alerts and paper book for weeks.</p>'
+            f'<div class="gp-flow">{flow}</div>'
+            f'<div class="gp-cols"><div>{proposals}</div>'
+            f'<div><h4 class="gp-h">Latest findings</h4><div class="gr-list">{rows}</div></div></div>'
+            + (f'<h4 class="gp-h">Recent sweeps</h4><div class="gp-hist">{hist}</div>' if hist else '')
+            + f'<div class="gr-foot">Last swept {(rep or {}).get("generated","—")}</div>')
+
+
 def _guardrails_html(rep: dict | None) -> str:
     """The guardrails sweep — the engine policing its own logic. Surfaced here so a CRITICAL finding
     can't sit unread in a CI log (which is exactly how the inverted-conviction gate survived weeks)."""
@@ -4844,7 +4929,10 @@ def render_html(snap: dict) -> str:
     altdata_html = _altdata_html(snap)
     news_ideas_html = _news_ideas_html(snap.get("news_ideas"))
     system_html = _system_html(snap.get("system"))
-    guardrails_html = _guardrails_html(_load_json_safe("guardrails_report.json"))
+    _grep = _load_json_safe("guardrails_report.json")
+    guardrails_html = _guardrails_html(_grep)
+    guardrails_page_html = _guardrails_page_html(_grep, _load_json_safe("remediation_queue.json"),
+                                                 _load_json_safe("remediation_log.json"))
     sysdiag_html = _system_health_html(_load_json_safe("system_diagnostic.json"))
     metalabel_html = _metalabel_html(_load_json_safe("meta_history.json"))
     analytics_html = _analytics_html(snap)
@@ -6353,6 +6441,35 @@ def render_html(snap: dict) -> str:
   .sxcard.rejected {{ border-color:color-mix(in srgb,var(--sell) 40%,var(--line)); }}
   .sxcard.ctrl-dim {{ opacity:.38; filter:grayscale(.3); }}
   .sxcard.accepted.ctrl-dim {{ opacity:1; filter:none; }}
+  /* ===== Guardrails page — pipeline visual ===== */
+  .gp-lead {{ font-size:14px; line-height:1.6; color:var(--txt2); max-width:720px; margin:2px 0 20px; }}
+  .gp-flow {{ display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; margin-bottom:26px; }}
+  .gp-stage {{ flex:1 1 150px; min-width:140px; background:var(--card); border:1px solid var(--line);
+    border-radius:13px; padding:14px 15px; cursor:help; transition:border-color .15s ease; }}
+  .gp-stage:hover {{ border-color:color-mix(in srgb,var(--accent) 45%,var(--line)); }}
+  .gp-ic {{ color:var(--accent); margin-bottom:8px; }}
+  .gp-nm {{ font-size:14.5px; font-weight:700; color:var(--txt); }}
+  .gp-sub {{ font-size:11px; color:var(--muted); margin-top:2px; font-family:var(--tape); }}
+  .gp-stat {{ font-size:12px; color:var(--txt2); margin-top:9px; padding-top:8px; border-top:1px solid var(--line); }}
+  .gp-arrow {{ display:flex; align-items:center; color:var(--muted); font-size:18px; }}
+  .gp-cols {{ display:grid; grid-template-columns:1fr 1fr; gap:26px; align-items:start; }}
+  .gp-h {{ font-size:14px; font-weight:700; margin:0 0 8px; display:flex; align-items:center; gap:8px; }}
+  .gp-count {{ font-size:11px; background:var(--sell); color:#000; border-radius:999px; padding:1px 8px; font-weight:700; }}
+  .gp-note {{ font-size:12.5px; color:var(--muted); margin:0 0 14px; line-height:1.5; }}
+  .gp-prop {{ background:var(--card); border:1px solid color-mix(in srgb,var(--warn) 35%,var(--line));
+    border-left-width:3px; border-radius:12px; padding:14px 16px; margin-bottom:12px; }}
+  .gp-prop-h {{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }}
+  .gp-tier {{ font-size:9.5px; font-weight:700; letter-spacing:.05em; color:var(--warn);
+    border:1px solid color-mix(in srgb,var(--warn) 45%,transparent); border-radius:999px; padding:2px 8px; }}
+  .gp-conf {{ font-size:11px; color:var(--muted); }}
+  .gp-prop-m {{ font-size:13.5px; line-height:1.5; color:var(--txt); }}
+  .gp-prop-p {{ font-size:12px; color:var(--txt2); margin-top:8px; line-height:1.5; }}
+  .gp-prop-w {{ font-size:11.5px; color:var(--muted); margin-top:6px; }}
+  .gp-hist {{ display:flex; flex-direction:column; margin-top:4px; max-width:620px; }}
+  .gp-hrow {{ display:flex; justify-content:space-between; gap:14px; font-size:12px; color:var(--txt2);
+    padding:9px 0; border-top:1px solid var(--line); }}
+  .gp-hdate {{ color:var(--muted); font-family:var(--tape); }}
+  @media (max-width:820px) {{ .gp-cols {{ grid-template-columns:1fr; }} .gp-arrow {{ display:none; }} }}
   /* ===== Guardrails / logic police ===== */
   .gr-list {{ display:flex; flex-direction:column; }}
   .gr-row {{ display:grid; grid-template-columns:82px minmax(0,1fr); gap:14px; padding:12px 0;
@@ -6816,6 +6933,10 @@ def render_html(snap: dict) -> str:
 
   <section class="page" id="page-brain">
 {brain_html}
+  </section>
+
+  <section class="page" id="page-guardrails">
+{guardrails_page_html}
   </section>
 
   <section class="page" id="page-control">
@@ -8894,7 +9015,7 @@ function _tvInit() {{
     ['livetv', [['livetv','Live TV']]],
     ['about', [['method','How it works']]],
     ['system', [['system','System']]],
-    ['agents', [['brain','Engine brain'],['agents','Agent universe']]],
+    ['agents', [['brain','Engine brain'],['guardrails','Guardrails'],['agents','Agent universe']]],
     ['whatsnew', [['whatsnew',"What's new"]]]
   ];
   AREAS.forEach(a => a[1] = a[1].filter(p => document.getElementById('page-' + p[0])));

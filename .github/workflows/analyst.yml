@@ -68,6 +68,10 @@ jobs:
           python guardrails.py --json | tee -a analyst_out.txt
           grep -q "CRITICAL\]" analyst_out.txt && echo "::warning::Guardrails found CRITICAL logic issues — see job summary" || true
 
+      - name: Remediation pipeline (triage -> validate -> tiered fix -> log)
+        continue-on-error: true
+        run: python remediate.py --json | tee -a analyst_out.txt
+
       - name: Publish to the job summary
         run: |
           echo "### Nightly analyst" >> "$GITHUB_STEP_SUMMARY"
@@ -79,7 +83,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add analyst_report.json analyst_history.json analyst_memory.json benchmark.json benchmark_history.json timing_study.json setups_study.json system_diagnostic.json meta_model.json meta_history.json strategy_study.json guardrails_report.json
+          git add analyst_report.json analyst_history.json analyst_memory.json benchmark.json benchmark_history.json timing_study.json setups_study.json system_diagnostic.json meta_model.json meta_history.json strategy_study.json guardrails_report.json remediation_log.json remediation_queue.json
           git diff --staged --quiet && exit 0
           git commit -m "nightly analyst report [skip ci]"
           git pull --rebase --autostash origin main || true
