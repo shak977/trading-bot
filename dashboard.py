@@ -1174,6 +1174,9 @@ def build_snapshot() -> dict:
             _rate = _sb.rate_setup(r)
             if _rate:
                 r["setup_rating"] = _rate
+            _cs = _sb.canslim_score(r, regime)
+            if _cs:
+                r["canslim"] = _cs
             _disc = _sb.discipline_check(r, exposure=_expo, open_positions=_nopen,
                                          max_open=int(getattr(CONFIG, "paper_max_open", 30)))
             if _disc.get("blocks") or _disc.get("warns"):
@@ -7595,8 +7598,23 @@ function makeCard(s) {{
       + `<div class='cb-cm'>Minervini bands (breakout-trade-planner): textbook 1.75&times; · strong 1.0&times; · good 0.75&times; · developing/weak 0&times; (don't take it).</div></div>`;
     bandRow = ['Setup grade', _rowVal(`<span style="color:${{bc}};font-weight:700;text-transform:capitalize;">${{b.band}}</span> <span style="color:var(--muted);font-weight:400;">${{b.size_mult}}&times;</span>`, bTip)];
   }}
+  // CANSLIM growth score (O'Neil) — advisory quality overlay, never a trigger
+  let canRow = '';
+  if (s.canslim) {{
+    const k = s.canslim, cs = k.composite_score, comp = k.components || {{}};
+    const kc = cs >= 80 ? 'var(--buy)' : (cs >= 60 ? 'var(--warn)' : 'var(--muted)');
+    const kTip = `<div class='cb-wrap'><div class='cb-h'>CANSLIM &middot; ${{_esc(k.rating||'')}}</div>`
+      + ['C','A','N','M'].map(x => {{
+          const nm = {{C:'Current earnings',A:'Annual growth',N:'Near highs',M:'Market direction'}}[x];
+          const v = comp[x]||0;
+          return `<div class='cb-row'><span class='cb-nm'>${{x}} &middot; ${{nm}}</span><span class='cb-bar'><i style='width:${{v}}%;background:${{v>=70?'var(--buy)':v>=45?'var(--warn)':'var(--sell)'}};'></i></span><span class='cb-v'>${{v}}</span></div>`;
+        }}).join('')
+      + `<div class='cb-cm'>${{_esc(k.rating_description||'')}} &middot; weakest: <b>${{k.weakest_component}}</b>. Advisory score only — it never triggers a trade.</div></div>`;
+    canRow = ['CANSLIM', _rowVal(`<span style="color:${{kc}};font-weight:700;">${{Math.round(cs)}}</span> <span style="color:var(--muted);font-weight:400;">${{_esc(k.rating||'')}}</span>`, kTip)];
+  }}
   const _rows = [];
   if (bandRow) _rows.push(bandRow);
+  if (canRow) _rows.push(canRow);
   if (_p.entry!=null) _rows.push(['Entry', _rowVal(_m2(_p.entry), _entryTip)]);
   if (_p.t1_pct!=null) {{
     const _t1Tip = `<div class='cb-wrap'><div class='cb-h'>Partial exit &middot; T1</div><div class='cb-line'>Book <b>${{Math.round((_p.t1_frac||0.5)*100)}}%</b> at <b>${{_m2(_p.t1)}}</b> (+${{_p.t1_pct}}%), then move the stop to breakeven and let the rest run to target.</div><div class='cb-cm'>Turns a round-trip into a booked win — far targets get noise-stopped ~60% of the time.</div></div>`;

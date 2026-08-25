@@ -293,6 +293,35 @@ def check_drift(out):
                      "its edge may be parameter luck.")
 
 
+def check_unused_capability(out):
+    """Installed but never wired in. Added Aug 2026 after finding 71 vendored trading skills of which
+    only 9 were connected — tested capability sitting unused while new tools were built from scratch.
+    The audit was catching 'decisions made on bad data'; it wasn't catching 'capability we already
+    paid for and forgot'."""
+    roots = [os.path.join("vendor", "claude-trading-skills", "skills"), os.path.join(".claude", "skills")]
+    skills: set = set()
+    for r in roots:
+        if os.path.isdir(r):
+            skills |= {d for d in os.listdir(r) if os.path.isdir(os.path.join(r, d))}
+    if not skills:
+        return
+    # a skill counts as WIRED if any first-party module references it
+    own = [f for f in os.listdir(".") if f.endswith(".py")]
+    blob = "\n".join(_read(f) for f in own)
+    wired = {s for s in skills if s in blob}
+    unused = sorted(skills - wired)
+    if not unused:
+        return
+    # only nag about ones plausibly relevant to trading decisions
+    KEY = ("screener", "planner", "sizer", "coach", "gate", "analyzer", "detector", "monitor",
+           "tracker", "postmortem", "scanner", "risk", "exposure", "regime", "breadth")
+    notable = [s for s in unused if any(k in s for k in KEY)]
+    _finding(out, INFO, "UNUSED_CAPABILITY",
+             f"{len(wired)} of {len(skills)} installed skills are wired into the engine. "
+             f"{len(notable)} unused ones look trading-relevant — tested capability going spare.",
+             ", ".join(notable[:14]))
+
+
 def check_stale_refs(out, sources):
     """Retired strategies still referenced in a live path."""
     try:
@@ -537,6 +566,7 @@ def sweep() -> dict:
                  if age is not None else "Could not date signals.json; skipped live-output checks.")
     check_drift(out)
     check_stale_refs(out, sources)
+    check_unused_capability(out)
     # autonomous passes — these need no prior knowledge of what to look for
     check_autonomous(out, sources)
     check_auto_cohorts(out)

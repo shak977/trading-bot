@@ -159,11 +159,60 @@ def discipline_check(signal: dict, *, exposure: dict | None = None,
     return {"ok": not blocks, "blocks": blocks, "warns": warns}
 
 
+# ---------------------------------------------------------------- 4. CANSLIM screener
+def canslim_score(signal: dict, regime: dict | None = None) -> dict | None:
+    """O'Neil's CANSLIM growth score, computed from data we already collect.
+
+    Deliberately wired as a QUALITY OVERLAY, not a trade trigger. Two new entry signals (pullback,
+    VCP-as-trigger) failed their backtests this month; a third unproven trigger is the wrong move.
+    As a score it costs nothing to be wrong — it annotates a signal rather than creating one — and
+    if it proves predictive in the record we can promote it later on evidence.
+
+    Component mapping from our own fields:
+      C  current earnings  <- quality.eps_growth (latest reported growth)
+      A  annual growth     <- quality.rev_growth + margin/ROE quality
+      N  newness/new highs <- context.pct_from_high (near highs = strong)
+      M  market direction  <- regime breadth + label (the 'M' O'Neil says decides 3 of 4 trades)
+    """
+    sc = _skill_module("canslim-screener", "scorer")
+    if sc is None:
+        return None
+    q = ((signal.get("fundamentals") or {}).get("quality") or {})
+    ctx = signal.get("context") or {}
+    if not q and not ctx:
+        return None
+
+    def band(v, lo, hi):
+        """Map a raw value onto 0-100 between lo (=0) and hi (=100)."""
+        if v is None:
+            return 50.0
+        return max(0.0, min(100.0, (float(v) - lo) / (hi - lo) * 100.0))
+
+    c = band(q.get("eps_growth"), -20, 40)                 # -20% -> 0, +40% -> 100
+    a_growth = band(q.get("rev_growth"), -5, 30)
+    a_qual = (band(q.get("net_margin"), 0, 25) + band(q.get("roe"), 0, 30)) / 2
+    a = 0.6 * a_growth + 0.4 * a_qual
+    pfh = ctx.get("pct_from_high")                          # negative = below the high
+    n = band(pfh, -35, 0) if pfh is not None else 50.0
+    reg = regime or {}
+    m_breadth = band(reg.get("breadth"), 20, 75)
+    m_label = {"Risk-on": 85.0, "Neutral": 50.0, "Risk-off": 20.0}.get(reg.get("label"), 50.0)
+    m = 0.5 * m_breadth + 0.5 * m_label
+    try:
+        out = sc.calculate_composite_score(c_score=c, a_score=a, n_score=n, m_score=m)
+        out["components"] = {"C": round(c), "A": round(a), "N": round(n), "M": round(m)}
+        out["advisory"] = True     # never used as a trigger — see docstring
+        return out
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def available() -> dict:
     """Which bridged skills actually loaded — surfaced on the dashboard so a missing one is visible
     rather than silently doing nothing (the failure mode the guardrails exist to prevent)."""
     return {
         "breakout-trade-planner": _skill_module("breakout-trade-planner", "risk_calculator") is not None,
         "exposure-coach": _skill_module("exposure-coach", "calculate_exposure") is not None,
+        "canslim-screener": _skill_module("canslim-screener", "scorer") is not None,
         "pre-trade-discipline-gate": True,   # implemented inline
     }
