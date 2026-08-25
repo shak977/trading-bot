@@ -1261,10 +1261,21 @@ def build_snapshot() -> dict:
     llm_status = {"enabled": bool(CONFIG.llm_enabled)}
     if CONFIG.llm_enabled:
         import llm
-        _ai_picks = [r for r in shown
-                     if (r.get("conviction") or {}).get("label") == "High"
-                     and r.get("action") in ("BUY", "SHORT", "HOLD LONG", "HOLD SHORT")]
-        _ai_picks.sort(key=lambda r: -((r.get("conviction") or {}).get("score_pct") or 0))
+        # Pick who gets the (costly) LLM research by MODEL win-probability, not the inverted
+        # conviction score — sending the research budget at the worse cohort was the same bug the
+        # alerts and paper book had. Conviction is only the pre-model fallback.
+        _pf = float(getattr(CONFIG, "meta_pwin_floor", 0.52))
+        _ai_acts = ("BUY", "HOLD LONG") + (("SHORT", "HOLD SHORT") if getattr(CONFIG, "allow_shorts", False) else ())
+
+        def _ai_ok(r):
+            pw = r.get("p_win")
+            if isinstance(pw, (int, float)):
+                return pw >= _pf
+            return (r.get("conviction") or {}).get("label") == "High"
+
+        _ai_picks = [r for r in shown if r.get("action") in _ai_acts and _ai_ok(r)]
+        _ai_picks.sort(key=lambda r: -(r.get("p_win") * 1000 if isinstance(r.get("p_win"), (int, float))
+                                       else ((r.get("conviction") or {}).get("score_pct") or 0)))
         llm_status["candidates"] = len(_ai_picks)
         _gen = 0
         for r in _ai_picks[:40]:  # effectively all High-conviction actionable; 40 = safety ceiling
@@ -3731,6 +3742,37 @@ def _analytics_html(snap: dict) -> str:
             '</div></div>')
 
 
+def _guardrails_html(rep: dict | None) -> str:
+    """The guardrails sweep — the engine policing its own logic. Surfaced here so a CRITICAL finding
+    can't sit unread in a CI log (which is exactly how the inverted-conviction gate survived weeks)."""
+    if not rep or not rep.get("findings"):
+        return ""
+    c = rep.get("counts") or {}
+    ncrit, nwarn = c.get("CRITICAL", 0), c.get("WARN", 0)
+    tone = "var(--sell)" if ncrit else ("var(--warn)" if nwarn else "var(--buy)")
+    head = ("All clear" if not (ncrit or nwarn)
+            else f"{ncrit} critical" + (f" · {nwarn} warnings" if nwarn else "")
+            if ncrit else f"{nwarn} warning{'s' if nwarn != 1 else ''}")
+    sev_c = {"CRITICAL": "var(--sell)", "WARN": "var(--warn)", "INFO": "var(--muted)"}
+    rows = ""
+    for f in rep["findings"][:12]:
+        s = f.get("severity", "INFO")
+        ev = f'<div class="gr-ev">{f["evidence"]}</div>' if f.get("evidence") else ""
+        rows += (f'<div class="gr-row"><span class="gr-sev" style="color:{sev_c.get(s)};'
+                 f'border-color:{sev_c.get(s)};">{s}</span>'
+                 f'<div><div class="gr-msg">{f.get("message","")}</div>{ev}'
+                 f'<div class="gr-code">{f.get("code","")}</div></div></div>')
+    return ('<div class="sec-eyebrow">Guardrails</div>'
+            f'<div class="sec-head"><span class="sh-ico">{_svg("scale",15)}</span><h2>Logic police</h2>'
+            f'<span class="sh-sub">nightly sweep &middot; <b style="color:{tone};">{head}</b></span></div>'
+            '<p style="color:var(--muted);font-size:13px;margin:2px 0 12px;max-width:700px;">Automated audit of '
+            "the engine's own decision logic — is it gating trades on metrics the record has proven wrong, is "
+            'every automatic decision being graded, and does the live output match the config? Built after an '
+            'inverted-conviction gate ran the alerts and paper book for weeks unnoticed.</p>'
+            f'<div class="gr-list">{rows}</div>'
+            f'<div class="gr-foot">Swept {rep.get("generated","")}</div>')
+
+
 def _system_health_html(diag: dict | None) -> str:
     """The nightly self-diagnostic surfaced on the dashboard: direction split, where targets get
     reached by R:R, the most/least predictive checks (longs-only), and the setup/timing verdicts."""
@@ -4802,6 +4844,7 @@ def render_html(snap: dict) -> str:
     altdata_html = _altdata_html(snap)
     news_ideas_html = _news_ideas_html(snap.get("news_ideas"))
     system_html = _system_html(snap.get("system"))
+    guardrails_html = _guardrails_html(_load_json_safe("guardrails_report.json"))
     sysdiag_html = _system_health_html(_load_json_safe("system_diagnostic.json"))
     metalabel_html = _metalabel_html(_load_json_safe("meta_history.json"))
     analytics_html = _analytics_html(snap)
@@ -6310,6 +6353,17 @@ def render_html(snap: dict) -> str:
   .sxcard.rejected {{ border-color:color-mix(in srgb,var(--sell) 40%,var(--line)); }}
   .sxcard.ctrl-dim {{ opacity:.38; filter:grayscale(.3); }}
   .sxcard.accepted.ctrl-dim {{ opacity:1; filter:none; }}
+  /* ===== Guardrails / logic police ===== */
+  .gr-list {{ display:flex; flex-direction:column; }}
+  .gr-row {{ display:grid; grid-template-columns:82px minmax(0,1fr); gap:14px; padding:12px 0;
+    border-top:1px solid var(--line); align-items:start; }}
+  .gr-row:first-child {{ border-top:0; }}
+  .gr-sev {{ font-size:9.5px; font-weight:700; letter-spacing:.04em; border:1px solid; border-radius:999px;
+    padding:2px 0; text-align:center; }}
+  .gr-msg {{ font-size:13.5px; line-height:1.55; color:var(--txt2); }}
+  .gr-ev {{ font-size:11.5px; color:var(--muted); font-family:var(--tape); margin-top:4px; }}
+  .gr-code {{ font-size:10px; color:var(--muted); letter-spacing:.04em; margin-top:4px; }}
+  .gr-foot {{ font-size:11.5px; color:var(--muted); margin-top:12px; }}
   /* ===== How it works (generated) ===== */
   .mth-lead {{ font-size:15px; line-height:1.6; color:var(--txt2); max-width:660px; margin:4px 0 14px; }}
   .mth-live {{ background:var(--inset); border-radius:12px; padding:13px 16px; font-size:13px;
@@ -6769,6 +6823,7 @@ def render_html(snap: dict) -> str:
   </section>
 
   <section class="page" id="page-system">
+{guardrails_html}
 {sysdiag_html}
 {metalabel_html}
 {system_html}
