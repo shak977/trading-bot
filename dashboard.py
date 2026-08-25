@@ -1160,6 +1160,30 @@ def build_snapshot() -> dict:
         except Exception:  # noqa: BLE001
             pass
 
+    # Vendored trading skills, bridged in (skill_bridge.py): a whole-book exposure ceiling, Minervini
+    # rating bands + heat-aware sizing on each signal, and a pre-trade discipline check. Advisory —
+    # nothing here cancels or places an order; it annotates the signals and the dashboard.
+    skills_out = {}
+    try:
+        import skill_bridge as _sb
+        _expo = _sb.exposure_ceiling((regime or {}).get("breadth"), (regime or {}).get("label"))
+        _nopen = len([r for r in shown if r.get("action") in ("HOLD LONG", "HOLD SHORT")])
+        for r in shown:
+            if r.get("action") not in ("BUY", "HOLD LONG", "WATCH LONG"):
+                continue
+            _rate = _sb.rate_setup(r)
+            if _rate:
+                r["setup_rating"] = _rate
+            _disc = _sb.discipline_check(r, exposure=_expo, open_positions=_nopen,
+                                         max_open=int(getattr(CONFIG, "paper_max_open", 30)))
+            if _disc.get("blocks") or _disc.get("warns"):
+                r["discipline"] = _disc
+        skills_out = {"exposure": _expo, "available": _sb.available(),
+                      "n_rated": sum(1 for r in shown if r.get("setup_rating")),
+                      "n_flagged": sum(1 for r in shown if r.get("discipline"))}
+    except Exception:  # noqa: BLE001
+        skills_out = {}
+
     # Premium-selling advisory (Theta Harvest-style) — scores where SELLING options premium is
     # favourable, 0-100, with hard gates. ADVISORY ONLY; needs live Alpaca options data for implied
     # vol and fails soft (empty) without it.
@@ -1559,6 +1583,7 @@ def build_snapshot() -> dict:
         "xai_buzz": xai_buzz,
         "retail_trending": retail_trending,
         "premium_selling": premium_selling,
+        "skills": skills_out,
         "audit_summary": None,  # filled by main() after the audit — kept early so it survives a truncated fetch
         "news_sources": dict(__import__("collections").Counter(
             (n.get("source") or "?") for n in news).most_common(14)),
@@ -6441,6 +6466,20 @@ def render_html(snap: dict) -> str:
   .sxcard.rejected {{ border-color:color-mix(in srgb,var(--sell) 40%,var(--line)); }}
   .sxcard.ctrl-dim {{ opacity:.38; filter:grayscale(.3); }}
   .sxcard.accepted.ctrl-dim {{ opacity:1; filter:none; }}
+  /* ===== bridged skills: exposure banner + discipline flags ===== */
+  .expo-band {{ display:flex; align-items:center; gap:20px; flex-wrap:wrap; background:var(--card);
+    border:1px solid var(--line); border-left-width:3px; border-radius:12px; padding:13px 18px; margin:16px 0; }}
+  .expo-l {{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }}
+  .expo-v {{ font-size:15px; font-weight:700; }}
+  .expo-c {{ font-size:13px; color:var(--txt2); }}
+  .expo-c b {{ color:var(--txt); font-variant-numeric:tabular-nums; }}
+  .expo-n {{ font-size:11.5px; color:var(--muted); margin-left:auto; }}
+  .disc-block {{ margin-top:12px; font-size:12px; line-height:1.5; color:var(--sell);
+    background:color-mix(in srgb,var(--sell) 10%,transparent);
+    border:1px solid color-mix(in srgb,var(--sell) 30%,transparent); border-radius:9px; padding:9px 12px; }}
+  .disc-warn {{ margin-top:12px; font-size:12px; line-height:1.5; color:var(--warn);
+    background:color-mix(in srgb,var(--warn) 10%,transparent);
+    border:1px solid color-mix(in srgb,var(--warn) 28%,transparent); border-radius:9px; padding:9px 12px; }}
   /* ===== Guardrails page — pipeline visual ===== */
   .gp-lead {{ font-size:14px; line-height:1.6; color:var(--txt2); max-width:720px; margin:2px 0 20px; }}
   .gp-flow {{ display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; margin-bottom:26px; }}
@@ -6847,6 +6886,7 @@ def render_html(snap: dict) -> str:
     {ticker_tape_html}
     {showcase_html}
     {bento_home_html}
+    <div id="exposureBanner"></div>
     <div class="strat-badge"><span class="k">Strategy type</span><span class="v">Swing · long-only, meta-label filtered · partial at 2R, then trail the winner</span></div>
     <div id="concWarn"></div>
     <div class="sec-eyebrow">Live social</div>
@@ -7165,6 +7205,7 @@ const STRAT_INFO = {{
   'Trend crossover': 'A short-term average price crosses ABOVE a longer-term one — a classic early sign an uptrend is starting.',
   'Golden cross': 'The 50-day average rises above the 200-day — a slow, big-picture signal the long-term trend has turned up.',
   'Donchian breakout': 'Price pushes above its highest level of the last 20 days — buyers breaking it out to fresh short-term highs.',
+  'VCP breakout': 'A stock coiling tighter and tighter — each pullback shallower than the last — beneath a breakout level, inside a strong uptrend. The classic Minervini swing base, and the best-evidenced pattern in this engine.',
   'Dip buy (RSI-2)': 'A short, sharp dip inside an uptrend — buying weakness in a strong name rather than chasing strength.',
   'Dip buy (RSI-2)': 'Inside an existing uptrend, price dips hard for a day or two — a chance to buy the pullback before it resumes.',
   'Squeeze breakout': 'After a quiet, low-volatility stretch, price pops out of its range — pent-up energy releasing into a move up.',
@@ -7543,7 +7584,19 @@ function makeCard(s) {{
       + `</div>`;
   }}
   const _rowVal = (v, tip) => tip ? `<span class="hint" data-tiphtml="${{_esc(tip)}}">${{v}}</span>` : v;
+  // Minervini rating band from the breakout-trade-planner skill (drives the size multiplier)
+  let bandRow = '';
+  if (s.setup_rating) {{
+    const b = s.setup_rating;
+    const bc = {{textbook:'var(--buy)', strong:'var(--buy)', good:'var(--warn)',
+                 developing:'var(--muted)', weak:'var(--sell)'}}[b.band] || 'var(--muted)';
+    const bTip = `<div class='cb-wrap'><div class='cb-h'>Setup rating &middot; ${{b.band}}</div>`
+      + `<div class='cb-line'>Score <b>${{b.composite}}</b> from ${{_esc(b.basis)}} &rarr; size multiplier <b>${{b.size_mult}}&times;</b>.</div>`
+      + `<div class='cb-cm'>Minervini bands (breakout-trade-planner): textbook 1.75&times; · strong 1.0&times; · good 0.75&times; · developing/weak 0&times; (don't take it).</div></div>`;
+    bandRow = ['Setup grade', _rowVal(`<span style="color:${{bc}};font-weight:700;text-transform:capitalize;">${{b.band}}</span> <span style="color:var(--muted);font-weight:400;">${{b.size_mult}}&times;</span>`, bTip)];
+  }}
   const _rows = [];
+  if (bandRow) _rows.push(bandRow);
   if (_p.entry!=null) _rows.push(['Entry', _rowVal(_m2(_p.entry), _entryTip)]);
   if (_p.t1_pct!=null) {{
     const _t1Tip = `<div class='cb-wrap'><div class='cb-h'>Partial exit &middot; T1</div><div class='cb-line'>Book <b>${{Math.round((_p.t1_frac||0.5)*100)}}%</b> at <b>${{_m2(_p.t1)}}</b> (+${{_p.t1_pct}}%), then move the stop to breakeven and let the rest run to target.</div><div class='cb-cm'>Turns a round-trip into a booked win — far targets get noise-stopped ~60% of the time.</div></div>`;
@@ -7602,6 +7655,8 @@ function makeCard(s) {{
     ${{_pills.length ? `<div class="sx-pills">${{_pills.join('')}}</div>` : ''}}
     ${{_rows.length ? `<div class="sx-div"></div><div class="sx-rows">${{_rows.map(r=>`<div class="sx-row"><span class="sx-l">${{r[0]}}</span><span class="sx-v">${{r[1]}}</span></div>`).join('')}}</div>` : ''}}
     ${{confWaffle}}
+    ${{s.discipline && (s.discipline.blocks||[]).length ? `<div class="disc-block">${{_ico('octagon',13)}} <b>Discipline gate:</b> ${{_esc(s.discipline.blocks[0])}}</div>` : ''}}
+    ${{s.discipline && !(s.discipline.blocks||[]).length && (s.discipline.warns||[]).length ? `<div class="disc-warn">${{_ico('warn',13)}} ${{_esc(s.discipline.warns[0])}}</div>` : ''}}
     ${{edWarn}}`;
   const _fb = el.querySelector('.favbtn');
   if (_fb) _fb.addEventListener('click', (e) => {{
@@ -8136,6 +8191,23 @@ function renderGrokPulse() {{
   }}));
 }}
 try {{ renderGrokPulse(); }} catch (e) {{}}
+
+// --- Exposure ceiling (exposure-coach skill): how much of the account should be in the market ---
+(function renderExposure() {{
+  const el = document.getElementById('exposureBanner');
+  const e = (DATA.skills || {{}}).exposure;
+  if (!el || !e) return;
+  const rec = String(e.recommendation || '');
+  const tone = rec.startsWith('NEW') ? 'var(--buy)' : (rec.startsWith('REDUCE') ? 'var(--warn)' : 'var(--sell)');
+  const words = {{NEW_ENTRY_ALLOWED: 'New entries allowed', REDUCE_ONLY: 'Reduce only — trim, don\\'t add',
+                  CASH_PRIORITY: 'Cash priority — stand aside'}}[rec] || rec;
+  el.innerHTML = '<div class="expo-band" style="border-left-color:' + tone + ';">'
+    + '<div class="expo-l">Market posture</div>'
+    + '<div class="expo-v" style="color:' + tone + ';">' + words + '</div>'
+    + '<div class="expo-c">Max exposure <b>' + e.ceiling_pct + '%</b> of account</div>'
+    + '<div class="expo-n">breadth ' + (e.basis ? e.basis.breadth : '—') + '% · '
+    + (e.basis ? e.basis.regime : '') + (e.note ? ' · ' + e.note : '') + '</div></div>';
+}})();
 
 // --- Grok deep-dive modal: what X is really saying about a name RIGHT NOW ---
 const _gkOverlay = document.getElementById('grokOverlay');
