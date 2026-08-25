@@ -163,10 +163,16 @@ def run(signals: list[dict], today: str) -> dict | None:
     acts = ("BUY", "SHORT") if allow_shorts else ("BUY",)
 
     def _ok(s):
+        conv = s.get("conviction") or {}
+        # Earnings inside ~2 days is a coin-flip event. This used to be enforced indirectly (the
+        # score was downgraded High->Medium and alerts keyed on High); now that alerts key on P(win)
+        # it has to be checked explicitly, or earnings gambles would slip back into the pings.
+        if conv.get("earnings_gated"):
+            return False
         pw = s.get("p_win")
         if isinstance(pw, (int, float)):
             return pw >= floor                      # model-gated (preferred)
-        return (s.get("conviction") or {}).get("label") == "High"   # fallback pre-model
+        return conv.get("label") == "High"          # fallback pre-model
 
     picks = [s for s in signals if s.get("action") in acts and _ok(s)]
     sent = _load()

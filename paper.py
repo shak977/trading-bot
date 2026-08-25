@@ -256,15 +256,29 @@ def run(signals: list[dict], cfg: Config, today: str, exposure_mult: float = 1.0
     if notrade_block:
         notes.append("No-trade layer: market conditions are poor — not opening new positions this run.")
 
-    # --- submit new brackets for fresh High-conviction signals ---
+    # --- submit new brackets for the fresh signals the MODEL rates highest ---
+    # Aug 2026 fix: this gated on conviction=="High", the score the record proved is INVERTED (High
+    # longs won 46.9% vs Medium 68.9%) — so the paper book was systematically buying the worse half.
+    # Now gated on the validated meta-label P(win), with conviction only as a pre-model fallback.
     if market_open and risk.get("ok_to_open", True) and not notrade_block and len(open_syms) < cfg.paper_max_open:
-        candidates = [s for s in signals
-                      if s.get("action") in ("BUY", "SHORT")
-                      and (s.get("conviction") or {}).get("label") == "High"]
-        # best first — by the adaptive allocation rank when present, else by conviction
-        candidates.sort(key=lambda s: -(s.get("rank_score")
-                                        if s.get("rank_score") is not None
-                                        else ((s.get("conviction") or {}).get("score_pct") or 0)))
+        _floor = float(getattr(cfg, "meta_pwin_floor", 0.52))
+        _acts = ("BUY", "SHORT") if getattr(cfg, "allow_shorts", False) else ("BUY",)
+
+        def _quality_ok(s):
+            conv = s.get("conviction") or {}
+            if conv.get("earnings_gated"):        # never open into a coin-flip earnings event
+                return False
+            pw = s.get("p_win")
+            if isinstance(pw, (int, float)):
+                return pw >= _floor
+            return conv.get("label") == "High"
+
+        candidates = [s for s in signals if s.get("action") in _acts and _quality_ok(s)]
+        # best first — model win-probability, then adaptive rank, then conviction as last resort
+        candidates.sort(key=lambda s: -(s.get("p_win") * 1000 if isinstance(s.get("p_win"), (int, float))
+                                        else (s.get("rank_score")
+                                              if s.get("rank_score") is not None
+                                              else ((s.get("conviction") or {}).get("score_pct") or 0))))
         new_count = 0
         for s in candidates:
             if new_count >= cfg.paper_max_new_per_run:

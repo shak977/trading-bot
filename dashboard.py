@@ -8882,9 +8882,9 @@ function _tvInit() {{
   const wrap = document.getElementById('sideSignals');
   const foot = document.getElementById('sideFoot');
   const sigs = (DATA.signals || []).slice();
-  // Top ~5 by conviction; direction marker from action/direction.
+  // Top ~5 by MODEL win-probability (falls back to conviction pre-model); direction marker from action.
   if (list && wrap && sigs.length) {{
-    const conv = s => ((s.conviction || {{}}).score_pct) || 0;
+    const conv = s => (typeof s.p_win === 'number' ? s.p_win * 100 : ((s.conviction || {{}}).score_pct) || 0);
     const top = sigs.sort((a, b) => conv(b) - conv(a)).slice(0, 5);
     top.forEach(s => {{
       const cp = conv(s);
