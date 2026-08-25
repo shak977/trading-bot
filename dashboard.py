@@ -3317,6 +3317,99 @@ def _tone_pct(pct, hi=50):
     return "up" if pct >= hi else "dn"
 
 
+def _method_html(snap: dict) -> str:
+    """'How it works' — GENERATED from the live config + track record, in plain English, so it stays
+    true automatically as the engine is tuned. Never hand-write settings into this page: read them."""
+    C = CONFIG
+    g = lambda k, d=None: getattr(C, k, d)
+    pct = lambda v: f"{v:.0%}" if isinstance(v, (int, float)) else "—"
+    shorts_on = bool(g("allow_shorts", False))
+    floor = g("meta_pwin_floor", 0.52)
+    cap = g("meta_buy_cap", 6)
+    p_r, p_f = g("partial_exit_r", 2.0), g("partial_exit_frac", 0.5)
+    trail, trail_t = g("swing_trail_atr", 3.0), g("swing_trail_tight_atr", 1.8)
+    partial_on, trail_on = g("partial_exit_enabled", True), g("swing_trail_enabled", True)
+    try:
+        from tracker import HOLD_LIMIT_DAYS as _hold
+    except Exception:  # noqa: BLE001
+        _hold = 60
+    _mh = _load_json_safe("meta_history.json") or []
+    auc = _mh[-1].get("auc_meta") if _mh else None
+    tk = snap.get("track") or {}
+    _ldir = (tk.get("by_direction") or {}).get("LONG") or {}
+    wr = _ldir.get("win_rate", tk.get("win_rate"))
+    nres = _ldir.get("n", tk.get("resolved", 0))
+
+    def step(n, title, body):
+        return (f'<div class="mth-step"><div class="mth-num">{n}</div>'
+                f'<div><div class="mth-t">{title}</div><div class="mth-b">{body}</div></div></div>')
+
+    gates = []
+    if not shorts_on:
+        gates.append("<b>Long only.</b> It won't short. Falling stocks show as <i>Avoid</i>, not trades — "
+                     "shorting lost money badly (7% win rate), so it's switched off.")
+    if g("extension_gate_enabled", True):
+        gates.append("<b>No chasing.</b> If a stock has already run up too far, it's downgraded to Watch. "
+                     "Buying after a big run wins ~40% of the time; buying a calm base wins ~64%.")
+    if g("volatility_gate_enabled", True):
+        gates.append("<b>Calm only.</b> Wild, jumpy stocks get downgraded. Calm names won 58% vs 15% — "
+                     "the single strongest filter we found.")
+    gates.append("<b>No hype traps.</b> If the buzz around a stock looks like a coordinated pump rather "
+                 "than real news, it's never traded.")
+
+    exit_body = (f"Take <b>{p_f:.0%} off the table</b> once the trade is up {p_r:g}&times; what you risked, "
+                 "then move the stop to break-even so the rest can't lose. " if partial_on else "")
+    exit_body += (f"After that a <b>trailing stop</b> follows the price up (never down), about "
+                  f"{trail:g}&times; the stock's daily range behind the high — and tightens to {trail_t:g}&times; "
+                  "once it passes the target. <b>Hitting the target doesn't sell</b> — it just tightens the "
+                  "trail, so a big winner keeps running instead of being cut short."
+                  if trail_on else f"Exits at a fixed target, capped at {pct(g('take_profit_pct',0.3))}.")
+
+    return (f'<div class="sec-head"><span class="sh-ico">{_svg("book",15)}</span><h2>How it works</h2>'
+            '<span class="sh-sub">in plain English &middot; auto-updates with the settings</span></div>'
+            '<p class="mth-lead">A research tool that scans the US market every weekday and shows you a '
+            'short list of stocks worth looking at — with a plan for each. It tells you <i>where to look</i>. '
+            'You decide what to trade.</p>'
+            f'<div class="mth-live">Right now: it only says &ldquo;buy&rdquo; on its <b>top {cap} ideas a day</b>, '
+            f'each needing at least a <b>{floor:.0%} chance of winning</b> by the model'
+            + (f' &middot; live model quality <b>AUC {auc}</b>' if auc else '')
+            + (f' &middot; long book <b>{wr}% win</b> over {nres} trades' if isinstance(wr, (int, float)) else '')
+            + '</div>'
+            '<div class="mth-steps">'
+            + step(1, "It scans", "Every weekday after the close it looks at hundreds of major US stocks, "
+                                  "plus the day's biggest movers and anything buzzing on X or StockTwits.")
+            + step(2, "It looks for agreement", "Seven independent strategies each give a verdict. When "
+                                                "<b>3 or more agree</b> and the stock is in an uptrend, it's a real setup. "
+                                                "Fewer agreeing = Watch, not a buy.")
+            + step(3, "It predicts the odds", "A model trained on <b>every past trade this system has made</b> "
+                                              "estimates the chance <i>this specific setup</i> wins. This is the core edge — it "
+                                              "sorts winners far better than the old checklist did.")
+            + step(4, "It filters hard", f"Only the <b>top {cap}</b> ideas each day clear the bar, and only "
+                                         f"those above a <b>{floor:.0%}</b> win probability. Everything else drops to Watch.")
+            + step(5, "It plans the trade", f"Every idea gets an entry, a <b>stop-loss</b> (about "
+                                            f"{pct(g('stop_loss_pct',0.05))} against you) and a target, sized so a loss costs only "
+                                            f"~{pct(g('risk_per_trade',0.02))} of the account.")
+            + step(6, "It lets winners run", exit_body)
+            + step(7, "It grades itself", f"Every call is logged and checked against real prices. Trades get up to "
+                                          f"<b>{_hold} days</b> to work. Each night it reviews what worked and retrains — so it "
+                                          "gets sharper as your record grows.")
+            + '</div>'
+            '<h4 class="mth-h">The safety rules</h4><ul class="mth-ul"><li>'
+            + "</li><li>".join(gates) + "</li></ul>"
+            '<h4 class="mth-h">What the labels mean</h4>'
+            '<div class="mth-tags">'
+            '<span><b>Buy</b> — a fresh setup that passed everything</span>'
+            '<span><b>Watch</b> — interesting, but failed a filter</span>'
+            '<span><b>Hold</b> — already triggered, still valid</span>'
+            '<span><b>Exit</b> — the trend just broke</span>'
+            '<span><b>Avoid</b> — weak or falling; stay away</span></div>'
+            '<h4 class="mth-h">Honest limits</h4>'
+            '<p class="mth-b">This is an <b>educational tool, not financial advice</b>. Signals are often '
+            'wrong. Prices are free and slightly delayed, and the record ignores fees and slippage, so real '
+            'results will be worse. The exit plan assumes you actually take the partial and trail the stop. '
+            'Never risk money you can\'t afford to lose.</p>')
+
+
 def _control_html(snap: dict) -> str:
     """Control panel — tune the engine in plain terms + review your accept/reject decisions, then export
     a file the engine reads next build. All the interactivity is client-side JS; this is the shell."""
@@ -4241,6 +4334,16 @@ def _track_html(track: dict | None) -> str:
         stat("Avg win", _pct(track.get("avg_win")), "win") +
         stat("Avg loss", _pct(track.get("avg_loss")), "loss")
     )
+    # Payoff ratio — avg win ÷ avg loss. THE number for a swing system: above 1.5 means winners carry
+    # the losers, so you don't need a high win rate to make money. (Was 1.08 before the swing rebuild.)
+    _aw, _al = track.get("avg_win"), track.get("avg_loss")
+    if isinstance(_aw, (int, float)) and isinstance(_al, (int, float)) and _al:
+        _pr = abs(_aw) / abs(_al)
+        _prc = "buy" if _pr >= 1.5 else ("" if _pr >= 1.2 else "sell")
+        _prs = ("winners comfortably outweigh losers" if _pr >= 1.5
+                else ("winners edge out losers" if _pr >= 1.2
+                      else "wins barely cover losses — aim for 1.5+"))
+        stats += stat("Payoff ratio", f"{_pr:.2f}&times;", _prc, _prs)
     # per-direction / per-conviction breakdown (the live-performance read, as data accrues)
     def _brk(title, d, keys):
         cells = ""
@@ -4705,6 +4808,7 @@ def render_html(snap: dict) -> str:
     premium_html = _premium_selling_html(snap)
     brain_html = _brain_html(snap)
     control_html = _control_html(snap)
+    method_html = _method_html(snap)
     whatsnew_html = _changelog_html(snap.get("changelog"))
     agents_html = _agent_web_html(snap) + _agent_universe_html(snap)
     regime_html = _regime_html(snap.get("regime"))
@@ -6206,6 +6310,28 @@ def render_html(snap: dict) -> str:
   .sxcard.rejected {{ border-color:color-mix(in srgb,var(--sell) 40%,var(--line)); }}
   .sxcard.ctrl-dim {{ opacity:.38; filter:grayscale(.3); }}
   .sxcard.accepted.ctrl-dim {{ opacity:1; filter:none; }}
+  /* ===== How it works (generated) ===== */
+  .mth-lead {{ font-size:15px; line-height:1.6; color:var(--txt2); max-width:660px; margin:4px 0 14px; }}
+  .mth-live {{ background:var(--inset); border-radius:12px; padding:13px 16px; font-size:13px;
+    color:var(--txt2); line-height:1.6; max-width:760px; margin-bottom:24px; }}
+  .mth-live b {{ color:var(--txt); }}
+  .mth-steps {{ display:flex; flex-direction:column; gap:2px; max-width:760px; }}
+  .mth-step {{ display:grid; grid-template-columns:38px minmax(0,1fr); gap:14px; padding:15px 0;
+    border-top:1px solid var(--line); align-items:start; }}
+  .mth-step:first-child {{ border-top:0; }}
+  .mth-num {{ font-size:15px; font-weight:700; color:var(--accent); font-variant-numeric:tabular-nums;
+    background:var(--inset); border-radius:9px; width:30px; height:30px; display:flex;
+    align-items:center; justify-content:center; }}
+  .mth-t {{ font-size:14.5px; font-weight:650; color:var(--txt); margin-bottom:4px; }}
+  .mth-b {{ font-size:13.5px; line-height:1.6; color:var(--txt2); max-width:660px; }}
+  .mth-b b {{ color:var(--txt); font-weight:600; }}
+  .mth-h {{ font-size:14px; font-weight:700; margin:26px 0 10px; color:var(--txt); }}
+  .mth-ul {{ margin:0; padding-left:18px; max-width:700px; }}
+  .mth-ul li {{ font-size:13.5px; line-height:1.6; color:var(--txt2); margin-bottom:8px; }}
+  .mth-ul b {{ color:var(--txt); }}
+  .mth-tags {{ display:flex; flex-wrap:wrap; gap:9px; max-width:760px; }}
+  .mth-tags span {{ font-size:12.5px; background:var(--inset); border-radius:999px; padding:6px 13px; color:var(--muted); }}
+  .mth-tags b {{ color:var(--txt); }}
   /* ===== Control panel ===== */
   .ctrl-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:8px; align-items:start; }}
   .ctrl-card {{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px 22px; }}
@@ -6657,172 +6783,7 @@ def render_html(snap: dict) -> str:
   </section>
 
   <section class="page" id="page-method">
-    <div class="sec-head"><span class="sh-ico">{_svg('book',15)}</span><h2>How it works</h2><span class="sh-sub">the method, end to end</span></div>
-    <div class="method">
-      <h4>The big picture</h4>
-      <p>This page is an automated <b>stock screen</b>. Every weekday (after the US close) it scans a
-      curated list of major stocks plus the day's biggest movers, and flags the ones that look like
-      they're <b>starting to trend upward</b>, using a simple, well-known momentum strategy. It's a
-      research tool to tell you <i>where to look</i> — not a tip service.</p>
-
-      <h4>What we're looking for</h4>
-      <p>Stocks where a short-term price trend is overtaking the longer-term trend — the classic early
-      sign of a move higher — and where momentum and trading activity back that up.</p>
-
-      <h4>The strategy: multi-strategy confluence, both directions</h4>
-      <p>Rather than wait for one rare event (a single moving-average crossover), the engine runs a
-      panel of well-known, independent strategies on each stock and asks <b>how many agree right now</b>,
-      then filters by the trend regime and a conviction floor. This surfaces real setups far more
-      often while keeping only the strong ones labelled actionable.</p>
-      <ol>
-        <li><b>Scan</b> — curated large-caps plus the day's most-active stocks and biggest movers.</li>
-        <li><b>Buy signal</b> — price is in an <b>uptrend</b> (above its 200-day average) and <b>3+ independent
-        strategies</b> line up long, and the setup clears a Medium-or-better conviction score. Weaker
-        setups appear as <span class="pill">Watch</span> rather than a buy.</li>
-        <li><b>Short signal</b> — the mirror image: price in a <b>downtrend</b> with 3+ strategies lined up
-        short and conviction clearing the bar. Shorts profit if the stock falls — and carry higher risk,
-        so they're gated the same way. There are also <span class="pill">Exit</span> (sell a long that
-        just rolled over) and <span class="pill">Avoid</span> (weak, stay away) alerts.</li>
-        <li><b>Risk first</b> — every setup gets a <b>stop-loss</b> (~{snap['params']['stop_loss_pct']:.0%} the wrong
-        way) and an <b>honest target</b> — the nearest real level price has to clear (recent swing high/low),
-        bounded by the analyst price target and a volatility-reachable distance, and never more than {snap['params']['take_profit_pct']:.0%} — sized so a stop-out
-        costs only about {snap['params']['risk_per_trade']:.0%} of the account. For a long the stop sits below entry and
-        the target above; for a short it's inverted.</li>
-      </ol>
-
-      <h4>How each signal is graded (multi-factor confluence)</h4>
-      <p>A good trade rarely rests on one signal. Each stock is scored on several factors, the way a
-      desk trader weighs confluence:</p>
-      <ul>
-        <li><b>Trend</b> — short-term average above the long-term one (direction).</li>
-        <li><b>Momentum</b> — RSI (overbought/oversold) and MACD (is momentum building?).</li>
-        <li><b>Trend strength</b> — ADX, to tell a real trend from chop.</li>
-        <li><b>Volume</b> — heavier-than-usual trading confirms a move.</li>
-        <li><b>Where price sits</b> — Bollinger band position, distance from 1-year highs/lows, and
-        whether it's stretched (chasing) or pulling back to the trend.</li>
-        <li><b>Risk : reward</b> — the target must pay enough for the risk taken.</li>
-        <li><b>Historical edge</b> — we <i>backtest this exact strategy on that stock's own history</i>
-        and factor in how often it has actually worked there.</li>
-        <li><b>Strategy confluence</b> — the core of the engine. We run seven <i>independent</i> strategies
-        in each direction: long (trend crossover, golden cross, Donchian breakout, MACD momentum, RSI-2
-        dip-buy, Bollinger squeeze breakout, EMA momentum stack) and their bearish mirrors (death cross,
-        breakdowns, RSI-2 rip-sell, etc.). When 3+ agree <i>and</i> price is in the matching trend,
-        the setup becomes actionable; 2 agreeing is a Watch. The detail panel shows which are firing.</li>
-        <li><b>Independent cross-check (TradingView)</b> — TradingView's own aggregate technical rating
-        (daily + weekly), as a second opinion that's separate from our engine.</li>
-        <li><b>News &amp; analysts</b> — recent news tone, the analyst consensus and average price target, plus
-        <b>recent rating changes</b> (upgrades/downgrades and the firm behind them).</li>
-        <li><b>Earnings momentum &amp; quality</b> — EPS and revenue growth, margins and leverage. Growing
-        fundamentals back a long (and fight a short); shrinking ones do the reverse.</li>
-        <li><b>Liquidity / execution quality</b> — average dollar turnover and an estimated spread. A name
-        that's too thin to fill cleanly is flagged, and in paper trading its size is capped (or skipped)
-        so the trade is actually practical — microstructure improving <i>execution</i>, not selection.</li>
-        <li><b>Insider activity (SEC Form 4)</b> — clusters of open-market insider <i>purchases</i> raise a
-        long's conviction (and lower a short's); heavy insider selling leans the other way.</li>
-        <li><b>Retail buzz (StockTwits)</b> — crowd chatter and Bull/Bear sentiment, weighted gently since
-        it's noisy and often contrarian.</li>
-        <li><b>Short interest / squeeze risk (Yahoo)</b> — how heavily a name is shorted (% of float, days-to-cover).
-        A crowded short is squeeze fuel for a long (a tailwind) and a real danger for a fresh short.</li>
-        <li><b>Retail / social attention (Reddit &amp; WSB, via ApeWisdom)</b> — names the retail crowd is piling into.
-        The lightest nudge of all: a mention spike adds momentum and volatility, so it gently helps a long and
-        warns a short. Never a primary driver.</li>
-        <li><b>Market alignment</b> — is the trade running with the broad tape (Risk-on/off) or against it?
-        Counter-trend setups lose points.</li>
-        <li><b>Earnings gate</b> — a fresh entry within ~2 days of an earnings report is held back (capped
-        out of High conviction): a binary report can gap straight through the stop.</li>
-      </ul>
-      <p>The Signals page also warns when <b>too many fresh signals cluster in one sector</b> (often the same
-      macro bet in disguise), and the <b>Data signals</b> tab explains and lists what the insider / rating /
-      buzz scrapers found today.</p>
-      <p>The detail panel also flags <b>chart patterns</b> (golden cross, breakouts, pullbacks, MACD
-      crosses, oversold bounces…) and reads the <b>market backdrop</b> — overall breadth (how many
-      stocks are trending up) and which <b>sectors</b> are strongest — because signals work better when
-      the broader tape agrees.</p>
-
-      <h4>How to use it</h4>
-      <p>Each card shows the action and a <b>conviction score</b> (how well it fits the rules). Click any
-      card for the full breakdown: a plain-English explanation, the trade plan (entry, stop, target,
-      risk:reward), a chart marking where the strategy would have bought/sold, and recent news.</p>
-
-      <h4>Proving it out — paper trading &amp; honest backtests</h4>
-      <p>The <b>Track record</b> tab logs every call and grades it against real prices (hypothetical — no fees).
-      The <b>Paper account</b> tab goes further: when enabled, fresh High-conviction signals are auto-submitted
-      as bracket orders to a real Alpaca <b>paper</b> account, so you see actual fills, slippage and P&amp;L — the
-      honest counterpart to the hypothetical log. And the <b>Momentum</b> tab leads with a
-      <b>survivorship-bias-free</b> backtest (run on a fixed universe of always-alive ETFs) so its headline
-      Sharpe/return can't be flattered by today's winners.</p>
-
-      <h4>Trusting the backtest — walk-forward / out-of-sample validation</h4>
-      <p>A single backtest sees the whole history, so any setting that happened to fit the past looks good — that's
-      curve-fitting. The <b>Momentum</b> tab now also runs a <b>walk-forward</b> test: it tunes the strategy on a
-      slice of <i>past</i> data, then trades the <i>next, unseen</i> slice with those frozen settings, and repeats
-      rolling forward. The result is an honest <b>out-of-sample</b> read plus a verdict — <i>holds up</i>,
-      <i>marginal</i>, or <i>fragile</i> — and a parameter-sensitivity sweep that shows whether the edge depends on
-      one lucky setting. If a strategy only shines in-sample, this is where it gets exposed.</p>
-
-      <h4>The intelligence layer — regimes, ranking &amp; learning</h4>
-      <p>On top of the per-stock signals sit a few adaptive layers. The <b>macro regime classifier</b> (Markets tab)
-      reads the backdrop and labels it risk-on / neutral / risk-off plus secondary tags — <i>high-volatility,
-      recessionary, inflationary, liquidity-driven</i> — and uses that to set an exposure dial <i>and</i> tilt which
-      strategies to lean on (momentum in risk-on, mean-reversion/pairs when it's choppy). The <b>adaptive ranking</b>
-      (Portfolio tab → "Top opportunities") scores every actionable name 0–100 for where capital should go first,
-      blending conviction quality, volatility-adjusted reward, macro fit, liquidity and momentum — so a high-conviction
-      but illiquid or poorly-paying setup is correctly ranked below a cleaner one. And a <b>feedback loop</b> tags every
-      logged trade with the macro regime and score at entry, so the Track record tab can show which regimes each
-      strategy actually works in as results accrue. There's also a <b>no-trade layer</b> (Markets tab &rarr; "No-trade
-      check") that makes the bot sit on its hands when conditions are poor — a major data release due that day, panic-level
-      volatility, a deteriorating track record, or a drawdown breach — even if a signal fires. It's all transparent rules
-      today; that logged history is also the foundation for adding machine-learning scoring later — and even then, every
-      decision still passes through the rules-based risk engine, which always has the final say.</p>
-      <p>Two more layers sit on top. A <b>meta-signal model</b> gives every candidate a second opinion —
-      <i>accept, reduce, delay</i> or <i>reject</i> — weighing regime fit, liquidity, conflicting signals and how
-      that regime has paid off before; a "reduce" halves the size, a "delay/reject" skips it. Each trade is then
-      written out as a <b>structured record</b> (Portfolio tab) with its confidence, expected return range, holding
-      period, risk and <b>uncertainty</b> scores — and when uncertainty is high (signals disagree, macro mixed,
-      liquidity thin) the meta-model is what trims or skips it. Finally, an <b>AI news read</b> uses the language
-      model to turn recent headlines into structured scores (guidance, demand, margins, regulatory risk and so on);
-      it never places a trade — it just feeds the meta-model, so genuinely bad news quietly shrinks position size.
-      The whole point is to be <i>more selective, not more active</i> — fewer, better trades.</p>
-
-      <h4>Macro sets the exposure dial (not the trades)</h4>
-      <p>Macro data — the VIX, the yield curve, credit spreads, the dollar, plus overall market breadth —
-      never directly buys or sells anything. Instead it's blended into one <b>risk-on / neutral / risk-off</b>
-      posture that sets an <b>exposure multiplier</b>: in a risk-on backdrop new positions are sized a little
-      larger and lean into momentum; in risk-off they're sized smaller, with more cash and a defensive tilt.
-      You can see the posture, the multiplier, and the drivers behind it on the <b>Markets</b> tab. The core
-      principle: macro controls <i>how much</i> you deploy, security-level data controls <i>what</i> you pick,
-      and liquidity controls <i>whether the trade is practical</i>.</p>
-
-      <h4>Protecting the whole book — the risk engine &amp; kill switch</h4>
-      <p>Stops protect a single trade; the <b>risk engine</b> protects the whole account. Before any new paper order
-      it checks the book and can throttle or stand down:</p>
-      <ul>
-        <li><b>Daily loss limit</b> — once the day is down ~3%, it stops opening new positions (open trades keep their brackets).</li>
-        <li><b>Drawdown control</b> — at ~8% peak-to-now drawdown it <b>halves</b> new-position size; at ~10% it
-        <b>halts</b> new entries until equity recovers.</li>
-        <li><b>Concentration cap</b> — no single position is allowed to exceed ~15% of equity.</li>
-        <li><b>Kill switch</b> — repeated run failures (broker/data outages) flip a hard stop, which auto-resets after
-        a few clean runs — so a glitch can never trigger runaway trading.</li>
-      </ul>
-      <p>Its current state shows as a colour-coded banner at the top of the <b>Paper account</b> tab
-      (green normal, amber de-risking, red halt, or the kill switch).</p>
-
-      <h4>A diversifier for flat markets — pairs &amp; mean-reversion</h4>
-      <p>The core engine trades <i>direction</i> (trend + momentum), which struggles when the market goes sideways.
-      The <b>Pairs</b> tab adds a market-neutral complement: it watches economically-related, liquid pairs
-      (e.g. KO/PEP, GS/MS, V/MA), and when the price <b>spread</b> between two normally-linked names stretches
-      unusually far — about <b>2 standard deviations</b> from its norm — it flags a bet that the gap closes again
-      (long the cheap leg, short the rich one). It only lists a pair once the two legs are genuinely correlated and
-      the spread is reliably <i>mean-reverting</i>; it exits as the spread reverts toward normal and stops out if the
-      relationship breaks (past ~3σ). It leans in when the broad tape is trendless and steps back when there's a
-      strong trend to ride. When a spread reaches its entry band you also get a <b>phone alert</b>, just like signal alerts.</p>
-
-      <h4>Honest limits</h4>
-      <p>This is an <b>educational tool, not financial advice</b>. Signals are often wrong, the data is
-      free and slightly delayed, and the numbers ignore fees and slippage. The extra inputs above (insider,
-      buzz, ratings) are <i>context, not certainty</i> — they tilt conviction, they don't guarantee anything.
-      Treat it all as a starting point for your own research — never risk money you can't afford to lose.</p>
-    </div>
+{method_html}
   </section>
 
   <section class="page" id="page-news">
