@@ -6550,7 +6550,7 @@ def render_html(snap: dict) -> str:
     {ticker_tape_html}
     {showcase_html}
     {bento_home_html}
-    <div class="strat-badge"><span class="k">Strategy type</span><span class="v">Multi-strategy confluence · long-only, meta-label filtered &amp; sized</span></div>
+    <div class="strat-badge"><span class="k">Strategy type</span><span class="v">Swing · long-only, meta-label filtered · partial at 2R, then trail the winner</span></div>
     <div id="concWarn"></div>
     <div class="sec-eyebrow">Live social</div>
     <div class="sec-head"><span class="sh-ico">{_svg('sparkle',15)}</span><h2>Grok · X pulse</h2><span class="sh-sub">real-time X + news read on the top names</span></div>
@@ -7383,7 +7383,7 @@ function makeCard(s) {{
   const _entryTip = (_p.entry!=null)
     ? `<div class='cb-wrap'><div class='cb-h'>Entry</div><div class='cb-line'>Suggested fill near <b>${{_m2(_p.entry)}}</b>. Last <b>$${{_px.toLocaleString()}}</b>.</div></div>` : '';
   const _tgtTip = (_p.target_pct!=null)
-    ? `<div class='cb-wrap'><div class='cb-h'>Target &middot; ${{_isShort?'−':'+'}}${{_p.target_pct}}%</div><div class='cb-line'>${{_esc(_p.target_basis || 'Nearest structural level, bounded by volatility & fundamentals.')}}</div></div>` : '';
+    ? `<div class='cb-wrap'><div class='cb-h'>Target &middot; ${{_isShort?'−':'+'}}${{_p.target_pct}}%</div><div class='cb-line'>${{_esc(_p.target_basis || 'Nearest structural level, bounded by volatility & fundamentals.')}}</div><div class='cb-cm'>Swing mode: reaching this <b>tightens the trailing stop</b> rather than exiting — winners keep running.</div></div>` : '';
   const _stpTip = (_p.stop_pct!=null)
     ? `<div class='cb-wrap'><div class='cb-h'>Stop &middot; ${{_isShort?'+':'−'}}${{_p.stop_pct}}%</div><div class='cb-line'>${{_esc(_p.stop_basis || 'Below the invalidation level — where the thesis breaks.')}}</div></div>` : '';
   // reward:risk visualised as two stacked mini bars (reward green vs 1 unit of risk red)

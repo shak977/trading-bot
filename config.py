@@ -233,9 +233,17 @@ class Config:
     # taking something off at 1R turns many would-be round-trips into small BOOKED wins. Raises win rate
     # and cuts give-back; costs a little on the runners (half the position rides to the full target). ---
     partial_exit_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("PARTIAL_EXIT"), True))
-    partial_exit_r: float = 1.0      # T1 distance in R (1.0 = one unit of risk above entry)
+    partial_exit_r: float = 2.0      # T1 at 2R — de-risks without capping the runners (1R was too early)
     partial_exit_frac: float = 0.5   # fraction of the position booked at T1
     partial_move_stop_be: bool = True  # after T1 fills, move the stop to breakeven on the remainder
+
+    # --- Swing trailing stop: the primary exit for the remainder. Once a trade is up ~1R the stop
+    # follows the highest price reached (never loosening), so winners can run 20-40% instead of being
+    # cut at a fixed target. Hitting the base target no longer exits — it tightens the trail instead. ---
+    swing_trail_enabled: bool = field(default_factory=lambda: _as_bool(os.getenv("SWING_TRAIL"), True))
+    swing_trail_atr: float = 3.0        # trail distance = N x ATR below the high-water mark
+    swing_trail_tight_atr: float = 1.8  # tighter trail once the base target has been exceeded
+    swing_trail_activate_r: float = 1.0  # only start trailing after the trade is up this many R
     meta_size_k: float = 2.0         # size tilt slope: mult = 1 + (p_win - 0.5)*k, then clamped
     meta_size_min: float = 0.6       # floor on the P(win) size multiplier
     meta_size_max: float = 1.5       # cap on the P(win) size multiplier
@@ -352,9 +360,13 @@ class Config:
     rr_stop_widen_cap: float = 3.0        # widen the stop so R:R lands at ~this when it would exceed it
     rr_stop_widen_max_atr: float = 3.5    # never widen the stop beyond this * ATR
     stop_loss_pct: float = 0.05      # 5% below entry
-    take_profit_pct: float = 0.15    # absolute CEILING on the base target (never target more than this)
-    target_swing_lookback: int = 30  # bars used to find the nearest structural resistance/support
-    target_atr_reach: float = 8.0    # volatility cap: a base target should be within ~8x ATR (a realistic swing move)
+    # SWING REBUILD (Aug 2026): the old 15% ceiling guillotined every winner — the top 10 wins were ALL
+    # exactly 15.0% and none exceeded 20%, leaving a payoff ratio of just 1.08 (avg win +5.11% vs avg
+    # loss -4.74%). Raised so winners can actually pay for the losers; the trailing stop (below) is now
+    # the real exit, with the target acting as a "start trailing tighter" trigger rather than a hard cap.
+    take_profit_pct: float = 0.30    # absolute CEILING on the base target (never target more than this)
+    target_swing_lookback: int = 60  # bars used to find the nearest structural resistance/support
+    target_atr_reach: float = 12.0   # volatility cap: a base target should be within ~Nx ATR (swing move)
     max_positions: int = 5
     atr_period: int = 14             # ATR lookback for volatility-based stop
     atr_stop_mult: float = 2.0       # ATR-based stop = entry - mult * ATR

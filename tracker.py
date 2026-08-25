@@ -27,7 +27,7 @@ PATH = os.getenv("TRACK_FILE", "track_record.json")
 # force-resolves ("expired") after this many sessions, so it feeds the learning loop instead of
 # sitting open indefinitely. Set well above the typical hold (~4-9 sessions) so genuine swing
 # winners still get room to work, but low enough that stalled trades mature in weeks, not months.
-HOLD_LIMIT_DAYS = 35
+HOLD_LIMIT_DAYS = 60
 
 
 def _load(path: str = PATH) -> list[dict]:
@@ -135,6 +135,24 @@ def run(signals: list[dict], cfg: Config, live: bool, today: str, *,
             _t1_hit = bool(t.get("t1_hit"))
             _be = bool(getattr(cfg, "partial_move_stop_be", True))
             _eff_stop = t["entry"] if (_t1_hit and _be) else t["stop"]
+            # --- Swing trailing stop: once the trade is up ~1R, the stop follows the best price reached
+            # (never loosening) so winners can run. Hitting the base target TIGHTENS the trail instead of
+            # exiting — that's what lets a +30% trade actually become +30% rather than being cut short.
+            _trail_on = bool(getattr(cfg, "swing_trail_enabled", True))
+            _risk = abs(t["entry"] - t["stop"]) or None
+            _atr_v = None
+            if _trail_on and _risk:
+                try:
+                    from indicators import atr as _atr_fn
+                    _a = _atr_fn(df, getattr(cfg, "atr_period", 14))
+                    _upto = _a[_a.index <= cutoff]
+                    _atr_v = float(_upto.iloc[-1]) if len(_upto) else float(_a.iloc[-1])
+                    if not (_atr_v and _atr_v > 0):
+                        _atr_v = None
+                except Exception:  # noqa: BLE001
+                    _atr_v = None
+            _hw = float(t.get("high_water") or t["entry"])   # best price reached so far
+            _tgt_exceeded = False
             for ts, row in after.iterrows():
                 hi, lo = float(row["high"]), float(row["low"])
                 # skip implausible single-bar prints (e.g. >35% intraday range) so a bad
@@ -160,14 +178,36 @@ def run(signals: list[dict], cfg: Config, live: bool, today: str, *,
                         t["t1_date"] = str(ts.date())
                         if _be:
                             _eff_stop = t["entry"]
-                if is_short:
-                    if lo <= t["target"]:
-                        t.update(status="win", exit=t["target"], exit_date=str(ts.date()))
-                        break
+                if _trail_on and _atr_v and _risk:
+                    # Ride it: update the high-water mark, tighten once the base target is exceeded,
+                    # and ratchet the stop up behind price. The trade exits on the trail, not the target.
+                    _hw = min(_hw, lo) if is_short else max(_hw, hi)
+                    if (lo <= t["target"]) if is_short else (hi >= t["target"]):
+                        _tgt_exceeded = True
+                        t["target_exceeded"] = True
+                    _mult = (getattr(cfg, "swing_trail_tight_atr", 1.8) if _tgt_exceeded
+                             else getattr(cfg, "swing_trail_atr", 3.0))
+                    _act = getattr(cfg, "swing_trail_activate_r", 1.0) * _risk
+                    if is_short:
+                        if _hw <= t["entry"] - _act:
+                            _cand = _hw + _mult * _atr_v
+                            if _cand < _eff_stop:
+                                _eff_stop = _cand
+                    else:
+                        if _hw >= t["entry"] + _act:
+                            _cand = _hw - _mult * _atr_v
+                            if _cand > _eff_stop:
+                                _eff_stop = _cand
+                    t["high_water"] = round(_hw, 2)
                 else:
-                    if hi >= t["target"]:
-                        t.update(status="win", exit=t["target"], exit_date=str(ts.date()))
-                        break
+                    if is_short:
+                        if lo <= t["target"]:
+                            t.update(status="win", exit=t["target"], exit_date=str(ts.date()))
+                            break
+                    else:
+                        if hi >= t["target"]:
+                            t.update(status="win", exit=t["target"], exit_date=str(ts.date()))
+                            break
             if t["status"] == "open" and len(after):
                 held = (after.index[-1] - cutoff).days
                 if held >= hold_days:
