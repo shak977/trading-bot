@@ -141,32 +141,55 @@ def _send_email(to: str, title: str, body: str) -> bool:
 
 
 def run(signals: list[dict], today: str) -> dict | None:
-    """Fire alerts for NEW High-conviction BUY/SHORT signals. Returns a small status dict, or
-    None when no channels are configured. Never raises."""
+    """Fire alerts for the NEW fresh BUYs the MODEL rates highest. Returns a small status dict, or
+    None when no channels are configured. Never raises.
+
+    Aug 2026 fix: alerts used to fire on "High conviction", which the record showed was inverted —
+    alerted longs won 50.3% (+0.46%) while the ones that DIDN'T alert won 66.8% (+1.22%). In other
+    words the ping was reliably picking the worse half. Alerts now gate on the validated meta-label
+    P(win) (OOS AUC ~0.75) and fall back to conviction only when no model score is present.
+    """
     ch = _channels()
     if not _any(ch):
         return None
 
-    picks = [s for s in signals
-             if s.get("action") in ("BUY", "SHORT")
-             and (s.get("conviction") or {}).get("label") == "High"]
+    try:
+        from config import CONFIG as _C
+        floor = float(getattr(_C, "meta_pwin_floor", 0.52))
+        allow_shorts = bool(getattr(_C, "allow_shorts", False))
+    except Exception:  # noqa: BLE001
+        floor, allow_shorts = 0.52, False
+
+    acts = ("BUY", "SHORT") if allow_shorts else ("BUY",)
+
+    def _ok(s):
+        pw = s.get("p_win")
+        if isinstance(pw, (int, float)):
+            return pw >= floor                      # model-gated (preferred)
+        return (s.get("conviction") or {}).get("label") == "High"   # fallback pre-model
+
+    picks = [s for s in signals if s.get("action") in acts and _ok(s)]
     sent = _load()
     fresh = [s for s in picks if f"{s['symbol']}:{s['action']}:{today}" not in sent]
     if not fresh:
         return {"configured": True, "new": 0, "delivered": False}
 
-    fresh.sort(key=lambda s: -((s.get("conviction") or {}).get("score_pct") or 0))
+    fresh.sort(key=lambda s: -(s.get("p_win") if isinstance(s.get("p_win"), (int, float))
+                               else ((s.get("conviction") or {}).get("score_pct") or 0) / 100.0))
     lines = []
     for s in fresh[:10]:
+        pw = s.get("p_win")
         cp = (s.get("conviction") or {}).get("score_pct")
+        grade = (f"{pw*100:.0f}% win-probability" if isinstance(pw, (int, float))
+                 else f"{cp}% conviction")
         entry = (s.get("plan") or {}).get("entry")
         arrow = "🟢" if s["action"] == "BUY" else "🔴"
-        lines.append(f"{arrow} {s['symbol']} {s['action']} — {cp}% conviction"
+        lines.append(f"{arrow} {s['symbol']} {s['action']} — {grade}"
                      + (f", entry ${entry:,.2f}" if entry else ""))
     site = os.getenv("SITE_URL", "").strip()
     from datetime import datetime, timezone
     stamp = datetime.now(timezone.utc).strftime("%H:%M UTC")
-    title = f"{len(fresh)} new high-conviction signal{'s' if len(fresh) != 1 else ''}"
+    title = f"{len(fresh)} new top-rated signal{'s' if len(fresh) != 1 else ''}"
     foot = f"\n\nas of {stamp} — these names are pinned on the dashboard"
     body = "\n".join(lines) + foot + (f"\n{site}" if site else "")
 
@@ -175,6 +198,7 @@ def run(signals: list[dict], today: str) -> dict | None:
     if delivered:
         for s in fresh:
             sent.add(f"{s['symbol']}:{s['action']}:{today}")
+            s["alerted"] = True      # so the tracker can grade the ALERTS themselves, not just signals
         _save(sent)
     return {"configured": True, "new": len(fresh), "delivered": delivered,
             "symbols": [s["symbol"] for s in fresh[:10]]}

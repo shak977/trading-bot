@@ -70,6 +70,14 @@ def run(track_path="track_record.json"):
         if hp:
             out["buy_only_pwin52"] = _stats(hp)
 
+    # 1c. Are the ALERTS any good? The ones that ping you should beat the ones that don't — historically
+    # they did the OPPOSITE (alerted longs 50.3%/+0.46% vs non-alerted 66.8%/+1.22%) because the ping was
+    # gated on the inverted conviction score. Now gated on P(win); this watches whether the fix worked.
+    al = [t for t in lo if t.get("alerted")]
+    nal = [t for t in lo if t.get("alerted") is False]
+    if al:
+        out["alerts"] = {"alerted": _stats(al), "not_alerted": _stats(nal)}
+
     # 2. R:R buckets (longs incl. expired for exit mix)
     lo_all = [t for t in tr if t.get("direction") == "LONG" and t.get("status") in ("win", "loss", "expired")
               and isinstance(t.get("rr"), (int, float))]

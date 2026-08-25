@@ -82,6 +82,7 @@ def run(signals: list[dict], cfg: Config, live: bool, today: str, *,
                 "direction": s.get("direction", "LONG"),
                 "action": s.get("action"),          # BUY vs HOLD/WATCH — lets us measure the ACTIONABLE win rate
                 "p_win": s.get("p_win"),            # meta-label P(win) at entry (forward calibration + BUY-only stats)
+                "alerted": bool(s.get("alerted")),  # did this one ping you? -> lets us grade the ALERTS themselves
                 "advised_date": today,
                 "advised_ts": (now_ts.isoformat() if (intraday and now_ts is not None) else today),
                 "entry": p["entry"], "stop": p["stop"],
