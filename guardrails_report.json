@@ -1,0 +1,94 @@
+{
+ "generated": "2026-08-25 22:54 GMT",
+ "counts": {
+  "CRITICAL": 0,
+  "WARN": 1,
+  "INFO": 13
+ },
+ "findings": [
+  {
+   "severity": "WARN",
+   "code": "AUTO_WEAK_COHORT",
+   "message": "Cohort 'liquidity_tier=very high' wins 25.0% vs 47.5% overall (n=52) \u2014 materially worse than the book.",
+   "evidence": ""
+  },
+  {
+   "severity": "INFO",
+   "code": "ANTI_PREDICTIVE_METRIC",
+   "message": "\"Reward:risk worth it?\" is anti-predictive (-43pt, n=758). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "evidence": ""
+  },
+  {
+   "severity": "INFO",
+   "code": "ANTI_PREDICTIVE_METRIC",
+   "message": "\"Worth the risk?\" is anti-predictive (-42pt, n=771). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "evidence": ""
+  },
+  {
+   "severity": "INFO",
+   "code": "ANTI_PREDICTIVE_METRIC",
+   "message": "\"Leading the market?\" is anti-predictive (-25pt, n=768). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "evidence": ""
+  },
+  {
+   "severity": "INFO",
+   "code": "ANTI_PREDICTIVE_METRIC",
+   "message": "\"Liquid enough to trade?\" is anti-predictive (-16pt, n=757). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "evidence": ""
+  },
+  {
+   "severity": "INFO",
+   "code": "ANTI_PREDICTIVE_METRIC",
+   "message": "\"Intraday on side?\" is anti-predictive (-15pt, n=757). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "evidence": ""
+  },
+  {
+   "severity": "INFO",
+   "code": "CONVICTION_INVERTED",
+   "message": "Conviction tiers remain inverted: High 46.9% vs Medium 68.9% win. Any gate keyed on High is selecting the worse cohort.",
+   "evidence": ""
+  },
+  {
+   "severity": "INFO",
+   "code": "CONVICTION_FALLBACK_OK",
+   "message": "Conviction referenced only as a pre-model fallback (guarded by a P(win) check) \u2014 acceptable.",
+   "evidence": "dashboard.py:1301"
+  },
+  {
+   "severity": "INFO",
+   "code": "MEASUREMENT_PENDING",
+   "message": "alerts is now being recorded (which signals pinged you), but no resolved trade carries it yet \u2014 the scorecard matures as new trades close.",
+   "evidence": ""
+  },
+  {
+   "severity": "INFO",
+   "code": "MEASUREMENT_PENDING",
+   "message": "actionable BUYs is now being recorded (BUY vs Watch (the trades you'd actually take)), but no resolved trade carries it yet \u2014 the scorecard matures as new trades close.",
+   "evidence": ""
+  },
+  {
+   "severity": "INFO",
+   "code": "MEASUREMENT_PENDING",
+   "message": "model probability is now being recorded (the P(win) the model assigned at entry), but no resolved trade carries it yet \u2014 the scorecard matures as new trades close.",
+   "evidence": ""
+  },
+  {
+   "severity": "INFO",
+   "code": "UNUSED_CAPABILITY",
+   "message": "13 of 71 installed skills are wired into the engine. 22 unused ones look trading-relevant \u2014 tested capability going spare.",
+   "evidence": "breadth-chart-analyst, dividend-growth-pullback-screener, downtrend-duration-analyzer, earnings-trade-analyzer, edge-concept-synthesizer, finviz-screener, institutional-flow-tracker, kanchi-dividend-review-monitor, macro-regime-detector, market-breadth-analyzer, market-top-detector, pair-trade-screener, pead-screener, position-sizer"
+  },
+  {
+   "severity": "INFO",
+   "code": "AUTO_BLIND_SPOTS",
+   "message": "63 field(s) drive decisions but are never logged at entry, so their effect on outcomes can't be audited. Worth logging the ones that gate trades.",
+   "evidence": "actionable, auc_meta, backtest, blocked, by_direction, cautions, cluster_buy, committee, confidence, context, date, earnings_days"
+  },
+  {
+   "severity": "INFO",
+   "code": "AUTO_SWEEP_COVERAGE",
+   "message": "Autonomous pass: 181 decision fields discovered in source, 3 had enough history to audit, 63 unmeasurable.",
+   "evidence": ""
+  }
+ ]
+}
