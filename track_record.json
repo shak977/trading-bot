@@ -120229,5 +120229,119 @@
     "regime_score": 0.69,
     "liquidity_tier": "high",
     "status": "open"
+  },
+  {
+    "id": "COF:2026-08-26",
+    "symbol": "COF",
+    "name": "Capital One Financial",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": 0.752,
+    "alerted": false,
+    "advised_date": "2026-08-26",
+    "advised_ts": "2026-08-26",
+    "entry": 216.34,
+    "stop": 206.56,
+    "target": 228.12,
+    "rr": 1.2,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 83,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "TradingView agrees?",
+        "status": "warn"
+      },
+      {
+        "label": "News on side?",
+        "status": "pass"
+      },
+      {
+        "label": "Analysts on side?",
+        "status": "pass"
+      },
+      {
+        "label": "Earnings clear?",
+        "status": "pass"
+      },
+      {
+        "label": "Earnings momentum?",
+        "status": "pass"
+      },
+      {
+        "label": "Intraday on side?",
+        "status": "warn"
+      },
+      {
+        "label": "Sector trending right?",
+        "status": "warn"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "warn"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": "mixed",
+    "regime": "Risk-on",
+    "regime_score": 0.69,
+    "liquidity_tier": "moderate",
+    "status": "open"
   }
 ]
