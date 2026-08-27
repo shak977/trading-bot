@@ -1,5 +1,5 @@
 {
- "generated": "2026-08-25 22:54 GMT",
+ "generated": "2026-08-27 03:26 GMT",
  "counts": {
   "CRITICAL": 0,
   "WARN": 1,
@@ -9,43 +9,43 @@
   {
    "severity": "WARN",
    "code": "AUTO_WEAK_COHORT",
-   "message": "Cohort 'liquidity_tier=very high' wins 25.0% vs 47.5% overall (n=52) \u2014 materially worse than the book.",
+   "message": "Cohort 'liquidity_tier=very high' wins 25.0% vs 47.2% overall (n=52) \u2014 materially worse than the book.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"Reward:risk worth it?\" is anti-predictive (-43pt, n=758). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"Reward:risk worth it?\" is anti-predictive (-42pt, n=765). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"Worth the risk?\" is anti-predictive (-42pt, n=771). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"Worth the risk?\" is anti-predictive (-41pt, n=778). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"Leading the market?\" is anti-predictive (-25pt, n=768). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"Leading the market?\" is anti-predictive (-24pt, n=775). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"Liquid enough to trade?\" is anti-predictive (-16pt, n=757). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"Liquid enough to trade?\" is anti-predictive (-16pt, n=764). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"Intraday on side?\" is anti-predictive (-15pt, n=757). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"Intraday on side?\" is anti-predictive (-14pt, n=764). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "CONVICTION_INVERTED",
-   "message": "Conviction tiers remain inverted: High 46.9% vs Medium 68.9% win. Any gate keyed on High is selecting the worse cohort.",
+   "message": "Conviction tiers remain inverted: High 46.7% vs Medium 67.8% win. Any gate keyed on High is selecting the worse cohort.",
    "evidence": ""
   },
   {
