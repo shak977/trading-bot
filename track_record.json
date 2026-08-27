@@ -87166,7 +87166,7 @@
     "regime_score": 0.69,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 51.95
+    "high_water": 52.15
   },
   {
     "id": "MA:2026-08-12",
@@ -87664,7 +87664,8 @@
     "regime_score": 0.69,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 905.22
+    "high_water": 916.5,
+    "target_exceeded": true
   },
   {
     "id": "GD:2026-08-12",
@@ -88864,7 +88865,7 @@
     "regime_score": 0.69,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 51.95
+    "high_water": 52.15
   },
   {
     "id": "WEN:2026-08-13",
@@ -90392,7 +90393,8 @@
     "regime_score": 0.69,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 905.22
+    "high_water": 916.5,
+    "target_exceeded": true
   },
   {
     "id": "GD:2026-08-13",
@@ -95965,7 +95967,7 @@
     "regime_score": 0.69,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 372.62
+    "high_water": 373.14
   },
   {
     "id": "KEYS:2026-08-17",
@@ -97632,7 +97634,7 @@
     "regime_score": 0.69,
     "liquidity_tier": "very high",
     "status": "open",
-    "high_water": 492.37
+    "high_water": 497.4
   },
   {
     "id": "AMZN:2026-08-17",
@@ -99363,7 +99365,7 @@
     "regime_score": 0.69,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 1180.83
+    "high_water": 1181.1
   },
   {
     "id": "GM:2026-08-17",
@@ -100040,7 +100042,7 @@
     "regime_score": 0.74,
     "liquidity_tier": "very high",
     "status": "open",
-    "high_water": 492.37
+    "high_water": 497.4
   },
   {
     "id": "BA:2026-08-18",
@@ -101274,7 +101276,7 @@
     "regime_score": 0.74,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 108.2
+    "high_water": 108.58
   },
   {
     "id": "EOG:2026-08-18",
@@ -101555,7 +101557,7 @@
     "regime_score": 0.74,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 1180.83
+    "high_water": 1181.1
   },
   {
     "id": "DE:2026-08-18",
@@ -102733,7 +102735,7 @@
     "regime_score": 0.74,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 148.91
+    "high_water": 149.53
   },
   {
     "id": "EMR:2026-08-18",
@@ -104041,7 +104043,7 @@
     "regime_score": 0.74,
     "liquidity_tier": "very high",
     "status": "open",
-    "high_water": 492.37
+    "high_water": 497.4
   },
   {
     "id": "VOO:2026-08-19",
@@ -104362,7 +104364,7 @@
     "regime_score": 0.74,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 285.56
+    "high_water": 285.93
   },
   {
     "id": "SLB:2026-08-19",
@@ -105025,7 +105027,7 @@
     "regime_score": 0.74,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 107.73
+    "high_water": 108.58
   },
   {
     "id": "BKNG:2026-08-19",
@@ -105115,7 +105117,7 @@
     "regime_score": 0.74,
     "liquidity_tier": "high",
     "status": "open",
-    "high_water": 215.03
+    "high_water": 215.48
   },
   {
     "id": "SHW:2026-08-19",
@@ -105205,7 +105207,7 @@
     "regime_score": 0.74,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 351.43
+    "high_water": 353.01
   },
   {
     "id": "BLK:2026-08-19",
@@ -105295,7 +105297,7 @@
     "regime_score": 0.74,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 1180.62
+    "high_water": 1181.1
   },
   {
     "id": "USB:2026-08-19",
@@ -105627,7 +105629,7 @@
     "regime_score": 0.68,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 514.21
+    "high_water": 519.83
   },
   {
     "id": "ABBV:2026-08-19",
@@ -105932,7 +105934,7 @@
     "regime_score": 0.68,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 311.19
+    "high_water": 314.11
   },
   {
     "id": "GM:2026-08-19",
@@ -106981,8 +106983,12 @@
     "regime": "Risk-on",
     "regime_score": 0.68,
     "liquidity_tier": "high",
-    "status": "open",
-    "high_water": 1274.9
+    "status": "loss",
+    "high_water": 1274.9,
+    "exit": 1204.89,
+    "exit_date": "2026-08-26",
+    "return_pct": -5.0,
+    "days_held": 7
   },
   {
     "id": "EMR:2026-08-19",
@@ -107543,7 +107549,7 @@
     "regime_score": 0.68,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 514.21
+    "high_water": 519.83
   },
   {
     "id": "MSFT:2026-08-20",
@@ -107637,7 +107643,7 @@
     "regime_score": 0.68,
     "liquidity_tier": "very high",
     "status": "open",
-    "high_water": 492.37
+    "high_water": 497.4
   },
   {
     "id": "SBUX:2026-08-20",
@@ -107731,7 +107737,7 @@
     "regime_score": 0.68,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 107.73
+    "high_water": 108.58
   },
   {
     "id": "DIA:2026-08-20",
@@ -107919,7 +107925,7 @@
     "regime_score": 0.68,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 1032.02
+    "high_water": 1047.21
   },
   {
     "id": "QQQ:2026-08-20",
@@ -108228,7 +108234,7 @@
     "regime_score": 0.68,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 96.27
+    "high_water": 96.77
   },
   {
     "id": "PGR:2026-08-20",
@@ -108546,7 +108552,7 @@
     "regime_score": 0.68,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 351.43
+    "high_water": 353.01
   },
   {
     "id": "BKNG:2026-08-20",
@@ -108640,7 +108646,7 @@
     "regime_score": 0.68,
     "liquidity_tier": "high",
     "status": "open",
-    "high_water": 215.03
+    "high_water": 215.48
   },
   {
     "id": "EL:2026-08-20",
@@ -108941,7 +108947,7 @@
     "regime_score": 0.68,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 311.19
+    "high_water": 314.11
   },
   {
     "id": "FDX:2026-08-20",
@@ -109035,7 +109041,7 @@
     "regime_score": 0.68,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 336.45
+    "high_water": 340.76
   },
   {
     "id": "NSC:2026-08-20",
@@ -109129,7 +109135,7 @@
     "regime_score": 0.68,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 353.54
+    "high_water": 355.51
   },
   {
     "id": "JPM:2026-08-20",
@@ -109223,7 +109229,7 @@
     "regime_score": 0.68,
     "liquidity_tier": "high",
     "status": "open",
-    "high_water": 358.21
+    "high_water": 358.31
   },
   {
     "id": "MA:2026-08-20",
@@ -110304,7 +110310,7 @@
     "regime_score": 0.6,
     "liquidity_tier": "high",
     "status": "open",
-    "high_water": 632.33
+    "high_water": 635.89
   },
   {
     "id": "TEM:2026-08-20",
@@ -110718,8 +110724,12 @@
     "regime": "Risk-on",
     "regime_score": 0.6,
     "liquidity_tier": "high",
-    "status": "open",
-    "high_water": 1270.96
+    "status": "loss",
+    "high_water": 1270.96,
+    "exit": 1190.95,
+    "exit_date": "2026-08-26",
+    "return_pct": -5.0,
+    "days_held": 6
   },
   {
     "id": "DHR:2026-08-20",
@@ -111239,7 +111249,7 @@
     "regime_score": 0.6,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 1180.62
+    "high_water": 1181.1
   },
   {
     "id": "PRLD:2026-08-20",
@@ -111482,7 +111492,7 @@
     "regime_score": 0.55,
     "liquidity_tier": "high",
     "status": "open",
-    "high_water": 288.86
+    "high_water": 290.44
   },
   {
     "id": "PGR:2026-08-21",
@@ -112312,7 +112322,7 @@
     "regime_score": 0.55,
     "liquidity_tier": "very high",
     "status": "open",
-    "high_water": 492.37
+    "high_water": 497.4
   },
   {
     "id": "PRLD:2026-08-21",
@@ -112667,8 +112677,12 @@
     "regime": "Risk-on",
     "regime_score": 0.55,
     "liquidity_tier": "high",
-    "status": "open",
-    "high_water": 1264.0
+    "status": "loss",
+    "high_water": 1264.0,
+    "exit": 1183.27,
+    "exit_date": "2026-08-26",
+    "return_pct": -5.0,
+    "days_held": 5
   },
   {
     "id": "KO:2026-08-21",
@@ -112875,7 +112889,7 @@
     "regime_score": 0.55,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 514.21
+    "high_water": 519.83
   },
   {
     "id": "PRU:2026-08-21",
@@ -113063,7 +113077,7 @@
     "regime_score": 0.55,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 353.54
+    "high_water": 355.51
   },
   {
     "id": "RTX:2026-08-21",
@@ -113157,7 +113171,7 @@
     "regime_score": 0.55,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 212.42
+    "high_water": 213.06
   },
   {
     "id": "SNOW:2026-08-21",
@@ -113443,7 +113457,7 @@
     "regime_score": 0.55,
     "liquidity_tier": "high",
     "status": "open",
-    "high_water": 632.33
+    "high_water": 635.89
   },
   {
     "id": "SHW:2026-08-21",
@@ -113533,7 +113547,7 @@
     "regime_score": 0.55,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 351.43
+    "high_water": 353.01
   },
   {
     "id": "JPM:2026-08-21",
@@ -113631,7 +113645,7 @@
     "regime_score": 0.55,
     "liquidity_tier": "high",
     "status": "open",
-    "high_water": 358.21
+    "high_water": 358.31
   },
   {
     "id": "BLK:2026-08-21",
@@ -113721,7 +113735,7 @@
     "regime_score": 0.55,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 1180.62
+    "high_water": 1181.1
   },
   {
     "id": "BKNG:2026-08-21",
@@ -113815,7 +113829,7 @@
     "regime_score": 0.55,
     "liquidity_tier": "high",
     "status": "open",
-    "high_water": 215.03
+    "high_water": 215.48
   },
   {
     "id": "TEM:2026-08-21",
@@ -114647,7 +114661,7 @@
     "regime_score": 0.45,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 96.27
+    "high_water": 96.77
   },
   {
     "id": "PYPL:2026-08-21",
@@ -114944,7 +114958,7 @@
     "regime_score": 0.63,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 311.19
+    "high_water": 314.11
   },
   {
     "id": "JPM:2026-08-24",
@@ -115058,7 +115072,7 @@
     "regime_score": 0.45,
     "liquidity_tier": "high",
     "status": "open",
-    "high_water": 357.37
+    "high_water": 358.31
   },
   {
     "id": "COF:2026-08-24",
@@ -115168,7 +115182,7 @@
     "regime_score": 0.45,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 218.1
+    "high_water": 218.21
   },
   {
     "id": "UNP:2026-08-24",
@@ -115278,7 +115292,7 @@
     "regime_score": 0.45,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 311.19
+    "high_water": 314.11
   },
   {
     "id": "RTX:2026-08-24",
@@ -115384,7 +115398,7 @@
     "regime_score": 0.45,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 210.62
+    "high_water": 213.06
   },
   {
     "id": "PRU:2026-08-24",
@@ -115976,7 +115990,7 @@
     "regime_score": 0.45,
     "liquidity_tier": "high",
     "status": "open",
-    "high_water": 214.3
+    "high_water": 215.48
   },
   {
     "id": "PYPL:2026-08-24",
@@ -116164,7 +116178,7 @@
     "regime_score": 0.45,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 514.21
+    "high_water": 519.83
   },
   {
     "id": "BLK:2026-08-24",
@@ -116258,7 +116272,7 @@
     "regime_score": 0.45,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 1180.62
+    "high_water": 1181.1
   },
   {
     "id": "QQQ:2026-08-24",
@@ -116564,7 +116578,7 @@
     "regime_score": 0.58,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 223.62
+    "high_water": 224.12
   },
   {
     "id": "CSX:2026-08-24",
@@ -116678,7 +116692,7 @@
     "regime_score": 0.62,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 51.88
+    "high_water": 52.15
   },
   {
     "id": "ABBV:2026-08-24",
@@ -116960,7 +116974,7 @@
     "regime_score": 0.62,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 353.27
+    "high_water": 355.51
   },
   {
     "id": "CRM:2026-08-24",
@@ -117384,7 +117398,7 @@
     "regime_score": 0.62,
     "liquidity_tier": "moderate",
     "status": "open",
-    "high_water": 336.45
+    "high_water": 340.76
   },
   {
     "id": "ASST:2026-08-24",
@@ -117604,7 +117618,8 @@
     "regime": "Risk-on",
     "regime_score": 0.64,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "open",
+    "high_water": 52.15
   },
   {
     "id": "COF:2026-08-25",
@@ -117721,7 +117736,8 @@
     "regime": "Risk-on",
     "regime_score": 0.64,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "open",
+    "high_water": 218.21
   },
   {
     "id": "UNP:2026-08-25",
@@ -117838,7 +117854,8 @@
     "regime": "Risk-on",
     "regime_score": 0.64,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "open",
+    "high_water": 314.11
   },
   {
     "id": "RTX:2026-08-25",
@@ -117955,7 +117972,8 @@
     "regime": "Risk-on",
     "regime_score": 0.64,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "open",
+    "high_water": 213.06
   },
   {
     "id": "FDX:2026-08-25",
@@ -118068,7 +118086,8 @@
     "regime": "Risk-on",
     "regime_score": 0.64,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "open",
+    "high_water": 340.76
   },
   {
     "id": "GD:2026-08-25",
@@ -118181,7 +118200,8 @@
     "regime": "Risk-on",
     "regime_score": 0.64,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "open",
+    "high_water": 383.71
   },
   {
     "id": "DHR:2026-08-25",
@@ -118290,7 +118310,8 @@
     "regime": "Risk-on",
     "regime_score": 0.64,
     "liquidity_tier": "high",
-    "status": "open"
+    "status": "open",
+    "high_water": 216.75
   },
   {
     "id": "DE:2026-08-25",
@@ -118383,7 +118404,8 @@
     "regime": "Risk-on",
     "regime_score": 0.64,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "open",
+    "high_water": 648.76
   },
   {
     "id": "EOG:2026-08-25",
@@ -118476,7 +118498,8 @@
     "regime": "Risk-on",
     "regime_score": 0.64,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "open",
+    "high_water": 150.22
   },
   {
     "id": "BMY:2026-08-25",
@@ -118573,7 +118596,8 @@
     "regime": "Risk-on",
     "regime_score": 0.64,
     "liquidity_tier": "high",
-    "status": "open"
+    "status": "open",
+    "high_water": 67.96
   },
   {
     "id": "CRM:2026-08-25",
@@ -118666,7 +118690,8 @@
     "regime": "Risk-on",
     "regime_score": 0.64,
     "liquidity_tier": "high",
-    "status": "open"
+    "status": "open",
+    "high_water": 209.16
   },
   {
     "id": "ASST:2026-08-25",
@@ -118759,7 +118784,9 @@
     "regime": "Risk-on",
     "regime_score": 0.64,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "open",
+    "target_exceeded": true,
+    "high_water": 21.64
   },
   {
     "id": "MCO:2026-08-25",
@@ -118848,7 +118875,8 @@
     "regime": "Risk-on",
     "regime_score": 0.64,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "open",
+    "high_water": 519.83
   },
   {
     "id": "PGR:2026-08-25",
@@ -118937,7 +118965,8 @@
     "regime": "Risk-on",
     "regime_score": 0.64,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "open",
+    "high_water": 224.12
   },
   {
     "id": "NSC:2026-08-25",
@@ -119030,7 +119059,8 @@
     "regime": "Risk-on",
     "regime_score": 0.64,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "open",
+    "high_water": 355.51
   },
   {
     "id": "PYPL:2026-08-25",
@@ -119123,7 +119153,8 @@
     "regime": "Risk-on",
     "regime_score": 0.64,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "open",
+    "high_water": 62.06
   },
   {
     "id": "KO:2026-08-25",
@@ -119240,7 +119271,8 @@
     "regime": "Risk-on",
     "regime_score": 0.69,
     "liquidity_tier": "high",
-    "status": "open"
+    "status": "open",
+    "high_water": 91.86
   },
   {
     "id": "DLTR:2026-08-25",
@@ -119353,7 +119385,8 @@
     "regime": "Risk-on",
     "regime_score": 0.69,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "open",
+    "high_water": 133.39
   },
   {
     "id": "RYOJ:2026-08-25",
@@ -119434,7 +119467,8 @@
     "regime": "Risk-on",
     "regime_score": 0.69,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "open",
+    "high_water": 5.7
   },
   {
     "id": "ADBE:2026-08-25",
@@ -119527,7 +119561,8 @@
     "regime": "Risk-on",
     "regime_score": 0.69,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "open",
+    "high_water": 274.55
   },
   {
     "id": "SHW:2026-08-25",
@@ -119620,7 +119655,8 @@
     "regime": "Risk-on",
     "regime_score": 0.69,
     "liquidity_tier": "moderate",
-    "status": "open"
+    "status": "open",
+    "high_water": 353.01
   },
   {
     "id": "UNP:2026-08-26",
@@ -120948,6 +120984,682 @@
     "regime": "Risk-on",
     "regime_score": 0.76,
     "liquidity_tier": "thin",
+    "status": "open"
+  },
+  {
+    "id": "UNP:2026-08-27",
+    "symbol": "UNP",
+    "name": "Union Pacific Corp.",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": 0.805,
+    "alerted": false,
+    "advised_date": "2026-08-27",
+    "advised_ts": "2026-08-27",
+    "entry": 310.63,
+    "stop": 299.6,
+    "target": 315.51,
+    "rr": 0.44,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 76,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "warn"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "TradingView agrees?",
+        "status": "pass"
+      },
+      {
+        "label": "News on side?",
+        "status": "fail"
+      },
+      {
+        "label": "Analysts on side?",
+        "status": "pass"
+      },
+      {
+        "label": "Earnings clear?",
+        "status": "pass"
+      },
+      {
+        "label": "Earnings momentum?",
+        "status": "pass"
+      },
+      {
+        "label": "Intraday on side?",
+        "status": "warn"
+      },
+      {
+        "label": "Sector trending right?",
+        "status": "warn"
+      },
+      {
+        "label": "Short-squeeze fuel?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "warn"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": "agree",
+    "regime": "Risk-on",
+    "regime_score": 0.76,
+    "liquidity_tier": "moderate",
+    "status": "open"
+  },
+  {
+    "id": "FDX:2026-08-27",
+    "symbol": "FDX",
+    "name": "FedEx Corporation",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": 0.704,
+    "alerted": false,
+    "advised_date": "2026-08-27",
+    "advised_ts": "2026-08-27",
+    "entry": 335.97,
+    "stop": 320.27,
+    "target": 345.37,
+    "rr": 0.6,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 84,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "fail"
+      },
+      {
+        "label": "With the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "TradingView agrees?",
+        "status": "pass"
+      },
+      {
+        "label": "News on side?",
+        "status": "pass"
+      },
+      {
+        "label": "Earnings momentum?",
+        "status": "pass"
+      },
+      {
+        "label": "Intraday on side?",
+        "status": "pass"
+      },
+      {
+        "label": "Sector trending right?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "warn"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": "agree",
+    "regime": "Risk-on",
+    "regime_score": 0.76,
+    "liquidity_tier": "moderate",
+    "status": "open"
+  },
+  {
+    "id": "WEN:2026-08-27",
+    "symbol": "WEN",
+    "name": "Wendy's Company (The) Common Stock",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": 0.584,
+    "alerted": true,
+    "advised_date": "2026-08-27",
+    "advised_ts": "2026-08-27",
+    "entry": 9.04,
+    "stop": 8.59,
+    "target": 9.44,
+    "rr": 0.88,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "Medium",
+    "conviction_pct": 64,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "warn"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "TradingView agrees?",
+        "status": "pass"
+      },
+      {
+        "label": "News on side?",
+        "status": "fail"
+      },
+      {
+        "label": "Earnings momentum?",
+        "status": "fail"
+      },
+      {
+        "label": "Intraday on side?",
+        "status": "pass"
+      },
+      {
+        "label": "Sector trending right?",
+        "status": "pass"
+      },
+      {
+        "label": "Short-squeeze fuel?",
+        "status": "pass"
+      },
+      {
+        "label": "Retail wind behind it?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      }
+    ],
+    "tv_align": "agree",
+    "regime": "Risk-on",
+    "regime_score": 0.76,
+    "liquidity_tier": "thin",
+    "status": "open"
+  },
+  {
+    "id": "PYPL:2026-08-27",
+    "symbol": "PYPL",
+    "name": "PayPal Holdings, Inc. Common Stock",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": 0.728,
+    "alerted": false,
+    "advised_date": "2026-08-27",
+    "advised_ts": "2026-08-27",
+    "entry": 61.82,
+    "stop": 58.97,
+    "target": 62.73,
+    "rr": 0.32,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "Medium",
+    "conviction_pct": 70,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "warn"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "warn"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "TradingView agrees?",
+        "status": "pass"
+      },
+      {
+        "label": "News on side?",
+        "status": "warn"
+      },
+      {
+        "label": "Earnings momentum?",
+        "status": "pass"
+      },
+      {
+        "label": "Intraday on side?",
+        "status": "warn"
+      },
+      {
+        "label": "Sector trending right?",
+        "status": "pass"
+      },
+      {
+        "label": "Retail wind behind it?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "warn"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      }
+    ],
+    "tv_align": "agree",
+    "regime": "Risk-on",
+    "regime_score": 0.76,
+    "liquidity_tier": "moderate",
+    "status": "open"
+  },
+  {
+    "id": "DE:2026-08-27",
+    "symbol": "DE",
+    "name": "Deere & Company",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": 0.773,
+    "alerted": false,
+    "advised_date": "2026-08-27",
+    "advised_ts": "2026-08-27",
+    "entry": 634.12,
+    "stop": 602.41,
+    "target": 660.03,
+    "rr": 0.82,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "Medium",
+    "conviction_pct": 72,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "TradingView agrees?",
+        "status": "pass"
+      },
+      {
+        "label": "News on side?",
+        "status": "pass"
+      },
+      {
+        "label": "Earnings momentum?",
+        "status": "fail"
+      },
+      {
+        "label": "Intraday on side?",
+        "status": "warn"
+      },
+      {
+        "label": "Sector trending right?",
+        "status": "warn"
+      },
+      {
+        "label": "Short-squeeze fuel?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "warn"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": "agree",
+    "regime": "Risk-on",
+    "regime_score": 0.76,
+    "liquidity_tier": "moderate",
+    "status": "open"
+  },
+  {
+    "id": "NSC:2026-08-27",
+    "symbol": "NSC",
+    "name": "Norfolk Southern Corp.",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": 0.655,
+    "alerted": false,
+    "advised_date": "2026-08-27",
+    "advised_ts": "2026-08-27",
+    "entry": 352.54,
+    "stop": 340.69,
+    "target": 358.11,
+    "rr": 0.47,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "Medium",
+    "conviction_pct": 69,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Intraday on side?",
+        "status": "warn"
+      },
+      {
+        "label": "Sector trending right?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "warn"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": 0.76,
+    "liquidity_tier": "moderate",
     "status": "open"
   }
 ]
