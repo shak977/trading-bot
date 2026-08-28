@@ -117093,9 +117093,13 @@
     "regime": "Risk-on",
     "regime_score": 0.62,
     "liquidity_tier": "high",
-    "status": "open",
+    "status": "win",
     "high_water": 254.36,
-    "target_exceeded": true
+    "target_exceeded": true,
+    "exit": 230.95426348734708,
+    "exit_date": "2026-08-26",
+    "return_pct": 10.39,
+    "days_held": 2
   },
   {
     "id": "DLTR:2026-08-24",
@@ -117526,9 +117530,13 @@
     "regime": "Risk-on",
     "regime_score": 0.62,
     "liquidity_tier": "thin",
-    "status": "open",
+    "status": "win",
     "target_exceeded": true,
-    "high_water": 24.36
+    "high_water": 24.36,
+    "exit": 22.433618219906982,
+    "exit_date": "2026-08-26",
+    "return_pct": 13.7,
+    "days_held": 2
   },
   {
     "id": "CSX:2026-08-25",
@@ -118820,9 +118828,13 @@
     "regime": "Risk-on",
     "regime_score": 0.64,
     "liquidity_tier": "thin",
-    "status": "open",
+    "status": "win",
     "target_exceeded": true,
-    "high_water": 24.36
+    "high_water": 24.36,
+    "exit": 22.30314548991363,
+    "exit_date": "2026-08-27",
+    "return_pct": 13.04,
+    "days_held": 2
   },
   {
     "id": "MCO:2026-08-25",
@@ -122325,6 +122337,568 @@
     "tv_align": null,
     "regime": "Risk-on",
     "regime_score": 0.69,
+    "liquidity_tier": "moderate",
+    "status": "open"
+  },
+  {
+    "id": "ABT:2026-08-28",
+    "symbol": "ABT",
+    "name": "Abbott Laboratories",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": 0.606,
+    "alerted": false,
+    "advised_date": "2026-08-28",
+    "advised_ts": "2026-08-28",
+    "entry": 112.42,
+    "stop": 107.69,
+    "target": 117.32,
+    "rr": 1.04,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 83,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "warn"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "TradingView agrees?",
+        "status": "pass"
+      },
+      {
+        "label": "News on side?",
+        "status": "warn"
+      },
+      {
+        "label": "Analysts on side?",
+        "status": "pass"
+      },
+      {
+        "label": "Earnings clear?",
+        "status": "pass"
+      },
+      {
+        "label": "Earnings momentum?",
+        "status": "pass"
+      },
+      {
+        "label": "Insiders buying?",
+        "status": "warn"
+      },
+      {
+        "label": "Retail buzz?",
+        "status": "pass"
+      },
+      {
+        "label": "Intraday on side?",
+        "status": "warn"
+      },
+      {
+        "label": "Sector trending right?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "warn"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": "agree",
+    "regime": "Risk-on",
+    "regime_score": 0.76,
+    "liquidity_tier": "moderate",
+    "status": "open"
+  },
+  {
+    "id": "MDLZ:2026-08-28",
+    "symbol": "MDLZ",
+    "name": "Mondelez International, Inc. Class A Common Stock",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": 0.8,
+    "alerted": false,
+    "advised_date": "2026-08-28",
+    "advised_ts": "2026-08-28",
+    "entry": 62.35,
+    "stop": 59.71,
+    "target": 66.62,
+    "rr": 1.62,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 86,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "fail"
+      },
+      {
+        "label": "With the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "TradingView agrees?",
+        "status": "warn"
+      },
+      {
+        "label": "News on side?",
+        "status": "pass"
+      },
+      {
+        "label": "Analysts on side?",
+        "status": "pass"
+      },
+      {
+        "label": "Earnings clear?",
+        "status": "pass"
+      },
+      {
+        "label": "Earnings momentum?",
+        "status": "pass"
+      },
+      {
+        "label": "Intraday on side?",
+        "status": "warn"
+      },
+      {
+        "label": "Sector trending right?",
+        "status": "warn"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "warn"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": "mixed",
+    "regime": "Risk-on",
+    "regime_score": 0.76,
+    "liquidity_tier": "moderate",
+    "status": "open"
+  },
+  {
+    "id": "CRWD:2026-08-28",
+    "symbol": "CRWD",
+    "name": "CrowdStrike Holdings, Inc. Class A Common Stock",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": 0.564,
+    "alerted": true,
+    "advised_date": "2026-08-28",
+    "advised_ts": "2026-08-28",
+    "entry": 218.46,
+    "stop": 207.54,
+    "target": 229.01,
+    "rr": 0.97,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 81,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "TradingView agrees?",
+        "status": "pass"
+      },
+      {
+        "label": "News on side?",
+        "status": "pass"
+      },
+      {
+        "label": "Analysts on side?",
+        "status": "pass"
+      },
+      {
+        "label": "Earnings momentum?",
+        "status": "pass"
+      },
+      {
+        "label": "Intraday on side?",
+        "status": "pass"
+      },
+      {
+        "label": "Sector trending right?",
+        "status": "warn"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "pass"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": "agree",
+    "regime": "Risk-on",
+    "regime_score": 0.76,
+    "liquidity_tier": "high",
+    "status": "open"
+  },
+  {
+    "id": "AMGN:2026-08-28",
+    "symbol": "AMGN",
+    "name": "Amgen Inc. Common Stock",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": 0.545,
+    "alerted": false,
+    "advised_date": "2026-08-28",
+    "advised_ts": "2026-08-28",
+    "entry": 432.46,
+    "stop": 413.7,
+    "target": 447.03,
+    "rr": 0.78,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 79,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "TradingView agrees?",
+        "status": "pass"
+      },
+      {
+        "label": "News on side?",
+        "status": "pass"
+      },
+      {
+        "label": "Earnings momentum?",
+        "status": "pass"
+      },
+      {
+        "label": "Intraday on side?",
+        "status": "warn"
+      },
+      {
+        "label": "Sector trending right?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "warn"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": "agree",
+    "regime": "Risk-on",
+    "regime_score": 0.76,
+    "liquidity_tier": "moderate",
+    "status": "open"
+  },
+  {
+    "id": "ADSK:2026-08-28",
+    "symbol": "ADSK",
+    "name": "Autodesk, Inc. Common Stock",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": 0.581,
+    "alerted": false,
+    "advised_date": "2026-08-28",
+    "advised_ts": "2026-08-28",
+    "entry": 260.77,
+    "stop": 247.73,
+    "target": 271.66,
+    "rr": 0.84,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 79,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "warn"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "News on side?",
+        "status": "pass"
+      },
+      {
+        "label": "Intraday on side?",
+        "status": "warn"
+      },
+      {
+        "label": "Sector trending right?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "warn"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": 0.76,
     "liquidity_tier": "moderate",
     "status": "open"
   }
