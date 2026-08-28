@@ -786399,5 +786399,95 @@
     "regime_score": null,
     "liquidity_tier": "thin",
     "status": "open"
+  },
+  {
+    "id": "NVAX:2026-08-28",
+    "symbol": "NVAX",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-08-28",
+    "advised_ts": "2026-08-28T22:54:59.204426",
+    "entry": 9.27,
+    "stop": 9.15,
+    "target": 9.34,
+    "rr": 0.6,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "Medium",
+    "conviction_pct": 74,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Risk-on",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
   }
 ]
