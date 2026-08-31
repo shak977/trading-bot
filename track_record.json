@@ -95882,8 +95882,12 @@
     "regime": "Risk-on",
     "regime_score": 0.69,
     "liquidity_tier": "moderate",
-    "status": "open",
-    "high_water": 57.42
+    "status": "loss",
+    "high_water": 57.42,
+    "exit": 52.589210136111944,
+    "exit_date": "2026-08-24",
+    "return_pct": -2.18,
+    "days_held": 7
   },
   {
     "id": "TRV:2026-08-17",
@@ -103195,9 +103199,13 @@
     "regime": "Risk-on",
     "regime_score": 0.71,
     "liquidity_tier": "moderate",
-    "status": "open",
+    "status": "loss",
     "high_water": 57.42,
-    "target_exceeded": true
+    "target_exceeded": true,
+    "exit": 52.74569512638966,
+    "exit_date": "2026-08-24",
+    "return_pct": -1.48,
+    "days_held": 6
   },
   {
     "id": "DIA:2026-08-18",
@@ -104496,9 +104504,13 @@
     "regime": "Risk-on",
     "regime_score": 0.74,
     "liquidity_tier": "moderate",
-    "status": "open",
+    "status": "loss",
     "high_water": 57.42,
-    "target_exceeded": true
+    "target_exceeded": true,
+    "exit": 52.79885976021897,
+    "exit_date": "2026-08-24",
+    "return_pct": -0.81,
+    "days_held": 5
   },
   {
     "id": "MA:2026-08-19",
@@ -118764,9 +118776,13 @@
     "regime": "Risk-on",
     "regime_score": 0.64,
     "liquidity_tier": "high",
-    "status": "open",
+    "status": "win",
     "high_water": 263.48,
-    "target_exceeded": true
+    "target_exceeded": true,
+    "exit": 240.6639589527357,
+    "exit_date": "2026-08-27",
+    "return_pct": 15.06,
+    "days_held": 2
   },
   {
     "id": "ASST:2026-08-25",
@@ -120357,9 +120373,13 @@
     "regime": "Risk-on",
     "regime_score": 0.69,
     "liquidity_tier": "high",
-    "status": "open",
+    "status": "win",
     "target_exceeded": true,
-    "high_water": 263.48
+    "high_water": 263.48,
+    "exit": 250.08613427366703,
+    "exit_date": "2026-08-28",
+    "return_pct": 21.62,
+    "days_held": 2
   },
   {
     "id": "COF:2026-08-26",
@@ -123790,6 +123810,116 @@
       {
         "label": "Smart-money footprint?",
         "status": "pass"
+      }
+    ],
+    "tv_align": "agree",
+    "regime": "Risk-on",
+    "regime_score": 0.68,
+    "liquidity_tier": "moderate",
+    "status": "open"
+  },
+  {
+    "id": "BLK:2026-08-31",
+    "symbol": "BLK",
+    "name": "Blackrock, Inc.",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": 0.896,
+    "alerted": false,
+    "advised_date": "2026-08-31",
+    "advised_ts": "2026-08-31",
+    "entry": 1154.01,
+    "stop": 1112.29,
+    "target": 1186.76,
+    "rr": 0.79,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "Medium",
+    "conviction_pct": 70,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "warn"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "TradingView agrees?",
+        "status": "pass"
+      },
+      {
+        "label": "News on side?",
+        "status": "pass"
+      },
+      {
+        "label": "Earnings momentum?",
+        "status": "pass"
+      },
+      {
+        "label": "Intraday on side?",
+        "status": "warn"
+      },
+      {
+        "label": "Sector trending right?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "warn"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
       }
     ],
     "tv_align": "agree",
