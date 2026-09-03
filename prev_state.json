@@ -3,13 +3,13 @@
     "CRWD": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 86,
+      "score": 85,
       "dir": "LONG"
     },
     "SNOW": {
       "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 82,
+      "label": "High",
+      "score": 84,
       "dir": "LONG"
     },
     "MDB": {
@@ -75,7 +75,7 @@
     "KO": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 76,
+      "score": 75,
       "dir": "LONG"
     },
     "WDAY": {
@@ -105,13 +105,13 @@
     "MCK": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 78,
+      "score": 80,
       "dir": "LONG"
     },
     "MCO": {
       "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 75,
+      "label": "High",
+      "score": 77,
       "dir": "LONG"
     },
     "FCX": {
@@ -129,7 +129,7 @@
     "GM": {
       "action": "WATCH LONG",
       "label": "Medium",
-      "score": 69,
+      "score": 65,
       "dir": "LONG"
     },
     "VG": {
@@ -159,7 +159,7 @@
     "DELL": {
       "action": "WATCH LONG",
       "label": "Medium",
-      "score": 70,
+      "score": 73,
       "dir": "LONG"
     },
     "DG": {
@@ -303,7 +303,7 @@
     "AVGO": {
       "action": "AVOID",
       "label": "Medium",
-      "score": 57,
+      "score": 51,
       "dir": "SHORT"
     },
     "FRVO": {
@@ -328,6 +328,12 @@
       "action": "AVOID",
       "label": "Medium",
       "score": 69,
+      "dir": "SHORT"
+    },
+    "AVAV": {
+      "action": "AVOID",
+      "label": "Medium",
+      "score": 65,
       "dir": "SHORT"
     },
     "SOFI": {
@@ -363,7 +369,13 @@
     "PANW": {
       "action": "FLAT",
       "label": "Medium",
-      "score": 71,
+      "score": 72,
+      "dir": "LONG"
+    },
+    "RARE": {
+      "action": "FLAT",
+      "label": "Medium",
+      "score": 66,
       "dir": "LONG"
     },
     "AMZN": {
@@ -389,6 +401,12 @@
       "label": "Medium",
       "score": 56,
       "dir": "LONG"
+    },
+    "AI": {
+      "action": "FLAT",
+      "label": "Medium",
+      "score": 53,
+      "dir": "SHORT"
     },
     "JEPQ": {
       "action": "FLAT",
@@ -437,11 +455,16 @@
     "Technology": 54,
     "Index ETFs": 50,
     "Real Estate": 50,
-    "Other / Movers": 48,
+    "Other / Movers": 47,
     "Materials": 33,
     "Industrials": 11,
     "Utilities": 0
   },
-  "catalysts": [],
+  "catalysts": [
+    "CRWD",
+    "PANW",
+    "AVGO",
+    "DELL"
+  ],
   "generated_at": "2026-09-02"
 }
