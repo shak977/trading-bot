@@ -1,9 +1,9 @@
 {
- "generated": "2026-09-04 00:15 GMT",
+ "generated": "2026-09-05 00:14 GMT",
  "counts": {
   "CRITICAL": 0,
   "WARN": 1,
-  "INFO": 10
+  "INFO": 11
  },
  "findings": [
   {
@@ -15,37 +15,37 @@
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"Reward:risk worth it?\" is anti-predictive (-32pt, n=880). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"Reward:risk worth it?\" is anti-predictive (-32pt, n=884). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"Worth the risk?\" is anti-predictive (-32pt, n=893). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"Worth the risk?\" is anti-predictive (-31pt, n=897). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"With the market?\" is anti-predictive (-14pt, n=893). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"With the market?\" is anti-predictive (-14pt, n=897). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"Leading the market?\" is anti-predictive (-14pt, n=889). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"Leading the market?\" is anti-predictive (-14pt, n=893). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"Intraday on side?\" is anti-predictive (-11pt, n=878). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"Intraday on side?\" is anti-predictive (-11pt, n=882). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "CONVICTION_INVERTED",
-   "message": "Conviction tiers remain inverted: High 42.8% vs Medium 58.8% win. Any gate keyed on High is selecting the worse cohort.",
+   "message": "Conviction tiers remain inverted: High 42.8% vs Medium 58.9% win. Any gate keyed on High is selecting the worse cohort.",
    "evidence": ""
   },
   {
@@ -53,6 +53,12 @@
    "code": "CONVICTION_FALLBACK_OK",
    "message": "Conviction referenced only as a pre-model fallback (guarded by a P(win) check) \u2014 acceptable.",
    "evidence": "dashboard.py:1301"
+  },
+  {
+   "severity": "INFO",
+   "code": "STRATEGY_FRAGILE",
+   "message": "Strategy 'Golden cross' flips negative when the trail is nudged \u2014 its edge may be parameter luck.",
+   "evidence": ""
   },
   {
    "severity": "INFO",
