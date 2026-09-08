@@ -111058,8 +111058,12 @@
     "regime": "Risk-on",
     "regime_score": 0.6,
     "liquidity_tier": "high",
-    "status": "open",
-    "high_water": 220.13
+    "status": "loss",
+    "high_water": 220.13,
+    "exit": 205.95,
+    "exit_date": "2026-09-04",
+    "return_pct": -5.0,
+    "days_held": 15
   },
   {
     "id": "KO:2026-08-20",
@@ -113212,7 +113216,7 @@
     "regime_score": 0.55,
     "liquidity_tier": "thin",
     "status": "open",
-    "high_water": 123.33
+    "high_water": 123.43
   },
   {
     "id": "NSC:2026-08-21",
@@ -118329,8 +118333,12 @@
     "regime": "Risk-on",
     "regime_score": 0.64,
     "liquidity_tier": "moderate",
-    "status": "open",
-    "high_water": 213.06
+    "status": "loss",
+    "high_water": 213.06,
+    "exit": 200.15,
+    "exit_date": "2026-09-04",
+    "return_pct": -4.35,
+    "days_held": 10
   },
   {
     "id": "FDX:2026-08-25",
@@ -119968,9 +119976,13 @@
     "regime": "Risk-on",
     "regime_score": 0.69,
     "liquidity_tier": "moderate",
-    "status": "open",
+    "status": "win",
     "high_water": 294.44,
-    "target_exceeded": true
+    "target_exceeded": true,
+    "exit": 275.5159611043336,
+    "exit_date": "2026-09-04",
+    "return_pct": 1.2,
+    "days_held": 10
   },
   {
     "id": "SHW:2026-08-25",
@@ -126118,8 +126130,12 @@
     "regime": "Risk-on",
     "regime_score": 0.66,
     "liquidity_tier": "moderate",
-    "status": "open",
+    "status": "loss",
     "high_water": 18.83,
-    "target_exceeded": true
+    "target_exceeded": true,
+    "exit": 17.26,
+    "exit_date": "2026-09-04",
+    "return_pct": -5.01,
+    "days_held": 3
   }
 ]
