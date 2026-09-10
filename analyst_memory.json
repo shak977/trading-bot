@@ -845,6 +845,24 @@
           "decided": 0
         }
       }
+    },
+    {
+      "ts": "2026-09-10 00:23 GMT",
+      "date": "2026-09-10",
+      "buckets": {
+        "daily": {
+          "win_rate": 42.0,
+          "decided": 1102
+        },
+        "intraday": {
+          "win_rate": 43.9,
+          "decided": 9963
+        },
+        "orb": {
+          "win_rate": null,
+          "decided": 0
+        }
+      }
     }
   ],
   "ledger": {
@@ -923,8 +941,8 @@
     "Intraday: check 'Right setups for this tape?'": {
       "first_seen": "2026-07-22",
       "first_wr": 41.3,
-      "times": 35,
-      "last_seen": "2026-09-09"
+      "times": 36,
+      "last_seen": "2026-09-10"
     },
     "Daily / swing: check 'Worked here before?'": {
       "first_seen": "2026-09-01",
