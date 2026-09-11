@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-10 00:24 GMT",
+ "generated": "2026-09-11 00:20 GMT",
  "counts": {
   "CRITICAL": 0,
   "WARN": 1,
@@ -9,37 +9,37 @@
   {
    "severity": "WARN",
    "code": "ANTI_PREDICTIVE_GATE",
-   "message": "\"Retail buzz?\" is anti-predictive (-12pt win delta, n=213) but still appears in decision logic \u2014 verify it isn't gating trades.",
+   "message": "\"Retail buzz?\" is anti-predictive (-13pt win delta, n=219) but still appears in decision logic \u2014 verify it isn't gating trades.",
    "evidence": "scanner.py:1095"
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"Reward:risk worth it?\" is anti-predictive (-29pt, n=928). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"Reward:risk worth it?\" is anti-predictive (-29pt, n=942). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"Worth the risk?\" is anti-predictive (-28pt, n=941). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"Worth the risk?\" is anti-predictive (-28pt, n=955). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"With the market?\" is anti-predictive (-15pt, n=941). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"With the market?\" is anti-predictive (-15pt, n=955). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"Leading the market?\" is anti-predictive (-12pt, n=937). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"Leading the market?\" is anti-predictive (-11pt, n=951). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "CONVICTION_INVERTED",
-   "message": "Conviction tiers remain inverted: High 41.7% vs Medium 56.1% win. Any gate keyed on High is selecting the worse cohort.",
+   "message": "Conviction tiers remain inverted: High 41.1% vs Medium 55.2% win. Any gate keyed on High is selecting the worse cohort.",
    "evidence": ""
   },
   {

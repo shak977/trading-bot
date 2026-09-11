@@ -1,10 +1,10 @@
 {
- "resolved": 1102,
+ "resolved": 1116,
  "by_direction": {
   "LONG": {
-   "n": 956,
-   "wr": 47.38493723849373,
-   "exp": 0.259560669456067
+   "n": 970,
+   "wr": 46.70103092783505,
+   "exp": 0.19688659793814434
   },
   "SHORT": {
    "n": 146,
@@ -12,20 +12,20 @@
    "exp": -4.024041095890411
   },
   "ALL": {
-   "n": 1102,
-   "wr": 42.01451905626134,
-   "exp": -0.30795825771324864
+   "n": 1116,
+   "wr": 41.48745519713262,
+   "exp": -0.3553136200716846
   }
  },
  "buy_only": {
-  "n": 36,
-  "wr": 11.11111111111111,
-  "exp": -2.88
+  "n": 40,
+  "wr": 10.0,
+  "exp": -3.0675
  },
  "buy_only_pwin52": {
-  "n": 36,
-  "wr": 11.11111111111111,
-  "exp": -2.88
+  "n": 40,
+  "wr": 10.0,
+  "exp": -3.0675
  },
  "alerts": {
   "alerted": {
@@ -34,18 +34,18 @@
    "exp": -2.0575
   },
   "not_alerted": {
-   "n": 31,
-   "wr": 9.67741935483871,
-   "exp": -2.9254838709677418
+   "n": 35,
+   "wr": 8.571428571428571,
+   "exp": -3.1345714285714283
   }
  },
  "rr_buckets_longs": {
   "rr<2": {
-   "n": 730,
-   "target_hit_pct": 54,
-   "stopped_pct": 45,
-   "expired_pct": 2,
-   "avg_ret": 0.4
+   "n": 742,
+   "target_hit_pct": 53,
+   "stopped_pct": 46,
+   "expired_pct": 1,
+   "avg_ret": 0.32
   },
   "2-3": {
    "n": 62,
@@ -55,11 +55,11 @@
    "avg_ret": 2.05
   },
   "3-4": {
-   "n": 233,
+   "n": 235,
    "target_hit_pct": 16,
    "stopped_pct": 61,
    "expired_pct": 23,
-   "avg_ret": 0.13
+   "avg_ret": 0.1
   },
   "rr>=4": {
    "n": 7,
@@ -71,124 +71,124 @@
  },
  "checks_longs_only": {
   "Reward:risk worth it?": {
-   "pass_n": 210,
-   "pass_wr": 25.2,
-   "pass_exp": -0.25,
-   "notpass_n": 718,
-   "notpass_wr": 54.5,
-   "notpass_exp": 0.36,
-   "win_delta": -29.2,
-   "exp_delta": -0.61,
+   "pass_n": 212,
+   "pass_wr": 25.0,
+   "pass_exp": -0.28,
+   "notpass_n": 730,
+   "notpass_wr": 53.6,
+   "notpass_exp": 0.29,
+   "win_delta": -28.6,
+   "exp_delta": -0.56,
    "sig": "SIG"
   },
   "Worth the risk?": {
-   "pass_n": 222,
-   "pass_wr": 26.1,
-   "pass_exp": -0.04,
-   "notpass_n": 719,
-   "notpass_wr": 54.5,
-   "notpass_exp": 0.37,
-   "win_delta": -28.4,
-   "exp_delta": -0.41,
+   "pass_n": 224,
+   "pass_wr": 25.9,
+   "pass_exp": -0.07,
+   "notpass_n": 731,
+   "notpass_wr": 53.6,
+   "notpass_exp": 0.29,
+   "win_delta": -27.7,
+   "exp_delta": -0.36,
    "sig": "SIG"
   },
   "With the market?": {
-   "pass_n": 448,
-   "pass_wr": 39.7,
-   "pass_exp": -0.44,
-   "notpass_n": 493,
-   "notpass_wr": 55.2,
-   "notpass_exp": 0.92,
-   "win_delta": -15.4,
-   "exp_delta": -1.35,
+   "pass_n": 455,
+   "pass_wr": 39.1,
+   "pass_exp": -0.5,
+   "notpass_n": 500,
+   "notpass_wr": 54.4,
+   "notpass_exp": 0.86,
+   "win_delta": -15.3,
+   "exp_delta": -1.36,
    "sig": "SIG"
   },
   "Retail buzz?": {
-   "pass_n": 181,
-   "pass_wr": 28.2,
-   "pass_exp": -0.37,
+   "pass_n": 187,
+   "pass_wr": 27.3,
+   "pass_exp": -0.46,
    "notpass_n": 32,
    "notpass_wr": 40.6,
    "notpass_exp": 0.98,
-   "win_delta": -12.4,
-   "exp_delta": -1.34,
+   "win_delta": -13.4,
+   "exp_delta": -1.43,
    "sig": ""
   },
   "Leading the market?": {
-   "pass_n": 489,
-   "pass_wr": 42.5,
-   "pass_exp": -0.04,
-   "notpass_n": 448,
-   "notpass_wr": 54.0,
-   "notpass_exp": 0.66,
-   "win_delta": -11.5,
-   "exp_delta": -0.7,
+   "pass_n": 493,
+   "pass_wr": 42.2,
+   "pass_exp": -0.07,
+   "notpass_n": 458,
+   "notpass_wr": 52.8,
+   "notpass_exp": 0.56,
+   "win_delta": -10.6,
+   "exp_delta": -0.63,
    "sig": "SIG"
   },
   "Intraday on side?": {
-   "pass_n": 269,
-   "pass_wr": 40.9,
-   "pass_exp": -0.04,
-   "notpass_n": 657,
-   "notpass_wr": 50.8,
-   "notpass_exp": 0.34,
-   "win_delta": -9.9,
-   "exp_delta": -0.38,
-   "sig": "SIG"
+   "pass_n": 272,
+   "pass_wr": 40.4,
+   "pass_exp": -0.1,
+   "notpass_n": 668,
+   "notpass_wr": 50.0,
+   "notpass_exp": 0.27,
+   "win_delta": -9.6,
+   "exp_delta": -0.37,
+   "sig": ""
   },
   "Sector trending right?": {
-   "pass_n": 568,
-   "pass_wr": 44.2,
-   "pass_exp": -0.35,
-   "notpass_n": 360,
-   "notpass_wr": 53.6,
-   "notpass_exp": 1.12,
-   "win_delta": -9.4,
-   "exp_delta": -1.47,
-   "sig": "SIG"
+   "pass_n": 576,
+   "pass_wr": 43.6,
+   "pass_exp": -0.4,
+   "notpass_n": 366,
+   "notpass_wr": 52.7,
+   "notpass_exp": 1.03,
+   "win_delta": -9.2,
+   "exp_delta": -1.43,
+   "sig": ""
   },
   "Liquid enough to trade?": {
-   "pass_n": 368,
-   "pass_wr": 44.3,
-   "pass_exp": -0.4,
-   "notpass_n": 559,
-   "notpass_wr": 50.3,
-   "notpass_exp": 0.64,
-   "win_delta": -6.0,
-   "exp_delta": -1.04,
-   "sig": ""
-  },
-  "TradingView agrees?": {
-   "pass_n": 468,
-   "pass_wr": 41.9,
-   "pass_exp": -0.12,
-   "notpass_n": 89,
-   "notpass_wr": 46.1,
-   "notpass_exp": 1.81,
-   "win_delta": -4.2,
-   "exp_delta": -1.94,
-   "sig": ""
-  },
-  "Are people trading it?": {
-   "pass_n": 199,
-   "pass_wr": 45.2,
-   "pass_exp": -0.25,
-   "notpass_n": 742,
-   "notpass_wr": 48.5,
-   "notpass_exp": 0.41,
-   "win_delta": -3.3,
-   "exp_delta": -0.66,
+   "pass_n": 376,
+   "pass_wr": 43.4,
+   "pass_exp": -0.47,
+   "notpass_n": 565,
+   "notpass_wr": 49.7,
+   "notpass_exp": 0.58,
+   "win_delta": -6.4,
+   "exp_delta": -1.05,
    "sig": ""
   },
   "Worked here before?": {
-   "pass_n": 373,
-   "pass_wr": 46.1,
-   "pass_exp": -0.15,
-   "notpass_n": 568,
-   "notpass_wr": 48.9,
-   "notpass_exp": 0.55,
-   "win_delta": -2.8,
-   "exp_delta": -0.69,
+   "pass_n": 383,
+   "pass_wr": 44.9,
+   "pass_exp": -0.25,
+   "notpass_n": 572,
+   "notpass_wr": 48.6,
+   "notpass_exp": 0.51,
+   "win_delta": -3.7,
+   "exp_delta": -0.76,
+   "sig": ""
+  },
+  "Are people trading it?": {
+   "pass_n": 202,
+   "pass_wr": 44.6,
+   "pass_exp": -0.28,
+   "notpass_n": 753,
+   "notpass_wr": 47.8,
+   "notpass_exp": 0.34,
+   "win_delta": -3.3,
+   "exp_delta": -0.62,
+   "sig": ""
+  },
+  "TradingView agrees?": {
+   "pass_n": 476,
+   "pass_wr": 41.2,
+   "pass_exp": -0.19,
+   "notpass_n": 93,
+   "notpass_wr": 44.1,
+   "notpass_exp": 1.57,
+   "win_delta": -2.9,
+   "exp_delta": -1.75,
    "sig": ""
   },
   "News catalyst aligns?": {
@@ -203,105 +203,105 @@
    "sig": ""
   },
   "Analysts on side?": {
-   "pass_n": 337,
-   "pass_wr": 37.4,
-   "pass_exp": 0.14,
-   "notpass_n": 77,
-   "notpass_wr": 36.4,
-   "notpass_exp": 0.07,
-   "win_delta": 1.0,
-   "exp_delta": 0.07,
+   "pass_n": 347,
+   "pass_wr": 36.3,
+   "pass_exp": 0.03,
+   "notpass_n": 78,
+   "notpass_wr": 35.9,
+   "notpass_exp": 0.0,
+   "win_delta": 0.4,
+   "exp_delta": 0.02,
    "sig": ""
   },
   "Is it trending up?": {
-   "pass_n": 915,
-   "pass_wr": 47.9,
-   "pass_exp": 0.27,
+   "pass_n": 929,
+   "pass_wr": 47.1,
+   "pass_exp": 0.21,
    "notpass_n": 26,
    "notpass_wr": 46.2,
    "notpass_exp": 0.31,
-   "win_delta": 1.7,
-   "exp_delta": -0.03,
-   "sig": ""
-  },
-  "Right setups for this tape?": {
-   "pass_n": 299,
-   "pass_wr": 32.8,
-   "pass_exp": -1.48,
-   "notpass_n": 42,
-   "notpass_wr": 31.0,
-   "notpass_exp": -2.13,
-   "win_delta": 1.8,
-   "exp_delta": 0.65,
-   "sig": ""
-  },
-  "News on side?": {
-   "pass_n": 455,
-   "pass_wr": 44.4,
-   "pass_exp": 0.55,
-   "notpass_n": 105,
-   "notpass_wr": 40.0,
-   "notpass_exp": -0.72,
-   "win_delta": 4.4,
-   "exp_delta": 1.26,
+   "win_delta": 1.0,
+   "exp_delta": -0.1,
    "sig": ""
   },
   "Earnings momentum?": {
-   "pass_n": 422,
-   "pass_wr": 42.9,
-   "pass_exp": 0.33,
+   "pass_n": 434,
+   "pass_wr": 41.7,
+   "pass_exp": 0.21,
    "notpass_n": 104,
    "notpass_wr": 37.5,
    "notpass_exp": -0.73,
-   "win_delta": 5.4,
-   "exp_delta": 1.07,
+   "win_delta": 4.2,
+   "exp_delta": 0.95,
+   "sig": ""
+  },
+  "News on side?": {
+   "pass_n": 462,
+   "pass_wr": 43.7,
+   "pass_exp": 0.48,
+   "notpass_n": 109,
+   "notpass_wr": 38.5,
+   "notpass_exp": -0.84,
+   "win_delta": 5.2,
+   "exp_delta": 1.32,
+   "sig": ""
+  },
+  "Right setups for this tape?": {
+   "pass_n": 306,
+   "pass_wr": 32.0,
+   "pass_exp": -1.56,
+   "notpass_n": 49,
+   "notpass_wr": 26.5,
+   "notpass_exp": -2.31,
+   "win_delta": 5.5,
+   "exp_delta": 0.76,
    "sig": ""
   },
   "Room to rise?": {
-   "pass_n": 814,
-   "pass_wr": 48.6,
-   "pass_exp": 0.18,
-   "notpass_n": 127,
-   "notpass_wr": 42.5,
-   "notpass_exp": 0.89,
-   "win_delta": 6.1,
-   "exp_delta": -0.72,
+   "pass_n": 827,
+   "pass_wr": 47.9,
+   "pass_exp": 0.11,
+   "notpass_n": 128,
+   "notpass_wr": 42.2,
+   "notpass_exp": 0.85,
+   "win_delta": 5.7,
+   "exp_delta": -0.74,
    "sig": ""
   },
   "Not chasing?": {
-   "pass_n": 649,
-   "pass_wr": 49.9,
-   "pass_exp": 0.06,
-   "notpass_n": 292,
-   "notpass_wr": 43.2,
-   "notpass_exp": 0.75,
-   "win_delta": 6.8,
-   "exp_delta": -0.69,
+   "pass_n": 660,
+   "pass_wr": 49.1,
+   "pass_exp": -0.01,
+   "notpass_n": 295,
+   "notpass_wr": 42.7,
+   "notpass_exp": 0.69,
+   "win_delta": 6.4,
+   "exp_delta": -0.7,
    "sig": ""
   },
   "Momentum building?": {
-   "pass_n": 715,
-   "pass_wr": 49.7,
-   "pass_exp": 0.13,
-   "notpass_n": 226,
-   "notpass_wr": 42.0,
-   "notpass_exp": 0.73,
-   "win_delta": 7.6,
-   "exp_delta": -0.6,
+   "pass_n": 721,
+   "pass_wr": 49.2,
+   "pass_exp": 0.1,
+   "notpass_n": 234,
+   "notpass_wr": 40.6,
+   "notpass_exp": 0.56,
+   "win_delta": 8.6,
+   "exp_delta": -0.46,
    "sig": ""
   },
   "Calm enough?": {
-   "pass_n": 914,
-   "pass_wr": 48.7,
-   "pass_exp": 0.35,
+   "pass_n": 928,
+   "pass_wr": 48.0,
+   "pass_exp": 0.28,
    "notpass_n": 27,
    "notpass_wr": 18.5,
    "notpass_exp": -2.26,
-   "win_delta": 30.2,
-   "exp_delta": 2.6,
+   "win_delta": 29.4,
+   "exp_delta": 2.54,
    "sig": "SIG"
   }
  },
- "setups_verdict": "Momentum Burst lags baseline by -0.22% over 10 days (hit 52.0%, n=1633) \u00b7 Episodic Pivot (technical) lags baseline by -0.49% over 10 days (hit 55.0%, n=129) \u00b7 VCP (Minervini) beats baseline by +0.34% over 10 days (hit 59.9%, n=633) \u00b7 Parabolic Short: still gathering samples (n=4).",
- "timing_verdict": "Timing signal has separated outcomes: after a correction signal the index averaged +0.53% over the next 10 days (374 samples); after a Follow-Through Day it averaged +2.96% (52 samples)."
+ "setups_verdict": "Momentum Burst lags baseline by -0.22% over 10 days (hit 51.9%, n=1638) \u00b7 Episodic Pivot (technical) lags baseline by -0.48% over 10 days (hit 55.0%, n=129) \u00b7 VCP (Minervini) beats baseline by +0.32% over 10 days (hit 59.8%, n=634) \u00b7 Parabolic Short: still gathering samples (n=4).",
+ "timing_verdict": "Timing signal has separated outcomes: after a correction signal the index averaged +0.53% over the next 10 days (374 samples); after a Follow-Through Day it averaged +2.87% (53 samples)."
 }
