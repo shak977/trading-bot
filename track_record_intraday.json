@@ -846335,7 +846335,8 @@
     "regime_score": null,
     "liquidity_tier": "illiquid",
     "status": "open",
-    "high_water": 93.47
+    "high_water": 94.08,
+    "target_exceeded": true
   },
   {
     "id": "CSCO:2026-09-14",
@@ -846703,7 +846704,8 @@
     "regime_score": null,
     "liquidity_tier": "illiquid",
     "status": "open",
-    "high_water": 51.41
+    "high_water": 51.48,
+    "target_exceeded": true
   },
   {
     "id": "MAR:2026-09-14",
@@ -846794,7 +846796,7 @@
     "regime_score": null,
     "liquidity_tier": "illiquid",
     "status": "open",
-    "high_water": 337.97
+    "high_water": 341.06
   },
   {
     "id": "AMT:2026-09-14",
@@ -847256,8 +847258,12 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
-    "high_water": 145.55
+    "status": "loss",
+    "high_water": 145.55,
+    "exit": 144.48,
+    "exit_date": "2026-09-14",
+    "return_pct": -0.47,
+    "days_held": -1
   },
   {
     "id": "NOC:2026-09-14",
@@ -847538,8 +847544,13 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
-    "high_water": 425.26
+    "status": "win",
+    "high_water": 426.23,
+    "target_exceeded": true,
+    "exit": 425.0016330915315,
+    "exit_date": "2026-09-14",
+    "return_pct": 0.29,
+    "days_held": -1
   },
   {
     "id": "AXP:2026-09-14",
@@ -847733,9 +847744,13 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
+    "status": "win",
     "high_water": 23.75,
-    "target_exceeded": true
+    "target_exceeded": true,
+    "exit": 23.53062646503981,
+    "exit_date": "2026-09-14",
+    "return_pct": 0.56,
+    "days_held": -1
   },
   {
     "id": "WM:2026-09-14",
@@ -848486,9 +848501,13 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
+    "status": "loss",
     "high_water": 195.75,
-    "target_exceeded": true
+    "target_exceeded": true,
+    "exit": 193.32,
+    "exit_date": "2026-09-14",
+    "return_pct": -0.75,
+    "days_held": -1
   },
   {
     "id": "PANW:2026-09-14",
@@ -848582,9 +848601,13 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open",
+    "status": "win",
     "high_water": 378.54,
-    "target_exceeded": true
+    "target_exceeded": true,
+    "exit": 373.8376573060171,
+    "exit_date": "2026-09-14",
+    "return_pct": 0.83,
+    "days_held": -1
   },
   {
     "id": "HUM:2026-09-14",
@@ -848678,9 +848701,13 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
-    "high_water": 414.76,
-    "target_exceeded": true
+    "status": "win",
+    "high_water": 415.56,
+    "target_exceeded": true,
+    "exit": 414.19135159571783,
+    "exit_date": "2026-09-14",
+    "return_pct": 0.16,
+    "days_held": -1
   },
   {
     "id": "YUM:2026-09-14",
@@ -848766,8 +848793,13 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
-    "high_water": 145.23
+    "status": "win",
+    "high_water": 146.5,
+    "target_exceeded": true,
+    "exit": 146.09041390419102,
+    "exit_date": "2026-09-14",
+    "return_pct": 0.88,
+    "days_held": -1
   },
   {
     "id": "GOOGL:2026-09-14",
@@ -848857,9 +848889,13 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open",
+    "status": "win",
     "high_water": 349.9,
-    "target_exceeded": true
+    "target_exceeded": true,
+    "exit": 347.66526935004805,
+    "exit_date": "2026-09-14",
+    "return_pct": 0.77,
+    "days_held": -1
   },
   {
     "id": "GM:2026-09-14",
@@ -848954,7 +848990,7 @@
     "regime_score": null,
     "liquidity_tier": "illiquid",
     "status": "open",
-    "high_water": 87.02,
+    "high_water": 87.38,
     "target_exceeded": true
   },
   {
@@ -849045,9 +849081,13 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
-    "high_water": 26.5,
-    "target_exceeded": true
+    "status": "win",
+    "high_water": 26.57,
+    "target_exceeded": true,
+    "exit": 26.486978906261378,
+    "exit_date": "2026-09-14",
+    "return_pct": 0.37,
+    "days_held": -1
   },
   {
     "id": "ACN:2026-09-14",
@@ -849234,7 +849274,8 @@
     "regime_score": null,
     "liquidity_tier": "illiquid",
     "status": "open",
-    "high_water": 311.78
+    "high_water": 312.61,
+    "target_exceeded": true
   },
   {
     "id": "SYK:2026-09-14",
@@ -849411,8 +849452,13 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
-    "high_water": 199.03
+    "status": "win",
+    "high_water": 199.65,
+    "target_exceeded": true,
+    "exit": 199.00332593547486,
+    "exit_date": "2026-09-14",
+    "return_pct": 0.22,
+    "days_held": -1
   },
   {
     "id": "DIS:2026-09-14",
@@ -849598,9 +849644,13 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
+    "status": "loss",
     "high_water": 377.12,
-    "target_exceeded": true
+    "target_exceeded": true,
+    "exit": 374.9,
+    "exit_date": "2026-09-14",
+    "return_pct": -0.35,
+    "days_held": -1
   },
   {
     "id": "SHW:2026-09-14",
@@ -849791,7 +849841,7 @@
     "regime_score": null,
     "liquidity_tier": "illiquid",
     "status": "open",
-    "high_water": 257.72
+    "high_water": 258.13
   },
   {
     "id": "BLSM:2026-09-14",
@@ -849873,7 +849923,12 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "high_water": 22.08,
+    "exit": 21.685615008745014,
+    "exit_date": "2026-09-14",
+    "return_pct": 2.34,
+    "days_held": -1
   },
   {
     "id": "AIG:2026-09-14",
@@ -849967,7 +850022,12 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "high_water": 76.24,
+    "exit": 75.9919641516401,
+    "exit_date": "2026-09-14",
+    "return_pct": 0.13,
+    "days_held": -1
   },
   {
     "id": "HPQ:2026-09-14",
@@ -850057,7 +850117,8 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "open",
+    "high_water": 34.47
   },
   {
     "id": "TMO:2026-09-14",
@@ -850147,7 +850208,8 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "open",
+    "high_water": 615.06
   },
   {
     "id": "AZO:2026-09-14",
@@ -850237,7 +850299,13 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "high_water": 2972.35,
+    "target_exceeded": true,
+    "exit": 2965.150050527044,
+    "exit_date": "2026-09-14",
+    "return_pct": 0.54,
+    "days_held": -1
   },
   {
     "id": "PGR:2026-09-14",
@@ -850331,7 +850399,8 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "open",
+    "high_water": 220.94
   },
   {
     "id": "RBLX:2026-09-14",
@@ -850421,7 +850490,12 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "high_water": 50.88,
+    "exit": 50.44,
+    "exit_date": "2026-09-14",
+    "return_pct": -0.86,
+    "days_held": -1
   },
   {
     "id": "COST:2026-09-14",
@@ -850511,7 +850585,12 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "high_water": 920.6,
+    "exit": 918.7486640455,
+    "exit_date": "2026-09-14",
+    "return_pct": 0.18,
+    "days_held": -1
   },
   {
     "id": "ALL:2026-09-14",
@@ -850601,7 +850680,13 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "high_water": 258.27,
+    "target_exceeded": true,
+    "exit": 257.8435587144101,
+    "exit_date": "2026-09-14",
+    "return_pct": 0.54,
+    "days_held": -1
   },
   {
     "id": "REF:2026-09-14",
@@ -850691,7 +850776,8 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "open",
+    "high_water": 14.7
   },
   {
     "id": "ISRG:2026-09-14",
@@ -850781,7 +850867,9 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "open",
+    "high_water": 378.54,
+    "target_exceeded": true
   },
   {
     "id": "ABNB:2026-09-14",
@@ -850871,7 +850959,8 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "open",
+    "high_water": 170.77
   },
   {
     "id": "ROST:2026-09-14",
@@ -850961,7 +851050,12 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "high_water": 230.78,
+    "exit": 230.05082799040048,
+    "exit_date": "2026-09-14",
+    "return_pct": 0.09,
+    "days_held": -1
   },
   {
     "id": "ORLY:2026-09-14",
@@ -851051,7 +851145,13 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "high_water": 87.44,
+    "target_exceeded": true,
+    "exit": 87.26056403003652,
+    "exit_date": "2026-09-14",
+    "return_pct": 0.22,
+    "days_held": -1
   },
   {
     "id": "BSX:2026-09-14",
@@ -851137,7 +851237,13 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "target_exceeded": true,
+    "high_water": 45.15,
+    "exit": 44.963514727927645,
+    "exit_date": "2026-09-14",
+    "return_pct": 0.41,
+    "days_held": -1
   },
   {
     "id": "LYNX:2026-09-14",
@@ -851223,7 +851329,8 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "open",
+    "high_water": 13.66
   },
   {
     "id": "DHR:2026-09-14",
@@ -851313,7 +851420,8 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "open",
+    "high_water": 203.56
   },
   {
     "id": "WMT:2026-09-14",
@@ -851403,7 +851511,13 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "high_water": 109.72,
+    "target_exceeded": true,
+    "exit": 109.49614281638706,
+    "exit_date": "2026-09-14",
+    "return_pct": 0.12,
+    "days_held": -1
   },
   {
     "id": "GME:2026-09-14",
@@ -851493,7 +851607,13 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "high_water": 21.94,
+    "target_exceeded": true,
+    "exit": 21.84639663344261,
+    "exit_date": "2026-09-14",
+    "return_pct": 1.09,
+    "days_held": -1
   },
   {
     "id": "CNC:2026-09-14",
@@ -851583,7 +851703,13 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "target_exceeded": true,
+    "high_water": 69.61,
+    "exit": 69.35339367925586,
+    "exit_date": "2026-09-14",
+    "return_pct": 0.51,
+    "days_held": -1
   },
   {
     "id": "DELL:2026-09-14",
@@ -851673,7 +851799,12 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "high_water": 545.82,
+    "exit": 538.56,
+    "exit_date": "2026-09-14",
+    "return_pct": -0.87,
+    "days_held": -1
   },
   {
     "id": "IBM:2026-09-14",
@@ -851763,7 +851894,11 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "loss",
+    "exit": 249.32,
+    "exit_date": "2026-09-14",
+    "return_pct": -0.4,
+    "days_held": -1
   },
   {
     "id": "CRM:2026-09-14",
@@ -851853,7 +851988,13 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "high_water": 260.12,
+    "target_exceeded": true,
+    "exit": 259.4199980745736,
+    "exit_date": "2026-09-14",
+    "return_pct": 0.31,
+    "days_held": -1
   },
   {
     "id": "SHOP:2026-09-14",
@@ -851943,7 +852084,8 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "open",
+    "high_water": 134.34
   },
   {
     "id": "ADBE:2026-09-14",
@@ -852033,7 +852175,9 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "open",
+    "high_water": 266.05,
+    "target_exceeded": true
   },
   {
     "id": "COIN:2026-09-14",
@@ -852127,7 +852271,13 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open"
+    "status": "win",
+    "high_water": 193.18,
+    "target_exceeded": true,
+    "exit": 191.86983032483897,
+    "exit_date": "2026-09-14",
+    "return_pct": 0.59,
+    "days_held": -1
   },
   {
     "id": "ADSK:2026-09-14",
@@ -852211,6 +852361,2011 @@
       {
         "label": "VCP base setup?",
         "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "loss",
+    "high_water": 230.15,
+    "exit": 228.5,
+    "exit_date": "2026-09-14",
+    "return_pct": -0.44,
+    "days_held": -1
+  },
+  {
+    "id": "MCO:2026-09-14",
+    "symbol": "MCO",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 477.78,
+    "stop": 476.09,
+    "target": 483.16,
+    "rr": 3.18,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 80,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "USB:2026-09-14",
+    "symbol": "USB",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 62.67,
+    "stop": 62.44,
+    "target": 63.21,
+    "rr": 2.27,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 80,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum burst?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "KO:2026-09-14",
+    "symbol": "KO",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 89.36,
+    "stop": 89.09,
+    "target": 90.22,
+    "rr": 3.12,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 80,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "BKNG:2026-09-14",
+    "symbol": "BKNG",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 175.34,
+    "stop": 174.34,
+    "target": 179.33,
+    "rr": 4.0,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 79,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "IOVA:2026-09-14",
+    "symbol": "IOVA",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 9.27,
+    "stop": 9.14,
+    "target": 9.4,
+    "rr": 1.02,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 78,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Momentum burst?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "ICE:2026-09-14",
+    "symbol": "ICE",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 157.75,
+    "stop": 157.22,
+    "target": 159.9,
+    "rr": 4.0,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 78,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Momentum burst?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "MET:2026-09-14",
+    "symbol": "MET",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 97.75,
+    "stop": 97.37,
+    "target": 99.23,
+    "rr": 3.89,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 78,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Momentum burst?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "ZS:2026-09-14",
+    "symbol": "ZS",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 191.62,
+    "stop": 189.72,
+    "target": 194.05,
+    "rr": 1.28,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 77,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "TRV:2026-09-14",
+    "symbol": "TRV",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 378.12,
+    "stop": 376.95,
+    "target": 382.79,
+    "rr": 4.0,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 77,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
+      },
+      {
+        "label": "Momentum burst?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "DE:2026-09-14",
+    "symbol": "DE",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 681.44,
+    "stop": 679.34,
+    "target": 687.75,
+    "rr": 3.0,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 75,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "fail"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
+      },
+      {
+        "label": "Momentum burst?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "FDX:2026-09-14",
+    "symbol": "FDX",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 312.54,
+    "stop": 311.66,
+    "target": 313.45,
+    "rr": 1.05,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "Medium",
+    "conviction_pct": 74,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "CLOV:2026-09-14",
+    "symbol": "CLOV",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 5.09,
+    "stop": 5.05,
+    "target": 5.18,
+    "rr": 2.02,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 77,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "pass"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum burst?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "IDXX:2026-09-14",
+    "symbol": "IDXX",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 509.66,
+    "stop": 507.8,
+    "target": 513.18,
+    "rr": 1.89,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "Medium",
+    "conviction_pct": 72,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "DG:2026-09-14",
+    "symbol": "DG",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 129.12,
+    "stop": 128.59,
+    "target": 129.63,
+    "rr": 0.98,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "Medium",
+    "conviction_pct": 69,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Momentum burst?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "PLTR:2026-09-14",
+    "symbol": "PLTR",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 173.33,
+    "stop": 172.29,
+    "target": 174.34,
+    "rr": 0.97,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "Medium",
+    "conviction_pct": 67,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "thin",
+    "status": "open"
+  },
+  {
+    "id": "SNOW:2026-09-14",
+    "symbol": "SNOW",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 331.31,
+    "stop": 329.27,
+    "target": 336.45,
+    "rr": 2.52,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "Medium",
+    "conviction_pct": 65,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "fail"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "S:2026-09-14",
+    "symbol": "S",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 22.59,
+    "stop": 22.37,
+    "target": 23.04,
+    "rr": 1.95,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "Medium",
+    "conviction_pct": 68,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "NOW:2026-09-14",
+    "symbol": "NOW",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 142.35,
+    "stop": 141.52,
+    "target": 143.19,
+    "rr": 1.01,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "Medium",
+    "conviction_pct": 64,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "AON:2026-09-14",
+    "symbol": "AON",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 311.5,
+    "stop": 310.21,
+    "target": 311.8,
+    "rr": 0.23,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "Medium",
+    "conviction_pct": 64,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "thin",
+    "status": "open"
+  },
+  {
+    "id": "LMT:2026-09-14",
+    "symbol": "LMT",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 529.53,
+    "stop": 528.21,
+    "target": 532.11,
+    "rr": 1.94,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "Medium",
+    "conviction_pct": 63,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
+      },
+      {
+        "label": "Momentum burst?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "PM:2026-09-14",
+    "symbol": "PM",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 194.88,
+    "stop": 194.2,
+    "target": 195.35,
+    "rr": 0.7,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "Medium",
+    "conviction_pct": 62,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
+      },
+      {
+        "label": "Momentum burst?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "CSX:2026-09-14",
+    "symbol": "CSX",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-14",
+    "advised_ts": "2026-09-14T22:00:12.694936",
+    "entry": 48.92,
+    "stop": 48.81,
+    "target": 48.96,
+    "rr": 0.31,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "Medium",
+    "conviction_pct": 62,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
       }
     ],
     "tv_align": null,
