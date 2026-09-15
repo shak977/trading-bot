@@ -3,7 +3,7 @@
     "SPCX": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 81,
+      "score": 79,
       "dir": "LONG"
     },
     "NET": {
@@ -33,7 +33,7 @@
     "AMD": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 81,
+      "score": 77,
       "dir": "LONG"
     },
     "CNC": {
@@ -69,7 +69,7 @@
     "PLTR": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 77,
+      "score": 78,
       "dir": "LONG"
     },
     "MU": {
@@ -147,7 +147,7 @@
     "DELL": {
       "action": "HOLD LONG",
       "label": "Medium",
-      "score": 69,
+      "score": 70,
       "dir": "LONG"
     },
     "MET": {
@@ -246,6 +246,12 @@
       "score": 80,
       "dir": "LONG"
     },
+    "BAC": {
+      "action": "WATCH LONG",
+      "label": "Medium",
+      "score": 63,
+      "dir": "LONG"
+    },
     "RUM": {
       "action": "WATCH LONG",
       "label": "Medium",
@@ -255,7 +261,7 @@
     "S": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 78,
+      "score": 75,
       "dir": "LONG"
     },
     "IOVA": {
@@ -267,13 +273,25 @@
     "NVDA": {
       "action": "WATCH LONG",
       "label": "Medium",
-      "score": 57,
+      "score": 51,
       "dir": "LONG"
     },
     "NOK": {
       "action": "AVOID",
       "label": "High",
       "score": 81,
+      "dir": "SHORT"
+    },
+    "RKT": {
+      "action": "AVOID",
+      "label": "Medium",
+      "score": 74,
+      "dir": "SHORT"
+    },
+    "PLAY": {
+      "action": "AVOID",
+      "label": "Medium",
+      "score": 75,
       "dir": "SHORT"
     },
     "GME": {
@@ -297,13 +315,13 @@
     "SPY": {
       "action": "FLAT",
       "label": "Medium",
-      "score": 57,
+      "score": 63,
       "dir": "LONG"
     },
     "QQQ": {
       "action": "FLAT",
       "label": "Medium",
-      "score": 50,
+      "score": 56,
       "dir": "LONG"
     }
   },
@@ -313,7 +331,7 @@
     "Healthcare": 73,
     "Technology": 62,
     "Real Estate": 50,
-    "Other / Movers": 46,
+    "Other / Movers": 45,
     "Staples": 44,
     "Financials": 39,
     "Materials": 33,
@@ -323,8 +341,9 @@
     "Utilities": 0
   },
   "catalysts": [
+    "NVDA",
     "CRWD",
-    "S"
+    "DAB"
   ],
-  "generated_at": "2026-09-14"
+  "generated_at": "2026-09-15"
 }
