@@ -3,7 +3,7 @@
     "INTC": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 84,
+      "score": 87,
       "dir": "LONG"
     },
     "TMO": {
@@ -15,7 +15,7 @@
     "ELMT": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 84,
+      "score": 86,
       "dir": "LONG"
     },
     "TEM": {
@@ -33,7 +33,7 @@
     "AMD": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 81,
+      "score": 86,
       "dir": "LONG"
     },
     "QCOM": {
@@ -57,7 +57,7 @@
     "CRWD": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 82,
+      "score": 79,
       "dir": "LONG"
     },
     "HOOD": {
@@ -69,7 +69,7 @@
     "META": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 80,
+      "score": 84,
       "dir": "LONG"
     },
     "TRV": {
@@ -105,7 +105,7 @@
     "CNC": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 76,
+      "score": 77,
       "dir": "LONG"
     },
     "HUM": {
@@ -122,14 +122,14 @@
     },
     "IOVA": {
       "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 75,
+      "label": "High",
+      "score": 77,
       "dir": "LONG"
     },
     "S": {
       "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 75,
+      "label": "High",
+      "score": 77,
       "dir": "LONG"
     },
     "PFE": {
@@ -195,7 +195,7 @@
     "PLTR": {
       "action": "HOLD LONG",
       "label": "Medium",
-      "score": 71,
+      "score": 70,
       "dir": "LONG"
     },
     "ELV": {
@@ -223,6 +223,12 @@
       "dir": "LONG"
     },
     "NOW": {
+      "action": "HOLD LONG",
+      "label": "Medium",
+      "score": 66,
+      "dir": "LONG"
+    },
+    "GILD": {
       "action": "HOLD LONG",
       "label": "Medium",
       "score": 66,
@@ -282,10 +288,16 @@
       "score": 62,
       "dir": "LONG"
     },
+    "GME": {
+      "action": "WATCH LONG",
+      "label": "Medium",
+      "score": 56,
+      "dir": "LONG"
+    },
     "CRWV": {
       "action": "AVOID",
-      "label": "Medium",
-      "score": 74,
+      "label": "High",
+      "score": 83,
       "dir": "SHORT"
     },
     "MCD": {
@@ -321,7 +333,7 @@
     "APLD": {
       "action": "AVOID",
       "label": "Medium",
-      "score": 62,
+      "score": 69,
       "dir": "SHORT"
     },
     "RIVN": {
@@ -342,6 +354,18 @@
       "score": 78,
       "dir": "SHORT"
     },
+    "RARE": {
+      "action": "AVOID",
+      "label": "Medium",
+      "score": 75,
+      "dir": "SHORT"
+    },
+    "BROS": {
+      "action": "AVOID",
+      "label": "Medium",
+      "score": 75,
+      "dir": "SHORT"
+    },
     "VERA": {
       "action": "AVOID",
       "label": "Medium",
@@ -352,6 +376,12 @@
       "action": "AVOID",
       "label": "High",
       "score": 75,
+      "dir": "SHORT"
+    },
+    "DKNG": {
+      "action": "AVOID",
+      "label": "Medium",
+      "score": 74,
       "dir": "SHORT"
     },
     "TLT": {
@@ -516,6 +546,12 @@
       "score": 60,
       "dir": "LONG"
     },
+    "IWM": {
+      "action": "FLAT",
+      "label": "Medium",
+      "score": 64,
+      "dir": "LONG"
+    },
     "WDC": {
       "action": "FLAT",
       "label": "Medium",
@@ -551,8 +587,9 @@
     "Utilities": 0
   },
   "catalysts": [
+    "INTC",
     "MU",
-    "APLD"
+    "ELMT"
   ],
   "generated_at": "2026-09-17"
 }
