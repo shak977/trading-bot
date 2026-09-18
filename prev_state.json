@@ -93,7 +93,7 @@
     "META": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 76,
+      "score": 80,
       "dir": "LONG"
     },
     "S": {
@@ -105,49 +105,49 @@
     "IOVA": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 79,
+      "score": 78,
       "dir": "LONG"
     },
     "HUM": {
       "action": "WATCH LONG",
       "label": "Medium",
-      "score": 74,
+      "score": 73,
       "dir": "LONG"
     },
     "TEM": {
       "action": "WATCH LONG",
-      "label": "High",
-      "score": 77,
+      "label": "Medium",
+      "score": 74,
       "dir": "LONG"
     },
     "DELL": {
       "action": "WATCH LONG",
-      "label": "High",
-      "score": 76,
+      "label": "Medium",
+      "score": 73,
       "dir": "LONG"
     },
     "NET": {
       "action": "WATCH LONG",
-      "label": "High",
-      "score": 76,
+      "label": "Medium",
+      "score": 73,
       "dir": "LONG"
     },
     "SDGR": {
       "action": "WATCH LONG",
-      "label": "High",
-      "score": 76,
+      "label": "Medium",
+      "score": 70,
       "dir": "LONG"
     },
     "WFC": {
       "action": "WATCH LONG",
       "label": "Medium",
-      "score": 62,
+      "score": 57,
       "dir": "LONG"
     },
     "GME": {
       "action": "WATCH LONG",
       "label": "Medium",
-      "score": 64,
+      "score": 66,
       "dir": "LONG"
     },
     "AUPH": {
@@ -159,7 +159,7 @@
     "VLO": {
       "action": "HOLD LONG",
       "label": "High",
-      "score": 80,
+      "score": 79,
       "dir": "LONG"
     },
     "MET": {
@@ -268,6 +268,12 @@
       "action": "WATCH LONG",
       "label": "High",
       "score": 75,
+      "dir": "LONG"
+    },
+    "PRU": {
+      "action": "WATCH LONG",
+      "label": "High",
+      "score": 77,
       "dir": "LONG"
     },
     "FTNT": {
@@ -390,16 +396,16 @@
       "score": 73,
       "dir": "SHORT"
     },
-    "RIVN": {
-      "action": "AVOID",
-      "label": "Medium",
-      "score": 74,
-      "dir": "SHORT"
-    },
     "RKLB": {
       "action": "AVOID",
       "label": "Medium",
       "score": 66,
+      "dir": "SHORT"
+    },
+    "RIVN": {
+      "action": "AVOID",
+      "label": "Medium",
+      "score": 74,
       "dir": "SHORT"
     },
     "GNRC": {
@@ -430,6 +436,18 @@
       "action": "AVOID",
       "label": "Medium",
       "score": 70,
+      "dir": "SHORT"
+    },
+    "SOXS": {
+      "action": "AVOID",
+      "label": "Medium",
+      "score": 70,
+      "dir": "SHORT"
+    },
+    "INOD": {
+      "action": "AVOID",
+      "label": "Medium",
+      "score": 60,
       "dir": "SHORT"
     },
     "FLNC": {
@@ -465,7 +483,19 @@
     "SOUN": {
       "action": "AVOID",
       "label": "Medium",
-      "score": 60,
+      "score": 59,
+      "dir": "SHORT"
+    },
+    "APP": {
+      "action": "AVOID",
+      "label": "Medium",
+      "score": 56,
+      "dir": "SHORT"
+    },
+    "CRML": {
+      "action": "AVOID",
+      "label": "Medium",
+      "score": 61,
       "dir": "SHORT"
     },
     "WING": {
@@ -522,6 +552,12 @@
       "score": 61,
       "dir": "LONG"
     },
+    "IPO": {
+      "action": "FLAT",
+      "label": "Medium",
+      "score": 66,
+      "dir": "LONG"
+    },
     "MRK": {
       "action": "FLAT",
       "label": "Medium",
@@ -557,9 +593,10 @@
     "Utilities": 0
   },
   "catalysts": [
-    "COIN",
     "MSTR",
-    "PRU"
+    "COIN",
+    "PRU",
+    "ELME"
   ],
   "generated_at": "2026-09-18"
 }
