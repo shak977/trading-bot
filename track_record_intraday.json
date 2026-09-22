@@ -891696,8 +891696,12 @@
     "regime": "Risk-off",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
-    "high_water": 390.52
+    "status": "win",
+    "high_water": 390.52,
+    "exit": 387.1825713498471,
+    "exit_date": "2026-09-22",
+    "return_pct": 0.42,
+    "days_held": -1
   },
   {
     "id": "ORCL:2026-09-22",
@@ -892155,9 +892159,13 @@
     "regime": "Risk-off",
     "regime_score": null,
     "liquidity_tier": "moderate",
-    "status": "open",
+    "status": "loss",
     "high_water": 624.46,
-    "target_exceeded": true
+    "target_exceeded": true,
+    "exit": 616.5855730619675,
+    "exit_date": "2026-09-22",
+    "return_pct": -0.1,
+    "days_held": -1
   },
   {
     "id": "AMGN:2026-09-22",
@@ -893194,8 +893202,12 @@
     "regime": "Risk-off",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
-    "high_water": 125.5
+    "status": "loss",
+    "high_water": 125.5,
+    "exit": 123.53464482904792,
+    "exit_date": "2026-09-22",
+    "return_pct": -0.0,
+    "days_held": -1
   },
   {
     "id": "ETN:2026-09-22",
@@ -893381,8 +893393,12 @@
     "regime": "Risk-off",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
-    "high_water": 470.74
+    "status": "win",
+    "high_water": 470.74,
+    "exit": 467.9022202246038,
+    "exit_date": "2026-09-22",
+    "return_pct": 0.12,
+    "days_held": -1
   },
   {
     "id": "GLW:2026-09-22",
@@ -894231,8 +894247,12 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
-    "high_water": 75.99
+    "status": "win",
+    "high_water": 75.99,
+    "exit": 75.51904769787481,
+    "exit_date": "2026-09-22",
+    "return_pct": 0.2,
+    "days_held": -1
   },
   {
     "id": "SPCX:2026-09-22",
@@ -895178,8 +895198,12 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
-    "high_water": 212.04
+    "status": "loss",
+    "high_water": 212.04,
+    "exit": 211.21076781638368,
+    "exit_date": "2026-09-22",
+    "return_pct": -0.05,
+    "days_held": -1
   },
   {
     "id": "AMT:2026-09-22",
@@ -896898,7 +896922,8 @@
     "regime": "Risk-off",
     "regime_score": null,
     "liquidity_tier": "thin",
-    "status": "open"
+    "status": "open",
+    "high_water": 287.21
   },
   {
     "id": "WBD:2026-09-22",
@@ -897172,6 +897197,97 @@
     "regime": "Risk-off",
     "regime_score": null,
     "liquidity_tier": "moderate",
+    "status": "open",
+    "high_water": 773.61
+  },
+  {
+    "id": "QQQ:2026-09-22",
+    "symbol": "QQQ",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-09-22",
+    "advised_ts": "2026-09-22T23:11:44.318936",
+    "entry": 746.63,
+    "stop": 745.91,
+    "target": 748.31,
+    "rr": 2.34,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "Medium",
+    "conviction_pct": 61,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "fail"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "With the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Right setups for this tape?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "thin",
     "status": "open"
   }
 ]
