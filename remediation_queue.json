@@ -1,24 +1,24 @@
 {
- "generated": "2026-09-22 00:59 GMT",
- "n_findings": 9,
+ "generated": "2026-09-23 00:49 GMT",
+ "n_findings": 10,
  "counts": {
   "proposals": 1,
   "auto_fixed": 0,
   "held": 3,
-  "no_action": 5
+  "no_action": 6
  },
  "proposals": [
   {
    "code": "CONVICTION_INVERTED",
    "severity": "INFO",
-   "message": "Conviction tiers remain inverted: High 40.5% vs Medium 54.9% win. Any gate keyed on High is selecting the worse cohort.",
+   "message": "Conviction tiers remain inverted: High 40.1% vs Medium 54.2% win. Any gate keyed on High is selecting the worse cohort.",
    "evidence": "",
    "tier": "RISKY",
    "why_tier": "informational, but the fix touches gates",
    "verdict": "confirmed",
-   "proof": "High 40.5% (n=598) vs Medium 54.9% (n=388); meta-label AUC 0.685 is a validated alternative",
+   "proof": "High 40.1% (n=603) vs Medium 54.2% (n=393); meta-label AUC 0.69 is a validated alternative",
    "confidence": "high",
-   "seen": "2026-09-22 00:59 GMT",
+   "seen": "2026-09-23 00:49 GMT",
    "outcome": "PROPOSED \u2014 needs your approval (touches trading logic)"
   }
  ],
@@ -27,66 +27,79 @@
   {
    "code": "ANTI_PREDICTIVE_GATE",
    "severity": "WARN",
-   "message": "\"Retail buzz?\" is anti-predictive (-13pt win delta, n=222) but still appears in decision logic \u2014 verify it isn't gating trades.",
+   "message": "\"Retail buzz?\" is anti-predictive (-13pt win delta, n=223) but still appears in decision logic \u2014 verify it isn't gating trades.",
    "evidence": "scanner.py:1095",
    "tier": "RISKY",
    "why_tier": "unknown finding type \u2014 treated as risky by default",
    "verdict": "insufficient_data",
    "proof": "no empirical test defined for this code",
    "confidence": "low",
-   "seen": "2026-09-22 00:59 GMT",
+   "seen": "2026-09-23 00:49 GMT",
    "outcome": "held (insufficient_data)"
   },
   {
    "code": "ANTI_PREDICTIVE_METRIC",
    "severity": "INFO",
-   "message": "\"Reward:risk worth it?\" is anti-predictive (-28pt, n=958). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"Reward:risk worth it?\" is anti-predictive (-27pt, n=968). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": "",
    "tier": "SAFE",
    "why_tier": "no action \u2014 feature, not a gate",
    "verdict": "n/a",
    "proof": "informational \u2014 no action required",
    "confidence": "n/a",
-   "seen": "2026-09-22 00:59 GMT",
+   "seen": "2026-09-23 00:49 GMT",
    "outcome": "no action needed"
   },
   {
    "code": "ANTI_PREDICTIVE_METRIC",
    "severity": "INFO",
-   "message": "\"Worth the risk?\" is anti-predictive (-27pt, n=971). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"Worth the risk?\" is anti-predictive (-26pt, n=981). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": "",
    "tier": "SAFE",
    "why_tier": "no action \u2014 feature, not a gate",
    "verdict": "n/a",
    "proof": "informational \u2014 no action required",
    "confidence": "n/a",
-   "seen": "2026-09-22 00:59 GMT",
+   "seen": "2026-09-23 00:49 GMT",
    "outcome": "no action needed"
   },
   {
    "code": "ANTI_PREDICTIVE_METRIC",
    "severity": "INFO",
-   "message": "\"With the market?\" is anti-predictive (-16pt, n=971). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"With the market?\" is anti-predictive (-16pt, n=981). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": "",
    "tier": "SAFE",
    "why_tier": "no action \u2014 feature, not a gate",
    "verdict": "n/a",
    "proof": "informational \u2014 no action required",
    "confidence": "n/a",
-   "seen": "2026-09-22 00:59 GMT",
+   "seen": "2026-09-23 00:49 GMT",
+   "outcome": "no action needed"
+  },
+  {
+   "code": "ANTI_PREDICTIVE_METRIC",
+   "severity": "INFO",
+   "message": "\"Sector trending right?\" is anti-predictive (-10pt, n=968). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "evidence": "",
+   "tier": "SAFE",
+   "why_tier": "no action \u2014 feature, not a gate",
+   "verdict": "n/a",
+   "proof": "informational \u2014 no action required",
+   "confidence": "n/a",
+   "seen": "2026-09-23 00:49 GMT",
    "outcome": "no action needed"
   },
   {
    "code": "CONVICTION_INVERTED",
    "severity": "INFO",
-   "message": "Conviction tiers remain inverted: High 40.5% vs Medium 54.9% win. Any gate keyed on High is selecting the worse cohort.",
+   "message": "Conviction tiers remain inverted: High 40.1% vs Medium 54.2% win. Any gate keyed on High is selecting the worse cohort.",
    "evidence": "",
    "tier": "RISKY",
    "why_tier": "informational, but the fix touches gates",
    "verdict": "confirmed",
-   "proof": "High 40.5% (n=598) vs Medium 54.9% (n=388); meta-label AUC 0.685 is a validated alternative",
+   "proof": "High 40.1% (n=603) vs Medium 54.2% (n=393); meta-label AUC 0.69 is a validated alternative",
    "confidence": "high",
-   "seen": "2026-09-22 00:59 GMT",
+   "seen": "2026-09-23 00:49 GMT",
    "outcome": "PROPOSED \u2014 needs your approval (touches trading logic)"
   },
   {
@@ -99,7 +112,7 @@
    "verdict": "n/a",
    "proof": "informational \u2014 no action required",
    "confidence": "n/a",
-   "seen": "2026-09-22 00:59 GMT",
+   "seen": "2026-09-23 00:49 GMT",
    "outcome": "no action needed"
   },
   {
@@ -112,7 +125,7 @@
    "verdict": "insufficient_data",
    "proof": "no empirical test defined for this code",
    "confidence": "low",
-   "seen": "2026-09-22 00:59 GMT",
+   "seen": "2026-09-23 00:49 GMT",
    "outcome": "held (insufficient_data)"
   },
   {
@@ -125,7 +138,7 @@
    "verdict": "insufficient_data",
    "proof": "no empirical test defined for this code",
    "confidence": "low",
-   "seen": "2026-09-22 00:59 GMT",
+   "seen": "2026-09-23 00:49 GMT",
    "outcome": "held (insufficient_data)"
   },
   {
@@ -138,7 +151,7 @@
    "verdict": "n/a",
    "proof": "informational \u2014 no action required",
    "confidence": "n/a",
-   "seen": "2026-09-22 00:59 GMT",
+   "seen": "2026-09-23 00:49 GMT",
    "outcome": "no action needed"
   }
  ]
