@@ -1,8 +1,8 @@
 {
- "generated": "2026-09-24 00:40 GMT",
+ "generated": "2026-09-25 00:40 GMT",
  "counts": {
   "CRITICAL": 0,
-  "WARN": 1,
+  "WARN": 2,
   "INFO": 9
  },
  "findings": [
@@ -13,33 +13,39 @@
    "evidence": "scanner.py:1095"
   },
   {
-   "severity": "INFO",
-   "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"Reward:risk worth it?\" is anti-predictive (-27pt, n=970). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "severity": "WARN",
+   "code": "AUTO_WEAK_COHORT",
+   "message": "Cohort 'alerted=False' wins 12.5% vs 40.6% overall (n=40) \u2014 materially worse than the book.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"Worth the risk?\" is anti-predictive (-26pt, n=983). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"Reward:risk worth it?\" is anti-predictive (-26pt, n=978). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"With the market?\" is anti-predictive (-16pt, n=983). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"Worth the risk?\" is anti-predictive (-26pt, n=991). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"Sector trending right?\" is anti-predictive (-10pt, n=970). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"With the market?\" is anti-predictive (-16pt, n=991). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "evidence": ""
+  },
+  {
+   "severity": "INFO",
+   "code": "ANTI_PREDICTIVE_METRIC",
+   "message": "\"Sector trending right?\" is anti-predictive (-10pt, n=978). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "CONVICTION_INVERTED",
-   "message": "Conviction tiers remain inverted: High 40.0% vs Medium 54.2% win. Any gate keyed on High is selecting the worse cohort.",
+   "message": "Conviction tiers remain inverted: High 40.0% vs Medium 54.0% win. Any gate keyed on High is selecting the worse cohort.",
    "evidence": ""
   },
   {
