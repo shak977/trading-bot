@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-25 00:39 GMT",
+  "generated_at": "2026-09-26 00:44 GMT",
   "buckets": {
     "daily": {
       "label": "Daily / swing",
@@ -32,31 +32,32 @@
     "intraday": {
       "label": "Intraday",
       "stats": {
-        "logged": 10984,
-        "resolved": 10940,
-        "decided": 10812,
-        "open": 44,
-        "win_rate": 44.1,
+        "logged": 11052,
+        "resolved": 11002,
+        "decided": 10874,
+        "open": 50,
+        "win_rate": 44.2,
         "by_regime": {
           "Risk-on": {
             "n": 4812,
             "win_rate": 44.8
           },
           "Neutral": {
-            "n": 5689,
+            "n": 5693,
             "win_rate": 43.1
           },
           "Risk-off": {
-            "n": 207,
-            "win_rate": 53.6
+            "n": 265,
+            "win_rate": 55.5
           }
         },
         "streak": {
-          "kind": "loss",
-          "n": 3
+          "kind": "win",
+          "n": 2
         },
         "learned_weights": {
-          "Are people trading it?": 0.96
+          "Are people trading it?": 0.96,
+          "Right setups for this tape?": 0.0
         }
       }
     },
@@ -76,21 +77,6 @@
   },
   "findings": [
     {
-      "severity": "act",
-      "area": "Intraday: check 'Right setups for this tape?'",
-      "observation": "Win rate 39.5% when it passes vs 61.3% when it fails (edge -22pts) \u2014 it's not separating winners.",
-      "proposal": "Down-weight or retire 'Right setups for this tape?' (currently \u00d71.0).",
-      "history": {
-        "times_raised": 47,
-        "since": "2026-07-22",
-        "before_wr": 41.1,
-        "after_wr": 46.4,
-        "after_n": 5957,
-        "delta": 5.3,
-        "status": "improved"
-      }
-    },
-    {
       "severity": "watch",
       "area": "Daily / swing: streak",
       "observation": "15 resolved losses in a row.",
@@ -98,14 +84,8 @@
     },
     {
       "severity": "watch",
-      "area": "Intraday: streak",
-      "observation": "3 resolved losses in a row.",
-      "proposal": "Confirm the no-trade / drawdown guards are doing their job; consider a pause."
-    },
-    {
-      "severity": "watch",
       "area": "setup:burst",
-      "observation": "Momentum Burst edge vs baseline is -0.20% over 10d (1639 fires, hit 51.6%).",
+      "observation": "Momentum Burst edge vs baseline is -0.19% over 10d (1643 fires, hit 51.6%).",
       "proposal": "'Momentum Burst' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
@@ -117,7 +97,7 @@
     {
       "severity": "watch",
       "area": "setup:vcp",
-      "observation": "VCP (Minervini) edge vs baseline is +0.01% over 10d (545 fires, hit 56.5%).",
+      "observation": "VCP (Minervini) edge vs baseline is +0.03% over 10d (549 fires, hit 56.6%).",
       "proposal": "'VCP (Minervini)' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
@@ -147,14 +127,20 @@
     {
       "severity": "info",
       "area": "Intraday: check 'Worth the risk?'",
-      "observation": "Win rate 32.0% when it passes vs 54.8% when it fails (edge -23pts) \u2014 it's not separating winners. Expected for a payoff check \u2014 it's judged on expectancy (size of wins), not hit rate.",
+      "observation": "Win rate 32.2% when it passes vs 54.9% when it fails (edge -23pts) \u2014 it's not separating winners. Expected for a payoff check \u2014 it's judged on expectancy (size of wins), not hit rate.",
       "proposal": "Leave 'Worth the risk?' as-is; the win-rate loop is held off it on purpose."
     },
     {
       "severity": "info",
       "area": "Intraday: check 'Reward:risk worth it?'",
-      "observation": "Win rate 32.0% when it passes vs 54.8% when it fails (edge -23pts) \u2014 it's not separating winners. Expected for a payoff check \u2014 it's judged on expectancy (size of wins), not hit rate.",
+      "observation": "Win rate 32.2% when it passes vs 54.9% when it fails (edge -23pts) \u2014 it's not separating winners. Expected for a payoff check \u2014 it's judged on expectancy (size of wins), not hit rate.",
       "proposal": "Leave 'Reward:risk worth it?' as-is; the win-rate loop is held off it on purpose."
+    },
+    {
+      "severity": "info",
+      "area": "Intraday: check 'Right setups for this tape?'",
+      "observation": "Win rate 39.8% when it passes vs 65.9% when it fails (edge -26pts) \u2014 it's not separating winners.",
+      "proposal": "Already retired (weight \u00d70.0) \u2014 the engine dropped it; no action needed."
     },
     {
       "severity": "info",
@@ -169,33 +155,27 @@
       "proposal": "The FTD/distribution gate is predictive \u2014 keep it blocking new longs in a confirmed correction."
     }
   ],
-  "n_actions": 1,
+  "n_actions": 0,
   "self_review": [
     {
       "kind": "trend",
       "scope": "daily",
-      "delta": -16.7,
-      "text": "daily: last-7d win rate 0.0% vs prior 16.7% (-17pts) \u2014 deteriorating."
+      "delta": -22.2,
+      "text": "daily: last-7d win rate 0.0% vs prior 22.2% (-22pts) \u2014 deteriorating."
     },
     {
       "kind": "trend",
       "scope": "intraday",
-      "delta": 0.9,
-      "text": "intraday: last-7d win rate 47.0% vs prior 46.1% (+1pts) \u2014 steady."
-    },
-    {
-      "kind": "proposal_grade",
-      "scope": "intraday",
-      "delta": 5.3,
-      "text": "intraday: since we began acting (2026-07-22), win rate on trades closed since is 46.4% vs 41.1% before (+5pts, n=5957) \u2014 improved."
+      "delta": 2.5,
+      "text": "intraday: last-7d win rate 49.2% vs prior 46.7% (+2pts) \u2014 steady."
     }
   ],
   "self_confidence": {
-    "graded": 1,
-    "improved": 1,
+    "graded": 0,
+    "improved": 0,
     "pending": 0,
-    "hit_rate": 100.0,
+    "hit_rate": null,
     "basis": "per-bucket win rate on trades closed after each action vs before (\u00b13pt dead-band)"
   },
-  "narrative": "**NIGHTLY NOTE**\n\n**Daily/swing** (1152 trades, 40.6% win rate): Underperforming with a 15-loss streak; drawdown guards need verification. **Intraday** (10812 trades, 44.1% win rate): Solid core, but 'Right setups for this tape?' is a net drag (39.5% pass vs 61.3% fail)\u2014retire or down-weight it. **ORB day-trade**: No decided trades yet; hold.\n\n**Priority actions:**\n1. **Down-weight or retire 'Right setups for this tape?' in intraday.** It inverts the edge (\u221222pts when it passes)\u2014the inverse signal is stronger.\n2. **Confirm drawdown/no-trade guards are armed** after daily/swing 15-loss streak and intraday 3-loss streak. A pause may be warranted if guards are dormant.\n3. **Do not lean on Momentum Burst, Episodic Pivot, or VCP yet.** All three show marginal or negative 10d edges (\u22120.43% to +0.01%); watch but don't overweight.\n\n**Risk to watch:** FTD/distribution timing gate is predictive (+2.47% index avg post-FTD vs +0.53% post-correction), but daily/swing's 15-loss streak suggests it may be hitting in a correction phase. Confirm the gate is blocking longs correctly."
+  "narrative": "**NIGHTLY NOTE**\n\n**Daily/swing:** 40.6% win rate across 1152 trades; currently in 15-loss streak with drawdown guards active. **Intraday:** 44.2% win rate on 10,874 trades, performing consistently across regimes (43\u201356% by Risk regime). **ORB day-trade:** Dormant (0 decided trades); provisional until maturity.\n\n**Priority changes:**\n\n1. **Pause Daily/swing or tighten entry guards.** The 15-loss streak suggests either regime drift or model decay. Confirm no-trade / drawdown guards are executing; consider a 1\u20132 day trade pause if losses continue, rather than waiting for manual intervention.\n\n2. **Deweight or drop Momentum Burst setup.** Edge is \u20130.19% over 10d (1643 fires); it's dragging returns. VCP and Episodic Pivot are also marginal (\u00b10.03 to \u20130.43%); consider consolidating to highest-conviction setups only.\n\n3. **Preserve FTD/distribution gate.** Timing check shows +2.47% average after FTD vs +0.53% after correction\u2014this is your cleanest edge. Keep it blocking new longs in confirmed corrections.\n\n**Risk to watch:** Daily/swing streak may cascade if guards fail. Monitor drawdown threshold breach and consider manual kill-switch if streak reaches 20 losses without pause trigger."
 }
