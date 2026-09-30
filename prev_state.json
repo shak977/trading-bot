@@ -104,14 +104,14 @@
     },
     "DELL": {
       "action": "HOLD LONG",
-      "label": "Medium",
-      "score": 72,
+      "label": "High",
+      "score": 79,
       "dir": "LONG"
     },
     "KEYS": {
       "action": "HOLD LONG",
       "label": "High",
-      "score": 76,
+      "score": 78,
       "dir": "LONG"
     },
     "CRWD": {
@@ -138,16 +138,22 @@
       "score": 75,
       "dir": "LONG"
     },
-    "SPCX": {
+    "TSM": {
       "action": "HOLD LONG",
       "label": "High",
-      "score": 76,
+      "score": 77,
+      "dir": "LONG"
+    },
+    "SPCX": {
+      "action": "HOLD LONG",
+      "label": "Medium",
+      "score": 72,
       "dir": "LONG"
     },
     "AMD": {
       "action": "HOLD LONG",
       "label": "Medium",
-      "score": 75,
+      "score": 66,
       "dir": "LONG"
     },
     "PFE": {
@@ -234,16 +240,16 @@
       "score": 76,
       "dir": "LONG"
     },
-    "AMGN": {
-      "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 73,
-      "dir": "LONG"
-    },
     "MPC": {
       "action": "WATCH LONG",
       "label": "Medium",
       "score": 65,
+      "dir": "LONG"
+    },
+    "TRLV": {
+      "action": "WATCH LONG",
+      "label": "Medium",
+      "score": 52,
       "dir": "LONG"
     },
     "ASTS": {
@@ -294,6 +300,12 @@
       "score": 74,
       "dir": "SHORT"
     },
+    "ON": {
+      "action": "AVOID",
+      "label": "Medium",
+      "score": 65,
+      "dir": "SHORT"
+    },
     "NVTS": {
       "action": "AVOID",
       "label": "Medium",
@@ -339,7 +351,7 @@
     "MDB": {
       "action": "AVOID",
       "label": "Medium",
-      "score": 60,
+      "score": 68,
       "dir": "SHORT"
     },
     "TLT": {
@@ -421,7 +433,7 @@
     "Index ETFs": 50,
     "Energy": 50,
     "Materials": 33,
-    "Other / Movers": 30,
+    "Other / Movers": 31,
     "Communication": 25,
     "Consumer": 25,
     "Staples": 22,
@@ -433,7 +445,8 @@
   "catalysts": [
     "BA",
     "AMAT",
-    "KLAC"
+    "KLAC",
+    "MDBX"
   ],
-  "generated_at": "2026-09-29"
+  "generated_at": "2026-09-30"
 }
