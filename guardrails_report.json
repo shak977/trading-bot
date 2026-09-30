@@ -1,9 +1,9 @@
 {
- "generated": "2026-09-29 02:09 GMT",
+ "generated": "2026-09-30 01:24 GMT",
  "counts": {
   "CRITICAL": 0,
   "WARN": 2,
-  "INFO": 9
+  "INFO": 8
  },
  "findings": [
   {
@@ -15,37 +15,31 @@
   {
    "severity": "WARN",
    "code": "AUTO_WEAK_COHORT",
-   "message": "Cohort 'alerted=False' wins 12.5% vs 40.6% overall (n=40) \u2014 materially worse than the book.",
+   "message": "Cohort 'alerted=False' wins 11.6% vs 40.4% overall (n=43) \u2014 materially worse than the book.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"Reward:risk worth it?\" is anti-predictive (-26pt, n=980). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"Reward:risk worth it?\" is anti-predictive (-26pt, n=984). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"Worth the risk?\" is anti-predictive (-26pt, n=993). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"Worth the risk?\" is anti-predictive (-25pt, n=997). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"With the market?\" is anti-predictive (-17pt, n=993). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
-   "evidence": ""
-  },
-  {
-   "severity": "INFO",
-   "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"Sector trending right?\" is anti-predictive (-10pt, n=980). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"With the market?\" is anti-predictive (-17pt, n=997). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "CONVICTION_INVERTED",
-   "message": "Conviction tiers remain inverted: High 39.9% vs Medium 53.9% win. Any gate keyed on High is selecting the worse cohort.",
+   "message": "Conviction tiers remain inverted: High 39.6% vs Medium 53.9% win. Any gate keyed on High is selecting the worse cohort.",
    "evidence": ""
   },
   {
