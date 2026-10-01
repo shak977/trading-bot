@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-30 01:23 GMT",
+  "generated_at": "2026-10-01 01:23 GMT",
   "buckets": {
     "daily": {
       "label": "Daily / swing",
@@ -32,10 +32,10 @@
     "intraday": {
       "label": "Intraday",
       "stats": {
-        "logged": 11160,
-        "resolved": 11117,
-        "decided": 10989,
-        "open": 43,
+        "logged": 11207,
+        "resolved": 11178,
+        "decided": 11050,
+        "open": 29,
         "win_rate": 44.0,
         "by_regime": {
           "Risk-on": {
@@ -47,17 +47,16 @@
             "win_rate": 42.9
           },
           "Risk-off": {
-            "n": 350,
-            "win_rate": 50.3
+            "n": 411,
+            "win_rate": 48.2
           }
         },
         "streak": {
           "kind": "win",
-          "n": 1
+          "n": 4
         },
         "learned_weights": {
-          "Are people trading it?": 0.96,
-          "Right setups for this tape?": 0.0
+          "Are people trading it?": 0.96
         }
       }
     },
@@ -77,6 +76,21 @@
   },
   "findings": [
     {
+      "severity": "act",
+      "area": "Intraday: check 'Right setups for this tape?'",
+      "observation": "Win rate 39.8% when it passes vs 53.1% when it fails (edge -13pts) \u2014 it's not separating winners.",
+      "proposal": "Down-weight or retire 'Right setups for this tape?' (currently \u00d71.0).",
+      "history": {
+        "times_raised": 48,
+        "since": "2026-07-22",
+        "before_wr": 41.1,
+        "after_wr": 46.2,
+        "after_n": 6195,
+        "delta": 5.1,
+        "status": "improved"
+      }
+    },
+    {
       "severity": "watch",
       "area": "Daily / swing: streak",
       "observation": "20 resolved losses in a row.",
@@ -85,7 +99,7 @@
     {
       "severity": "watch",
       "area": "setup:burst",
-      "observation": "Momentum Burst edge vs baseline is -0.19% over 10d (1631 fires, hit 51.6%).",
+      "observation": "Momentum Burst edge vs baseline is -0.18% over 10d (1632 fires, hit 51.7%).",
       "proposal": "'Momentum Burst' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
@@ -97,7 +111,7 @@
     {
       "severity": "watch",
       "area": "setup:vcp",
-      "observation": "VCP (Minervini) edge vs baseline is -0.33% over 10d (512 fires, hit 53.3%).",
+      "observation": "VCP (Minervini) edge vs baseline is -0.42% over 10d (506 fires, hit 52.6%).",
       "proposal": "'VCP (Minervini)' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
@@ -126,20 +140,14 @@
     },
     {
       "severity": "info",
-      "area": "Intraday: check 'Right setups for this tape?'",
-      "observation": "Win rate 39.8% when it passes vs 62.0% when it fails (edge -22pts) \u2014 it's not separating winners.",
-      "proposal": "Already retired (weight \u00d70.0) \u2014 the engine dropped it; no action needed."
-    },
-    {
-      "severity": "info",
       "area": "Intraday: check 'Worth the risk?'",
-      "observation": "Win rate 32.1% when it passes vs 54.7% when it fails (edge -23pts) \u2014 it's not separating winners. Expected for a payoff check \u2014 it's judged on expectancy (size of wins), not hit rate.",
+      "observation": "Win rate 32.2% when it passes vs 54.6% when it fails (edge -22pts) \u2014 it's not separating winners. Expected for a payoff check \u2014 it's judged on expectancy (size of wins), not hit rate.",
       "proposal": "Leave 'Worth the risk?' as-is; the win-rate loop is held off it on purpose."
     },
     {
       "severity": "info",
       "area": "Intraday: check 'Reward:risk worth it?'",
-      "observation": "Win rate 32.1% when it passes vs 54.7% when it fails (edge -23pts) \u2014 it's not separating winners. Expected for a payoff check \u2014 it's judged on expectancy (size of wins), not hit rate.",
+      "observation": "Win rate 32.2% when it passes vs 54.6% when it fails (edge -22pts) \u2014 it's not separating winners. Expected for a payoff check \u2014 it's judged on expectancy (size of wins), not hit rate.",
       "proposal": "Leave 'Reward:risk worth it?' as-is; the win-rate loop is held off it on purpose."
     },
     {
@@ -155,27 +163,32 @@
       "proposal": "The FTD/distribution gate is predictive \u2014 keep it blocking new longs in a confirmed correction."
     }
   ],
-  "n_actions": 0,
+  "n_actions": 1,
   "self_review": [
     {
       "kind": "trend",
       "scope": "daily",
-      "delta": -9.1,
-      "text": "daily: last-7d win rate 0.0% vs prior 9.1% (-9pts) \u2014 deteriorating."
+      "delta": 0.0,
+      "text": "daily: last-7d win rate 0.0% vs prior 0.0% (+0pts) \u2014 steady."
     },
     {
       "kind": "trend",
       "scope": "intraday",
-      "delta": -14.0,
-      "text": "intraday: last-7d win rate 37.5% vs prior 51.5% (-14pts) \u2014 deteriorating."
+      "delta": -9.4,
+      "text": "intraday: last-7d win rate 38.7% vs prior 48.1% (-9pts) \u2014 deteriorating."
+    },
+    {
+      "kind": "proposal_grade",
+      "scope": "intraday",
+      "delta": 5.1,
+      "text": "intraday: since we began acting (2026-07-22), win rate on trades closed since is 46.2% vs 41.1% before (+5pts, n=6195) \u2014 improved."
     }
   ],
   "self_confidence": {
-    "graded": 0,
-    "improved": 0,
+    "graded": 1,
+    "improved": 1,
     "pending": 0,
-    "hit_rate": null,
+    "hit_rate": 100.0,
     "basis": "per-bucket win rate on trades closed after each action vs before (\u00b13pt dead-band)"
-  },
-  "narrative": "**NIGHTLY NOTE**\n\n**Daily/swing:** 40.4% win rate across 1158 trades; currently in a 20-loss streak\u2014drawdown guards merit confirmation and a trading pause should be considered. **Intraday:** 44.0% win rate, solid, driven entirely by \"Are people trading it?\" (weight 0.96); performs best in Risk-off regimes (50.3% hit). **ORB day-trade:** zero decided trades; still provisional.\n\n**Top 3 changes:**\n1. **Pause Daily/swing immediately** until the 20-loss streak resolves and guards are verified operational. The bucket is dragging; no edge is visible.\n2. **De-weight Momentum Burst, Episodic Pivot, and VCP setups**\u2014each showing \u22120.19% to \u22120.40% edge drag over 10d with marginal hit rates (51\u201354%). Stop feeding capital to marginal edges.\n3. **Validate the FTD/distribution timing gate** (Risk-off showed +2.47% avg vs +0.53% post-correction). Keep blocking new longs in confirmed corrections; this is working.\n\n**Risk to watch:** Intraday relies on a single signal (\"Are people trading it?\"). Regime shift or liquidity drought would evaporate that 44% win rate. Monitor tape quality and order-flow stability."
+  }
 }
