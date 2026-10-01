@@ -2,14 +2,14 @@
   "signals": {
     "WBD": {
       "action": "WATCH LONG",
-      "label": "High",
-      "score": 78,
+      "label": "Medium",
+      "score": 74,
       "dir": "LONG"
     },
     "COIN": {
       "action": "WATCH LONG",
       "label": "High",
-      "score": 82,
+      "score": 80,
       "dir": "LONG"
     },
     "MSFT": {
@@ -39,7 +39,7 @@
     "DDOG": {
       "action": "WATCH LONG",
       "label": "Medium",
-      "score": 68,
+      "score": 71,
       "dir": "LONG"
     },
     "ZS": {
@@ -52,12 +52,6 @@
       "action": "WATCH LONG",
       "label": "Medium",
       "score": 74,
-      "dir": "LONG"
-    },
-    "NVAX": {
-      "action": "WATCH LONG",
-      "label": "Medium",
-      "score": 68,
       "dir": "LONG"
     },
     "ETN": {
@@ -96,6 +90,12 @@
       "score": 75,
       "dir": "LONG"
     },
+    "SNDK": {
+      "action": "HOLD LONG",
+      "label": "Medium",
+      "score": 70,
+      "dir": "LONG"
+    },
     "VLO": {
       "action": "HOLD LONG",
       "label": "High",
@@ -117,7 +117,7 @@
     "META": {
       "action": "HOLD LONG",
       "label": "Medium",
-      "score": 68,
+      "score": 64,
       "dir": "LONG"
     },
     "KEYS": {
@@ -129,7 +129,7 @@
     "NET": {
       "action": "HOLD LONG",
       "label": "Medium",
-      "score": 63,
+      "score": 65,
       "dir": "LONG"
     },
     "SPCX": {
@@ -153,7 +153,7 @@
     "QQQ": {
       "action": "HOLD LONG",
       "label": "Medium",
-      "score": 65,
+      "score": 59,
       "dir": "LONG"
     },
     "MU": {
@@ -210,12 +210,6 @@
       "score": 85,
       "dir": "LONG"
     },
-    "BB": {
-      "action": "WATCH LONG",
-      "label": "High",
-      "score": 81,
-      "dir": "LONG"
-    },
     "FTNT": {
       "action": "WATCH LONG",
       "label": "High",
@@ -270,10 +264,10 @@
       "score": 83,
       "dir": "SHORT"
     },
-    "AMPX": {
+    "MAT": {
       "action": "AVOID",
       "label": "High",
-      "score": 81,
+      "score": 86,
       "dir": "SHORT"
     },
     "TTD": {
@@ -300,6 +294,12 @@
       "score": 75,
       "dir": "SHORT"
     },
+    "MLTX": {
+      "action": "AVOID",
+      "label": "High",
+      "score": 75,
+      "dir": "SHORT"
+    },
     "RCAT": {
       "action": "AVOID",
       "label": "High",
@@ -309,7 +309,7 @@
     "FICO": {
       "action": "AVOID",
       "label": "Medium",
-      "score": 74,
+      "score": 66,
       "dir": "SHORT"
     },
     "MTN": {
@@ -360,12 +360,6 @@
       "score": 71,
       "dir": "SHORT"
     },
-    "NU": {
-      "action": "AVOID",
-      "label": "Medium",
-      "score": 70,
-      "dir": "SHORT"
-    },
     "CCL": {
       "action": "AVOID",
       "label": "Medium",
@@ -384,22 +378,10 @@
       "score": 67,
       "dir": "SHORT"
     },
-    "CLF": {
-      "action": "AVOID",
-      "label": "Medium",
-      "score": 67,
-      "dir": "SHORT"
-    },
     "BA": {
       "action": "AVOID",
       "label": "Medium",
       "score": 56,
-      "dir": "SHORT"
-    },
-    "OCUL": {
-      "action": "AVOID",
-      "label": "Medium",
-      "score": 63,
       "dir": "SHORT"
     },
     "COE": {
@@ -420,6 +402,12 @@
       "score": 58,
       "dir": "SHORT"
     },
+    "GOOGL": {
+      "action": "FLAT",
+      "label": "High",
+      "score": 78,
+      "dir": "LONG"
+    },
     "TRLV": {
       "action": "FLAT",
       "label": "High",
@@ -428,8 +416,8 @@
     },
     "KLAC": {
       "action": "FLAT",
-      "label": "Medium",
-      "score": 72,
+      "label": "High",
+      "score": 76,
       "dir": "LONG"
     },
     "TKR": {
@@ -459,13 +447,7 @@
     "NVDA": {
       "action": "FLAT",
       "label": "Medium",
-      "score": 64,
-      "dir": "LONG"
-    },
-    "SPY": {
-      "action": "FLAT",
-      "label": "Medium",
-      "score": 62,
+      "score": 57,
       "dir": "LONG"
     }
   },
@@ -486,12 +468,10 @@
   },
   "catalysts": [
     "LLY",
-    "PARA",
-    "MAT",
+    "DDOG",
     "MDB",
     "BA",
-    "COIN",
-    "FLXP"
+    "MAT"
   ],
-  "generated_at": "2026-09-30"
+  "generated_at": "2026-10-01"
 }
