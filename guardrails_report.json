@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-01 01:24 GMT",
+ "generated": "2026-10-02 01:46 GMT",
  "counts": {
   "CRITICAL": 0,
   "WARN": 2,
@@ -9,37 +9,37 @@
   {
    "severity": "WARN",
    "code": "ANTI_PREDICTIVE_GATE",
-   "message": "\"Retail buzz?\" is anti-predictive (-13pt win delta, n=224) but still appears in decision logic \u2014 verify it isn't gating trades.",
+   "message": "\"Retail buzz?\" is anti-predictive (-13pt win delta, n=226) but still appears in decision logic \u2014 verify it isn't gating trades.",
    "evidence": "scanner.py:1095"
   },
   {
    "severity": "WARN",
    "code": "AUTO_WEAK_COHORT",
-   "message": "Cohort 'alerted=False' wins 11.6% vs 40.4% overall (n=43) \u2014 materially worse than the book.",
+   "message": "Cohort 'alerted=False' wins 10.6% vs 40.2% overall (n=47) \u2014 materially worse than the book.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"Reward:risk worth it?\" is anti-predictive (-26pt, n=984). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"Reward:risk worth it?\" is anti-predictive (-26pt, n=990). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"Worth the risk?\" is anti-predictive (-25pt, n=997). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"Worth the risk?\" is anti-predictive (-25pt, n=1003). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "ANTI_PREDICTIVE_METRIC",
-   "message": "\"With the market?\" is anti-predictive (-17pt, n=997). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
+   "message": "\"With the market?\" is anti-predictive (-17pt, n=1003). Not gating anything \u2014 fine as a model feature, but don't surface it as a quality badge.",
    "evidence": ""
   },
   {
    "severity": "INFO",
    "code": "CONVICTION_INVERTED",
-   "message": "Conviction tiers remain inverted: High 39.6% vs Medium 53.9% win. Any gate keyed on High is selecting the worse cohort.",
+   "message": "Conviction tiers remain inverted: High 39.3% vs Medium 53.9% win. Any gate keyed on High is selecting the worse cohort.",
    "evidence": ""
   },
   {
