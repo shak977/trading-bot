@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-17 00:39 GMT",
+  "generated_at": "2026-10-20 01:08 GMT",
   "buckets": {
     "daily": {
       "label": "Daily / swing",
@@ -32,10 +32,10 @@
     "intraday": {
       "label": "Intraday",
       "stats": {
-        "logged": 12166,
-        "resolved": 12118,
-        "decided": 11990,
-        "open": 48,
+        "logged": 12228,
+        "resolved": 12187,
+        "decided": 12059,
+        "open": 41,
         "win_rate": 45.0,
         "by_regime": {
           "Risk-on": {
@@ -43,8 +43,8 @@
             "win_rate": 44.8
           },
           "Neutral": {
-            "n": 6355,
-            "win_rate": 44.4
+            "n": 6424,
+            "win_rate": 44.2
           },
           "Risk-off": {
             "n": 719,
@@ -52,7 +52,7 @@
           }
         },
         "streak": {
-          "kind": "win",
+          "kind": "loss",
           "n": 1
         },
         "learned_weights": {}
@@ -82,19 +82,19 @@
     {
       "severity": "watch",
       "area": "setup:burst",
-      "observation": "Momentum Burst edge vs baseline is -0.08% over 10d (1653 fires, hit 51.8%).",
+      "observation": "Momentum Burst edge vs baseline is -0.08% over 10d (1652 fires, hit 51.8%).",
       "proposal": "'Momentum Burst' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
       "severity": "watch",
       "area": "setup:ep",
-      "observation": "Episodic Pivot (technical) edge vs baseline is -0.34% over 10d (131 fires, hit 55.0%).",
+      "observation": "Episodic Pivot (technical) edge vs baseline is -0.33% over 10d (131 fires, hit 55.0%).",
       "proposal": "'Episodic Pivot (technical)' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
       "severity": "watch",
       "area": "setup:vcp",
-      "observation": "VCP (Minervini) edge vs baseline is -0.35% over 10d (471 fires, hit 50.3%).",
+      "observation": "VCP (Minervini) edge vs baseline is -0.30% over 10d (467 fires, hit 50.5%).",
       "proposal": "'VCP (Minervini)' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
@@ -151,8 +151,8 @@
     {
       "kind": "trend",
       "scope": "intraday",
-      "delta": 17.7,
-      "text": "intraday: last-7d win rate 67.6% vs prior 49.9% (+18pts) \u2014 improving."
+      "delta": 7.2,
+      "text": "intraday: last-7d win rate 61.1% vs prior 53.9% (+7pts) \u2014 improving."
     }
   ],
   "self_confidence": {
