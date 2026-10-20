@@ -1030670,8 +1030670,12 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
-    "high_water": 94.55
+    "status": "win",
+    "high_water": 94.55,
+    "exit": 94.10617450650835,
+    "exit_date": "2026-10-20",
+    "return_pct": 0.18,
+    "days_held": -1
   },
   {
     "id": "TRV:2026-10-20",
@@ -1030757,8 +1030761,12 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
-    "high_water": 395.83
+    "status": "win",
+    "high_water": 395.83,
+    "exit": 393.03170574326805,
+    "exit_date": "2026-10-20",
+    "return_pct": 0.24,
+    "days_held": -1
   },
   {
     "id": "MET:2026-10-20",
@@ -1031101,9 +1031109,13 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
+    "status": "win",
     "target_exceeded": true,
-    "high_water": 306.93
+    "high_water": 306.93,
+    "exit": 305.81441656558025,
+    "exit_date": "2026-10-20",
+    "return_pct": 0.25,
+    "days_held": -1
   },
   {
     "id": "PLTR:2026-10-20",
@@ -1031359,8 +1031371,12 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
-    "high_water": 245.51
+    "status": "loss",
+    "high_water": 245.51,
+    "exit": 242.95429306087627,
+    "exit_date": "2026-10-20",
+    "return_pct": -0.13,
+    "days_held": -1
   },
   {
     "id": "ABBV:2026-10-20",
@@ -1032383,7 +1032399,8 @@
     "regime_score": null,
     "liquidity_tier": "thin",
     "status": "open",
-    "high_water": 467.12
+    "high_water": 489.26,
+    "target_exceeded": true
   },
   {
     "id": "VZ:2026-10-20",
@@ -1032635,8 +1032652,12 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
-    "high_water": 22.39
+    "status": "win",
+    "high_water": 22.39,
+    "exit": 22.19664616421401,
+    "exit_date": "2026-10-20",
+    "return_pct": 0.21,
+    "days_held": -1
   },
   {
     "id": "QQQ:2026-10-20",
@@ -1033134,8 +1033155,12 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
-    "high_water": 275.31
+    "status": "win",
+    "high_water": 275.31,
+    "exit": 274.3886604277696,
+    "exit_date": "2026-10-20",
+    "return_pct": 0.22,
+    "days_held": -1
   },
   {
     "id": "DDOG:2026-10-20",
@@ -1033467,8 +1033492,12 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
-    "high_water": 226.0
+    "status": "win",
+    "high_water": 226.0,
+    "exit": 225.41245526965514,
+    "exit_date": "2026-10-20",
+    "return_pct": 0.53,
+    "days_held": -1
   },
   {
     "id": "BITO:2026-10-20",
@@ -1034233,8 +1034262,12 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
-    "high_water": 47.39
+    "status": "win",
+    "high_water": 47.39,
+    "exit": 47.23692267034241,
+    "exit_date": "2026-10-20",
+    "return_pct": 0.04,
+    "days_held": -1
   },
   {
     "id": "USB:2026-10-20",
@@ -1035727,6 +1035760,252 @@
       },
       {
         "label": "Momentum burst?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "SOXX:2026-10-20",
+    "symbol": "SOXX",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-10-20",
+    "advised_ts": "2026-10-20T23:39:41.771570",
+    "entry": 508.35,
+    "stop": 503.66,
+    "target": 527.1,
+    "rr": 4.0,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "High",
+    "conviction_pct": 79,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
+    "status": "open"
+  },
+  {
+    "id": "SPY:2026-10-20",
+    "symbol": "SPY",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-10-20",
+    "advised_ts": "2026-10-20T23:39:41.771570",
+    "entry": 770.63,
+    "stop": 769.19,
+    "target": 772.29,
+    "rr": 1.15,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "Medium",
+    "conviction_pct": 71,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "warn"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "warn"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "warn"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "warn"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "warn"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Smart-money footprint?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "moderate",
+    "status": "open"
+  },
+  {
+    "id": "INTC:2026-10-20",
+    "symbol": "INTC",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-10-20",
+    "advised_ts": "2026-10-20T23:39:41.771570",
+    "entry": 92.94,
+    "stop": 92.11,
+    "target": 93.73,
+    "rr": 0.95,
+    "t1": null,
+    "t1_frac": null,
+    "conviction": "Medium",
+    "conviction_pct": 55,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "fail"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "pass"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "fail"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "fail"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "pass"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "fail"
+      },
+      {
+        "label": "VCP base setup?",
         "status": "warn"
       }
     ],
