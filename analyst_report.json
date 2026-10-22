@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-21 00:43 GMT",
+  "generated_at": "2026-10-22 00:46 GMT",
   "buckets": {
     "daily": {
       "label": "Daily / swing",
@@ -32,10 +32,10 @@
     "intraday": {
       "label": "Intraday",
       "stats": {
-        "logged": 12330,
-        "resolved": 12266,
-        "decided": 12138,
-        "open": 64,
+        "logged": 12426,
+        "resolved": 12354,
+        "decided": 12226,
+        "open": 72,
         "win_rate": 45.0,
         "by_regime": {
           "Risk-on": {
@@ -43,7 +43,7 @@
             "win_rate": 44.8
           },
           "Neutral": {
-            "n": 6503,
+            "n": 6591,
             "win_rate": 44.4
           },
           "Risk-off": {
@@ -52,8 +52,8 @@
           }
         },
         "streak": {
-          "kind": "win",
-          "n": 7
+          "kind": "loss",
+          "n": 1
         },
         "learned_weights": {}
       }
@@ -82,19 +82,19 @@
     {
       "severity": "watch",
       "area": "setup:burst",
-      "observation": "Momentum Burst edge vs baseline is -0.04% over 10d (1645 fires, hit 51.9%).",
+      "observation": "Momentum Burst edge vs baseline is -0.05% over 10d (1645 fires, hit 51.7%).",
       "proposal": "'Momentum Burst' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
       "severity": "watch",
       "area": "setup:ep",
-      "observation": "Episodic Pivot (technical) edge vs baseline is -0.31% over 10d (132 fires, hit 55.3%).",
+      "observation": "Episodic Pivot (technical) edge vs baseline is -0.32% over 10d (131 fires, hit 55.0%).",
       "proposal": "'Episodic Pivot (technical)' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
       "severity": "watch",
       "area": "setup:vcp",
-      "observation": "VCP (Minervini) edge vs baseline is -0.33% over 10d (453 fires, hit 49.9%).",
+      "observation": "VCP (Minervini) edge vs baseline is -0.34% over 10d (450 fires, hit 49.6%).",
       "proposal": "'VCP (Minervini)' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
@@ -151,8 +151,8 @@
     {
       "kind": "trend",
       "scope": "intraday",
-      "delta": -0.3,
-      "text": "intraday: last-7d win rate 58.1% vs prior 58.4% (-0pts) \u2014 steady."
+      "delta": -2.4,
+      "text": "intraday: last-7d win rate 56.5% vs prior 58.9% (-2pts) \u2014 steady."
     }
   ],
   "self_confidence": {
