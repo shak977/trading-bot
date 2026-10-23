@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-22 00:46 GMT",
+  "generated_at": "2026-10-23 00:47 GMT",
   "buckets": {
     "daily": {
       "label": "Daily / swing",
@@ -32,18 +32,18 @@
     "intraday": {
       "label": "Intraday",
       "stats": {
-        "logged": 12426,
-        "resolved": 12354,
-        "decided": 12226,
-        "open": 72,
-        "win_rate": 45.0,
+        "logged": 12522,
+        "resolved": 12445,
+        "decided": 12317,
+        "open": 77,
+        "win_rate": 45.1,
         "by_regime": {
           "Risk-on": {
             "n": 4812,
             "win_rate": 44.8
           },
           "Neutral": {
-            "n": 6591,
+            "n": 6682,
             "win_rate": 44.4
           },
           "Risk-off": {
@@ -52,8 +52,8 @@
           }
         },
         "streak": {
-          "kind": "loss",
-          "n": 1
+          "kind": "win",
+          "n": 3
         },
         "learned_weights": {}
       }
@@ -82,7 +82,7 @@
     {
       "severity": "watch",
       "area": "setup:burst",
-      "observation": "Momentum Burst edge vs baseline is -0.05% over 10d (1645 fires, hit 51.7%).",
+      "observation": "Momentum Burst edge vs baseline is -0.05% over 10d (1646 fires, hit 51.7%).",
       "proposal": "'Momentum Burst' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
@@ -94,7 +94,7 @@
     {
       "severity": "watch",
       "area": "setup:vcp",
-      "observation": "VCP (Minervini) edge vs baseline is -0.34% over 10d (450 fires, hit 49.6%).",
+      "observation": "VCP (Minervini) edge vs baseline is -0.33% over 10d (452 fires, hit 49.6%).",
       "proposal": "'VCP (Minervini)' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
@@ -124,13 +124,13 @@
     {
       "severity": "info",
       "area": "Intraday: check 'Worth the risk?'",
-      "observation": "Win rate 34.7% when it passes vs 55.0% when it fails (edge -20pts) \u2014 it's not separating winners. Expected for a payoff check \u2014 it's judged on expectancy (size of wins), not hit rate.",
+      "observation": "Win rate 34.9% when it passes vs 54.9% when it fails (edge -20pts) \u2014 it's not separating winners. Expected for a payoff check \u2014 it's judged on expectancy (size of wins), not hit rate.",
       "proposal": "Leave 'Worth the risk?' as-is; the win-rate loop is held off it on purpose."
     },
     {
       "severity": "info",
       "area": "Intraday: check 'Reward:risk worth it?'",
-      "observation": "Win rate 34.7% when it passes vs 55.0% when it fails (edge -20pts) \u2014 it's not separating winners. Expected for a payoff check \u2014 it's judged on expectancy (size of wins), not hit rate.",
+      "observation": "Win rate 34.9% when it passes vs 54.9% when it fails (edge -20pts) \u2014 it's not separating winners. Expected for a payoff check \u2014 it's judged on expectancy (size of wins), not hit rate.",
       "proposal": "Leave 'Reward:risk worth it?' as-is; the win-rate loop is held off it on purpose."
     },
     {
@@ -151,8 +151,8 @@
     {
       "kind": "trend",
       "scope": "intraday",
-      "delta": -2.4,
-      "text": "intraday: last-7d win rate 56.5% vs prior 58.9% (-2pts) \u2014 steady."
+      "delta": -11.5,
+      "text": "intraday: last-7d win rate 49.9% vs prior 61.4% (-12pts) \u2014 deteriorating."
     }
   ],
   "self_confidence": {
