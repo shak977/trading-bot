@@ -1,39 +1,5 @@
 {
   "states": {
-    "confirmed": {
-      "5": {
-        "n": 59,
-        "mean_pct": 1.392,
-        "hit_rate": 69.5
-      },
-      "10": {
-        "n": 59,
-        "mean_pct": 2.468,
-        "hit_rate": 64.4
-      },
-      "20": {
-        "n": 59,
-        "mean_pct": 2.016,
-        "hit_rate": 54.2
-      }
-    },
-    "correction": {
-      "5": {
-        "n": 383,
-        "mean_pct": 0.317,
-        "hit_rate": 55.9
-      },
-      "10": {
-        "n": 383,
-        "mean_pct": 0.504,
-        "hit_rate": 58.2
-      },
-      "20": {
-        "n": 383,
-        "mean_pct": 1.174,
-        "hit_rate": 58.8
-      }
-    },
     "rally_attempt": {
       "5": {
         "n": 9,
@@ -51,54 +17,88 @@
         "hit_rate": 33.3
       }
     },
-    "neutral": {
+    "correction": {
       "5": {
-        "n": 214,
-        "mean_pct": 0.432,
-        "hit_rate": 64.0
+        "n": 383,
+        "mean_pct": 0.32,
+        "hit_rate": 55.9
       },
       "10": {
-        "n": 214,
-        "mean_pct": 1.052,
-        "hit_rate": 68.2
+        "n": 383,
+        "mean_pct": 0.5,
+        "hit_rate": 58.2
       },
       "20": {
-        "n": 214,
-        "mean_pct": 2.158,
-        "hit_rate": 79.0
+        "n": 383,
+        "mean_pct": 1.171,
+        "hit_rate": 58.8
+      }
+    },
+    "neutral": {
+      "5": {
+        "n": 215,
+        "mean_pct": 0.444,
+        "hit_rate": 64.2
+      },
+      "10": {
+        "n": 215,
+        "mean_pct": 1.051,
+        "hit_rate": 68.4
+      },
+      "20": {
+        "n": 215,
+        "mean_pct": 2.138,
+        "hit_rate": 78.6
+      }
+    },
+    "confirmed": {
+      "5": {
+        "n": 59,
+        "mean_pct": 1.392,
+        "hit_rate": 69.5
+      },
+      "10": {
+        "n": 59,
+        "mean_pct": 2.468,
+        "hit_rate": 64.4
+      },
+      "20": {
+        "n": 59,
+        "mean_pct": 2.016,
+        "hit_rate": 54.2
       }
     },
     "pressure": {
       "5": {
-        "n": 197,
-        "mean_pct": 0.335,
-        "hit_rate": 57.4
+        "n": 196,
+        "mean_pct": 0.338,
+        "hit_rate": 57.7
       },
       "10": {
-        "n": 197,
-        "mean_pct": 0.665,
-        "hit_rate": 64.5
+        "n": 196,
+        "mean_pct": 0.654,
+        "hit_rate": 64.3
       },
       "20": {
-        "n": 197,
+        "n": 196,
         "mean_pct": 1.437,
-        "hit_rate": 67.0
+        "hit_rate": 66.8
       }
     }
   },
   "per_index": {
     "S&P 500": {
       "horizon": 10,
-      "always_in_mean_pct": 0.652,
+      "always_in_mean_pct": 0.649,
       "gated_mean_pct": 1.366,
       "days_gated_out": 328,
       "days_total": 431
     },
     "NASDAQ": {
       "horizon": 10,
-      "always_in_mean_pct": 0.935,
-      "gated_mean_pct": 1.226,
-      "days_gated_out": 252,
+      "always_in_mean_pct": 0.93,
+      "gated_mean_pct": 1.224,
+      "days_gated_out": 251,
       "days_total": 431
     }
   },
@@ -108,5 +108,5 @@
     10,
     20
   ],
-  "generated_at": "2026-10-27 01:33 UTC"
+  "generated_at": "2026-10-28 01:31 UTC"
 }
