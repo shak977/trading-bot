@@ -1,18 +1,18 @@
 {
   "baseline": {
     "5": {
-      "n": 18880,
-      "mean_pct": 0.407,
+      "n": 18920,
+      "mean_pct": 0.408,
       "hit_rate": 52.7
     },
     "10": {
-      "n": 18880,
-      "mean_pct": 0.818,
-      "hit_rate": 52.9
+      "n": 18920,
+      "mean_pct": 0.821,
+      "hit_rate": 53.0
     },
     "20": {
-      "n": 18880,
-      "mean_pct": 1.618,
+      "n": 18920,
+      "mean_pct": 1.617,
       "hit_rate": 52.9
     }
   },
@@ -28,23 +28,23 @@
       "direction": "long",
       "stats": {
         "5": {
-          "n": 1629,
-          "mean_pct": 0.294,
-          "hit_rate": 51.9
+          "n": 1636,
+          "mean_pct": 0.29,
+          "hit_rate": 51.8
         },
         "10": {
-          "n": 1629,
-          "mean_pct": 0.779,
+          "n": 1636,
+          "mean_pct": 0.773,
           "hit_rate": 51.7
         },
         "20": {
-          "n": 1629,
-          "mean_pct": 1.257,
-          "hit_rate": 49.8
+          "n": 1636,
+          "mean_pct": 1.254,
+          "hit_rate": 49.9
         }
       },
-      "edge_pct": -0.039,
-      "n": 1629
+      "edge_pct": -0.048,
+      "n": 1636
     },
     "ep": {
       "label": "Episodic Pivot (technical)",
@@ -66,7 +66,7 @@
           "hit_rate": 51.6
         }
       },
-      "edge_pct": -0.298,
+      "edge_pct": -0.301,
       "n": 124
     },
     "vcp": {
@@ -74,23 +74,23 @@
       "direction": "long",
       "stats": {
         "5": {
-          "n": 443,
-          "mean_pct": 0.032,
+          "n": 445,
+          "mean_pct": 0.026,
           "hit_rate": 47.6
         },
         "10": {
-          "n": 443,
-          "mean_pct": 0.524,
-          "hit_rate": 49.0
+          "n": 445,
+          "mean_pct": 0.477,
+          "hit_rate": 48.8
         },
         "20": {
-          "n": 443,
-          "mean_pct": 1.362,
-          "hit_rate": 48.8
+          "n": 445,
+          "mean_pct": 1.29,
+          "hit_rate": 48.5
         }
       },
-      "edge_pct": -0.294,
-      "n": 443
+      "edge_pct": -0.344,
+      "n": 445
     },
     "pshort": {
       "label": "Parabolic Short",
@@ -112,11 +112,11 @@
           "hit_rate": 50.0
         }
       },
-      "edge_pct": -1.543,
+      "edge_pct": -1.54,
       "n": 4
     }
   },
-  "verdict": "Momentum Burst lags baseline by -0.04% over 10 days (hit 51.7%, n=1629) \u00b7 Episodic Pivot (technical) lags baseline by -0.30% over 10 days (hit 55.6%, n=124) \u00b7 VCP (Minervini) lags baseline by -0.29% over 10 days (hit 49.0%, n=443) \u00b7 Parabolic Short: still gathering samples (n=4).",
+  "verdict": "Momentum Burst lags baseline by -0.05% over 10 days (hit 51.7%, n=1636) \u00b7 Episodic Pivot (technical) lags baseline by -0.30% over 10 days (hit 55.6%, n=124) \u00b7 VCP (Minervini) lags baseline by -0.34% over 10 days (hit 48.8%, n=445) \u00b7 Parabolic Short: still gathering samples (n=4).",
   "names": 40,
-  "generated_at": "2026-10-29 01:54 UTC"
+  "generated_at": "2026-10-30 02:04 UTC"
 }
