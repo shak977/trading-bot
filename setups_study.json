@@ -1,19 +1,19 @@
 {
   "baseline": {
     "5": {
-      "n": 18920,
-      "mean_pct": 0.414,
-      "hit_rate": 52.8
+      "n": 18840,
+      "mean_pct": 0.421,
+      "hit_rate": 52.9
     },
     "10": {
-      "n": 18920,
-      "mean_pct": 0.821,
-      "hit_rate": 53.0
+      "n": 18840,
+      "mean_pct": 0.818,
+      "hit_rate": 52.9
     },
     "20": {
-      "n": 18920,
-      "mean_pct": 1.615,
-      "hit_rate": 52.9
+      "n": 18840,
+      "mean_pct": 1.608,
+      "hit_rate": 52.8
     }
   },
   "horizons": [
@@ -28,95 +28,95 @@
       "direction": "long",
       "stats": {
         "5": {
-          "n": 1635,
-          "mean_pct": 0.29,
+          "n": 1630,
+          "mean_pct": 0.285,
           "hit_rate": 51.8
         },
         "10": {
-          "n": 1635,
-          "mean_pct": 0.749,
-          "hit_rate": 51.6
+          "n": 1630,
+          "mean_pct": 0.745,
+          "hit_rate": 51.5
         },
         "20": {
-          "n": 1635,
-          "mean_pct": 1.23,
+          "n": 1630,
+          "mean_pct": 1.233,
           "hit_rate": 49.8
         }
       },
-      "edge_pct": -0.072,
-      "n": 1635
+      "edge_pct": -0.073,
+      "n": 1630
     },
     "ep": {
       "label": "Episodic Pivot (technical)",
       "direction": "long",
       "stats": {
         "5": {
-          "n": 123,
-          "mean_pct": 0.074,
-          "hit_rate": 56.1
+          "n": 122,
+          "mean_pct": 0.032,
+          "hit_rate": 55.7
         },
         "10": {
-          "n": 123,
-          "mean_pct": 0.531,
-          "hit_rate": 56.1
+          "n": 122,
+          "mean_pct": 0.471,
+          "hit_rate": 55.7
         },
         "20": {
-          "n": 123,
-          "mean_pct": 1.599,
-          "hit_rate": 51.2
+          "n": 122,
+          "mean_pct": 1.581,
+          "hit_rate": 50.8
         }
       },
-      "edge_pct": -0.29,
-      "n": 123
+      "edge_pct": -0.347,
+      "n": 122
     },
     "vcp": {
       "label": "VCP (Minervini)",
       "direction": "long",
       "stats": {
         "5": {
-          "n": 443,
-          "mean_pct": 0.016,
-          "hit_rate": 47.2
+          "n": 440,
+          "mean_pct": 0.011,
+          "hit_rate": 47.0
         },
         "10": {
-          "n": 443,
-          "mean_pct": 0.464,
-          "hit_rate": 48.8
+          "n": 440,
+          "mean_pct": 0.462,
+          "hit_rate": 49.1
         },
         "20": {
-          "n": 443,
-          "mean_pct": 1.163,
-          "hit_rate": 48.1
+          "n": 440,
+          "mean_pct": 0.912,
+          "hit_rate": 47.5
         }
       },
-      "edge_pct": -0.357,
-      "n": 443
+      "edge_pct": -0.356,
+      "n": 440
     },
     "pshort": {
       "label": "Parabolic Short",
       "direction": "short",
       "stats": {
         "5": {
-          "n": 4,
-          "mean_pct": -1.155,
-          "hit_rate": 50.0
+          "n": 3,
+          "mean_pct": -3.3,
+          "hit_rate": 66.7
         },
         "10": {
-          "n": 4,
-          "mean_pct": 2.361,
-          "hit_rate": 25.0
+          "n": 3,
+          "mean_pct": 2.169,
+          "hit_rate": 33.3
         },
         "20": {
-          "n": 4,
-          "mean_pct": 4.657,
-          "hit_rate": 50.0
+          "n": 3,
+          "mean_pct": -3.544,
+          "hit_rate": 66.7
         }
       },
-      "edge_pct": -1.54,
-      "n": 4
+      "edge_pct": -1.351,
+      "n": 3
     }
   },
-  "verdict": "Momentum Burst lags baseline by -0.07% over 10 days (hit 51.6%, n=1635) \u00b7 Episodic Pivot (technical) lags baseline by -0.29% over 10 days (hit 56.1%, n=123) \u00b7 VCP (Minervini) lags baseline by -0.36% over 10 days (hit 48.8%, n=443) \u00b7 Parabolic Short: still gathering samples (n=4).",
+  "verdict": "Momentum Burst lags baseline by -0.07% over 10 days (hit 51.5%, n=1630) \u00b7 Episodic Pivot (technical) lags baseline by -0.35% over 10 days (hit 55.7%, n=122) \u00b7 VCP (Minervini) lags baseline by -0.36% over 10 days (hit 49.1%, n=440) \u00b7 Parabolic Short: still gathering samples (n=3).",
   "names": 40,
-  "generated_at": "2026-10-31 01:43 UTC"
+  "generated_at": "2026-11-03 03:33 UTC"
 }
