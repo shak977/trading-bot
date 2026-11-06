@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-05 02:38 GMT",
+  "generated_at": "2026-11-06 02:40 GMT",
   "buckets": {
     "daily": {
       "label": "Daily / swing",
@@ -32,19 +32,19 @@
     "intraday": {
       "label": "Intraday",
       "stats": {
-        "logged": 13199,
-        "resolved": 13145,
-        "decided": 13015,
-        "open": 54,
-        "win_rate": 44.9,
+        "logged": 13226,
+        "resolved": 13196,
+        "decided": 13066,
+        "open": 30,
+        "win_rate": 45.0,
         "by_regime": {
           "Risk-on": {
-            "n": 5107,
-            "win_rate": 44.9
+            "n": 5156,
+            "win_rate": 45.0
           },
           "Neutral": {
-            "n": 7085,
-            "win_rate": 44.2
+            "n": 7087,
+            "win_rate": 44.3
           },
           "Risk-off": {
             "n": 719,
@@ -82,7 +82,7 @@
     {
       "severity": "watch",
       "area": "setup:burst",
-      "observation": "Momentum Burst edge vs baseline is -0.08% over 10d (1630 fires, hit 51.4%).",
+      "observation": "Momentum Burst edge vs baseline is -0.08% over 10d (1635 fires, hit 51.5%).",
       "proposal": "'Momentum Burst' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
@@ -94,7 +94,7 @@
     {
       "severity": "watch",
       "area": "setup:vcp",
-      "observation": "VCP (Minervini) edge vs baseline is -0.46% over 10d (444 fires, hit 48.9%).",
+      "observation": "VCP (Minervini) edge vs baseline is -0.53% over 10d (448 fires, hit 48.9%).",
       "proposal": "'VCP (Minervini)' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
@@ -142,7 +142,7 @@
     {
       "severity": "info",
       "area": "timing",
-      "observation": "Timing separates outcomes: after an FTD the index averaged +2.47% vs +0.44% after a correction (10d).",
+      "observation": "Timing separates outcomes: after an FTD the index averaged +2.47% vs +0.43% after a correction (10d).",
       "proposal": "The FTD/distribution gate is predictive \u2014 keep it blocking new longs in a confirmed correction."
     }
   ],
@@ -151,8 +151,8 @@
     {
       "kind": "trend",
       "scope": "intraday",
-      "delta": 6.9,
-      "text": "intraday: last-7d win rate 47.0% vs prior 40.1% (+7pts) \u2014 improving."
+      "delta": 4.6,
+      "text": "intraday: last-7d win rate 46.4% vs prior 41.8% (+5pts) \u2014 steady."
     }
   ],
   "self_confidence": {
