@@ -1,72 +1,72 @@
 {
- "generated": "2026-11-07 02:08 GMT",
+ "generated": "2026-11-10 04:14 GMT",
  "n_symbols": 59,
  "strategies": {
   "trend_cross": {
    "label": "Trend crossover",
    "kind": "trend",
    "base": {
-    "n": 55,
-    "win_rate": 47.3,
-    "expectancy": 1.893,
+    "n": 54,
+    "win_rate": 44.4,
+    "expectancy": 1.489,
     "avg_win": 8.58,
-    "avg_loss": -4.1,
-    "payoff": 2.09,
-    "total_ret": 104.1,
-    "max_dd": -21.6,
-    "worst_trade": -7.01,
-    "p05": -5.8,
+    "avg_loss": -4.18,
+    "payoff": 2.05,
+    "total_ret": 80.4,
+    "max_dd": -27.8,
+    "worst_trade": -8.01,
+    "p05": -5.94,
     "best_trade": 38.12,
     "worst_losing_streak": 5,
-    "avg_bars_held": 16.0,
-    "partial_hit_pct": 32.7
+    "avg_bars_held": 15.3,
+    "partial_hit_pct": 29.6
    },
    "regime": {
     "uptrend": {
      "n": 13,
      "win_rate": 38.46,
-     "expectancy": -0.44,
+     "expectancy": -0.3,
      "payoff": 0.0
     },
     "not_uptrend": {
      "n": 5,
      "win_rate": 60.0,
-     "expectancy": 0.57,
+     "expectancy": 1.67,
      "payoff": 0.0
     }
    },
    "robustness": {
     "trail_tight_75pct": {
-     "n": 55,
-     "win_rate": 52.7,
-     "expectancy": 1.75,
-     "avg_win": 7.27,
-     "avg_loss": -4.4,
-     "payoff": 1.65,
-     "total_ret": 96.2,
-     "max_dd": -19.7,
-     "worst_trade": -7.01,
-     "p05": -5.8,
+     "n": 54,
+     "win_rate": 50.0,
+     "expectancy": 1.204,
+     "avg_win": 6.89,
+     "avg_loss": -4.48,
+     "payoff": 1.54,
+     "total_ret": 65.0,
+     "max_dd": -22.8,
+     "worst_trade": -8.01,
+     "p05": -5.94,
      "best_trade": 39.28,
      "worst_losing_streak": 5,
-     "avg_bars_held": 13.1,
-     "partial_hit_pct": 29.1
+     "avg_bars_held": 12.5,
+     "partial_hit_pct": 25.9
     },
     "trail_loose_125pct": {
-     "n": 55,
-     "win_rate": 43.6,
-     "expectancy": 1.891,
-     "avg_win": 9.62,
-     "avg_loss": -4.1,
-     "payoff": 2.35,
-     "total_ret": 104.0,
-     "max_dd": -25.8,
-     "worst_trade": -7.01,
-     "p05": -5.8,
+     "n": 54,
+     "win_rate": 40.7,
+     "expectancy": 1.638,
+     "avg_win": 10.09,
+     "avg_loss": -4.17,
+     "payoff": 2.42,
+     "total_ret": 88.5,
+     "max_dd": -34.7,
+     "worst_trade": -8.01,
+     "p05": -5.94,
      "best_trade": 36.97,
      "worst_losing_streak": 5,
-     "avg_bars_held": 18.5,
-     "partial_hit_pct": 34.5
+     "avg_bars_held": 17.8,
+     "partial_hit_pct": 31.5
     }
    }
   },
@@ -76,24 +76,24 @@
    "base": {
     "n": 19,
     "win_rate": 52.6,
-    "expectancy": 0.574,
-    "avg_win": 5.71,
+    "expectancy": 0.672,
+    "avg_win": 5.9,
     "avg_loss": -5.14,
-    "payoff": 1.11,
-    "total_ret": 10.9,
+    "payoff": 1.15,
+    "total_ret": 12.8,
     "max_dd": -21.1,
     "worst_trade": -8.66,
     "p05": -7.81,
     "best_trade": 15.12,
     "worst_losing_streak": 2,
-    "avg_bars_held": 16.8,
+    "avg_bars_held": 16.9,
     "partial_hit_pct": 26.3
    },
    "regime": {
     "uptrend": {
      "n": 16,
      "win_rate": 50.0,
-     "expectancy": -0.11,
+     "expectancy": 0.01,
      "payoff": 0.0
     },
     "not_uptrend": {
@@ -123,17 +123,17 @@
     "trail_loose_125pct": {
      "n": 19,
      "win_rate": 52.6,
-     "expectancy": 1.427,
-     "avg_win": 7.32,
+     "expectancy": 1.701,
+     "avg_win": 7.84,
      "avg_loss": -5.12,
-     "payoff": 1.43,
-     "total_ret": 27.1,
+     "payoff": 1.53,
+     "total_ret": 32.3,
      "max_dd": -20.6,
      "worst_trade": -8.66,
      "p05": -7.81,
      "best_trade": 13.38,
      "worst_losing_streak": 4,
-     "avg_bars_held": 22.8,
+     "avg_bars_held": 23,
      "partial_hit_pct": 36.8
     }
    }
@@ -142,67 +142,67 @@
    "label": "Donchian breakout",
    "kind": "breakout",
    "base": {
-    "n": 275,
-    "win_rate": 40.4,
-    "expectancy": 0.636,
-    "avg_win": 8.48,
-    "avg_loss": -4.67,
-    "payoff": 1.81,
-    "total_ret": 175.0,
-    "max_dd": -72.1,
+    "n": 272,
+    "win_rate": 41.5,
+    "expectancy": 0.758,
+    "avg_win": 8.43,
+    "avg_loss": -4.7,
+    "payoff": 1.8,
+    "total_ret": 206.1,
+    "max_dd": -67.6,
     "worst_trade": -14.57,
-    "p05": -8.22,
+    "p05": -8.07,
     "best_trade": 39.8,
     "worst_losing_streak": 7,
-    "avg_bars_held": 15.4,
+    "avg_bars_held": 15.6,
     "partial_hit_pct": 30.9
    },
    "regime": {
     "uptrend": {
      "n": 55,
-     "win_rate": 45.45,
-     "expectancy": 0.21,
-     "payoff": 0.35
+     "win_rate": 50.91,
+     "expectancy": 0.56,
+     "payoff": 0.22
     },
     "not_uptrend": {
      "n": 21,
      "win_rate": 66.67,
-     "expectancy": 4.65,
-     "payoff": 1.04
+     "expectancy": 5.0,
+     "payoff": 1.12
     }
    },
    "robustness": {
     "trail_tight_75pct": {
-     "n": 275,
-     "win_rate": 47.3,
-     "expectancy": 0.481,
-     "avg_win": 6.63,
-     "avg_loss": -5.03,
-     "payoff": 1.32,
-     "total_ret": 132.2,
-     "max_dd": -63.8,
+     "n": 272,
+     "win_rate": 48.2,
+     "expectancy": 0.561,
+     "avg_win": 6.59,
+     "avg_loss": -5.04,
+     "payoff": 1.31,
+     "total_ret": 152.7,
+     "max_dd": -58.8,
      "worst_trade": -14.57,
-     "p05": -8.22,
+     "p05": -8.07,
      "best_trade": 40.99,
      "worst_losing_streak": 6,
-     "avg_bars_held": 12.6,
-     "partial_hit_pct": 24.0
+     "avg_bars_held": 12.7,
+     "partial_hit_pct": 23.9
     },
     "trail_loose_125pct": {
-     "n": 275,
-     "win_rate": 38.2,
-     "expectancy": 0.927,
-     "avg_win": 10.23,
-     "avg_loss": -4.82,
-     "payoff": 2.12,
-     "total_ret": 254.9,
-     "max_dd": -79.0,
+     "n": 272,
+     "win_rate": 39.7,
+     "expectancy": 1.099,
+     "avg_win": 10.15,
+     "avg_loss": -4.86,
+     "payoff": 2.09,
+     "total_ret": 299.0,
+     "max_dd": -75.1,
      "worst_trade": -14.57,
-     "p05": -8.22,
+     "p05": -8.07,
      "best_trade": 84.56,
      "worst_losing_streak": 7,
-     "avg_bars_held": 18.1,
-     "partial_hit_pct": 34.5
+     "avg_bars_held": 18.3,
+     "partial_hit_pct": 34.6
     }
    }
   },
@@ -210,27 +210,27 @@
    "label": "Dip buy (RSI-2)",
    "kind": "mean-reversion",
    "base": {
-    "n": 143,
-    "win_rate": 42.7,
-    "expectancy": 0.744,
-    "avg_win": 7.99,
-    "avg_loss": -4.65,
+    "n": 141,
+    "win_rate": 43.3,
+    "expectancy": 0.828,
+    "avg_win": 8.11,
+    "avg_loss": -4.72,
     "payoff": 1.72,
-    "total_ret": 106.4,
-    "max_dd": -68.8,
+    "total_ret": 116.8,
+    "max_dd": -66.8,
     "worst_trade": -13.04,
     "p05": -8.4,
     "best_trade": 29.68,
     "worst_losing_streak": 10,
     "avg_bars_held": 19.2,
-    "partial_hit_pct": 28.0
+    "partial_hit_pct": 27.7
    },
    "regime": {
     "uptrend": {
-     "n": 143,
-     "win_rate": 42.66,
-     "expectancy": 0.74,
-     "payoff": 3.24
+     "n": 141,
+     "win_rate": 43.27,
+     "expectancy": 0.83,
+     "payoff": 1.91
     },
     "not_uptrend": {
      "n": 0
@@ -238,36 +238,36 @@
    },
    "robustness": {
     "trail_tight_75pct": {
-     "n": 143,
-     "win_rate": 50.3,
-     "expectancy": 0.844,
-     "avg_win": 6.66,
-     "avg_loss": -5.05,
+     "n": 141,
+     "win_rate": 50.4,
+     "expectancy": 0.865,
+     "avg_win": 6.73,
+     "avg_loss": -5.08,
      "payoff": 1.32,
-     "total_ret": 120.7,
-     "max_dd": -65.1,
+     "total_ret": 121.9,
+     "max_dd": -63.0,
      "worst_trade": -13.04,
      "p05": -8.4,
      "best_trade": 31.76,
      "worst_losing_streak": 10,
-     "avg_bars_held": 16.2,
-     "partial_hit_pct": 23.1
+     "avg_bars_held": 16.3,
+     "partial_hit_pct": 22.7
     },
     "trail_loose_125pct": {
-     "n": 143,
-     "win_rate": 38.5,
-     "expectancy": 0.715,
-     "avg_win": 9.51,
-     "avg_loss": -4.78,
-     "payoff": 1.99,
-     "total_ret": 102.2,
-     "max_dd": -82.0,
+     "n": 141,
+     "win_rate": 39.0,
+     "expectancy": 0.887,
+     "avg_win": 9.84,
+     "avg_loss": -4.84,
+     "payoff": 2.03,
+     "total_ret": 125.0,
+     "max_dd": -80.9,
      "worst_trade": -13.04,
      "p05": -8.4,
      "best_trade": 27.6,
      "worst_losing_streak": 14,
-     "avg_bars_held": 22.1,
-     "partial_hit_pct": 31.5
+     "avg_bars_held": 22.2,
+     "partial_hit_pct": 31.2
     }
    }
   },
@@ -275,67 +275,67 @@
    "label": "Squeeze breakout",
    "kind": "breakout",
    "base": {
-    "n": 187,
-    "win_rate": 44.4,
-    "expectancy": 1.114,
-    "avg_win": 8.07,
-    "avg_loss": -4.43,
-    "payoff": 1.82,
-    "total_ret": 208.3,
+    "n": 188,
+    "win_rate": 47.3,
+    "expectancy": 1.316,
+    "avg_win": 7.87,
+    "avg_loss": -4.58,
+    "payoff": 1.72,
+    "total_ret": 247.3,
     "max_dd": -43.9,
     "worst_trade": -10.66,
-    "p05": -7.25,
+    "p05": -7.24,
     "best_trade": 36.37,
     "worst_losing_streak": 8,
-    "avg_bars_held": 15.4,
-    "partial_hit_pct": 32.6
+    "avg_bars_held": 15.5,
+    "partial_hit_pct": 33.0
    },
    "regime": {
     "uptrend": {
      "n": 57,
-     "win_rate": 49.12,
-     "expectancy": 0.59,
-     "payoff": 0.51
+     "win_rate": 56.14,
+     "expectancy": 0.84,
+     "payoff": 0.55
     },
     "not_uptrend": {
      "n": 18,
      "win_rate": 50.0,
-     "expectancy": 2.55,
+     "expectancy": 2.89,
      "payoff": 0.41
     }
    },
    "robustness": {
     "trail_tight_75pct": {
-     "n": 187,
-     "win_rate": 52.9,
-     "expectancy": 1.081,
-     "avg_win": 6.5,
-     "avg_loss": -5.01,
-     "payoff": 1.3,
-     "total_ret": 202.2,
+     "n": 188,
+     "win_rate": 55.3,
+     "expectancy": 1.27,
+     "avg_win": 6.47,
+     "avg_loss": -5.16,
+     "payoff": 1.25,
+     "total_ret": 238.7,
      "max_dd": -42.8,
      "worst_trade": -10.66,
-     "p05": -7.25,
+     "p05": -7.24,
      "best_trade": 37.45,
      "worst_losing_streak": 4,
-     "avg_bars_held": 12.4,
-     "partial_hit_pct": 26.2
+     "avg_bars_held": 12.5,
+     "partial_hit_pct": 26.6
     },
     "trail_loose_125pct": {
-     "n": 187,
-     "win_rate": 39.0,
-     "expectancy": 1.476,
-     "avg_win": 10.61,
-     "avg_loss": -4.37,
-     "payoff": 2.43,
-     "total_ret": 275.9,
-     "max_dd": -44.9,
+     "n": 188,
+     "win_rate": 42.6,
+     "expectancy": 1.714,
+     "avg_win": 10.17,
+     "avg_loss": -4.55,
+     "payoff": 2.23,
+     "total_ret": 322.2,
+     "max_dd": -44.7,
      "worst_trade": -10.66,
-     "p05": -7.25,
+     "p05": -7.24,
      "best_trade": 84.56,
      "worst_losing_streak": 7,
-     "avg_bars_held": 17.7,
-     "partial_hit_pct": 35.3
+     "avg_bars_held": 17.9,
+     "partial_hit_pct": 35.6
     }
    }
   },
@@ -344,66 +344,66 @@
    "kind": "momentum",
    "base": {
     "n": 251,
-    "win_rate": 41.4,
-    "expectancy": 1.002,
-    "avg_win": 9.0,
-    "avg_loss": -4.66,
-    "payoff": 1.93,
-    "total_ret": 251.5,
-    "max_dd": -70.5,
+    "win_rate": 43.4,
+    "expectancy": 1.32,
+    "avg_win": 9.08,
+    "avg_loss": -4.64,
+    "payoff": 1.96,
+    "total_ret": 331.2,
+    "max_dd": -69.1,
     "worst_trade": -15.27,
-    "p05": -8.0,
+    "p05": -7.99,
     "best_trade": 53.95,
     "worst_losing_streak": 10,
-    "avg_bars_held": 16.0,
-    "partial_hit_pct": 29.1
+    "avg_bars_held": 16.5,
+    "partial_hit_pct": 31.1
    },
    "regime": {
     "uptrend": {
-     "n": 67,
-     "win_rate": 41.79,
-     "expectancy": 0.43,
-     "payoff": 1.12
+     "n": 65,
+     "win_rate": 44.62,
+     "expectancy": 0.74,
+     "payoff": 1.14
     },
     "not_uptrend": {
      "n": 16,
-     "win_rate": 56.26,
-     "expectancy": 1.46,
-     "payoff": 0.31
+     "win_rate": 62.51,
+     "expectancy": 1.71,
+     "payoff": 0.34
     }
    },
    "robustness": {
     "trail_tight_75pct": {
      "n": 251,
-     "win_rate": 49.0,
-     "expectancy": 0.716,
-     "avg_win": 6.74,
-     "avg_loss": -5.08,
-     "payoff": 1.33,
-     "total_ret": 179.8,
-     "max_dd": -72.5,
+     "win_rate": 49.8,
+     "expectancy": 0.909,
+     "avg_win": 6.85,
+     "avg_loss": -4.98,
+     "payoff": 1.37,
+     "total_ret": 228.2,
+     "max_dd": -72.1,
      "worst_trade": -15.27,
-     "p05": -8.0,
+     "p05": -7.99,
      "best_trade": 55.31,
      "worst_losing_streak": 8,
-     "avg_bars_held": 12.7,
-     "partial_hit_pct": 22.3
+     "avg_bars_held": 13.0,
+     "partial_hit_pct": 23.1
     },
     "trail_loose_125pct": {
      "n": 251,
-     "win_rate": 37.5,
-     "expectancy": 1.383,
-     "avg_win": 11.55,
-     "avg_loss": -4.7,
-     "payoff": 2.46,
-     "total_ret": 347.2,
-     "max_dd": -79.3,
+     "win_rate": 39.0,
+     "expectancy": 1.808,
+     "avg_win": 11.95,
+     "avg_loss": -4.69,
+     "payoff": 2.55,
+     "total_ret": 453.9,
+     "max_dd": -77.5,
      "worst_trade": -15.27,
-     "p05": -8.37,
+     "p05": -8.17,
      "best_trade": 84.56,
      "worst_losing_streak": 10,
-     "avg_bars_held": 18.9,
-     "partial_hit_pct": 33.1
+     "avg_bars_held": 19.5,
+     "partial_hit_pct": 34.3
     }
    }
   },
@@ -411,67 +411,67 @@
    "label": "Post-earnings drift",
    "kind": "event",
    "base": {
-    "n": 267,
-    "win_rate": 42.7,
-    "expectancy": 2.043,
-    "avg_win": 12.82,
-    "avg_loss": -5.99,
-    "payoff": 2.14,
-    "total_ret": 545.5,
-    "max_dd": -66.5,
+    "n": 266,
+    "win_rate": 44.7,
+    "expectancy": 2.104,
+    "avg_win": 12.28,
+    "avg_loss": -6.14,
+    "payoff": 2.0,
+    "total_ret": 559.6,
+    "max_dd": -66.3,
     "worst_trade": -15.63,
-    "p05": -10.59,
+    "p05": -10.48,
     "best_trade": 79.73,
     "worst_losing_streak": 7,
-    "avg_bars_held": 17.7,
-    "partial_hit_pct": 32.2
+    "avg_bars_held": 17.5,
+    "partial_hit_pct": 32.3
    },
    "regime": {
     "uptrend": {
-     "n": 63,
-     "win_rate": 34.92,
-     "expectancy": 0.17,
-     "payoff": 0.7
+     "n": 62,
+     "win_rate": 41.94,
+     "expectancy": 0.24,
+     "payoff": 0.79
     },
     "not_uptrend": {
-     "n": 19,
-     "win_rate": 57.91,
-     "expectancy": 3.45,
-     "payoff": 1.17
+     "n": 18,
+     "win_rate": 61.12,
+     "expectancy": 3.18,
+     "payoff": 1.42
     }
    },
    "robustness": {
     "trail_tight_75pct": {
-     "n": 267,
-     "win_rate": 50.2,
-     "expectancy": 1.822,
-     "avg_win": 10.08,
-     "avg_loss": -6.5,
-     "payoff": 1.55,
-     "total_ret": 486.6,
-     "max_dd": -64.5,
+     "n": 266,
+     "win_rate": 52.6,
+     "expectancy": 1.875,
+     "avg_win": 9.64,
+     "avg_loss": -6.75,
+     "payoff": 1.43,
+     "total_ret": 498.8,
+     "max_dd": -63.2,
      "worst_trade": -15.63,
-     "p05": -10.59,
+     "p05": -10.48,
      "best_trade": 38.89,
      "worst_losing_streak": 7,
-     "avg_bars_held": 15.2,
-     "partial_hit_pct": 28.1
+     "avg_bars_held": 15.0,
+     "partial_hit_pct": 28.2
     },
     "trail_loose_125pct": {
-     "n": 267,
-     "win_rate": 39.3,
-     "expectancy": 2.141,
-     "avg_win": 14.82,
-     "avg_loss": -6.08,
-     "payoff": 2.44,
-     "total_ret": 571.7,
-     "max_dd": -76.4,
+     "n": 266,
+     "win_rate": 41.7,
+     "expectancy": 2.261,
+     "avg_win": 14.14,
+     "avg_loss": -6.25,
+     "payoff": 2.26,
+     "total_ret": 601.4,
+     "max_dd": -74.8,
      "worst_trade": -15.63,
-     "p05": -10.59,
+     "p05": -10.48,
      "best_trade": 78.0,
      "worst_losing_streak": 10,
-     "avg_bars_held": 20.6,
-     "partial_hit_pct": 34.8
+     "avg_bars_held": 20.5,
+     "partial_hit_pct": 35.0
     }
    }
   }

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-07 02:07 GMT",
+  "generated_at": "2026-11-10 04:13 GMT",
   "buckets": {
     "daily": {
       "label": "Daily / swing",
@@ -32,19 +32,19 @@
     "intraday": {
       "label": "Intraday",
       "stats": {
-        "logged": 13245,
-        "resolved": 13222,
-        "decided": 13092,
-        "open": 23,
-        "win_rate": 44.9,
+        "logged": 13291,
+        "resolved": 13239,
+        "decided": 13109,
+        "open": 52,
+        "win_rate": 45.0,
         "by_regime": {
           "Risk-on": {
             "n": 5156,
             "win_rate": 45.0
           },
           "Neutral": {
-            "n": 7113,
-            "win_rate": 44.1
+            "n": 7130,
+            "win_rate": 44.2
           },
           "Risk-off": {
             "n": 719,
@@ -53,7 +53,7 @@
         },
         "streak": {
           "kind": "loss",
-          "n": 19
+          "n": 1
         },
         "learned_weights": {}
       }
@@ -81,26 +81,20 @@
     },
     {
       "severity": "watch",
-      "area": "Intraday: streak",
-      "observation": "19 resolved losses in a row.",
-      "proposal": "Confirm the no-trade / drawdown guards are doing their job; consider a pause."
-    },
-    {
-      "severity": "watch",
       "area": "setup:burst",
-      "observation": "Momentum Burst edge vs baseline is -0.04% over 10d (1649 fires, hit 51.6%).",
+      "observation": "Momentum Burst edge vs baseline is -0.04% over 10d (1653 fires, hit 51.5%).",
       "proposal": "'Momentum Burst' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
       "severity": "watch",
       "area": "setup:ep",
-      "observation": "Episodic Pivot (technical) edge vs baseline is -0.34% over 10d (122 fires, hit 55.7%).",
+      "observation": "Episodic Pivot (technical) edge vs baseline is -0.33% over 10d (122 fires, hit 55.7%).",
       "proposal": "'Episodic Pivot (technical)' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
       "severity": "watch",
       "area": "setup:vcp",
-      "observation": "VCP (Minervini) edge vs baseline is -0.64% over 10d (453 fires, hit 48.3%).",
+      "observation": "VCP (Minervini) edge vs baseline is -0.72% over 10d (456 fires, hit 48.0%).",
       "proposal": "'VCP (Minervini)' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
@@ -148,7 +142,7 @@
     {
       "severity": "info",
       "area": "timing",
-      "observation": "Timing separates outcomes: after an FTD the index averaged +2.47% vs +0.43% after a correction (10d).",
+      "observation": "Timing separates outcomes: after an FTD the index averaged +2.47% vs +0.42% after a correction (10d).",
       "proposal": "The FTD/distribution gate is predictive \u2014 keep it blocking new longs in a confirmed correction."
     }
   ],
@@ -157,8 +151,8 @@
     {
       "kind": "trend",
       "scope": "intraday",
-      "delta": -6.6,
-      "text": "intraday: last-7d win rate 40.4% vs prior 47.0% (-7pts) \u2014 deteriorating."
+      "delta": -11.1,
+      "text": "intraday: last-7d win rate 38.9% vs prior 50.0% (-11pts) \u2014 deteriorating."
     }
   ],
   "self_confidence": {
