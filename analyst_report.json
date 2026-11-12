@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-11 02:02 GMT",
+  "generated_at": "2026-11-12 03:12 GMT",
   "buckets": {
     "daily": {
       "label": "Daily / swing",
@@ -32,18 +32,18 @@
     "intraday": {
       "label": "Intraday",
       "stats": {
-        "logged": 13412,
-        "resolved": 13339,
-        "decided": 13209,
-        "open": 73,
-        "win_rate": 44.8,
+        "logged": 13491,
+        "resolved": 13439,
+        "decided": 13309,
+        "open": 52,
+        "win_rate": 44.9,
         "by_regime": {
           "Risk-on": {
-            "n": 5225,
-            "win_rate": 44.7
+            "n": 5315,
+            "win_rate": 44.8
           },
           "Neutral": {
-            "n": 7161,
+            "n": 7171,
             "win_rate": 44.2
           },
           "Risk-off": {
@@ -74,6 +74,17 @@
   },
   "findings": [
     {
+      "severity": "act",
+      "area": "setup:vcp",
+      "observation": "VCP (Minervini) edge vs baseline is -0.75% over 10d (452 fires, hit 47.8%).",
+      "proposal": "'VCP (Minervini)' is lagging the market on walk-forward \u2014 consider retiring it or cutting its conviction weight; confirm against realized trades before removing.",
+      "history": {
+        "times_raised": 1,
+        "since": "2026-11-12",
+        "status": "just flagged"
+      }
+    },
+    {
       "severity": "watch",
       "area": "Daily / swing: streak",
       "observation": "26 resolved losses in a row.",
@@ -88,7 +99,7 @@
     {
       "severity": "watch",
       "area": "setup:burst",
-      "observation": "Momentum Burst edge vs baseline is -0.02% over 10d (1639 fires, hit 51.5%).",
+      "observation": "Momentum Burst edge vs baseline is -0.02% over 10d (1643 fires, hit 51.5%).",
       "proposal": "'Momentum Burst' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
@@ -96,12 +107,6 @@
       "area": "setup:ep",
       "observation": "Episodic Pivot (technical) edge vs baseline is -0.31% over 10d (122 fires, hit 55.7%).",
       "proposal": "'Episodic Pivot (technical)' edge is marginal \u2014 keep watching; don't lean on it yet."
-    },
-    {
-      "severity": "watch",
-      "area": "setup:vcp",
-      "observation": "VCP (Minervini) edge vs baseline is -0.75% over 10d (450 fires, hit 47.8%).",
-      "proposal": "'VCP (Minervini)' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
       "severity": "info",
@@ -130,13 +135,13 @@
     {
       "severity": "info",
       "area": "Intraday: check 'Worth the risk?'",
-      "observation": "Win rate 35.5% when it passes vs 53.7% when it fails (edge -18pts) \u2014 it's not separating winners. Expected for a payoff check \u2014 it's judged on expectancy (size of wins), not hit rate.",
+      "observation": "Win rate 35.7% when it passes vs 53.7% when it fails (edge -18pts) \u2014 it's not separating winners. Expected for a payoff check \u2014 it's judged on expectancy (size of wins), not hit rate.",
       "proposal": "Leave 'Worth the risk?' as-is; the win-rate loop is held off it on purpose."
     },
     {
       "severity": "info",
       "area": "Intraday: check 'Reward:risk worth it?'",
-      "observation": "Win rate 35.5% when it passes vs 53.7% when it fails (edge -18pts) \u2014 it's not separating winners. Expected for a payoff check \u2014 it's judged on expectancy (size of wins), not hit rate.",
+      "observation": "Win rate 35.7% when it passes vs 53.7% when it fails (edge -18pts) \u2014 it's not separating winners. Expected for a payoff check \u2014 it's judged on expectancy (size of wins), not hit rate.",
       "proposal": "Leave 'Reward:risk worth it?' as-is; the win-rate loop is held off it on purpose."
     },
     {
@@ -148,23 +153,23 @@
     {
       "severity": "info",
       "area": "timing",
-      "observation": "Timing separates outcomes: after an FTD the index averaged +2.65% vs +0.43% after a correction (10d).",
+      "observation": "Timing separates outcomes: after an FTD the index averaged +2.65% vs +0.42% after a correction (10d).",
       "proposal": "The FTD/distribution gate is predictive \u2014 keep it blocking new longs in a confirmed correction."
     }
   ],
-  "n_actions": 0,
+  "n_actions": 1,
   "self_review": [
     {
       "kind": "trend",
       "scope": "intraday",
-      "delta": -5.0,
-      "text": "intraday: last-7d win rate 40.5% vs prior 45.5% (-5pts) \u2014 deteriorating."
+      "delta": -5.2,
+      "text": "intraday: last-7d win rate 41.8% vs prior 47.0% (-5pts) \u2014 deteriorating."
     }
   ],
   "self_confidence": {
     "graded": 0,
     "improved": 0,
-    "pending": 0,
+    "pending": 1,
     "hit_rate": null,
     "basis": "per-bucket win rate on trades closed after each action vs before (\u00b13pt dead-band)"
   }
