@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-12 03:12 GMT",
+  "generated_at": "2026-11-13 02:44 GMT",
   "buckets": {
     "daily": {
       "label": "Daily / swing",
@@ -32,14 +32,14 @@
     "intraday": {
       "label": "Intraday",
       "stats": {
-        "logged": 13491,
-        "resolved": 13439,
-        "decided": 13309,
-        "open": 52,
-        "win_rate": 44.9,
+        "logged": 13549,
+        "resolved": 13511,
+        "decided": 13381,
+        "open": 38,
+        "win_rate": 44.8,
         "by_regime": {
           "Risk-on": {
-            "n": 5315,
+            "n": 5387,
             "win_rate": 44.8
           },
           "Neutral": {
@@ -53,7 +53,7 @@
         },
         "streak": {
           "kind": "loss",
-          "n": 5
+          "n": 1
         },
         "learned_weights": {}
       }
@@ -76,12 +76,13 @@
     {
       "severity": "act",
       "area": "setup:vcp",
-      "observation": "VCP (Minervini) edge vs baseline is -0.75% over 10d (452 fires, hit 47.8%).",
+      "observation": "VCP (Minervini) edge vs baseline is -0.77% over 10d (453 fires, hit 47.7%).",
       "proposal": "'VCP (Minervini)' is lagging the market on walk-forward \u2014 consider retiring it or cutting its conviction weight; confirm against realized trades before removing.",
       "history": {
-        "times_raised": 1,
+        "times_raised": 2,
         "since": "2026-11-12",
-        "status": "just flagged"
+        "after_n": 0,
+        "status": "too soon \u2014 not enough trades have closed since it was flagged"
       }
     },
     {
@@ -92,14 +93,8 @@
     },
     {
       "severity": "watch",
-      "area": "Intraday: streak",
-      "observation": "5 resolved losses in a row.",
-      "proposal": "Confirm the no-trade / drawdown guards are doing their job; consider a pause."
-    },
-    {
-      "severity": "watch",
       "area": "setup:burst",
-      "observation": "Momentum Burst edge vs baseline is -0.02% over 10d (1643 fires, hit 51.5%).",
+      "observation": "Momentum Burst edge vs baseline is -0.02% over 10d (1650 fires, hit 51.6%).",
       "proposal": "'Momentum Burst' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
@@ -162,8 +157,8 @@
     {
       "kind": "trend",
       "scope": "intraday",
-      "delta": -5.2,
-      "text": "intraday: last-7d win rate 41.8% vs prior 47.0% (-5pts) \u2014 deteriorating."
+      "delta": -8.3,
+      "text": "intraday: last-7d win rate 38.1% vs prior 46.4% (-8pts) \u2014 deteriorating."
     }
   ],
   "self_confidence": {
