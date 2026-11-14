@@ -1691,6 +1691,24 @@
           "decided": 0
         }
       }
+    },
+    {
+      "ts": "2026-11-14 02:34 GMT",
+      "date": "2026-11-14",
+      "buckets": {
+        "daily": {
+          "win_rate": 40.2,
+          "decided": 1165
+        },
+        "intraday": {
+          "win_rate": 44.9,
+          "decided": 13417
+        },
+        "orb": {
+          "win_rate": null,
+          "decided": 0
+        }
+      }
     }
   ],
   "ledger": {
@@ -1739,8 +1757,8 @@
     "setup:vcp": {
       "first_seen": "2026-11-12",
       "first_wr": null,
-      "times": 2,
-      "last_seen": "2026-11-13"
+      "times": 3,
+      "last_seen": "2026-11-14"
     }
   }
 }
