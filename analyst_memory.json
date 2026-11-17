@@ -1709,6 +1709,24 @@
           "decided": 0
         }
       }
+    },
+    {
+      "ts": "2026-11-17 04:40 GMT",
+      "date": "2026-11-17",
+      "buckets": {
+        "daily": {
+          "win_rate": 40.2,
+          "decided": 1165
+        },
+        "intraday": {
+          "win_rate": 44.9,
+          "decided": 13444
+        },
+        "orb": {
+          "win_rate": null,
+          "decided": 0
+        }
+      }
     }
   ],
   "ledger": {
@@ -1729,12 +1747,6 @@
       "first_wr": 47.0,
       "times": 10,
       "last_seen": "2026-07-22"
-    },
-    "Daily / swing: check 'Sector trending right?'": {
-      "first_seen": "2026-07-10",
-      "first_wr": 47.0,
-      "times": 7,
-      "last_seen": "2026-07-17"
     },
     "Daily / swing: check 'Liquid enough to trade?'": {
       "first_seen": "2026-07-20",
@@ -1757,8 +1769,8 @@
     "setup:vcp": {
       "first_seen": "2026-11-12",
       "first_wr": null,
-      "times": 3,
-      "last_seen": "2026-11-14"
+      "times": 4,
+      "last_seen": "2026-11-17"
     }
   }
 }
