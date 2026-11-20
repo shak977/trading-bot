@@ -1,8 +1,8 @@
 {
- "generated": "2026-11-19 03:44 GMT",
+ "generated": "2026-11-20 03:38 GMT",
  "counts": {
   "CRITICAL": 0,
-  "WARN": 2,
+  "WARN": 3,
   "INFO": 9
  },
  "findings": [
@@ -11,6 +11,12 @@
    "code": "ANTI_PREDICTIVE_GATE",
    "message": "\"Retail buzz?\" is anti-predictive (-13pt win delta, n=226) but still appears in decision logic \u2014 verify it isn't gating trades.",
    "evidence": "scanner.py:1095"
+  },
+  {
+   "severity": "WARN",
+   "code": "STRATEGY_NEGATIVE",
+   "message": "Strategy 'Dip buy (RSI-2)' has negative expectancy (-0.15%, n=140) under the live exit model \u2014 consider retiring it.",
+   "evidence": ""
   },
   {
    "severity": "WARN",

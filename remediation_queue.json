@@ -1,13 +1,26 @@
 {
- "generated": "2026-11-19 03:44 GMT",
- "n_findings": 11,
+ "generated": "2026-11-20 03:38 GMT",
+ "n_findings": 12,
  "counts": {
-  "proposals": 1,
+  "proposals": 2,
   "auto_fixed": 0,
   "held": 4,
   "no_action": 6
  },
  "proposals": [
+  {
+   "code": "STRATEGY_NEGATIVE",
+   "severity": "WARN",
+   "message": "Strategy 'Dip buy (RSI-2)' has negative expectancy (-0.15%, n=140) under the live exit model \u2014 consider retiring it.",
+   "evidence": "",
+   "tier": "RISKY",
+   "why_tier": "removes/keeps a strategy in the panel",
+   "verdict": "confirmed",
+   "proof": "backtest expectancy -0.15% over n=140 under the live exit model",
+   "confidence": "high",
+   "seen": "2026-11-20 03:38 GMT",
+   "outcome": "PROPOSED \u2014 needs your approval (touches trading logic)"
+  },
   {
    "code": "CONVICTION_INVERTED",
    "severity": "INFO",
@@ -18,7 +31,7 @@
    "verdict": "confirmed",
    "proof": "High 39.3% (n=619) vs Medium 53.8% (n=400); meta-label AUC 0.677 is a validated alternative",
    "confidence": "high",
-   "seen": "2026-11-19 03:44 GMT",
+   "seen": "2026-11-20 03:38 GMT",
    "outcome": "PROPOSED \u2014 needs your approval (touches trading logic)"
   }
  ],
@@ -34,8 +47,21 @@
    "verdict": "insufficient_data",
    "proof": "no empirical test defined for this code",
    "confidence": "low",
-   "seen": "2026-11-19 03:44 GMT",
+   "seen": "2026-11-20 03:38 GMT",
    "outcome": "held (insufficient_data)"
+  },
+  {
+   "code": "STRATEGY_NEGATIVE",
+   "severity": "WARN",
+   "message": "Strategy 'Dip buy (RSI-2)' has negative expectancy (-0.15%, n=140) under the live exit model \u2014 consider retiring it.",
+   "evidence": "",
+   "tier": "RISKY",
+   "why_tier": "removes/keeps a strategy in the panel",
+   "verdict": "confirmed",
+   "proof": "backtest expectancy -0.15% over n=140 under the live exit model",
+   "confidence": "high",
+   "seen": "2026-11-20 03:38 GMT",
+   "outcome": "PROPOSED \u2014 needs your approval (touches trading logic)"
   },
   {
    "code": "AUTO_WEAK_COHORT",
@@ -47,7 +73,7 @@
    "verdict": "insufficient_data",
    "proof": "cohort n=48 \u2014 too small to act on",
    "confidence": "low",
-   "seen": "2026-11-19 03:44 GMT",
+   "seen": "2026-11-20 03:38 GMT",
    "outcome": "held (insufficient_data)"
   },
   {
@@ -60,7 +86,7 @@
    "verdict": "n/a",
    "proof": "informational \u2014 no action required",
    "confidence": "n/a",
-   "seen": "2026-11-19 03:44 GMT",
+   "seen": "2026-11-20 03:38 GMT",
    "outcome": "no action needed"
   },
   {
@@ -73,7 +99,7 @@
    "verdict": "n/a",
    "proof": "informational \u2014 no action required",
    "confidence": "n/a",
-   "seen": "2026-11-19 03:44 GMT",
+   "seen": "2026-11-20 03:38 GMT",
    "outcome": "no action needed"
   },
   {
@@ -86,7 +112,7 @@
    "verdict": "n/a",
    "proof": "informational \u2014 no action required",
    "confidence": "n/a",
-   "seen": "2026-11-19 03:44 GMT",
+   "seen": "2026-11-20 03:38 GMT",
    "outcome": "no action needed"
   },
   {
@@ -99,7 +125,7 @@
    "verdict": "n/a",
    "proof": "informational \u2014 no action required",
    "confidence": "n/a",
-   "seen": "2026-11-19 03:44 GMT",
+   "seen": "2026-11-20 03:38 GMT",
    "outcome": "no action needed"
   },
   {
@@ -112,7 +138,7 @@
    "verdict": "confirmed",
    "proof": "High 39.3% (n=619) vs Medium 53.8% (n=400); meta-label AUC 0.677 is a validated alternative",
    "confidence": "high",
-   "seen": "2026-11-19 03:44 GMT",
+   "seen": "2026-11-20 03:38 GMT",
    "outcome": "PROPOSED \u2014 needs your approval (touches trading logic)"
   },
   {
@@ -125,7 +151,7 @@
    "verdict": "n/a",
    "proof": "informational \u2014 no action required",
    "confidence": "n/a",
-   "seen": "2026-11-19 03:44 GMT",
+   "seen": "2026-11-20 03:38 GMT",
    "outcome": "no action needed"
   },
   {
@@ -138,7 +164,7 @@
    "verdict": "insufficient_data",
    "proof": "no empirical test defined for this code",
    "confidence": "low",
-   "seen": "2026-11-19 03:44 GMT",
+   "seen": "2026-11-20 03:38 GMT",
    "outcome": "held (insufficient_data)"
   },
   {
@@ -151,7 +177,7 @@
    "verdict": "insufficient_data",
    "proof": "no empirical test defined for this code",
    "confidence": "low",
-   "seen": "2026-11-19 03:44 GMT",
+   "seen": "2026-11-20 03:38 GMT",
    "outcome": "held (insufficient_data)"
   },
   {
@@ -164,7 +190,7 @@
    "verdict": "n/a",
    "proof": "informational \u2014 no action required",
    "confidence": "n/a",
-   "seen": "2026-11-19 03:44 GMT",
+   "seen": "2026-11-20 03:38 GMT",
    "outcome": "no action needed"
   }
  ]
