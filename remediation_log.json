@@ -4967,5 +4967,88 @@
     "outcome": "no action needed"
    }
   ]
+ },
+ {
+  "run": "2026-11-25 04:58 GMT",
+  "counts": {
+   "proposals": 2,
+   "auto_fixed": 0,
+   "held": 4,
+   "no_action": 6
+  },
+  "items": [
+   {
+    "code": "ANTI_PREDICTIVE_GATE",
+    "tier": "RISKY",
+    "verdict": "insufficient_data",
+    "outcome": "held (insufficient_data)"
+   },
+   {
+    "code": "STRATEGY_NEGATIVE",
+    "tier": "RISKY",
+    "verdict": "confirmed",
+    "outcome": "PROPOSED \u2014 needs your approval (touches trading logic)"
+   },
+   {
+    "code": "AUTO_WEAK_COHORT",
+    "tier": "RISKY",
+    "verdict": "insufficient_data",
+    "outcome": "held (insufficient_data)"
+   },
+   {
+    "code": "ANTI_PREDICTIVE_METRIC",
+    "tier": "SAFE",
+    "verdict": "n/a",
+    "outcome": "no action needed"
+   },
+   {
+    "code": "ANTI_PREDICTIVE_METRIC",
+    "tier": "SAFE",
+    "verdict": "n/a",
+    "outcome": "no action needed"
+   },
+   {
+    "code": "ANTI_PREDICTIVE_METRIC",
+    "tier": "SAFE",
+    "verdict": "n/a",
+    "outcome": "no action needed"
+   },
+   {
+    "code": "ANTI_PREDICTIVE_METRIC",
+    "tier": "SAFE",
+    "verdict": "n/a",
+    "outcome": "no action needed"
+   },
+   {
+    "code": "CONVICTION_INVERTED",
+    "tier": "RISKY",
+    "verdict": "confirmed",
+    "outcome": "PROPOSED \u2014 needs your approval (touches trading logic)"
+   },
+   {
+    "code": "CONVICTION_FALLBACK_OK",
+    "tier": "SAFE",
+    "verdict": "n/a",
+    "outcome": "no action needed"
+   },
+   {
+    "code": "UNUSED_CAPABILITY",
+    "tier": "RISKY",
+    "verdict": "insufficient_data",
+    "outcome": "held (insufficient_data)"
+   },
+   {
+    "code": "AUTO_BLIND_SPOTS",
+    "tier": "SAFE",
+    "verdict": "insufficient_data",
+    "outcome": "held (insufficient_data)"
+   },
+   {
+    "code": "AUTO_SWEEP_COVERAGE",
+    "tier": "SAFE",
+    "verdict": "n/a",
+    "outcome": "no action needed"
+   }
+  ]
  }
 ]
