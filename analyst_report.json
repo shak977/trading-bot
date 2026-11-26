@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-25 04:57 GMT",
+  "generated_at": "2026-11-26 04:14 GMT",
   "buckets": {
     "daily": {
       "label": "Daily / swing",
@@ -79,7 +79,7 @@
       "observation": "VCP (Minervini) edge vs baseline is -0.81% over 10d (451 fires, hit 47.2%).",
       "proposal": "'VCP (Minervini)' is lagging the market on walk-forward \u2014 consider retiring it or cutting its conviction weight; confirm against realized trades before removing.",
       "history": {
-        "times_raised": 10,
+        "times_raised": 11,
         "since": "2026-11-12",
         "after_n": 0,
         "status": "too soon \u2014 not enough trades have closed since it was flagged"
@@ -100,7 +100,7 @@
     {
       "severity": "watch",
       "area": "setup:burst",
-      "observation": "Momentum Burst edge vs baseline is -0.02% over 10d (1648 fires, hit 51.8%).",
+      "observation": "Momentum Burst edge vs baseline is -0.02% over 10d (1652 fires, hit 51.7%).",
       "proposal": "'Momentum Burst' edge is marginal \u2014 keep watching; don't lean on it yet."
     },
     {
@@ -154,7 +154,7 @@
     {
       "severity": "info",
       "area": "timing",
-      "observation": "Timing separates outcomes: after an FTD the index averaged +2.82% vs +0.25% after a correction (10d).",
+      "observation": "Timing separates outcomes: after an FTD the index averaged +2.82% vs +0.23% after a correction (10d).",
       "proposal": "The FTD/distribution gate is predictive \u2014 keep it blocking new longs in a confirmed correction."
     }
   ],
@@ -163,8 +163,8 @@
     {
       "kind": "trend",
       "scope": "intraday",
-      "delta": -1.4,
-      "text": "intraday: last-7d win rate 39.5% vs prior 40.9% (-1pts) \u2014 steady."
+      "delta": 2.8,
+      "text": "intraday: last-7d win rate 39.0% vs prior 36.2% (+3pts) \u2014 steady."
     }
   ],
   "self_confidence": {
