@@ -1168933,10 +1168933,14 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
+    "status": "win",
     "high_water": 15.22,
     "t1_hit": true,
-    "t1_date": "2026-11-27"
+    "t1_date": "2026-11-27",
+    "exit": 14.677511748499446,
+    "exit_date": "2026-11-27",
+    "return_pct": 7.12,
+    "days_held": -1
   },
   {
     "id": "ALL:2026-11-27",
@@ -1169192,10 +1169196,14 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "illiquid",
-    "status": "open",
+    "status": "win",
     "high_water": 282.94,
     "t1_hit": true,
-    "t1_date": "2026-11-27"
+    "t1_date": "2026-11-27",
+    "exit": 278.90802295701025,
+    "exit_date": "2026-11-27",
+    "return_pct": 3.38,
+    "days_held": -1
   },
   {
     "id": "AIG:2026-11-27",
@@ -1175357,6 +1175365,92 @@
     "regime": "Neutral",
     "regime_score": null,
     "liquidity_tier": "thin",
+    "status": "open"
+  },
+  {
+    "id": "HYMC:2026-11-27",
+    "symbol": "HYMC",
+    "name": "",
+    "direction": "LONG",
+    "action": "BUY",
+    "p_win": null,
+    "alerted": false,
+    "advised_date": "2026-11-27",
+    "advised_ts": "2026-11-27T21:51:50.658922",
+    "entry": 15.76,
+    "stop": 15.41,
+    "target": 17.12,
+    "rr": 4.0,
+    "t1": 16.44,
+    "t1_frac": 0.5,
+    "conviction": "High",
+    "conviction_pct": 75,
+    "checks": [
+      {
+        "label": "Is it trending up?",
+        "status": "pass"
+      },
+      {
+        "label": "Leading the market?",
+        "status": "pass"
+      },
+      {
+        "label": "Room to rise?",
+        "status": "warn"
+      },
+      {
+        "label": "Are people trading it?",
+        "status": "pass"
+      },
+      {
+        "label": "Worth the risk?",
+        "status": "pass"
+      },
+      {
+        "label": "Not chasing?",
+        "status": "pass"
+      },
+      {
+        "label": "Calm enough?",
+        "status": "pass"
+      },
+      {
+        "label": "Good timing?",
+        "status": "pass"
+      },
+      {
+        "label": "Momentum building?",
+        "status": "warn"
+      },
+      {
+        "label": "Worked here before?",
+        "status": "fail"
+      },
+      {
+        "label": "Strategies agree?",
+        "status": "pass"
+      },
+      {
+        "label": "Liquid enough to trade?",
+        "status": "fail"
+      },
+      {
+        "label": "Reward:risk worth it?",
+        "status": "pass"
+      },
+      {
+        "label": "VCP base setup?",
+        "status": "warn"
+      },
+      {
+        "label": "Momentum burst?",
+        "status": "warn"
+      }
+    ],
+    "tv_align": null,
+    "regime": "Neutral",
+    "regime_score": null,
+    "liquidity_tier": "illiquid",
     "status": "open"
   }
 ]
